@@ -1,26 +1,43 @@
 #ifndef MOOSE_GZIP_HH
 #define MOOSE_GZIP_HH
 
+G_BEGIN_DECLS
+
 #include <stdbool.h>
 
 #define MOOSE_GZIP_ENDING ".zip"
 
 /**
- * @brief Compresses file_path to file_path.gz
+ * SECTION: moose-misc-gzip:
+ * @short_description: `gzip/gunzip` like utility-functions.
  *
- * Uses zlib
+ * These two functions work like the standard unix gunzip/gzip tools.
+ * They take a path to a file which has no .zip ending and compresses it.
+ * The compressed file will be written to file_path.zip. The original file is 
+ * removed.
+ */
+
+
+/**
+ * moose_gzip:
+ * @file_path: Path to the file which should be zipped.
  *
- * @return true on success
+ * Returns: True when the original file was removed. 
  */
 bool moose_gzip(const char * file_path);
 
 /**
- * @brief Inflates file_path to file_path - gz
+ * moose_gzip:
+ * @file_path: Path to the file which should be unzipped.
  *
- * Uses zlib
+ * The file_path needs a .gzip ending, otherwise it is ignored and
+ * False is returned.
  *
- * @return  true on success
+ * Returns: True when the filepath could've been unzipped, and the .gzip file
+ *          was removed.
  */
 bool moose_gunzip(const char * file_path);
+
+G_END_DECLS
 
 #endif /* end of include guard: MOOSE_GZIP_HH */

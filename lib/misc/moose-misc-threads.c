@@ -150,6 +150,14 @@ static void moose_threads_class_init(MooseThreadsClass * klass) {
                                     )
                                    );
 
+    /**
+     * MooseThreads:thread:
+     * @data: Arbitary pointer passed to moose_threads_push()
+     *
+     * Emitted once the thread was succesfully started.
+     *
+     * Returns: The result of the thread.
+     */
     SIGNALS[SIGNAL_THREAD] = g_signal_new("thread",
                                           G_TYPE_FROM_CLASS(klass),
                                           G_SIGNAL_RUN_LAST,
@@ -159,6 +167,12 @@ static void moose_threads_class_init(MooseThreadsClass * klass) {
                                           G_TYPE_POINTER /* param_types */
                                          );
 
+    /**
+     * MooseThreads:deliver:
+     * @result: Arbitary pointer returned from the "thread" signal
+     *
+     * Emitted once the thread result was dispatched to the main-thread.
+     */
     SIGNALS[SIGNAL_DELIVER] = g_signal_new("deliver",
                                            G_TYPE_FROM_CLASS(klass),
                                            G_SIGNAL_RUN_LAST,

@@ -6,7 +6,11 @@
 
 G_BEGIN_DECLS
 
-/* Helper for starting long jobs (like metadata retrieval) in native threads.
+/**
+ * SECTION: moose-misc-threads
+ * @short_description: Easily dispatch time-consuming tasks in other threads.
+ *
+ * Helper for starting long jobs (like metadata retrieval) in native threads.
  * The finished result gets pushed into a queue. The queue is emptied
  * (after a short amount of time) on the mainthread - which is needed to protect
  * the python part from race conditions.
@@ -44,39 +48,40 @@ typedef struct _MooseThreadsClass {
 } MooseThreadsClass;
 
 /**
- * @brief Create a new MetadataThreads Pool.
+ * moose_threads_new:
+ * @max_threads: Maximum number of threads to spawn on demand.
  *
- * @param max_threads Maximum number of threads to instance.
- *
- * @return
+ * Returns: A newly allocated threads-helper, with a refcount of 1
  */
 MooseThreads * moose_threads_new(int max_threads);
 
 /**
- * @brief Push a new job to the Pool.
+ * moose_threads_push:
+ * @self: a #MooseThreads
+ * @data: An arbitary pointer. No ownership is taken.
  *
- * @param self The Pool to call on.
- * @param data The data package to pass in.
+ * Push some data to a thread pool. A thread is started and the 
+ * data is delivered to it. Use the 'thread' signal to connect to it 
+ * and to pass aditional per-signal user-data.
  */
 void moose_threads_push(MooseThreads * self, void * data);
 
 /**
- * @brief This is useful for pushing individual results to the mainloop early.
- *
- * For usescases when the results come in one by one with some delay inbetween.
- * To be called from the thread-callback.
- *
- * When the result arrives, the deliver callback is called.
- *
- * @param self The Pool.
- * @param result the data to forward to the mainthread.
+ * moose_threads_forward:
+ * @self: a #MooseThreads
+ * @result: An arbitary pointer. No ownership is taken.
+ * 
+ * Forward results to the main-thread. You're supposed to call this 
+ * function from a thread. Once the result arrives on the main-thread,
+ * the 'dispatch' signal is called.
  */
 void moose_threads_forward(MooseThreads * self, void * result);
 
 /**
- * @brief Free the Pool.
+ * moose_threads_unref:
+ * @self: a #MooseThreads
  *
- * @param self Well, guess.
+ * Unrefs the #MooseThreads
  */
 void moose_threads_unref(MooseThreads * self);
 
