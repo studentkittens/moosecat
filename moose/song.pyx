@@ -1,4 +1,4 @@
-cimport moose as c
+cimport binds as c
 
 '''
 Song is a Python-Level Wrapper aroung libmpdclient's mpd_song.

@@ -1,4 +1,4 @@
-cimport moose as c
+cimport moose.binds as c
 
 cdef status_from_ptr(c.mpd_status * ptr):
     'Instance a new Status() with the underlying mpd_status ptr'
@@ -124,12 +124,12 @@ cdef class Status:
     #  Audio Properties  #
     ######################
 
-    cdef mpd_audio_format * _audio(self):
-        return <mpd_audio_format*>mpd_status_get_audio_format(self._p())
+    cdef c.mpd_audio_format * _audio(self):
+        return <c.mpd_audio_format*> c.mpd_status_get_audio_format(self._p())
 
     property kbit_rate:
         def __get__(self):
-            c.mpd_status_get_queue_version(self._p())
+            c.mpd_status_get_kbit_rate(self._p())
 
     property audio_sample_rate:
         def __get__(self):

@@ -1,0 +1,2 @@
+* Make Status retrieval via timeout possible.
+* Write a mpc like client for the commandline (moocat)

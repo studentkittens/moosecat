@@ -66,6 +66,8 @@ int main (int argc, char * argv[])
     mc_misc_register_posix_signal (client);
     mc_proto_signal_add (client, "client-event", print_event, NULL);
 
+    mc_proto_status_timer_register (client, 500, true);
+
     mc_StoreSettings * settings = mc_store_settings_new ();
     settings->use_memory_db = FALSE;
     settings->use_compression = FALSE;
@@ -191,7 +193,6 @@ int main (int argc, char * argv[])
             }
             mc_stack_free (song_buf);
 
-            puts ("");
         } else if (g_strcmp0 (argv[1], "mainloop") == 0) {
             puts ("");
             GMainLoop * loop = g_main_loop_new (NULL, true);

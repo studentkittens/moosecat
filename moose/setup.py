@@ -8,24 +8,7 @@ try:
     with open('README.txt') as file:
         long_description = file.read()
 except IOError:
-    long_description = '(N/A)'
-
-
-'''
-def pkgconfig(*packages, **kw):
-    flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
-    for token in subprocess.getoutput("pkg-config --libs --cflags %s" % ' '.join(packages)).split():
-        if flag_map.get(token[:2]):
-            kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
-        else: # throw others to extra_link_args
-            kw.setdefault('extra_link_args', []).append(token)
-
-        for k, v in kw.items(): # remove duplicated
-            kw[k] = list(set(v))
-
-    print(kw)
-    return kw
-'''
+    long_description = '(N/A) [No README]'
 
 def pkgconfig(*packages, **kw):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
@@ -42,11 +25,10 @@ moose_conf = {
 }
 
 moose_conf = pkgconfig('glib-2.0', **moose_conf)
-print(moose_conf)
 
 setup(
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("moose", ["statistics.pyx"], **moose_conf)],
+    ext_modules = [Extension("moose", ["status.pyx"], **moose_conf)],
     name='moose',
     version='0.0.1',
     author='Christopher Pahl',

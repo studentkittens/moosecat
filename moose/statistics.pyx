@@ -1,4 +1,4 @@
-cimport moose as c
+cimport binds as c
 
 cdef statistics_from_ptr(c.mpd_stats * ptr):
     return Statistics()._init(ptr)
