@@ -83,21 +83,15 @@ GType moose_song_get_type(void);
  *
  * Allocates a new #MooseSong
  *
- * Return value: a new #MooseSong.
+ * Return value: a new empty #MooseSong.
  */
 MooseSong * moose_song_new(void);
-
-/* Create a MooseSong from a mpd_song */
-MooseSong * moose_song_new_from_struct(struct mpd_song * song);
-
-/* Convert an existing MooseSong from a mpd_song */
-void moose_song_convert(MooseSong * self, struct mpd_song * song);
 
 /**
  * moose_song_unref:
  * @self: a #MooseSong
  *
- * Unrefs a #MooseSong
+ * Unrefs a #MooseSong. Convinience.
  */
 void moose_song_unref(MooseSong * self);
 

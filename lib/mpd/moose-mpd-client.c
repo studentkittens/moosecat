@@ -4,6 +4,7 @@
 
 #include "moose-mpd-client.h"
 #include "moose-status-private.h"
+#include "moose-song-private.h"
 
 #include "../misc/moose-misc-job-manager.h"
 #include "../moose-config.h"
