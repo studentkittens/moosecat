@@ -1,5 +1,5 @@
-#ifndef DB_GUARD_H
-#define DB_GUARD_H
+#ifndef MOOSE_STORE_H
+#define MOOSE_STORE_H
 
 #include "../mpd/moose-mpd-client.h"
 #include "moose-store-playlist.h"
@@ -276,4 +276,4 @@ GPtrArray * moose_store_get_loaded_playlists(MooseStore * self);
 
 G_END_DECLS
 
-#endif /* end of include guard: DB_GUARD_H */
+#endif /* end of include guard: MOOSE_STORE_H */

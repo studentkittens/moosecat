@@ -1,22 +1,23 @@
-#ifndef MOOSE_DB_COMPLETION_H
-#define MOOSE_DB_COMPLETION_H
-
-G_BEGIN_DECLS
+#ifndef MOOSE_STORE_COMPLETION_H
+#define MOOSE_STORE_COMPLETION_H
 
 /**
- * SECTION: moose-status
- * @short_description: Wrapper around Statusdata.
+ * SECTION: moose-store-completion
+ * @short_description: Utility for completing incomplete strings to their full version. 
  *
- * This is similar to struct moose_song from libmpdclient,
- * but has setter for most attributes and is reference counted.
- * Setters allow a faster deserialization from the disk.
- * Reference counting allows sharing the instances without the fear
- * of deleting it while the user still uses it.
+ * This uses internally Radix-Tree-Caches to make this operation very efficient.
+ * The caches will be created on their first access, so no memory is wasted when
+ * you do not use this feature. If the store changes, all caches are
+ * invalidated.
+ *
+ * The Store offers with moose_store_get_completion() a convinient instancing
+ * method for this. 
  */
 
-#include "../mpd/moose-mpd-client.h"
 #include <glib-object.h>
+#include "../mpd/moose-mpd-client.h"
 
+G_BEGIN_DECLS
 /*
  * Type macros.
  */
@@ -46,6 +47,17 @@ typedef struct _MooseStoreCompletionClass {
 
 GType moose_store_completion_get_type(void);
 
+/**
+ * moose_store_completion_lookup:
+ * @self: a #MooseStoreCompletion
+ * @tag: a #MooseTagType
+ * @key: The key to complete for the appropiate tag.
+ *
+ * If there are more than possiblities, the first alphabetically matching is
+ * taken. E.g. when completing "Ab", "Abba" is returned before "Abel".
+ *
+ * Returns: (transfer full): The most matching full version or NULL.
+ */
 char * moose_store_completion_lookup(
     MooseStoreCompletion * self,
     MooseTagType tag,
@@ -62,4 +74,4 @@ void moose_store_completion_unref(MooseStoreCompletion * self);
 
 G_END_DECLS
 
-#endif /* end of include guard: MOOSE_DB_COMPLETION_H */
+#endif /* end of include guard: MOOSE_STORE_COMPLETION_H */

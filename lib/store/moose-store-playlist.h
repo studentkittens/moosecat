@@ -5,7 +5,8 @@
  * SECTION: moose-store-playlist
  * @short_description: Playlist-Class, a container for Songs.
  *
- * This basically is a wrapper around #GPtrArray.
+ * This basically is a wrapper around #GPtrArray, but might be extended
+ * in the future to other Playlist responsibilities.
  */
 
 #include <glib-object.h>
