@@ -1,9 +1,9 @@
 #ifndef MOOSE_GZIP_HH
 #define MOOSE_GZIP_HH
 
-G_BEGIN_DECLS
+#include <glib.h>
 
-#include <stdbool.h>
+G_BEGIN_DECLS
 
 #define MOOSE_GZIP_ENDING ".zip"
 
@@ -24,7 +24,7 @@ G_BEGIN_DECLS
  *
  * Returns: True when the original file was removed. 
  */
-bool moose_gzip(const char * file_path);
+gboolean moose_gzip(const char * file_path);
 
 /**
  * moose_gzip:
@@ -36,7 +36,7 @@ bool moose_gzip(const char * file_path);
  * Returns: True when the filepath could've been unzipped, and the .gzip file
  *          was removed.
  */
-bool moose_gunzip(const char * file_path);
+gboolean moose_gunzip(const char * file_path);
 
 G_END_DECLS
 

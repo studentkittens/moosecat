@@ -1,4 +1,5 @@
 #include "moose-mpd-client.h"
+#include "moose-mpd-client-private.h"
 #include "pm/moose-mpd-cmnd-core.h"
 #include "pm/moose-mpd-idle-core.h"
 

@@ -1,6 +1,30 @@
 #ifndef MOOSE_CLIENT_H
 #define MOOSE_CLIENT_H
 
+/**
+ * SECTION: moose-mpd-client
+ * @short_description: Implements an easy-to-use asynchronous, performat MPD-Client.
+ *
+ * The #MooseClient is the main entry point to libmoosecat. If features a
+ * GObject-based interface to MPD. Clients can connect to one Host/Port at a time.
+ * Once a connection (demanded via moose_client_connect()) is established, the
+ * MooseClient:connectivity signal is called. 
+ *
+ * If the state of the server changes, the 'client-event' is changed with the
+ * appropiate event. Once the signal handler is called, it is guaranteed, that
+ * a #MooseStatus can be retrieved with moose_client_ref_status(). 
+ *
+ * Commands can be asynchronously send to the server via the moose_client_send()
+ * method. If you're interested if the command could be executed correctly,
+ * you can wait's on it's execution via moose_client_recv, or use
+ * moose_client_run in the first place. Normally this is not needed though,
+ * since most error handling and logging is done for you.
+ *
+ * The send-mechanism can be used together with command-lists. 
+ * A bunch of commands can be queued and executed at once. This is useful in
+ * particular when executing many commands (like 'add' at once)
+ */
+
 /* External */
 #include <glib.h>
 #include <mpd/client.h>
@@ -10,6 +34,11 @@
 
 G_BEGIN_DECLS
 
+/**
+ * MooseIdle:
+ *
+ * An enumeration of all possible events.
+ */
 typedef enum MooseIdle {
     /** song database has been updated*/
     MOOSE_IDLE_DATABASE = MPD_IDLE_DATABASE,
@@ -54,6 +83,11 @@ typedef enum MooseIdle {
     MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3
 } MooseIdle;
 
+/**
+ * MooseProtocolType:
+ *
+ * The Protocols that can be used with moose_client_new()
+ */
 typedef enum MooseProtocolType {
     MOOSE_PROTOCOL_IDLE,
     MOOSE_PROTOCOL_COMMAND,
@@ -315,7 +349,7 @@ long moose_client_send_single(MooseClient * self, const char * command_name);
 /**
  * moose_client_send_variant:
  * @self: a #MooseClient
- * @variant:
+ * @variant: a #GVariant that can be used.
  *
  * Returns: A unique job-id. It can be used to wait on and fetch the result.
  */
@@ -340,8 +374,6 @@ gboolean moose_client_recv(MooseClient * self, long job_id);
  * @self: a #MooseClient
  * @command: The command to run.
  *
- * // TODO: Make a variant version or a va_args version. Or whatever.
- *
  * Shortcut for moose_client_send() + moose_client_recv()
  * It's usually enough to muse moose_client_send() since it's not important
  * if the command worked.
@@ -349,7 +381,27 @@ gboolean moose_client_recv(MooseClient * self, long job_id);
  * Returns: True if the command ran succesfully.
  */
 gboolean moose_client_run(MooseClient * self, const char * command);
+
+/**
+ * moose_client_run_single:
+ * @self: a #MooseClient
+ * @command_name: The single command to run.
+ *
+ * Send a single command like "pause", this is purely for convinience.
+ * (Example: moose_client_run_single(client, "pause"))
+ *
+ * Returns: True if the command ran succesfully.
+ */
 gboolean moose_client_run_single(MooseClient * self, const char * command_name);
+
+/**
+ * moose_client_run_variant:
+ * @self: a #MooseClient
+ * @variant: The arguments that shall be executed, with the command-name as
+ *           first argument.
+ *
+ * Returns: True if the command ran succesfully.
+ */
 gboolean moose_client_run_variant(MooseClient * self, GVariant * variant);
 
 /**
@@ -393,18 +445,6 @@ void moose_client_begin(MooseClient * self);
  * Returns: a job-id that can be used to wait upon it's execution.
  */
 long moose_client_commit(MooseClient * self);
-
-gboolean moose_client_check_error(
-    MooseClient * self, struct mpd_connection * cconn
-);
-
-gboolean moose_client_check_error_without_handling(
-    MooseClient * self, struct mpd_connection * cconn
-);
-
-struct mpd_connection * moose_base_connect(
-    MooseClient * self, const char * host, int port, float timeout, char ** err
-);
 
 G_END_DECLS
 

@@ -2,6 +2,7 @@
 #include "../misc/moose-misc-gzip.h"
 #include "../misc/moose-misc-job-manager.h"
 
+#include "../mpd/moose-mpd-client-private.h"
 #include "moose-store.h"
 #include "sqlite3.h"
 

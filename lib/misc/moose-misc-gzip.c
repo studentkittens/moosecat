@@ -10,15 +10,15 @@
 #define CHUNK_SIZE (2 << 14)  /* 32KB */
 
 /*
- * If compress is True:
+ * If compress is TRUE:
  *    Take src as input and write zipped version at dst.
  * Else:
  *    Take src as input, and write unzipped version at dst.
  */
-static bool transform(const char * src, const char * dst, bool compress) {
+static gboolean transform(const char * src, const char * dst, gboolean compress) {
     GError * error = NULL;
     gsize bytes_read = 0;
-    bool result = true;
+    gboolean result = TRUE;
     GConverter * converter = NULL;
     GOutputStream * dst_stream = NULL;
     GInputStream * src_stream = NULL;
@@ -31,7 +31,7 @@ static bool transform(const char * src, const char * dst, bool compress) {
     if (src_stream == NULL) {
         g_printerr("Cannot create input stream: %s\n", error->message);
         g_error_free(error);
-        result = false;
+        result = FALSE;
         goto free_all;
     }
 
@@ -44,7 +44,7 @@ static bool transform(const char * src, const char * dst, bool compress) {
     if (dst_stream == NULL) {
         g_printerr("Cannot create output stream: %s\n", error->message);
         g_error_free(error);
-        result = false;
+        result = FALSE;
         goto free_all;
     }
 
@@ -77,7 +77,7 @@ static bool transform(const char * src, const char * dst, bool compress) {
             g_printerr("Error during writing: %s\n", error->message);
             g_error_free(error);
             error = NULL;
-            result = false;
+            result = FALSE;
             break;
         }
     }
@@ -104,26 +104,26 @@ free_all:
     return result;
 }
 
-bool moose_gzip(const char * file_path) {
+gboolean moose_gzip(const char * file_path) {
     g_assert(file_path != NULL);
-    bool result = false;
+    gboolean result = FALSE;
 
     if (!g_str_has_suffix(file_path, MOOSE_GZIP_ENDING)) {
         char * with_ending = g_strdup_printf("%s%s", file_path, MOOSE_GZIP_ENDING);
-        result = transform(file_path, with_ending, true);
+        result = transform(file_path, with_ending, TRUE);
         g_remove((result) ? file_path : with_ending);
         g_free(with_ending);
     }
     return result;
 }
 
-bool moose_gunzip(const char * file_path) {
+gboolean moose_gunzip(const char * file_path) {
     g_assert(file_path != NULL);
-    bool result = false;
+    gboolean result = FALSE;
 
     if (g_str_has_suffix(file_path, MOOSE_GZIP_ENDING)) {
         char * with_ending = g_strndup(file_path, strlen(file_path) - strlen(MOOSE_GZIP_ENDING));
-        result = transform(file_path, with_ending, false);
+        result = transform(file_path, with_ending, FALSE);
         g_remove((result) ? file_path : with_ending);
         g_free(with_ending);
     }
@@ -141,11 +141,11 @@ int main(int argc, char const * argv[]) {
     }
 
     if (!strcmp(argv[1], "compress")) {
-        if (moose_gzip(argv[2]) == false) {
+        if (moose_gzip(argv[2]) == FALSE) {
             g_printerr("Nope.\n");
         }
     } else if (!strcmp(argv[1], "decompress")) {
-        if (moose_gunzip(argv[2]) == false) {
+        if (moose_gunzip(argv[2]) == FALSE) {
             g_printerr("Nope.\n");
         }
     }
