@@ -37,24 +37,37 @@ typedef struct _MooseStoreClass {
 } MooseStoreClass;
 
 /**
- * @brief Create a new MooseStore.
+ * moose_store_new:
+ * @client: The client that is used to retrieve the database.
+ * 
+ * Creates  a new Store with default options. 
+ * See moose_store_new_full().
  *
- * @param directory the path to the containing dir
- * @param client a connection to operate on.
- *
- * If no db exist yet at this place (assuming it is a valid path),
- * then a new empy is created with a Query-Version of 0.
- * A call to moose_store_update will therefore insert the whole queue to the list.
- *
- * If the db is already created, a call to moose_store_update() will only
- * insert the latest differences (which might be enourmous too,
- * since mpd returns all changes behind a certain ID)
- *
- * The name of the db will me moosecat_$host:$port
- *
- * @return a new MooseStore , free with moose_store_unref()
+ * Returns: A newly allocated store with a refcount of 1.
  */
 MooseStore *moose_store_new(MooseClient *client);
+
+/**
+ * moose_store_new_full:
+ * @client: The client that is used to retrieve the database.
+ * @db_directory: The directory where the zipped db is created in.
+ * @tokenizer: (allow-none): Tokenizer to use or NULL.
+ * @use_memory_db: Cache the database in memory
+ * @use_compression: Compress the database using gzip when writing on disk.
+ * 
+ * The database will be named db_directory/moosecat_${host}:${port}.zip
+ * The .zip ending is only used when @use_compression is True.
+ *
+ * Available tokenizers are: "simple", "porter", "icu". "porter" is the default.
+ *
+ * If @use_memory_db is True, then the whole database is cached in memory.  This
+ * obviously uses a bit more Heapstorage, but allows a little faster lookups. 
+ * The database will be backupped to disk on the appropiate times.
+ * 
+ * Creates  a new Store with default options. 
+ *
+ * Returns: A newly allocated store with a refcount of 1.
+ */
 MooseStore *moose_store_new_full(
     MooseClient *client,
     const char *db_directory,
@@ -63,29 +76,23 @@ MooseStore *moose_store_new_full(
     bool use_compression
 );
 
+/**
+ * moose_store_unref:
+ * @self: (allow-none): a #MoseStore 
+ *
+ * Decrements the reference count of a #MooseStore.
+ */ 
 void moose_store_unref(MooseStore *self);
 
 /**
- * @brief Returns a mpd_song at some index
- *
- * This is effectively only useful on moose_store_dir_select_to_stack
- * (which returns a list of files, prefixed with IDs or -1 in case of a directory)
- *
- * @param self the store to operate on.
- * @param idx the index (0 - moose_store_total_songs())
- *
- * @return an mpd_song. DO NOT FREE!
- */
-MooseSong * moose_store_song_at(MooseStore * self, int idx);
-
-/**
- * @brief Returns the total number of songs stored in the database.
+ * moose_store_total_songs:
+ * @self: a #MooseStore
  *
  * This is basically the same as 'select count(*) from songs;' just faster.
+ * This is usually the same as moose_status_stats_get_number_of_songs().
+ * Used in tests to assert the correct value.
  *
- * @param self the store to operate on.
- *
- * @return a number between 0 and fucktuple.
+ * Returns: The number of rows in the database.
  */
 int moose_store_total_songs(MooseStore * self);
 

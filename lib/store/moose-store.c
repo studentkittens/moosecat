@@ -661,13 +661,6 @@ cleanup:
     return result;
 }
 
-MooseSong * moose_store_song_at(MooseStore * self, int idx) {
-    g_assert(self);
-    g_assert(idx >= 0);
-
-    return (MooseSong *)moose_playlist_at(self->priv->stack, idx);
-}
-
 int moose_store_total_songs(MooseStore * self) {
     g_assert(self);
 
