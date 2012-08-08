@@ -1,0 +1,52 @@
+env = Environment()
+
+try:
+    from build.colorizer import colorizer
+    col = colorizer()
+    col.colorize(env)
+except:
+    print('Cannot load colorizer.py => No colored output.')
+
+def CheckPKGConfig(context, version):
+     context.Message( 'Checking for pkg-config... ' )
+     ret = context.TryAction('pkg-config --atleast-pkgconfig-version=%s' % version)[0]
+     context.Result( ret )
+     return ret
+
+def CheckPKG(context, name):
+     context.Message( 'Checking for %s... ' % name )
+     ret = context.TryAction('pkg-config --exists \'%s\'' % name)[0]
+     context.Result( ret )
+     return ret
+
+# Configuration:
+
+conf = Configure(env, custom_tests = { 'CheckPKGConfig' : CheckPKGConfig,
+                                       'CheckPKG' : CheckPKG })
+
+if not conf.CheckPKGConfig('0.15.0'):
+     print('pkg-config >= 0.15.0 not found.')
+     Exit(1)
+
+if not conf.CheckPKG('libmpdclient'):
+    print('libmpdclient headers not found.')
+    Exit(1)
+
+if not conf.CheckPKG('glib-2.0'):
+    print('GLib Headers/Libs not found.')
+    Exit(1)
+
+# Finish configuration
+
+env = conf.Finish()
+
+# Actually add link/cflags:
+env.ParseConfig('pkg-config --cflags --libs libmpdclient glib-2.0')
+
+# Set up actual program 
+Default(env.Program(target='../bin/core', source=
+    [
+    'mpd/protocol.c',
+    'mpd/protocol/idle_core.c',
+    'main.c',
+    ]))
