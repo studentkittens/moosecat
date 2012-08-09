@@ -12,12 +12,16 @@ int main (void)
     }
     else
     {
+        /* Get the ready connection */
         mpd_connection * c = proto_get (conn);
         g_print ("Got connection: %p\n", c);
+
+        /* Put it back to work */
         proto_put (conn);
 
+        /* Disconnect all */
         proto_disconnect (conn);
         conn = NULL;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
