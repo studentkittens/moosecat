@@ -1,33 +1,35 @@
 #include "protocol.h"
 
-/**
- * @brief Connector using two connections, one for sending, one for events.
- *
- * Sending a command:
- * - send it in the cmnd_con, read the response
- * - wait for incoming events asynchronously on idle_con
- */
-typedef struct {
-  Proto_Connector logic;
-  mpd_connection * cmnd_con;
-  mpd_connection * idle_con;
-} Proto_CmndConnector;
-
 ///////////////////
 
-const char * proto_connect(Proto_Connector * type, const char * host, int port, int timeout)
+const char * proto_connect (Proto_Connector * self, const char * host, int port, int timeout)
 {
-    // Call type's do_connect() method
+    // Call self's do_connect() method
     // It will setup itself basically.
     // return any error that may happened during that.
-
-    return type->do_connect(host, port, timeout);
+    return self->do_connect (self, host, port, timeout);
 }
 
 ///////////////////
 
-mpd_connection * proto_put(Proto_Connector * type)
+void proto_put (Proto_Connector * self)
 {
-    // Return the readily put connection
-    return type->do_put();
+    // Put connection back to event listening
+    self->do_put (self);
+}
+
+///////////////////
+
+mpd_connection * proto_get (Proto_Connector * self)
+{
+    // Return the readily sendable connection
+    return self->do_get (self);
+}
+
+///////////////////
+
+void proto_disconnect (Proto_Connector * self)
+{
+    // Let the connector free itself and disconnect everything
+    self->do_disconnect (self);
 }

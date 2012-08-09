@@ -43,10 +43,13 @@ env = conf.Finish()
 # Actually add link/cflags:
 env.ParseConfig('pkg-config --cflags --libs libmpdclient glib-2.0')
 
+env.Append(CCFLAGS = ['-g', '-Wall', '-W'])
+
 # Set up actual program 
 Default(env.Program(target='../bin/core', source=
     [
     'mpd/protocol.c',
     'mpd/protocol/idle_core.c',
+    'mpd/protocol/cmnd_core.c',
     'main.c',
     ]))

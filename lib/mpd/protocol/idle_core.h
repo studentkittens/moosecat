@@ -1,5 +1,8 @@
 #include "../protocol.h"
 
+#ifndef IDLE_CORE_H
+#define IDLE_CORE_H
+
 /**
  * @brief Connector using only one connection and the idle command.
  *
@@ -10,12 +13,15 @@
  *
  * Used by ncmpc and friends.
  */
-typedef struct {
-  Proto_Connector logic;
-  
-  mpd_connection * con;
-} Proto_IdleConnector;
 
-///////////////////
 
-Proto_IdleConnector * proto_create_idler(void);
+/**
+ * @brief Create an Proto_IdleConnector
+ *
+ * See Proto_IdleConnector for more description.
+ *
+ * @return a newly allocated connector
+ */
+Proto_Connector * proto_create_idler (void);
+
+#endif /* end of include guard: IDLE_CORE_H */
