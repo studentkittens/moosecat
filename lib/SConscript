@@ -1,5 +1,8 @@
 env = Environment()
 
+# Try to load colorizer
+# Make it in a try/except block
+# so version missmatches don't hurt too much
 try:
     from build.colorizer import colorizer
     col = colorizer()
@@ -7,20 +10,21 @@ try:
 except:
     print('Cannot load colorizer.py => No colored output.')
 
+# Helper to check for pkg-config itself
 def CheckPKGConfig(context, version):
      context.Message( 'Checking for pkg-config... ' )
      ret = context.TryAction('pkg-config --atleast-pkgconfig-version=%s' % version)[0]
      context.Result( ret )
      return ret
 
+# Helper to check for certain pkgs using pkg-config
 def CheckPKG(context, name):
      context.Message( 'Checking for %s... ' % name )
      ret = context.TryAction('pkg-config --exists \'%s\'' % name)[0]
      context.Result( ret )
      return ret
 
-# Configuration:
-
+# Make sure they're called
 conf = Configure(env, custom_tests = { 'CheckPKGConfig' : CheckPKGConfig,
                                        'CheckPKG' : CheckPKG })
 
@@ -37,15 +41,15 @@ if not conf.CheckPKG('glib-2.0'):
     Exit(1)
 
 # Finish configuration
-
 env = conf.Finish()
 
 # Actually add link/cflags:
 env.ParseConfig('pkg-config --cflags --libs libmpdclient glib-2.0')
 
+# Make it a high warnlevel, also enable debugging
 env.Append(CCFLAGS = ['-g', '-Wall', '-W'])
 
-# Set up actual program 
+# Set up actual program, and make it the default target
 Default(env.Program(target='../bin/core', source=
     [
     'mpd/protocol.c',
