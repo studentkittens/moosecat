@@ -1,6 +1,7 @@
 #include "mpd/protocol.h"
 #include "mpd/protocol/idle_core.h"
-#include <glib.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 int main (void)
 {
@@ -8,13 +9,13 @@ int main (void)
     const char * err = proto_connect (conn, "localhost", 6600, 2);
     if (err != NULL)
     {
-        g_print ("Cannot connect.\n");
+        printf ("Cannot connect.\n");
     }
     else
     {
         /* Get the ready connection */
         mpd_connection * c = proto_get (conn);
-        g_print ("Got connection: %p\n", c);
+        printf ("Got connection: %p\n", c);
 
         /* Put it back to work */
         proto_put (conn);
