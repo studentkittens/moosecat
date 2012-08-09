@@ -66,6 +66,11 @@ mpd_connection * proto_get (Proto_Connector * self);
  */
 void proto_put (Proto_Connector * self);
 
+/**
+ * @brief Disconnect connection and free all.
+ *
+ * @param self connector to operate on
+ */
 void proto_disconnect (Proto_Connector * self);
 
 #endif /* end of include guard: PROTOCOL_H */
