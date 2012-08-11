@@ -53,6 +53,7 @@ env.Append(CCFLAGS = ['-g', '-Wall', '-W'])
 Default(env.Program(target='../bin/core', source=
     [
     'mpd/protocol.c',
+    'mpd/client.c',
     'mpd/protocol/idle_core.c',
     'mpd/protocol/cmnd_core.c',
     'main.c',

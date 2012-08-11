@@ -1,0 +1,7 @@
+Feature Requests:
+- persistent search (remember serach query)
+- autocomplete search (core task?)
+
+Random Notes:
+- Sqlite offers full text search
+- libgda seems to be nice
