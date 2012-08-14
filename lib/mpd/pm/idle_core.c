@@ -64,6 +64,16 @@ static bool idler_do_disconnect (Proto_Connector * self)
     idler_free (child (self) );
     return true;
 }
+
+///////////////////////
+
+static unsigned idler_do_create_glib_adapter (Proto_Connector * self, GMainContext * ctx)
+{
+    (void) self;
+    (void) ctx;
+    return 0;
+}
+
 //////////////////////
 // Public Interface //
 //////////////////////
@@ -71,10 +81,14 @@ static bool idler_do_disconnect (Proto_Connector * self)
 Proto_Connector * proto_create_idler (void)
 {
     Proto_IdleConnector * ctor = g_new0 (Proto_IdleConnector, 1);
+
+    /* Set all required functions */
     ctor->logic.do_disconnect = idler_do_disconnect;
     ctor->logic.do_get = idler_do_get;
     ctor->logic.do_put = idler_do_put;
     ctor->logic.do_connect = idler_do_connect;
+    ctor->logic.do_create_glib_adapter = idler_do_create_glib_adapter;
+
     ctor->con = NULL; // <-- write connect code here
     return (Proto_Connector *) ctor;
 }

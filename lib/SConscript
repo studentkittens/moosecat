@@ -47,6 +47,7 @@ env = conf.Finish()
 env.ParseConfig('pkg-config --cflags --libs libmpdclient glib-2.0')
 
 # Make it a high warnlevel, also enable debugging
+env.Append(CCFLAGS = ['-std=c99'])
 env.Append(CCFLAGS = ['-g', '-Wall', '-W'])
 
 # Set up actual program, and make it the default target
@@ -54,7 +55,11 @@ Default(env.Program(target='../bin/core', source=
     [
     'mpd/protocol.c',
     'mpd/client.c',
-    'mpd/protocol/idle_core.c',
-    'mpd/protocol/cmnd_core.c',
+    'mpd/pm/idle_core.c',
+    'mpd/pm/cmnd_core.c',
+    'mpd/pm/common.c',
+    'util/gasyncqueue-watch.c',
+    'store/query.c',
+    'store/db.c',
     'main.c',
     ]))

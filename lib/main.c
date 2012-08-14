@@ -1,11 +1,20 @@
 #include "mpd/protocol.h"
-#include "mpd/protocol/idle_core.h"
+#include "mpd/pm/cmnd_core.h"
+#include "mpd/client.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 
+static void event (int event, bool connection_change)
+{
+    g_print ("%d %d\n", event, connection_change);
+}
+
+/////////////////////////////
+
 int main (void)
 {
-    Proto_Connector * conn = proto_create_idler();
+    Proto_Connector * conn = proto_create_cmnder();
     const char * err = proto_connect (conn, "localhost", 6600, 2);
     if (err != NULL)
     {
@@ -13,12 +22,14 @@ int main (void)
     }
     else
     {
-        /* Get the ready connection */
-        mpd_connection * c = proto_get (conn);
-        printf ("Got connection: %p\n", c);
+        GMainLoop * loop = g_main_loop_new (NULL, FALSE);
+        proto_create_glib_adapter (conn, NULL);
+        proto_add_event_callback (conn, event);
 
-        /* Put it back to work */
-        proto_put (conn);
+        //next (conn);
+
+        g_main_loop_run (loop);
+        g_main_loop_unref (loop);
 
         /* Disconnect all */
         proto_disconnect (conn);

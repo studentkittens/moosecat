@@ -1,29 +1,30 @@
+#include <glib.h>
 
 /**
  * @brief An opaque structure representing a Store Query.
  *
  * In SQL Terms it would be something like this:
- * 
+ *
  * select <columns> from songs where <where_clauses>;
  */
-typedef struct {
+
+typedef struct
+{
     GArray * columns;
     GArray * where_clauses;
 } Store_Query;
-
-
 
 /**
  * @brief Create a new Query
  *
  * @param search_string a specially encoded string defining the search.
  *
- * You can use the following syntax: 
+ * You can use the following syntax:
  *
  *   <search_term> := <term>|<search_term>
  *   <term>        := <column>[:<expression>]
  *   <column>      := A column-name in the song-table of the DB. <== TODO.
- *   <expression>  := Any SQL Expression that is applicable 
+ *   <expression>  := Any SQL Expression that is applicable
  *
  * Basically, this string is parsed and put into a sql statement,
  * like this:
@@ -34,6 +35,6 @@ typedef struct {
  *        -- expression3 was not given.
  *        ;
  *
- * @return 
+ * @return
  */
-Store_Query * store_create_query(const char * search_string);
+Store_Query * store_query_create (const char * search_string);

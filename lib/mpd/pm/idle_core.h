@@ -4,6 +4,8 @@
 #define IDLE_CORE_H
 
 /**
+ * @brief Create an Proto_Connector
+ *
  * @brief Connector using only one connection and the idle command.
  *
  * Sending a command:
@@ -12,13 +14,6 @@
  * - while idle_respone != NULL: issue 'idle'.
  *
  * Used by ncmpc and friends.
- */
-
-
-/**
- * @brief Create an Proto_IdleConnector
- *
- * See Proto_IdleConnector for more description.
  *
  * @return a newly allocated connector
  */

@@ -1,28 +1,44 @@
-/*
- * API to serialize songs into
- * a persistent DB Store
- */
-#include <mpd/client.h>
+#include "db.h"
 
-/**
- * @brief A Handler for a Store.
- */
-typedef struct {
-    const char * db_location; 
-    
-    void (* do_store_song)(mpd_song *);
-} Store_DB;
+struct Store_DB
+{
+    const char * db_location;
+    GArray * memsongs;
+};
 
-/**
- * @brief 
- *
- * @param self
- */
-void store_free(Store_DB * self);
+///////////////
 
-/**
- * @brief Store a single song
- *
- * @param song libmpdclient's song structure
- */
-void store_song(mpd_song * song);
+struct Store_DB * store_create (Proto_Connector * client, const char * directory, const char * dbname)
+{
+    // Create the structure and the file
+    //
+    (void) client;
+    (void) directory;
+    (void) dbname;
+    return NULL;
+}
+
+///////////////
+
+int store_update (struct Store_DB * self)
+{
+    (void) self;
+    return 0;
+}
+
+///////////////
+
+void store_close (struct Store_DB * self)
+{
+    // Write to disk
+    (void) self;
+}
+
+///////////////
+
+GArray * store_search (struct Store_DB * self, Store_Query * qry)
+{
+    (void) self;
+    (void) qry;
+    return NULL;
+}
