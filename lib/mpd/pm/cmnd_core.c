@@ -65,7 +65,10 @@ static gboolean cmnder_event_callback (GAsyncQueue * queue, gpointer user_data)
 
     /* Now iterate over the happened events, and callback maybe */
     for (GList * iter = event_list; iter; iter = iter->next)
+    {
         g_print ("<=== %d\n", GPOINTER_TO_INT (iter->data) );
+
+    }
 
     g_list_free (event_list);
     return TRUE;
@@ -127,8 +130,8 @@ static void cmnder_shutdown_listener(Proto_CmndConnector * self)
         
     if (self->watch_source_id != -1) 
     {
-       //g_thread_join (self->listener_thread);
        g_source_remove(self->watch_source_id);
+       g_thread_join (self->listener_thread);
     }
 
     self->watch_source_id = -1;
@@ -204,12 +207,13 @@ static mpd_connection * cmnder_do_get (Proto_Connector * self)
     return child (self)->cmnd_con;
 }
 
-///////////////////////
+//////////////////////
 
-static void cmnder_do_put (Proto_Connector * self)
+static void cmnder_do_free (Proto_Connector * parent)
 {
-    (void) self;
-    /* NOOP */
+    Proto_CmndConnector * self = child(parent);
+    memset(self, 0, sizeof(Proto_CmndConnector));
+    g_free(self);
 }
 
 //////////////////////
@@ -224,7 +228,8 @@ Proto_Connector * proto_create_cmnder (void)
     Proto_CmndConnector * self = g_new0 (Proto_CmndConnector, 1);
     self->logic.do_disconnect = cmnder_do_disconnect;
     self->logic.do_get = cmnder_do_get;
-    self->logic.do_put = cmnder_do_put;
+    self->logic.do_put = NULL;
+    self->logic.do_free = cmnder_do_free;
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;
 

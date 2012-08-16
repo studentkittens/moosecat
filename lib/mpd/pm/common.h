@@ -2,9 +2,10 @@
 #define COMMON_H_GUARD
 
 #include <glib.h>
-
 #include <mpd/client.h>
 #include <mpd/async.h>
+
+#include "../protocol.h"
 
 typedef enum mpd_async_event mpd_async_event;
 typedef struct mpd_connection mpd_connection;
@@ -37,5 +38,7 @@ GIOCondition mpd_async_to_gio (mpd_async_event events);
  * @return a newly allocated mpd_connection or NULL on error
  */
 mpd_connection * mpd_connect (const char * host, int port, int timeout);
+
+
 
 #endif /* end of include guard: COMMON_H_GUARD */

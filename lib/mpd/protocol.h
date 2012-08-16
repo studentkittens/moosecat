@@ -12,22 +12,24 @@ typedef enum mpd_error mpd_error;
 typedef enum mpd_idle mpd_idle;
 
 /* Event callback */
-typedef void (* Proto_EventCallback) (enum mpd_idle, bool);
+typedef void (* Proto_EventCallback) (enum mpd_idle, void * userdata);
 
 /* Error callback */
-typedef void (* Proto_ErrorCallback) (mpd_error);
+typedef void (* Proto_ErrorCallback) (mpd_error, void * userdata);
 
 // TODO:
-// reconnect functionality
 // where to put up-to-date currentsong/status/whatever?
+//    -> as callback that was added prior all other callbacks,
+//    -> via proto_add_event_callback
 // move glib away from headers as far as possible
+//    -> not possible entirely.
 
 /**
  * @brief Structure representing a connection handle,
  * and an interface to send commands and recv. events.
  * 
  * It's able to:
- *    - Server-hosts (without loosing registered callbacks)
+ *    - change hosts (connecting/disconnecting) (without loosing registered callbacks)
  *    - Notifying you on events / errors / connection-changes
  *    - Send commands to the server.
  *
@@ -48,7 +50,7 @@ typedef struct _Proto_Connector
 
     /*
      * Return the command sending connection, made ready to rock.
-     * May be NULL.
+     * May not be NULL.
      */
     mpd_connection * (* do_get) (struct _Proto_Connector *);
 
@@ -70,6 +72,12 @@ typedef struct _Proto_Connector
      * May not be NULL.
      */
     bool (* do_is_connected) (struct _Proto_Connector *);
+
+    /*
+     * Free the connector. disconnect() won't free it!
+     * May be NULL
+     */
+    void (* do_free) (struct _Proto_Connector *);
 
     /*
      * Callback lists
@@ -173,5 +181,27 @@ void proto_put (Proto_Connector * self);
  * @return a error string, or NULL if no error happened
  */
 const char * proto_disconnect (Proto_Connector * self);
+
+/**
+ * @brief Send a event to all registered callbacks.
+ *
+ * This is usually called internally, but it might
+ * be useful for you to update the view of you application
+ * on initial start when no events happened yet.
+ *
+ * @param self connector to operate on
+ * @param events a enump mpd_idle
+ */
+void proto_update (Proto_Connector * self, enum mpd_idle events);
+
+
+/**
+ * @brief Free all data associated with this connector.
+ *
+ * You have to call proto_disconnect beforehand!
+ *
+ * @param self the connector to operate on
+ */
+void proto_free (Proto_Connector * self);
 
 #endif /* end of include guard: PROTOCOL_H */

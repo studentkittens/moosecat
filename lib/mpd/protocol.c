@@ -77,7 +77,10 @@ void proto_put (Proto_Connector * self)
     /*
      * Put connection back to event listening.
      */
-    self->do_put (self);
+    if (self->do_put != NULL)
+    {
+        self->do_put (self);
+    }
 }
 
 ///////////////////
@@ -139,4 +142,28 @@ const char * proto_disconnect (Proto_Connector * self)
     self->do_disconnect (self);
 
     return NULL;
+}
+
+///////////////////
+
+void proto_free (Proto_Connector * self)
+{
+    if(self->do_free != NULL)
+    {
+        self->do_free(self);
+    }
+}
+
+///////////////////
+
+void proto_update (Proto_Connector * self, enum mpd_idle events)
+{
+    for(GList * iter = self->_event_callbacks; iter; iter = iter->next)
+    {
+        Proto_CallbackTag * tag = iter->data;
+        if(tag != NULL && (tag->mask & events) > 0)
+        {
+            tag->callback(events, tag->user_data);
+        }
+    }
 }
