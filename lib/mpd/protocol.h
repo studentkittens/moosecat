@@ -5,23 +5,46 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-/* lazy selfdef */
+/* lazy typedef */
 typedef struct mpd_connection mpd_connection;
+typedef struct mpd_async mpd_async;
 typedef enum mpd_error mpd_error;
+typedef enum mpd_idle mpd_idle;
 
 /* Event callback */
-typedef void (* Proto_EventCallback) (int, bool);
+typedef void (* Proto_EventCallback) (enum mpd_idle, bool);
 
 /* Error callback */
 typedef void (* Proto_ErrorCallback) (mpd_error);
 
+// TODO:
+// reconnect functionality
+// where to put up-to-date currentsong/status/whatever?
+// move glib away from headers as far as possible
+
+/**
+ * @brief Structure representing a connection handle,
+ * and an interface to send commands and recv. events.
+ * 
+ * It's able to:
+ *    - Server-hosts (without loosing registered callbacks)
+ *    - Notifying you on events / errors / connection-changes
+ *    - Send commands to the server.
+ *
+ *  Note: There is no method to create this struct, 
+ *        but there are two options you can choose from:
+ *          2Connection-ProtocolMachine: mpd/pm/cmnd_core.h
+ *          IdleBusy-ProtocolMachine:    mpd/pm/idle_core.h
+ *
+ *        Read their respective docs.
+ */
 typedef struct _Proto_Connector
 {
     /*
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    const char * (* do_connect) (struct _Proto_Connector *, const char *, int, int);
+    const char * (* do_connect) (struct _Proto_Connector *, GMainContext * context, const char *, int, int);
 
     /*
      * Return the command sending connection, made ready to rock.
@@ -36,17 +59,17 @@ typedef struct _Proto_Connector
     void (* do_put) (struct _Proto_Connector *);
 
     /*
-     * Create a GSource that can be integrated into a GMainLoop
-     * Must not be NULL.
-     */
-    unsigned (* do_create_glib_adapter) (struct _Proto_Connector *, GMainContext * context);
-
-    /*
      * Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
     bool (* do_disconnect) (struct _Proto_Connector *);
+
+    /**
+     * Check if a valid connection is hold by this connector.
+     * May not be NULL.
+     */
+    bool (* do_is_connected) (struct _Proto_Connector *);
 
     /*
      * Callback lists
@@ -62,13 +85,20 @@ typedef struct _Proto_Connector
  * @brief Connect to a MPD Server specified by host and port.
  *
  * @param self what kind of conncetion handler to use
+ * @param context the main context to run this in (may be NULL for the default)
  * @param host the host, might be a DNS Name, or a IPv4/6 addr
  * @param port a port number (default is 6600)
  * @param timeout timeout in seconds for any operations.
  *
+ * Note to the context:
+ * It is used to hang in some custom GSources. If no mainloop is running,
+ * no events will be reported to you therefore. 
+ * The client will be fully functional once the application blocks in the mainloop,
+ * but it's perfectly valid to send commands before (you will get corresponding events later)
+ *
  * @return NULL on success, or an error string describing the kind of error.
  */
-const char * proto_connect (Proto_Connector * self, const char * host, int port, int timeout);
+const char * proto_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout);
 
 /**
  * @brief Set a callback that is called when any error is happening
@@ -77,8 +107,9 @@ const char * proto_connect (Proto_Connector * self, const char * host, int port,
  *
  * @param self the connector to observer
  * @param error_cb the callback that is executed, prototype must be Proto_ErrorCallback
+ * @param user_data data being passed to the callback
  */
-void proto_add_error_callback (Proto_Connector * self, Proto_ErrorCallback error_cb);
+void proto_add_error_callback (Proto_Connector * self, Proto_ErrorCallback error_cb, void * user_data);
 
 /**
  * @brief Remove a previously added error callback
@@ -87,19 +118,6 @@ void proto_add_error_callback (Proto_Connector * self, Proto_ErrorCallback error
  * @param callback a previously added function
  */
 void proto_rm_error_callback (Proto_Connector * self, Proto_ErrorCallback callback);
-
-/**
- * @brief Hang this connector into a GMainLoop as GSource.
- *
- * You can use proto_add_callback to add a callback, that
- * is called on events
- *
- * @param self the connector itself
- * @param context the context of the mainloop, or NULL for the default context
- *
- * @return the id of the GSource, which can be used to disconnect it.
- */
-unsigned proto_create_glib_adapter (struct _Proto_Connector * self, GMainContext * context);
 
 /**
  * @brief Add a callback that is called on mpd events
@@ -112,8 +130,16 @@ unsigned proto_create_glib_adapter (struct _Proto_Connector * self, GMainContext
  *
  * @param self a connector
  * @param callback a Proto_EventCallback function
+ * @param user_data data being passed to the callback
  */
-void proto_add_event_callback (Proto_Connector * self, Proto_EventCallback callback);
+void proto_add_event_callback (Proto_Connector * self, Proto_EventCallback callback, void * user_data);
+
+/**
+ * @brief Like proto_add_error_callback, but only listen to events in mask
+ *
+ * @param mask a bitmask of mpd_idle events. Only events in mask will be callbacked.
+ */
+void proto_add_event_callback_mask (Proto_Connector * self, Proto_EventCallback callback, void * user_data, mpd_idle mask);
 
 /**
  * @brief Remove a previously registered callback.
@@ -143,7 +169,9 @@ void proto_put (Proto_Connector * self);
  * @brief Disconnect connection and free all.
  *
  * @param self connector to operate on
+ *
+ * @return a error string, or NULL if no error happened
  */
-void proto_disconnect (Proto_Connector * self);
+const char * proto_disconnect (Proto_Connector * self);
 
 #endif /* end of include guard: PROTOCOL_H */

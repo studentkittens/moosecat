@@ -21,8 +21,9 @@ typedef struct
 
 ///////////////////
 
-static const char * idler_do_connect (Proto_Connector * self, const char * host, int port, int timeout)
+static const char * idler_do_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout)
 {
+    (void) context;
     // Create one mpd connection, and
     // everything that needs to be initialized once here
     g_print ("%p %s %d %d\n", self, host, port, timeout);
@@ -65,15 +66,6 @@ static bool idler_do_disconnect (Proto_Connector * self)
     return true;
 }
 
-///////////////////////
-
-static unsigned idler_do_create_glib_adapter (Proto_Connector * self, GMainContext * ctx)
-{
-    (void) self;
-    (void) ctx;
-    return 0;
-}
-
 //////////////////////
 // Public Interface //
 //////////////////////
@@ -87,7 +79,6 @@ Proto_Connector * proto_create_idler (void)
     ctor->logic.do_get = idler_do_get;
     ctor->logic.do_put = idler_do_put;
     ctor->logic.do_connect = idler_do_connect;
-    ctor->logic.do_create_glib_adapter = idler_do_create_glib_adapter;
 
     ctor->con = NULL; // <-- write connect code here
     return (Proto_Connector *) ctor;

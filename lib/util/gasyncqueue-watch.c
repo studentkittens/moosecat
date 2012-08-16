@@ -15,6 +15,7 @@ typedef struct
 {
     GSource source;
     GAsyncQueue *queue;
+    gint iteration_timeout;
 } MCAsyncQueueWatch;
 
 //////////////////////
@@ -29,8 +30,9 @@ static gboolean mc_async_queue_watch_check (GSource *source)
 
 static gboolean mc_async_queue_watch_prepare (GSource *source, gint *timeout)
 {
-    *timeout = 200;
-    return  mc_async_queue_watch_check (source);
+    MCAsyncQueueWatch * watch = (MCAsyncQueueWatch *) source;
+    *timeout = watch->iteration_timeout;
+    return mc_async_queue_watch_check (source);
 }
 
 //////////////////////
@@ -74,7 +76,7 @@ static GSourceFuncs mc_async_queue_watch_funcs =
 //////////////////////
 
 guint mc_async_queue_watch_new (GAsyncQueue *queue,
-                                gint priority,
+                                gint iteration_timeout,
                                 MCAsyncQueueWatchFunc callback,
                                 gpointer user_data,
                                 GMainContext *context)
@@ -82,8 +84,10 @@ guint mc_async_queue_watch_new (GAsyncQueue *queue,
     GSource * source = g_source_new (&mc_async_queue_watch_funcs, sizeof (MCAsyncQueueWatch) );
     MCAsyncQueueWatch * watch = (MCAsyncQueueWatch *) source;
     watch->queue = g_async_queue_ref (queue);
+    watch->iteration_timeout = iteration_timeout < 0 ? 30 : CLAMP (iteration_timeout, 5, 500);
 
-    g_source_set_priority (source, priority);
+    g_source_set_priority (source, G_PRIORITY_DEFAULT);
+
     g_source_set_callback (source, (GSourceFunc) callback, user_data, NULL);
     guint id = g_source_attach (source, context == NULL ? g_main_context_default() : context);
     g_source_unref (source);

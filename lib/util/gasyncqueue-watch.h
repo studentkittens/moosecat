@@ -16,7 +16,10 @@ typedef gboolean ( * MCAsyncQueueWatchFunc) (GAsyncQueue *, gpointer);
 /**
  * mc_async_queue_watch_new:
  * @param queue the #GAsyncQueue to watch
- * @param priority priority value for the #GSource
+ * @param iteration_timeout max timeout for mainloop's poll(),
+ *                          high timeouts are ressource friendly, but less responsive.
+ *                          low timeouts respond immediately, but consume more cycles
+ *                          and may issue a callback for every event.
  * @param callback callback to invoke when the queue is non-empty
  * @param user_data user data to pass to the callback
  * @param context the #GMainContext to attach the source to
@@ -28,7 +31,7 @@ typedef gboolean ( * MCAsyncQueueWatchFunc) (GAsyncQueue *, gpointer);
  * @return the ID of the new #GSource
  */
 guint mc_async_queue_watch_new (GAsyncQueue *queue,
-                                gint priority,
+                                gint iteration_timeout,
                                 MCAsyncQueueWatchFunc callback,
                                 gpointer user_data,
                                 GMainContext *context);
