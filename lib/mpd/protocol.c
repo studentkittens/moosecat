@@ -1,4 +1,5 @@
 #include "protocol.h"
+#include "update.h"
 
 ///////////////////
 
@@ -67,6 +68,7 @@ const char * proto_connect (Proto_Connector * self, GMainContext * context, cons
      * Error that may happenend while that
      * are returned as string
      */
+    proto_add_event_callback(self, proto_update_callback, self);
     return self->do_connect (self, context, host, port, timeout);
 }
 

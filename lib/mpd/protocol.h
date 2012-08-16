@@ -8,6 +8,10 @@
 /* lazy typedef */
 typedef struct mpd_connection mpd_connection;
 typedef struct mpd_async mpd_async;
+typedef struct mpd_song mpd_song;
+typedef struct mpd_status mpd_status;
+typedef struct mpd_stats mpd_stats;
+
 typedef enum mpd_error mpd_error;
 typedef enum mpd_idle mpd_idle;
 
@@ -84,6 +88,13 @@ typedef struct _Proto_Connector
      */
     GList * _event_callbacks;
     GList * _error_callbacks;
+
+    /* 
+     * Up-to-date infos
+     */
+    mpd_song * song;
+    mpd_stats * stats;
+    mpd_status * status;
 
 } Proto_Connector;
 

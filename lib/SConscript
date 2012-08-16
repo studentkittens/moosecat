@@ -55,6 +55,7 @@ Default(env.Program(target='../bin/core', source=
     [
     'mpd/protocol.c',
     'mpd/client.c',
+    'mpd/update.c',
     'mpd/pm/idle_core.c',
     'mpd/pm/cmnd_core.c',
     'mpd/pm/common.c',

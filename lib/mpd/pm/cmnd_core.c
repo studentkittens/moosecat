@@ -45,7 +45,7 @@ typedef struct
 
 static gboolean cmnder_event_callback (GAsyncQueue * queue, gpointer user_data)
 {
-    (void)user_data;
+    Proto_Connector * self = user_data;
     gpointer item = NULL;
 
     /* Pop all items from the queue that are in,
@@ -63,11 +63,14 @@ static gboolean cmnder_event_callback (GAsyncQueue * queue, gpointer user_data)
         }
     }
 
-    /* Now iterate over the happened events, and callback maybe */
+    /* 
+     * Now iterate over the happened events,
+     * and execute any registered event callbacks
+     */
     for (GList * iter = event_list; iter; iter = iter->next)
     {
         g_print ("<=== %d\n", GPOINTER_TO_INT (iter->data) );
-
+        proto_update(self, GPOINTER_TO_INT (iter->data));
     }
 
     g_list_free (event_list);
