@@ -17,6 +17,7 @@
 
 typedef struct
 {
+    /* Parent struct */
     Proto_Connector logic;
 
     /* Connection to send commands */
@@ -36,14 +37,16 @@ typedef struct
     glong watch_source_id;
 
     /* Indicates that the listener runs,
-     * if false it may still run, but will 
+     * if false it may still run, but will
      * terminate on next iteration */
     gboolean run_listener;
 } Proto_CmndConnector;
 
 //////////////////////
 
-static gboolean cmnder_event_callback (GAsyncQueue * queue, gpointer user_data)
+static gboolean cmnder_event_callback (
+        GAsyncQueue * queue,
+        gpointer user_data)
 {
     Proto_Connector * self = user_data;
     gpointer item = NULL;
@@ -63,14 +66,13 @@ static gboolean cmnder_event_callback (GAsyncQueue * queue, gpointer user_data)
         }
     }
 
-    /* 
+    /*
      * Now iterate over the happened events,
      * and execute any registered event callbacks
      */
     for (GList * iter = event_list; iter; iter = iter->next)
     {
-        g_print ("<=== %d\n", GPOINTER_TO_INT (iter->data) );
-        proto_update(self, GPOINTER_TO_INT (iter->data));
+        proto_update (self, GPOINTER_TO_INT (iter->data) );
     }
 
     g_list_free (event_list);
@@ -86,12 +88,13 @@ static gpointer cmnder_listener_thread (gpointer data)
 
     while (self->run_listener)
     {
-        if( (events = mpd_run_idle(self->idle_con)) == 0)
+        g_print("-- iteration --\n");
+        if ( (events = mpd_run_idle (self->idle_con) ) == 0)
         {
-            g_print("Info: No events received at all.");
+            g_print ("Info: No events received at all.");
             break;
         }
-        
+
         g_async_queue_push (self->event_queue, GINT_TO_POINTER (events) );
     }
 
@@ -101,26 +104,28 @@ static gpointer cmnder_listener_thread (gpointer data)
 
 //////////////////////
 
-static void cmnder_create_glib_adapter (Proto_CmndConnector * self, GMainContext * context)
+static void cmnder_create_glib_adapter (
+        Proto_CmndConnector * self,
+        GMainContext * context)
 {
     if (self->watch_source_id == -1)
     {
         /* Start the listener thread and set the Queue Watcher on it */
         self->listener_thread = g_thread_new ("listener", cmnder_listener_thread, self);
         self->watch_source_id = mc_async_queue_watch_new (
-                self->event_queue,
-                -1,
-                cmnder_event_callback,
-                self,
-                context);
+                                    self->event_queue,
+                                    -1,
+                                    cmnder_event_callback,
+                                    self,
+                                    context);
     }
 }
 
 ///////////////////////
 
-static void cmnder_shutdown_listener(Proto_CmndConnector * self)
+static void cmnder_shutdown_listener (Proto_CmndConnector * self)
 {
-    /* 
+    /*
     * This is a bit hacky,
     * send a random command to the mpd,
     * so the listener gets up and finds out
@@ -129,14 +134,16 @@ static void cmnder_shutdown_listener(Proto_CmndConnector * self)
     * TODO!
     */
     self->run_listener = FALSE;
-    mpd_run_crossfade(self->cmnd_con, 0);
-        
-    if (self->watch_source_id != -1) 
+
+    mpd_run_crossfade (self->cmnd_con, 0);
+
+    if (self->watch_source_id != -1)
     {
-       g_source_remove(self->watch_source_id);
-       g_thread_join (self->listener_thread);
+        g_source_remove (self->watch_source_id);
+        g_thread_join (self->listener_thread);
     }
 
+    self->listener_thread = NULL;
     self->watch_source_id = -1;
 }
 
@@ -146,13 +153,13 @@ static void cmnder_free (Proto_CmndConnector * self)
 {
     if (self != NULL)
     {
-        if (self->idle_con) 
+        cmnder_shutdown_listener (self);
+        
+        if (self->idle_con)
         {
             mpd_connection_free (self->idle_con);
             self->idle_con = NULL;
         }
-
-        cmnder_shutdown_listener (self);
 
         if (self->event_queue)
         {
@@ -172,18 +179,29 @@ static void cmnder_free (Proto_CmndConnector * self)
 //// Public Callbacks ////
 //////////////////////////
 
-static const char * cmnder_do_connect (Proto_Connector * parent, GMainContext * context, const char * host, int port, int timeout)
+static const char * cmnder_do_connect (
+        Proto_Connector * parent,
+        GMainContext * context,
+        const char * host,
+        int port,
+        int timeout)
 {
     Proto_CmndConnector * self = child (parent);
+    const char * error = NULL;
 
-    self->cmnd_con = mpd_connect (host, port, timeout);
-    self->idle_con = mpd_connect (host, port, timeout);
+    self->cmnd_con = mpd_connect (host, port, timeout, &error);
+    if (error != NULL)
+        return error;
+
+    self->idle_con = mpd_connect (host, port, timeout, &error);
+    if (error != NULL)
+        return error;
 
     self->run_listener = TRUE;
     self->watch_source_id = -1;
     self->event_queue = g_async_queue_new();
 
-    cmnder_create_glib_adapter(self, context);
+    cmnder_create_glib_adapter (self, context);
     return NULL;
 }
 
@@ -214,9 +232,9 @@ static mpd_connection * cmnder_do_get (Proto_Connector * self)
 
 static void cmnder_do_free (Proto_Connector * parent)
 {
-    Proto_CmndConnector * self = child(parent);
-    memset(self, 0, sizeof(Proto_CmndConnector));
-    g_free(self);
+    Proto_CmndConnector * self = child (parent);
+    memset (self, 0, sizeof (Proto_CmndConnector) );
+    g_free (self);
 }
 
 //////////////////////
@@ -225,8 +243,9 @@ static void cmnder_do_free (Proto_Connector * parent)
 
 Proto_Connector * proto_create_cmnder (void)
 {
-    /* Only fill callbacks here, no 
-     * actual data relied to Proto_CmndConnector!
+    /* Only fill callbacks here, no
+     * actual data relied to Proto_CmndConnector
+     * may be placed here!
      */
     Proto_CmndConnector * self = g_new0 (Proto_CmndConnector, 1);
     self->logic.do_disconnect = cmnder_do_disconnect;

@@ -8,7 +8,8 @@
  *
  * @param self the connection
  */
-void next (Proto_Connector * self);
+void mc_next (Proto_Connector * self);
+void mc_volume (Proto_Connector * self, int volume);
 
 #endif /* end of include guard: CLIENT_H */
 

@@ -34,10 +34,11 @@ GIOCondition mpd_async_to_gio (mpd_async_event events);
  * @param host a hostname or IP
  * @param port a port (6600)
  * @param timeout in seconds
+ * @param err location to place a error description in. May be NULL.
  *
  * @return a newly allocated mpd_connection or NULL on error
  */
-mpd_connection * mpd_connect (const char * host, int port, int timeout);
+mpd_connection * mpd_connect (const char * host, int port, int timeout, const char ** err);
 
 
 

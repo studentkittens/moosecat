@@ -1,14 +1,4 @@
-env = Environment()
-
-# Try to load colorizer
-# Make it in a try/except block
-# so version missmatches don't hurt too much
-try:
-    from build.colorizer import colorizer
-    col = colorizer()
-    col.colorize(env)
-except:
-    print('Cannot load colorizer.py => No colored output.')
+Import('env')
 
 # Helper to check for pkg-config itself
 def CheckPKGConfig(context, version):
@@ -50,8 +40,10 @@ env.ParseConfig('pkg-config --cflags --libs libmpdclient glib-2.0')
 env.Append(CCFLAGS = ['-std=c99'])
 env.Append(CCFLAGS = ['-g', '-Wall', '-W'])
 
-# Set up actual program, and make it the default target
-Default(env.Program(target='../bin/core', source=
+# Build libmoosecat.so
+# Building a .so is more sane since we need to
+# specify linkflags only once
+libmoosecat = env.SharedLibrary('moosecat',
     [
     'mpd/protocol.c',
     'mpd/client.c',
@@ -61,6 +53,15 @@ Default(env.Program(target='../bin/core', source=
     'mpd/pm/common.c',
     'util/gasyncqueue-watch.c',
     'store/query.c',
-    'store/db.c',
-    'main.c',
-    ]))
+    'store/db.c'
+    ],
+    LIBS=['glib-2.0', 'mpdclient'])
+
+# Make it visible to other SConscripts
+Export('libmoosecat')
+
+# Temporarily playground
+Default(env.Program(target='runner',
+    LIBS=[libmoosecat, 'glib-2.0', 'mpdclient'],
+    LIBPATH='.',
+    source = ['main.c']))

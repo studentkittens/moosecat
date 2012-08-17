@@ -11,11 +11,11 @@
 ///////////////////
 
 /* Template to define new commands */
-#define COMMAND(_code_)  {                   \
+#define COMMAND(_code_)  {                       \
         mpd_connection * conn = proto_get(self); \
         if(conn != NULL)                         \
         {                                        \
-            _code_;                               \
+            _code_;                              \
         }                                        \
         proto_put(self);                         \
     }                                            \
@@ -23,9 +23,16 @@
 ///////////////////
 
 // Implemted as example
-void next (Proto_Connector * self)
+void mc_next (Proto_Connector * self)
 {
     COMMAND (mpd_run_next (conn) )
+}
+
+///////////////////
+
+void mc_volume (Proto_Connector * self, int volume)
+{
+    COMMAND (mpd_run_set_volume (conn, volume) )
 }
 
 ///////////////////

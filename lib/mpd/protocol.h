@@ -21,23 +21,16 @@ typedef void (* Proto_EventCallback) (enum mpd_idle, void * userdata);
 /* Error callback */
 typedef void (* Proto_ErrorCallback) (mpd_error, void * userdata);
 
-// TODO:
-// where to put up-to-date currentsong/status/whatever?
-//    -> as callback that was added prior all other callbacks,
-//    -> via proto_add_event_callback
-// move glib away from headers as far as possible
-//    -> not possible entirely.
-
 /**
  * @brief Structure representing a connection handle,
  * and an interface to send commands and recv. events.
- * 
+ *
  * It's able to:
  *    - change hosts (connecting/disconnecting) (without loosing registered callbacks)
  *    - Notifying you on events / errors / connection-changes
  *    - Send commands to the server.
  *
- *  Note: There is no method to create this struct, 
+ *  Note: There is no method to create this struct,
  *        but there are two options you can choose from:
  *          2Connection-ProtocolMachine: mpd/pm/cmnd_core.h
  *          IdleBusy-ProtocolMachine:    mpd/pm/idle_core.h
@@ -89,7 +82,7 @@ typedef struct _Proto_Connector
     GList * _event_callbacks;
     GList * _error_callbacks;
 
-    /* 
+    /*
      * Up-to-date infos
      */
     mpd_song * song;
@@ -111,7 +104,7 @@ typedef struct _Proto_Connector
  *
  * Note to the context:
  * It is used to hang in some custom GSources. If no mainloop is running,
- * no events will be reported to you therefore. 
+ * no events will be reported to you therefore.
  * The client will be fully functional once the application blocks in the mainloop,
  * but it's perfectly valid to send commands before (you will get corresponding events later)
  *
@@ -183,6 +176,15 @@ mpd_connection * proto_get (Proto_Connector * self);
  * @param self the connector to operate on
  */
 void proto_put (Proto_Connector * self);
+
+/**
+ * @brief Checks if the connector is connected.
+ *
+ * @param self the connector to operate on
+ *
+ * @return true when connected
+ */
+bool proto_is_connected (Proto_Connector * self);
 
 /**
  * @brief Disconnect connection and free all.
