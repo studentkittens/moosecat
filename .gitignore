@@ -1,5 +1,10 @@
 *.pyc
 *.o
+*.so
+*.a
 *.log
 .sconsign.dblite
 bin/
+lib/runner
+test/test
+test/lib/.out
