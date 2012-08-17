@@ -61,8 +61,7 @@ static void proto_add_callback (
         tag->mask = mask;
         tag->user_data = user_data;
 
-        /* Append as last */
-        *list = g_list_append (*list, tag);
+        *list = g_list_prepend (*list, tag);
     }
 }
 
@@ -77,22 +76,21 @@ static void proto_free_ctag (gpointer data)
 ////  PUBLIC //////
 ///////////////////
 
-const char * proto_connect (
+char * proto_connect (
     Proto_Connector * self,
     GMainContext * context,
     const char * host,
     int port, int timeout)
 {
     if (self == NULL)
-        return etable[ERR_IS_NULL];
+        return g_strdup(etable[ERR_IS_NULL]);
 
     /*
      * Setup Connector
      * Error that may happenend while that
      * are returned as string
      */
-    proto_add_event_callback (self, proto_update_callback, self);
-    return self->do_connect (self, context, host, port, timeout);
+    return g_strdup (self->do_connect (self, context, host, port, timeout) );
 }
 
 ///////////////////
@@ -190,9 +188,9 @@ void proto_rm_error_callback (
 {
     if (self && callback)
     {
-        GList * tag = proto_find_callback ( 
-                (Proto_EventCallback) callback,
-                self->_error_callbacks);
+        GList * tag = proto_find_callback (
+                          (Proto_EventCallback) callback,
+                          self->_error_callbacks);
 
         self->_error_callbacks = g_list_delete_link (self->_error_callbacks, tag);
     }
@@ -200,7 +198,7 @@ void proto_rm_error_callback (
 
 ///////////////////
 
-const char * proto_disconnect (
+char * proto_disconnect (
     Proto_Connector * self)
 {
     if (self)
@@ -209,9 +207,9 @@ const char * proto_disconnect (
         if (self->do_disconnect (self) )
             return NULL;
         else
-            return etable[ERR_UNKNOWN];
+            return g_strdup(etable[ERR_UNKNOWN]);
     }
-    return etable[ERR_IS_NULL];
+    return g_strdup (etable[ERR_IS_NULL]);
 }
 
 ///////////////////
@@ -224,13 +222,13 @@ void proto_free (Proto_Connector * self)
 
     /* Free status/song/stats */
     if (self->status != NULL)
-        mpd_status_free(self->status);
+        mpd_status_free (self->status);
 
     if (self->stats != NULL)
-        mpd_stats_free(self->stats);
+        mpd_stats_free (self->stats);
 
     if (self->song != NULL)
-        mpd_song_free(self->song);
+        mpd_song_free (self->song);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)
@@ -243,6 +241,7 @@ void proto_update (
     Proto_Connector * self,
     enum mpd_idle events)
 {
+    proto_update_context_info_cb (events, self);
     for (GList * iter = self->_event_callbacks; iter; iter = iter->next)
     {
         Proto_CallbackTag * tag = iter->data;

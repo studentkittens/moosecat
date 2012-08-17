@@ -45,8 +45,8 @@ typedef struct
 //////////////////////
 
 static gboolean cmnder_event_callback (
-        GAsyncQueue * queue,
-        gpointer user_data)
+    GAsyncQueue * queue,
+    gpointer user_data)
 {
     Proto_Connector * self = user_data;
     gpointer item = NULL;
@@ -88,7 +88,7 @@ static gpointer cmnder_listener_thread (gpointer data)
 
     while (self->run_listener)
     {
-        g_print("-- iteration --\n");
+        g_print ("-- iteration --\n");
         if ( (events = mpd_run_idle (self->idle_con) ) == 0)
         {
             g_print ("Info: No events received at all.");
@@ -105,8 +105,8 @@ static gpointer cmnder_listener_thread (gpointer data)
 //////////////////////
 
 static void cmnder_create_glib_adapter (
-        Proto_CmndConnector * self,
-        GMainContext * context)
+    Proto_CmndConnector * self,
+    GMainContext * context)
 {
     if (self->watch_source_id == -1)
     {
@@ -154,7 +154,7 @@ static void cmnder_free (Proto_CmndConnector * self)
     if (self != NULL)
     {
         cmnder_shutdown_listener (self);
-        
+
         if (self->idle_con)
         {
             mpd_connection_free (self->idle_con);
@@ -179,15 +179,15 @@ static void cmnder_free (Proto_CmndConnector * self)
 //// Public Callbacks ////
 //////////////////////////
 
-static const char * cmnder_do_connect (
-        Proto_Connector * parent,
-        GMainContext * context,
-        const char * host,
-        int port,
-        int timeout)
+static char * cmnder_do_connect (
+    Proto_Connector * parent,
+    GMainContext * context,
+    const char * host,
+    int port,
+    int timeout)
 {
     Proto_CmndConnector * self = child (parent);
-    const char * error = NULL;
+    char * error = NULL;
 
     self->cmnd_con = mpd_connect (host, port, timeout, &error);
     if (error != NULL)

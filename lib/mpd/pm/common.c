@@ -40,7 +40,7 @@ GIOCondition mpd_async_to_gio (mpd_async_event events)
 
 ///////////////////////////
 
-mpd_connection * mpd_connect (const char * host, int port, int timeout, const char ** err)
+mpd_connection * mpd_connect (const char * host, int port, int timeout, char ** err)
 {
     mpd_connection * con = mpd_connection_new (host, port, timeout * 1000);
 
@@ -51,7 +51,7 @@ mpd_connection * mpd_connect (const char * host, int port, int timeout, const ch
             // TODO: Actually, error return should be static memory,
             //       but the error message alloc'd space disappears
             //       with mpd_connection_free.
-            *err = g_strdup(mpd_connection_get_error_message (con));
+            *err = g_strdup (mpd_connection_get_error_message (con) );
         }
 
         mpd_connection_free (con);

@@ -38,7 +38,7 @@ GIOCondition mpd_async_to_gio (mpd_async_event events);
  *
  * @return a newly allocated mpd_connection or NULL on error
  */
-mpd_connection * mpd_connect (const char * host, int port, int timeout, const char ** err);
+mpd_connection * mpd_connect (const char * host, int port, int timeout, char ** err);
 
 
 

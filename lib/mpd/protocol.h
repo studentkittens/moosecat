@@ -43,7 +43,7 @@ typedef struct _Proto_Connector
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    const char * (* do_connect) (struct _Proto_Connector *, GMainContext * context, const char *, int, int);
+    char * (* do_connect) (struct _Proto_Connector *, GMainContext * context, const char *, int, int);
 
     /*
      * Return the command sending connection, made ready to rock.
@@ -110,7 +110,7 @@ typedef struct _Proto_Connector
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-const char * proto_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout);
+char * proto_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout);
 
 /**
  * @brief Set a callback that is called when any error is happening
@@ -193,7 +193,7 @@ bool proto_is_connected (Proto_Connector * self);
  *
  * @return a error string, or NULL if no error happened
  */
-const char * proto_disconnect (Proto_Connector * self);
+char * proto_disconnect (Proto_Connector * self);
 
 /**
  * @brief Send a event to all registered callbacks.

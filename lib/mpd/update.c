@@ -13,7 +13,7 @@ const enum mpd_idle on_song_update   = (MPD_IDLE_PLAYER);
 
 ////////////////////////
 
-void proto_update_callback (enum mpd_idle events, void * user_data)
+void proto_update_context_info_cb (enum mpd_idle events, void * user_data)
 {
     Proto_Connector * self = user_data;
     if (self != NULL)

@@ -9,7 +9,9 @@ static Proto_Connector * conn = NULL;
 
 static void event (enum mpd_idle event, void * user_data)
 {
+    (void) user_data;
     g_print ("event = %d\n", event);
+    g_print ("status = %d\n", mpd_status_get_song_id(conn->status));
 }
 
 /////////////////////////////
@@ -17,20 +19,21 @@ static void event (enum mpd_idle event, void * user_data)
 gboolean next_song (gpointer user_data)
 {
     GMainLoop * loop = (GMainLoop *) user_data;
-    
+
     conn = proto_create_cmnder();
     proto_add_event_callback (conn, event, NULL);
 
-    for(int i = 0; i < 100; i++)
+    for (int i = 0; i < 100; i++)
     {
-        const char * err = proto_connect (conn, NULL, "localhorst", 6600, 2);
-        if( err != NULL )
+        char * err = proto_connect (conn, NULL, "localhost", 6600, 2);
+        if ( err != NULL )
         {
-            g_print("Err: %s\n", err);
+            g_print ("Err: %s\n", err);
+            g_free (err);
             break;
         }
 
-        mc_volume(conn, 100);
+        mc_volume (conn, 100);
         while (g_main_context_iteration (NULL, TRUE) );
         proto_disconnect (conn);
     }

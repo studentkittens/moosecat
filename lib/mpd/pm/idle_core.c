@@ -21,7 +21,7 @@ typedef struct
 
 ///////////////////
 
-static const char * idler_do_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout)
+static char * idler_do_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout)
 {
     (void) context;
     // Create one mpd connection, and
