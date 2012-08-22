@@ -1,0 +1,4 @@
+CREATE TABLE artist(
+  artistid    INTEGER PRIMARY KEY, 
+  artistname  TEXT
+);

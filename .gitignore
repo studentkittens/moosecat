@@ -8,3 +8,5 @@ bin/
 lib/runner
 test/test
 test/lib/.out
+
+doc/build

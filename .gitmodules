@@ -1,3 +1,6 @@
 [submodule "test/clar"]
 	path = test/clar
 	url = git://github.com/vmg/clar.git
+[submodule "doc/_themes/armstrong"]
+	path = doc/_themes/armstrong
+	url = git://github.com/armstrong/armstrong_sphinx.git
