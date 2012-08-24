@@ -37,44 +37,44 @@ typedef void (* Proto_ErrorCallback) (mpd_error, void * userdata);
  *
  *        Read their respective docs.
  */
-typedef struct _Proto_Connector
+typedef struct _mc_Client
 {
     /*
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char * (* do_connect) (struct _Proto_Connector *, GMainContext * context, const char *, int, int);
+    char * (* do_connect) (struct _mc_Client *, GMainContext * context, const char *, int, int);
 
     /*
      * Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    mpd_connection * (* do_get) (struct _Proto_Connector *);
+    mpd_connection * (* do_get) (struct _mc_Client *);
 
     /*
      * Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put) (struct _Proto_Connector *);
+    void (* do_put) (struct _mc_Client *);
 
     /*
      * Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    bool (* do_disconnect) (struct _Proto_Connector *);
+    bool (* do_disconnect) (struct _mc_Client *);
 
     /**
      * Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    bool (* do_is_connected) (struct _Proto_Connector *);
+    bool (* do_is_connected) (struct _mc_Client *);
 
     /*
      * Free the connector. disconnect() won't free it!
      * May be NULL
      */
-    void (* do_free) (struct _Proto_Connector *);
+    void (* do_free) (struct _mc_Client *);
 
     /*
      * Callback lists
@@ -89,7 +89,7 @@ typedef struct _Proto_Connector
     mpd_stats * stats;
     mpd_status * status;
 
-} Proto_Connector;
+} mc_Client;
 
 ///////////////////
 
@@ -110,7 +110,7 @@ typedef struct _Proto_Connector
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-char * proto_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout);
+char * mc_proto_connect (mc_Client * self, GMainContext * context, const char * host, int port, int timeout);
 
 /**
  * @brief Set a callback that is called when any error is happening
@@ -121,7 +121,7 @@ char * proto_connect (Proto_Connector * self, GMainContext * context, const char
  * @param error_cb the callback that is executed, prototype must be Proto_ErrorCallback
  * @param user_data data being passed to the callback
  */
-void proto_add_error_callback (Proto_Connector * self, Proto_ErrorCallback error_cb, void * user_data);
+void mc_proto_add_error_callback (mc_Client * self, Proto_ErrorCallback error_cb, void * user_data);
 
 /**
  * @brief Remove a previously added error callback
@@ -129,7 +129,7 @@ void proto_add_error_callback (Proto_Connector * self, Proto_ErrorCallback error
  * @param self the connector to change
  * @param callback a previously added function
  */
-void proto_rm_error_callback (Proto_Connector * self, Proto_ErrorCallback callback);
+void mc_proto_rm_error_callback (mc_Client * self, Proto_ErrorCallback callback);
 
 /**
  * @brief Add a callback that is called on mpd events
@@ -137,21 +137,21 @@ void proto_rm_error_callback (Proto_Connector * self, Proto_ErrorCallback callba
  * If the callback already has been added, it isn't added twice.
  *
  * Note: The mainloop must be running, and
- * proto_create_glib_adapter() must have been integrated
+ * mc_proto_create_glib_adapter() must have been integrated
  * into the mainloop.
  *
  * @param self a connector
  * @param callback a Proto_EventCallback function
  * @param user_data data being passed to the callback
  */
-void proto_add_event_callback (Proto_Connector * self, Proto_EventCallback callback, void * user_data);
+void mc_proto_add_event_callback (mc_Client * self, Proto_EventCallback callback, void * user_data);
 
 /**
- * @brief Like proto_add_error_callback, but only listen to events in mask
+ * @brief Like mc_proto_add_error_callback, but only listen to events in mask
  *
  * @param mask a bitmask of mpd_idle events. Only events in mask will be callbacked.
  */
-void proto_add_event_callback_mask (Proto_Connector * self, Proto_EventCallback callback, void * user_data, mpd_idle mask);
+void mc_proto_add_event_callback_mask (mc_Client * self, Proto_EventCallback callback, void * user_data, mpd_idle mask);
 
 /**
  * @brief Remove a previously registered callback.
@@ -159,7 +159,7 @@ void proto_add_event_callback_mask (Proto_Connector * self, Proto_EventCallback 
  * @param self a connector
  * @param callback a Proto_EventCallback function
  */
-void proto_rm_event_callback (Proto_Connector * self, Proto_EventCallback callback);
+void mc_proto_rm_event_callback (mc_Client * self, Proto_EventCallback callback);
 
 /**
  * @brief Return the "send connection" of the Connector.
@@ -168,14 +168,14 @@ void proto_rm_event_callback (Proto_Connector * self, Proto_EventCallback callba
  *
  * @return a working mpd_connection or NULL
  */
-mpd_connection * proto_get (Proto_Connector * self);
+mpd_connection * mc_proto_get (mc_Client * self);
 
 /**
  * @brief Put conenction back to event listening
  *
  * @param self the connector to operate on
  */
-void proto_put (Proto_Connector * self);
+void mc_proto_put (mc_Client * self);
 
 /**
  * @brief Checks if the connector is connected.
@@ -184,7 +184,7 @@ void proto_put (Proto_Connector * self);
  *
  * @return true when connected
  */
-bool proto_is_connected (Proto_Connector * self);
+bool mc_proto_is_connected (mc_Client * self);
 
 /**
  * @brief Disconnect connection and free all.
@@ -193,7 +193,7 @@ bool proto_is_connected (Proto_Connector * self);
  *
  * @return a error string, or NULL if no error happened
  */
-char * proto_disconnect (Proto_Connector * self);
+char * mc_proto_disconnect (mc_Client * self);
 
 /**
  * @brief Send a event to all registered callbacks.
@@ -205,16 +205,16 @@ char * proto_disconnect (Proto_Connector * self);
  * @param self connector to operate on
  * @param events a enump mpd_idle
  */
-void proto_update (Proto_Connector * self, enum mpd_idle events);
+void mc_proto_update (mc_Client * self, enum mpd_idle events);
 
 
 /**
  * @brief Free all data associated with this connector.
  *
- * You have to call proto_disconnect beforehand!
+ * You have to call mc_proto_disconnect beforehand!
  *
  * @param self the connector to operate on
  */
-void proto_free (Proto_Connector * self);
+void mc_proto_free (mc_Client * self);
 
 #endif /* end of include guard: PROTOCOL_H */

@@ -8,7 +8,7 @@ struct Store_DB
 
 ///////////////
 
-struct Store_DB * store_create (Proto_Connector * client, const char * directory, const char * dbname)
+struct Store_DB * store_create (mc_Client * client, const char * directory, const char * dbname)
 {
     // Create the structure and the file
     //

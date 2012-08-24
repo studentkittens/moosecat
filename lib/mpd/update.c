@@ -23,19 +23,19 @@ const enum mpd_idle on_song_update   = (MPD_IDLE_PLAYER);
 
 ////////////////////////
 
-void proto_update_context_info_cb (enum mpd_idle events, void * user_data)
+void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
 {
-    Proto_Connector * self = user_data;
+    mc_Client * self = user_data;
     if (self != NULL)
     {
-        mpd_connection * conn = proto_get (self);
+        mpd_connection * conn = mc_proto_get (self);
         if (conn != NULL)
         {
             UPDATE_FIELD (on_status_update, self->status, mpd_status_free, mpd_run_status);
             UPDATE_FIELD (on_stats_update, self->stats, mpd_stats_free, mpd_run_stats);
             UPDATE_FIELD (on_song_update, self->song, mpd_song_free, mpd_run_current_song);
 
-            proto_put (self);
+            mc_proto_put (self);
         }
     }
 }

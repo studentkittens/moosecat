@@ -14,12 +14,12 @@
 
 
 /**
- * @brief Create an Proto_Connector
+ * @brief Create an mc_Client
  *
- * See Proto_IdleConnector for more description.
+ * See mc_IdleClient for more description.
  *
  * @return a newly allocated connector
  */
-Proto_Connector * proto_create_cmnder (void);
+mc_Client * mc_proto_create_cmnder (void);
 
 #endif /* end of include guard: CMND_CORE_H */

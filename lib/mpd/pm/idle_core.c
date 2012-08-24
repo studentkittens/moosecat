@@ -6,7 +6,7 @@
 /* define to cast a parent connector to the
  * concrete idle connector
  */
-#define child(obj) ((Proto_IdleConnector *)obj)
+#define child(obj) ((mc_IdleClient *)obj)
 
 ///////////////////////
 // Private Interface //
@@ -14,14 +14,14 @@
 
 typedef struct
 {
-    Proto_Connector logic;
+    mc_Client logic;
 
     mpd_connection * con;
-} Proto_IdleConnector;
+} mc_IdleClient;
 
 ///////////////////
 
-static char * idler_do_connect (Proto_Connector * self, GMainContext * context, const char * host, int port, int timeout)
+static char * idler_do_connect (mc_Client * self, GMainContext * context, const char * host, int port, int timeout)
 {
     (void) context;
     // Create one mpd connection, and
@@ -32,7 +32,7 @@ static char * idler_do_connect (Proto_Connector * self, GMainContext * context, 
 
 ///////////////////////
 
-static mpd_connection * idler_do_get (Proto_Connector * self)
+static mpd_connection * idler_do_get (mc_Client * self)
 {
     // leave event listening, make connection sendable
     return child (self)->con;
@@ -40,7 +40,7 @@ static mpd_connection * idler_do_get (Proto_Connector * self)
 
 ///////////////////////
 
-static void idler_do_put (Proto_Connector * self)
+static void idler_do_put (mc_Client * self)
 {
     // enter event listening state
     g_print ("Putting %p back\n", child (self) );
@@ -48,18 +48,18 @@ static void idler_do_put (Proto_Connector * self)
 
 ///////////////////////
 
-static void idler_free (Proto_IdleConnector * ctor)
+static void idler_free (mc_IdleClient * ctor)
 {
     if (ctor != NULL)
     {
-        memset (ctor, 0, sizeof (Proto_IdleConnector) );
+        memset (ctor, 0, sizeof (mc_IdleClient) );
         g_free (ctor);
     }
 }
 
 ///////////////////////
 
-static bool idler_do_disconnect (Proto_Connector * self)
+static bool idler_do_disconnect (mc_Client * self)
 {
     // cleanup
     idler_free (child (self) );
@@ -70,9 +70,9 @@ static bool idler_do_disconnect (Proto_Connector * self)
 // Public Interface //
 //////////////////////
 
-Proto_Connector * proto_create_idler (void)
+mc_Client * mc_proto_create_idler (void)
 {
-    Proto_IdleConnector * ctor = g_new0 (Proto_IdleConnector, 1);
+    mc_IdleClient * ctor = g_new0 (mc_IdleClient, 1);
 
     /* Set all required functions */
     ctor->logic.do_disconnect = idler_do_disconnect;
@@ -81,5 +81,5 @@ Proto_Connector * proto_create_idler (void)
     ctor->logic.do_connect = idler_do_connect;
 
     ctor->con = NULL; // <-- write connect code here
-    return (Proto_Connector *) ctor;
+    return (mc_Client *) ctor;
 }

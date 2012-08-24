@@ -5,18 +5,18 @@
 #include "../../../lib/mpd/client.h"
 
 
-static Proto_Connector * conn = NULL;
+static mc_Client * conn = NULL;
 
 void test_flood__initialize (void)
 {
-    conn = proto_create_cmnder();
-    proto_connect (conn, NULL, "localhost", 6600, 2);
+    conn = mc_proto_create_cmnder();
+    mc_proto_connect (conn, NULL, "localhost", 6600, 2);
 }
 
 void test_flood__cleanup (void)
 {
-    proto_disconnect (conn);
-    proto_free (conn);
+    mc_proto_disconnect (conn);
+    mc_proto_free (conn);
 }
 
 void test_flood__do_flooding (void)

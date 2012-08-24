@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static Proto_Connector * conn = NULL;
+static mc_Client * conn = NULL;
 
 static void event (enum mpd_idle event, void * user_data)
 {
@@ -23,13 +23,13 @@ gboolean next_song (gpointer user_data)
 {
     GMainLoop * loop = (GMainLoop *) user_data;
 
-    conn = proto_create_cmnder();
-    proto_add_event_callback (conn, event, NULL);
+    conn = mc_proto_create_cmnder();
+    mc_proto_add_event_callback (conn, event, NULL);
 
     for (int i = 0; i < 100; i++)
     {
         g_print ("Connecting... ");
-        char * err = proto_connect (conn, NULL, "localhost", 6600, 2);
+        char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
         if ( err != NULL )
         {
             g_print ("Err: %s\n", err);
@@ -40,7 +40,7 @@ gboolean next_song (gpointer user_data)
 
 
         for (int i = 0; i < 10; i++)
-            mc_volume (conn, 100);
+            mc_client_volume (conn, 100);
         
         gint wait = g_random_int_range(0, 1000 * 1000);
         g_print("Waiting for %f\n", wait / (1000. * 1000.));
@@ -49,11 +49,11 @@ gboolean next_song (gpointer user_data)
         while (g_main_context_iteration (NULL, TRUE) );
 
         g_print ("Disconnecting... ");
-        proto_disconnect (conn);
+        mc_proto_disconnect (conn);
         g_print (" done.\n");
     }
 
-    proto_free (conn);
+    mc_proto_free (conn);
 
     g_main_loop_quit (loop);
     return FALSE;

@@ -4,7 +4,7 @@
 #define IDLE_CORE_H
 
 /**
- * @brief Create an Proto_Connector
+ * @brief Create an mc_Client
  *
  * @brief Connector using only one connection and the idle command.
  *
@@ -17,6 +17,6 @@
  *
  * @return a newly allocated connector
  */
-Proto_Connector * proto_create_idler (void);
+mc_Client * mc_proto_create_idler (void);
 
 #endif /* end of include guard: IDLE_CORE_H */

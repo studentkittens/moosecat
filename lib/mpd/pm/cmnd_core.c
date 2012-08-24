@@ -9,7 +9,7 @@
 /* define to cast a parent connector to the
  * concrete idle connector
  */
-#define child(obj) ((Proto_CmndConnector *)obj)
+#define child(obj) ((mc_CmndClient *)obj)
 
 ///////////////////////
 // Private Interface //
@@ -18,7 +18,7 @@
 typedef struct
 {
     /* Parent struct */
-    Proto_Connector logic;
+    mc_Client logic;
 
     /* Connection to send commands */
     mpd_connection * cmnd_con;
@@ -40,7 +40,7 @@ typedef struct
      * if false it may still run, but will
      * terminate on next iteration */
     gboolean run_listener;
-} Proto_CmndConnector;
+} mc_CmndClient;
 
 //////////////////////
 
@@ -48,7 +48,7 @@ static gboolean cmnder_event_callback (
     GAsyncQueue * queue,
     gpointer user_data)
 {
-    Proto_Connector * self = user_data;
+    mc_Client * self = user_data;
     gpointer item = NULL;
 
     /* Pop all items from the queue that are in,
@@ -72,7 +72,7 @@ static gboolean cmnder_event_callback (
      */
     for (GList * iter = event_list; iter; iter = iter->next)
     {
-        proto_update (self, GPOINTER_TO_INT (iter->data) );
+        mc_proto_update (self, GPOINTER_TO_INT (iter->data) );
     }
 
     g_list_free (event_list);
@@ -83,7 +83,7 @@ static gboolean cmnder_event_callback (
 
 static gpointer cmnder_listener_thread (gpointer data)
 {
-    Proto_CmndConnector * self = child (data);
+    mc_CmndClient * self = child (data);
     enum mpd_idle events = 0;
 
     while (self->run_listener)
@@ -105,7 +105,7 @@ static gpointer cmnder_listener_thread (gpointer data)
 //////////////////////
 
 static void cmnder_create_glib_adapter (
-    Proto_CmndConnector * self,
+    mc_CmndClient * self,
     GMainContext * context)
 {
     if (self->watch_source_id == -1)
@@ -123,7 +123,7 @@ static void cmnder_create_glib_adapter (
 
 ///////////////////////
 
-static void cmnder_shutdown_listener (Proto_CmndConnector * self)
+static void cmnder_shutdown_listener (mc_CmndClient * self)
 {
     /*
     * This is a bit hacky,
@@ -149,7 +149,7 @@ static void cmnder_shutdown_listener (Proto_CmndConnector * self)
 
 ///////////////////////
 
-static void cmnder_free (Proto_CmndConnector * self)
+static void cmnder_free (mc_CmndClient * self)
 {
     if (self != NULL)
     {
@@ -180,13 +180,13 @@ static void cmnder_free (Proto_CmndConnector * self)
 //////////////////////////
 
 static char * cmnder_do_connect (
-    Proto_Connector * parent,
+    mc_Client * parent,
     GMainContext * context,
     const char * host,
     int port,
     int timeout)
 {
-    Proto_CmndConnector * self = child (parent);
+    mc_CmndClient * self = child (parent);
     char * error = NULL;
 
     self->cmnd_con = mpd_connect (host, port, timeout, &error);
@@ -207,7 +207,7 @@ static char * cmnder_do_connect (
 
 ///////////////////////
 
-static bool cmnder_do_disconnect (Proto_Connector * self)
+static bool cmnder_do_disconnect (mc_Client * self)
 {
     cmnder_free (child (self) );
     return true;
@@ -215,25 +215,25 @@ static bool cmnder_do_disconnect (Proto_Connector * self)
 
 //////////////////////
 
-static bool cmnder_do_is_connected (Proto_Connector * parent)
+static bool cmnder_do_is_connected (mc_Client * parent)
 {
-    Proto_CmndConnector * self = child (parent);
+    mc_CmndClient * self = child (parent);
     return (self->idle_con && self->cmnd_con);
 }
 
 ///////////////////////
 
-static mpd_connection * cmnder_do_get (Proto_Connector * self)
+static mpd_connection * cmnder_do_get (mc_Client * self)
 {
     return child (self)->cmnd_con;
 }
 
 //////////////////////
 
-static void cmnder_do_free (Proto_Connector * parent)
+static void cmnder_do_free (mc_Client * parent)
 {
-    Proto_CmndConnector * self = child (parent);
-    memset (self, 0, sizeof (Proto_CmndConnector) );
+    mc_CmndClient * self = child (parent);
+    memset (self, 0, sizeof (mc_CmndClient) );
     g_free (self);
 }
 
@@ -241,13 +241,13 @@ static void cmnder_do_free (Proto_Connector * parent)
 // Public Interface //
 //////////////////////
 
-Proto_Connector * proto_create_cmnder (void)
+mc_Client * mc_proto_create_cmnder (void)
 {
     /* Only fill callbacks here, no
-     * actual data relied to Proto_CmndConnector
+     * actual data relied to mc_CmndClient
      * may be placed here!
      */
-    Proto_CmndConnector * self = g_new0 (Proto_CmndConnector, 1);
+    mc_CmndClient * self = g_new0 (mc_CmndClient, 1);
     self->logic.do_disconnect = cmnder_do_disconnect;
     self->logic.do_get = cmnder_do_get;
     self->logic.do_put = NULL;
@@ -255,5 +255,5 @@ Proto_Connector * proto_create_cmnder (void)
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;
 
-    return (Proto_Connector *) self;
+    return (mc_Client *) self;
 }

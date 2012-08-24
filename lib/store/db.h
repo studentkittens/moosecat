@@ -32,7 +32,7 @@ struct Store_DB;
  *
  * @return a new Store_DB struct, free with store_close()
  */
-struct Store_DB * store_create (Proto_Connector * client, const char * directory, const char * dbname);
+struct Store_DB * store_create (mc_Client * client, const char * directory, const char * dbname);
 
 /**
  * @brief Update the db to the latest Query of the MPD Server.
