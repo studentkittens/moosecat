@@ -4,6 +4,8 @@
 -- else:
 
 DELETE FROM TABLE songs;
+
+-- Drop indices.
 DROP INDEX...;
 
 -- Now reinitialize. 

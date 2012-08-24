@@ -10,8 +10,11 @@ static Proto_Connector * conn = NULL;
 static void event (enum mpd_idle event, void * user_data)
 {
     (void) user_data;
+    g_print ("%p %p %p\n", conn->status, conn->song, conn->stats);
     g_print ("event = %d\n", event);
     g_print ("status = %d\n", mpd_status_get_song_id(conn->status));
+    g_print ("ctsong = %s\n", mpd_song_get_tag(conn->song, MPD_TAG_ARTIST, 0));
+    g_print ("statis = %d\n", mpd_stats_get_number_of_artists(conn->stats));
 }
 
 /////////////////////////////
@@ -25,6 +28,7 @@ gboolean next_song (gpointer user_data)
 
     for (int i = 0; i < 100; i++)
     {
+        g_print ("Connecting... ");
         char * err = proto_connect (conn, NULL, "localhost", 6600, 2);
         if ( err != NULL )
         {
@@ -32,6 +36,7 @@ gboolean next_song (gpointer user_data)
             g_free (err);
             break;
         }
+        g_print (" done.\n");
 
 
         for (int i = 0; i < 10; i++)
@@ -42,7 +47,10 @@ gboolean next_song (gpointer user_data)
         g_usleep(wait);
 
         while (g_main_context_iteration (NULL, TRUE) );
+
+        g_print ("Disconnecting... ");
         proto_disconnect (conn);
+        g_print (" done.\n");
     }
 
     proto_free (conn);

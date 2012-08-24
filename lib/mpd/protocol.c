@@ -30,6 +30,26 @@ typedef struct
 ////  PRIVATE /////
 ///////////////////
 
+static void proto_reset(Proto_Connector * self)
+{
+    g_print ("Reset.\n");
+    /* Free status/song/stats */
+    if (self->status != NULL)
+        mpd_status_free (self->status);
+
+    if (self->stats != NULL)
+        mpd_stats_free (self->stats);
+
+    if (self->song != NULL)
+        mpd_song_free (self->song);
+
+    self->song = NULL;
+    self->stats = NULL;
+    self->status = NULL;
+}
+
+///////////////////
+
 static GList * proto_find_callback (Proto_EventCallback callback, GList * list)
 {
     for (GList * iter = list; iter; iter = iter->next)
@@ -82,15 +102,16 @@ char * proto_connect (
     const char * host,
     int port, int timeout)
 {
+    char * err = NULL;
     if (self == NULL)
         return g_strdup(etable[ERR_IS_NULL]);
 
-    /*
-     * Setup Connector
-     * Error that may happenend while that
-     * are returned as string
-     */
-    return g_strdup (self->do_connect (self, context, host, port, timeout) );
+    err = g_strdup (self->do_connect (self, context, host, port, timeout) );
+
+    if(err == NULL)
+        proto_update_context_info_cb(INT_MAX, self);
+
+    return err;
 }
 
 ///////////////////
@@ -204,10 +225,15 @@ char * proto_disconnect (
     if (self)
     {
         /* let the connector clean up itself */
-        if (self->do_disconnect (self) )
-            return NULL;
+        bool error_happenend = self->do_disconnect (self);
+
+        /* Reset status/song/stats to NULL */
+        proto_reset (self);
+
+        if (error_happenend)
+            return g_strdup (etable[ERR_UNKNOWN]);
         else
-            return g_strdup(etable[ERR_UNKNOWN]);
+            return NULL;
     }
     return g_strdup (etable[ERR_IS_NULL]);
 }
@@ -220,15 +246,8 @@ void proto_free (Proto_Connector * self)
     g_list_free_full (self->_event_callbacks, proto_free_ctag);
     g_list_free_full (self->_error_callbacks, proto_free_ctag);
 
-    /* Free status/song/stats */
-    if (self->status != NULL)
-        mpd_status_free (self->status);
-
-    if (self->stats != NULL)
-        mpd_stats_free (self->stats);
-
-    if (self->song != NULL)
-        mpd_song_free (self->song);
+    /* Free status/stats/song */
+    proto_reset (self);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)

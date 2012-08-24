@@ -35,7 +35,8 @@ Everything below is crap.
 **Initialization:**
 
   #. From one row, a mpd_song can be deserialized since all metadata of a mpd_song is stored (tags, length etc.).
-  #. Additional to the metadata of songs, a index is saved.
+  #. Additional to the metadata of songs, a index to an array of mpd_songs is saved.
+  #. The current and stored playlists are saved in seperate tables each.
   #. The Queue-Version is saved in a seperate table ("meta") and may be compared later.
 
   .. literalinclude:: sql/create.sql
@@ -51,9 +52,14 @@ Everything below is crap.
   .. literalinclude:: sql/insert.sql
      :language: sql
 
-**Updating**:
+**Database Updates**:
 
   .. literalinclude:: sql/update.sql
+     :language: sql
+
+**Queue Updates**:
+
+  .. literalinclude:: sql/queue_update.sql
      :language: sql
 
 **Shutdown:**

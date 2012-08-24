@@ -13,4 +13,4 @@ except:
 Export('env')
 
 env.SConscript('lib/SConscript', variant_dir='bin', src_dir='src')
-env.SConscript('test/SConscript', src_dir='test')
+#env.SConscript('test/SConscript', src_dir='test')
