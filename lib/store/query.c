@@ -1,6 +1,12 @@
 #include "query.h"
 
-Store_Query * store_query_create (const char * search_string)
+struct mc_StoreQuery
+{
+    GArray * where_clausels;
+    GArray * column_clausels;
+};
+
+struct mc_StoreQuery * mc_store_query_create (const char * search_string)
 {
     (void) search_string;
     return NULL;

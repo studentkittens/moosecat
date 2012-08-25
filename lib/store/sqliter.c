@@ -76,7 +76,7 @@ typedef struct
 {
     sqlite3 * db;
     sqlite3_stmt * insert_stmt;
-} Store_DB;
+} mc_StoreDB;
 
 ////////////////////////////////
 
@@ -153,7 +153,7 @@ static void open_connection(sqlite3 ** memDB)
 
 static int idx = 0;
 
-static bool insert_song(Store_DB * db, struct mpd_song * song)
+static bool insert_song(mc_StoreDB * db, struct mpd_song * song)
 {
     sqlite3_bind_int(db->insert_stmt, 1, idx++);
     sqlite3_bind_text(db->insert_stmt, 2, mpd_song_get_uri(song), -1, NULL);
@@ -196,9 +196,9 @@ static bool insert_song(Store_DB * db, struct mpd_song * song)
 
 ///////////////////////////////
 
-Store_DB * create_store(void)
+mc_StoreDB * create_store(void)
 {
-    Store_DB * store = g_new0(Store_DB, 1);
+    mc_StoreDB * store = g_new0(mc_StoreDB, 1);
 
     /* Make initial connection */
     store->db = NULL;
@@ -233,7 +233,7 @@ Store_DB * create_store(void)
 
 int main(int argc, char const *argv[])
 {
-    Store_DB * store = create_store();
+    mc_StoreDB * store = create_store();
 
     if (store != NULL)
     {

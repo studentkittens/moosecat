@@ -1,6 +1,6 @@
 #include "db.h"
 
-struct Store_DB
+struct mc_StoreDB
 {
     const char * db_location;
     GArray * memsongs;
@@ -8,7 +8,7 @@ struct Store_DB
 
 ///////////////
 
-struct Store_DB * store_create (mc_Client * client, const char * directory, const char * dbname)
+struct mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname)
 {
     // Create the structure and the file
     //
@@ -20,7 +20,7 @@ struct Store_DB * store_create (mc_Client * client, const char * directory, cons
 
 ///////////////
 
-int store_update (struct Store_DB * self)
+int mc_store_update (struct mc_StoreDB * self)
 {
     (void) self;
     return 0;
@@ -28,7 +28,7 @@ int store_update (struct Store_DB * self)
 
 ///////////////
 
-void store_close (struct Store_DB * self)
+void mc_store_close (struct mc_StoreDB * self)
 {
     // Write to disk
     (void) self;
@@ -36,7 +36,7 @@ void store_close (struct Store_DB * self)
 
 ///////////////
 
-GArray * store_search (struct Store_DB * self, Store_Query * qry)
+GArray * mc_store_search (struct mc_StoreDB * self, struct mc_StoreQuery * qry)
 {
     (void) self;
     (void) qry;

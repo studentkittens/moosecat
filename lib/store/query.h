@@ -1,18 +1,14 @@
 #include <glib.h>
 
 /**
- * @brief An opaque structure representing a Store Query.
+ * @brief An opaque structure representing a mc_Store Query.
  *
  * In SQL Terms it would be something like this:
  *
  * select <columns> from songs where <where_clauses>;
  */
 
-typedef struct
-{
-    GArray * columns;
-    GArray * where_clauses;
-} Store_Query;
+struct mc_Store_Query;
 
 /**
  * @brief Create a new Query
@@ -35,6 +31,6 @@ typedef struct
  *        -- expression3 was not given.
  *        ;
  *
- * @return
+ * @return a newly allocated query
  */
-Store_Query * store_query_create (const char * search_string);
+struct mc_StoreQuery * mc_store_query_create (const char * search_string);
