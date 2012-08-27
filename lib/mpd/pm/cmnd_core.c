@@ -72,7 +72,8 @@ static gboolean cmnder_event_callback (
      */
     for (GList * iter = event_list; iter; iter = iter->next)
     {
-        mc_proto_update (self, GPOINTER_TO_INT (iter->data) );
+        enum mpd_idle event = GPOINTER_TO_INT (iter->data);
+        mc_proto_signal_dispatch (self, "client-event", self, event);
     }
 
     g_list_free (event_list);
@@ -88,7 +89,6 @@ static gpointer cmnder_listener_thread (gpointer data)
 
     while (self->run_listener)
     {
-        g_print ("-- iteration --\n");
         if ( (events = mpd_run_idle (self->idle_con) ) == 0)
         {
             g_print ("Info: No events received at all.");

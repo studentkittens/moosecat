@@ -1,5 +1,4 @@
 #include "mpd/protocol.h"
-#include "mpd/pm/cmnd_core.h"
 #include "mpd/client.h"
 
 #include <stdlib.h>
@@ -7,8 +6,9 @@
 
 static mc_Client * conn = NULL;
 
-static void event (enum mpd_idle event, void * user_data)
+static void event (mc_Client * u_conn, enum mpd_idle event, void * user_data)
 {
+    (void) u_conn;
     (void) user_data;
     g_print ("%p %p %p\n", conn->status, conn->song, conn->stats);
     g_print ("event = %d\n", event);
@@ -23,10 +23,10 @@ gboolean next_song (gpointer user_data)
 {
     GMainLoop * loop = (GMainLoop *) user_data;
 
-    conn = mc_proto_create_cmnder();
-    mc_proto_add_event_callback (conn, event, NULL);
+    conn = mc_proto_create("command");
+    mc_proto_signal_add (conn, "client-event", event, loop);
 
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 5; i++)
     {
         g_print ("Connecting... ");
         char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
@@ -44,7 +44,7 @@ gboolean next_song (gpointer user_data)
         
         gint wait = g_random_int_range(0, 1000 * 1000);
         g_print("Waiting for %f\n", wait / (1000. * 1000.));
-        g_usleep(wait);
+        //g_usleep(wait);
 
         while (g_main_context_iteration (NULL, TRUE) );
 

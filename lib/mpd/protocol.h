@@ -2,6 +2,9 @@
 #include <stdbool.h>
 #include <glib.h>
 
+/* Signal System */
+#include "signal.h"
+
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
@@ -11,15 +14,6 @@ typedef struct mpd_async mpd_async;
 typedef struct mpd_song mpd_song;
 typedef struct mpd_status mpd_status;
 typedef struct mpd_stats mpd_stats;
-
-typedef enum mpd_error mpd_error;
-typedef enum mpd_idle mpd_idle;
-
-/* Event callback */
-typedef void (* Proto_EventCallback) (enum mpd_idle, void * userdata);
-
-/* Error callback */
-typedef void (* Proto_ErrorCallback) (mpd_error, void * userdata);
 
 /**
  * @brief Structure representing a connection handle,
@@ -37,53 +31,59 @@ typedef void (* Proto_ErrorCallback) (mpd_error, void * userdata);
  *
  *        Read their respective docs.
  */
-typedef struct _mc_Client
+typedef struct mc_Client
 {
     /*
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char * (* do_connect) (struct _mc_Client *, GMainContext * context, const char *, int, int);
+    char * (* do_connect) (struct mc_Client *, GMainContext * context, const char *, int, int);
 
     /*
      * Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    mpd_connection * (* do_get) (struct _mc_Client *);
+    mpd_connection * (* do_get) (struct mc_Client *);
 
     /*
      * Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put) (struct _mc_Client *);
+    void (* do_put) (struct mc_Client *);
 
     /*
      * Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    bool (* do_disconnect) (struct _mc_Client *);
+    bool (* do_disconnect) (struct mc_Client *);
 
     /**
      * Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    bool (* do_is_connected) (struct _mc_Client *);
+    bool (* do_is_connected) (struct mc_Client *);
 
     /*
      * Free the connector. disconnect() won't free it!
      * May be NULL
      */
-    void (* do_free) (struct _mc_Client *);
+    void (* do_free) (struct mc_Client *);
 
     /*
-     * Callback lists
+     * Save last connected host / port / timeout.
      */
-    GList * _event_callbacks;
-    GList * _error_callbacks;
+    char * _host;
+    int _port;
 
     /*
-     * Up-to-date infos
+     * Signal functions are stored in here
+     */
+    mc_SignalList _signals;
+
+    /*
+     * Up-to-date infos.
+     * Can be accessed safely in public.
      */
     mpd_song * song;
     mpd_stats * stats;
@@ -92,6 +92,9 @@ typedef struct _mc_Client
 } mc_Client;
 
 ///////////////////
+///////////////////
+
+mc_Client * mc_proto_create (const char * protocol_machine);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
@@ -110,56 +113,12 @@ typedef struct _mc_Client
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-char * mc_proto_connect (mc_Client * self, GMainContext * context, const char * host, int port, int timeout);
-
-/**
- * @brief Set a callback that is called when any error is happening
- *
- * Note: double given callbacks are not registered.
- *
- * @param self the connector to observer
- * @param error_cb the callback that is executed, prototype must be Proto_ErrorCallback
- * @param user_data data being passed to the callback
- */
-void mc_proto_add_error_callback (mc_Client * self, Proto_ErrorCallback error_cb, void * user_data);
-
-/**
- * @brief Remove a previously added error callback
- *
- * @param self the connector to change
- * @param callback a previously added function
- */
-void mc_proto_rm_error_callback (mc_Client * self, Proto_ErrorCallback callback);
-
-/**
- * @brief Add a callback that is called on mpd events
- *
- * If the callback already has been added, it isn't added twice.
- *
- * Note: The mainloop must be running, and
- * mc_proto_create_glib_adapter() must have been integrated
- * into the mainloop.
- *
- * @param self a connector
- * @param callback a Proto_EventCallback function
- * @param user_data data being passed to the callback
- */
-void mc_proto_add_event_callback (mc_Client * self, Proto_EventCallback callback, void * user_data);
-
-/**
- * @brief Like mc_proto_add_error_callback, but only listen to events in mask
- *
- * @param mask a bitmask of mpd_idle events. Only events in mask will be callbacked.
- */
-void mc_proto_add_event_callback_mask (mc_Client * self, Proto_EventCallback callback, void * user_data, mpd_idle mask);
-
-/**
- * @brief Remove a previously registered callback.
- *
- * @param self a connector
- * @param callback a Proto_EventCallback function
- */
-void mc_proto_rm_event_callback (mc_Client * self, Proto_EventCallback callback);
+char * mc_proto_connect (
+        mc_Client * self,
+        GMainContext * context,
+        const char * host,
+        int port,
+        int timeout);
 
 /**
  * @brief Return the "send connection" of the Connector.
@@ -196,19 +155,6 @@ bool mc_proto_is_connected (mc_Client * self);
 char * mc_proto_disconnect (mc_Client * self);
 
 /**
- * @brief Send a event to all registered callbacks.
- *
- * This is usually called internally, but it might
- * be useful for you to update the view of you application
- * on initial start when no events happened yet.
- *
- * @param self connector to operate on
- * @param events a enump mpd_idle
- */
-void mc_proto_update (mc_Client * self, enum mpd_idle events);
-
-
-/**
  * @brief Free all data associated with this connector.
  *
  * You have to call mc_proto_disconnect beforehand!
@@ -216,5 +162,48 @@ void mc_proto_update (mc_Client * self, enum mpd_idle events);
  * @param self the connector to operate on
  */
 void mc_proto_free (mc_Client * self);
+
+///////////////////////////////
+
+void mc_proto_signal_add (
+        mc_Client * self,
+        const char * signal_name,
+        void * callback_func,
+        void * user_data);
+
+/**
+ * @brief Same as mc_proto_signal_add, but only 
+ *
+ * The mask param has only effect on the client-event.
+ *
+ * @param self
+ * @param signal_name
+ * @param callback_func
+ * @param user_data
+ * @param mask
+ */
+void mc_proto_signal_add_masked (
+        mc_Client * self,
+        const char * signal_name,
+        void * callback_func,
+        void * user_data,
+        enum mpd_idle mask);
+
+void mc_proto_signal_rm (
+        mc_Client * self,
+        const char * signal_name,
+        void * callback_addr);
+
+/**
+ * @brief This function is mostly used internally to call all registered callbacks.
+ *
+ * @param self the client to operate on.
+ * @param signal_name the name of the signal to dispatch.
+ * @param ... variable args. See above.
+ */
+void mc_proto_signal_dispatch (
+        mc_Client * self,
+        const char * signal_name,
+        ...);
 
 #endif /* end of include guard: PROTOCOL_H */

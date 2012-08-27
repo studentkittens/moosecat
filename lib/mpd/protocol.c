@@ -1,6 +1,11 @@
 #include "protocol.h"
 #include "update.h"
 
+#include "pm/cmnd_core.h"
+#include "pm/idle_core.h"
+
+#include "signal_helper.h"
+
 enum
 {
     ERR_OK,
@@ -17,14 +22,6 @@ static const char * etable[] =
     [ERR_UNKNOWN] = "Operation failed for unknow reason."
 };
 
-///////////////////
-
-typedef struct
-{
-    Proto_EventCallback callback;
-    gpointer user_data;
-    mpd_idle mask;
-} Proto_CallbackTag;
 
 ///////////////////
 ////  PRIVATE /////
@@ -32,7 +29,6 @@ typedef struct
 
 static void mc_proto_reset(mc_Client * self)
 {
-    g_print ("Reset.\n");
     /* Free status/song/stats */
     if (self->status != NULL)
         mpd_status_free (self->status);
@@ -49,58 +45,32 @@ static void mc_proto_reset(mc_Client * self)
 }
 
 ///////////////////
-
-static GList * mc_proto_find_callback (Proto_EventCallback callback, GList * list)
-{
-    for (GList * iter = list; iter; iter = iter->next)
-    {
-        Proto_CallbackTag * tag = (Proto_CallbackTag *) iter->data;
-        if (tag != NULL)
-        {
-            if (tag->callback == callback)
-            {
-                return iter;
-            }
-        }
-    }
-    return NULL;
-}
-
-///////////////////
-
-static void mc_proto_add_callback (
-    GList ** list,
-    Proto_EventCallback callback,
-    gpointer user_data,
-    mpd_idle mask)
-{
-    if (list && mc_proto_find_callback (callback, *list) == NULL)
-    {
-        Proto_CallbackTag * tag = g_slice_alloc (sizeof (Proto_CallbackTag) );
-        tag->callback = callback;
-        tag->mask = mask;
-        tag->user_data = user_data;
-
-        *list = g_list_prepend (*list, tag);
-    }
-}
-
-///////////////////
-
-static void mc_proto_free_ctag (gpointer data)
-{
-    g_slice_free (Proto_CallbackTag, data);
-}
-
-///////////////////
 ////  PUBLIC //////
+///////////////////
+
+mc_Client * mc_proto_create (const char * protocol_machine)
+{
+    mc_Client * client = NULL;
+    if (g_strcmp0 (protocol_machine, "idle") == 0)
+        client = mc_proto_create_idler();
+    else
+    if (g_strcmp0 (protocol_machine, "command") == 0)
+        client = mc_proto_create_cmnder();
+
+    if (client != NULL)
+        mc_signal_list_init (&client->_signals);
+
+    return client;
+}
+
 ///////////////////
 
 char * mc_proto_connect (
     mc_Client * self,
     GMainContext * context,
     const char * host,
-    int port, int timeout)
+    int port,
+    int timeout)
 {
     char * err = NULL;
     if (self == NULL)
@@ -108,9 +78,14 @@ char * mc_proto_connect (
 
     err = g_strdup (self->do_connect (self, context, host, port, timeout) );
 
-    if(err == NULL)
-        mc_proto_update_context_info_cb(INT_MAX, self);
+    if(err == NULL && mc_proto_is_connected (self))
+    {
+        /* Force updating of status/stats/song on connect */
+        mc_proto_update_context_info_cb (INT_MAX, self);
 
+        /* Check if server changed */
+        mc_shelper_report_connectivity (self, host, port);
+    }
     return err;
 }
 
@@ -149,83 +124,13 @@ mpd_connection * mc_proto_get (mc_Client * self)
 
 ///////////////////
 
-void mc_proto_add_event_callback_mask (
-    mc_Client * self,
-    Proto_EventCallback callback,
-    gpointer user_data, mpd_idle mask)
-{
-    if (self) mc_proto_add_callback (
-            &self->_event_callbacks,
-            callback,
-            user_data,
-            mask);
-}
-
-///////////////////
-
-void mc_proto_add_event_callback (
-    mc_Client * self,
-    Proto_EventCallback callback,
-    gpointer user_data)
-{
-    if (self) mc_proto_add_event_callback_mask (
-            self,
-            callback,
-            user_data,
-            INT_MAX);
-}
-
-///////////////////
-
-void mc_proto_rm_event_callback (
-    mc_Client * self,
-    Proto_EventCallback callback)
-{
-    if (self && callback)
-    {
-        GList * tag = mc_proto_find_callback (callback, self->_event_callbacks);
-        self->_event_callbacks = g_list_delete_link (self->_event_callbacks, tag);
-    }
-}
-
-///////////////////
-
-void mc_proto_add_error_callback (mc_Client * self,
-                               Proto_ErrorCallback callback,
-                               gpointer user_data)
-{
-    if (self) mc_proto_add_callback (
-            &self->_error_callbacks,
-            (Proto_EventCallback) callback,
-            user_data,
-            INT_MAX);
-}
-
-///////////////////
-
-void mc_proto_rm_error_callback (
-    mc_Client * self,
-    Proto_ErrorCallback callback)
-{
-    if (self && callback)
-    {
-        GList * tag = mc_proto_find_callback (
-                          (Proto_EventCallback) callback,
-                          self->_error_callbacks);
-
-        self->_error_callbacks = g_list_delete_link (self->_error_callbacks, tag);
-    }
-}
-
-///////////////////
-
 char * mc_proto_disconnect (
     mc_Client * self)
 {
-    if (self)
+    if (self && mc_proto_is_connected (self))
     {
         /* let the connector clean up itself */
-        bool error_happenend = self->do_disconnect (self);
+        bool error_happenend = !self->do_disconnect (self);
 
         /* Reset status/song/stats to NULL */
         mc_proto_reset (self);
@@ -235,19 +140,25 @@ char * mc_proto_disconnect (
         else
             return NULL;
     }
-    return g_strdup (etable[ERR_IS_NULL]);
+
+    if (self == NULL)
+        return g_strdup (etable[ERR_IS_NULL]);
+    else
+        return NULL;
 }
 
 ///////////////////
 
 void mc_proto_free (mc_Client * self)
 {
-    /* Free the callback list */
-    g_list_free_full (self->_event_callbacks, mc_proto_free_ctag);
-    g_list_free_full (self->_error_callbacks, mc_proto_free_ctag);
-
     /* Free status/stats/song */
-    mc_proto_reset (self);
+    mc_proto_disconnect (self);
+
+    /* Kill any previously connected host info */
+    if (self->_host != NULL)
+        g_free (self->_host);
+
+    mc_signal_list_destroy (&self->_signals);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)
@@ -255,18 +166,49 @@ void mc_proto_free (mc_Client * self)
 }
 
 ///////////////////
+//// SIGNALS //////
+///////////////////
 
-void mc_proto_update (
-    mc_Client * self,
-    enum mpd_idle events)
+void mc_proto_signal_add (
+        mc_Client * self,
+        const char * signal_name,
+        void * callback_func,
+        void * user_data)
 {
-    mc_proto_update_context_info_cb (events, self);
-    for (GList * iter = self->_event_callbacks; iter; iter = iter->next)
-    {
-        Proto_CallbackTag * tag = iter->data;
-        if (tag != NULL && (tag->mask & events) > 0)
-        {
-            tag->callback (events, tag->user_data);
-        }
-    }
+    mc_signal_add (&self->_signals, signal_name, callback_func, user_data);
+}
+
+///////////////////
+
+void mc_proto_signal_add_masked (
+        mc_Client * self,
+        const char * signal_name,
+        void * callback_func,
+        void * user_data,
+        enum mpd_idle mask)
+{
+    mc_signal_add_masked (&self->_signals, signal_name, callback_func, user_data, mask);
+}
+
+///////////////////
+
+void mc_proto_signal_rm (
+        mc_Client * self,
+        const char * signal_name,
+        void * callback_addr)
+{
+    mc_signal_rm (&self->_signals, signal_name, callback_addr);
+}
+
+///////////////////
+
+void mc_proto_signal_dispatch (
+        mc_Client * self,
+        const char * signal_name,
+        ...)
+{
+    va_list args;
+    va_start (args, signal_name);
+    mc_signal_report_event_v (&self->_signals, signal_name, args);
+    va_end (args);
 }
