@@ -173,7 +173,7 @@ void mc_proto_free (mc_Client * self);
  * - "error", See mc_ErrorCallback
  * - "progress", See mc_ProgressCallback
  * - "connectivity", See mc_ConnectivityCallback
- * 
+ *
  * Callback Order
  * --------------
  *

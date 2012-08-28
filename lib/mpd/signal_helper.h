@@ -65,8 +65,8 @@ void mc_shelper_report_connectivity (
  * @param event the event to dispatch
  */
 void mc_shelper_report_client_event (
-        struct mc_Client * self, 
-        enum mpd_idle event);
+    struct mc_Client * self,
+    enum mpd_idle event);
 
 #endif /* end of include guard: MC_SIGNAL_HELPER_H */
 

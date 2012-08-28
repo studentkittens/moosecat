@@ -14,7 +14,7 @@ const enum mpd_idle on_song_update   = (MPD_IDLE_PLAYER);
     {                                                                     \
         if(var != NULL)                                                   \
             free_func (var);                                              \
-                                                                          \
+        \
         var = update_func (conn);                                         \
         if (!var && mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS)  \
             g_print("Unable to send status/song/stats: %s\n",             \

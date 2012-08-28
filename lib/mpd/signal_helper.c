@@ -59,8 +59,8 @@ void mc_shelper_report_connectivity (
 ///////////////////////////////
 
 void mc_shelper_report_client_event (
-        struct mc_Client * self, 
-        enum mpd_idle event)
+    struct mc_Client * self,
+    enum mpd_idle event)
 {
     mc_proto_update_context_info_cb (event, self);
     mc_proto_signal_dispatch (self, "client-event", self, event);
