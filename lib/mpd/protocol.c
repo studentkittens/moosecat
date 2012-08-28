@@ -27,7 +27,7 @@ static const char * etable[] =
 ////  PRIVATE /////
 ///////////////////
 
-static void mc_proto_reset(mc_Client * self)
+static void mc_proto_reset (mc_Client * self)
 {
     /* Free status/song/stats */
     if (self->status != NULL)
@@ -53,8 +53,7 @@ mc_Client * mc_proto_create (const char * protocol_machine)
     mc_Client * client = NULL;
     if (g_strcmp0 (protocol_machine, "idle") == 0)
         client = mc_proto_create_idler();
-    else
-    if (g_strcmp0 (protocol_machine, "command") == 0)
+    else if (g_strcmp0 (protocol_machine, "command") == 0)
         client = mc_proto_create_cmnder();
 
     if (client != NULL)
@@ -74,17 +73,20 @@ char * mc_proto_connect (
 {
     char * err = NULL;
     if (self == NULL)
-        return g_strdup(etable[ERR_IS_NULL]);
+        return g_strdup (etable[ERR_IS_NULL]);
 
     err = g_strdup (self->do_connect (self, context, host, port, timeout) );
 
-    if(err == NULL && mc_proto_is_connected (self))
+    if (err == NULL && mc_proto_is_connected (self) )
     {
         /* Force updating of status/stats/song on connect */
         mc_proto_update_context_info_cb (INT_MAX, self);
 
         /* Check if server changed */
         mc_shelper_report_connectivity (self, host, port);
+
+        /* Report some progress */
+        mc_shelper_report_progress (self, "Connecting ... Done!");
     }
     return err;
 }
@@ -104,9 +106,7 @@ void mc_proto_put (mc_Client * self)
      * Put connection back to event listening.
      */
     if (self && self->do_put != NULL)
-    {
         self->do_put (self);
-    }
 }
 
 ///////////////////
@@ -116,10 +116,14 @@ mpd_connection * mc_proto_get (mc_Client * self)
     /*
      * Return the readily sendable connection
      */
+    mpd_connection * cconn = NULL;
     if (self)
-        return self->do_get (self);
-    else
-        return NULL;
+    {
+        cconn = self->do_get (self);
+        mc_shelper_report_error (self, cconn);
+    }
+
+    return cconn;
 }
 
 ///////////////////
@@ -127,7 +131,7 @@ mpd_connection * mc_proto_get (mc_Client * self)
 char * mc_proto_disconnect (
     mc_Client * self)
 {
-    if (self && mc_proto_is_connected (self))
+    if (self && mc_proto_is_connected (self) )
     {
         /* let the connector clean up itself */
         bool error_happenend = !self->do_disconnect (self);
@@ -170,10 +174,10 @@ void mc_proto_free (mc_Client * self)
 ///////////////////
 
 void mc_proto_signal_add (
-        mc_Client * self,
-        const char * signal_name,
-        void * callback_func,
-        void * user_data)
+    mc_Client * self,
+    const char * signal_name,
+    void * callback_func,
+    void * user_data)
 {
     mc_signal_add (&self->_signals, signal_name, callback_func, user_data);
 }
@@ -181,11 +185,11 @@ void mc_proto_signal_add (
 ///////////////////
 
 void mc_proto_signal_add_masked (
-        mc_Client * self,
-        const char * signal_name,
-        void * callback_func,
-        void * user_data,
-        enum mpd_idle mask)
+    mc_Client * self,
+    const char * signal_name,
+    void * callback_func,
+    void * user_data,
+    enum mpd_idle mask)
 {
     mc_signal_add_masked (&self->_signals, signal_name, callback_func, user_data, mask);
 }
@@ -193,9 +197,9 @@ void mc_proto_signal_add_masked (
 ///////////////////
 
 void mc_proto_signal_rm (
-        mc_Client * self,
-        const char * signal_name,
-        void * callback_addr)
+    mc_Client * self,
+    const char * signal_name,
+    void * callback_addr)
 {
     mc_signal_rm (&self->_signals, signal_name, callback_addr);
 }
@@ -203,9 +207,9 @@ void mc_proto_signal_rm (
 ///////////////////
 
 void mc_proto_signal_dispatch (
-        mc_Client * self,
-        const char * signal_name,
-        ...)
+    mc_Client * self,
+    const char * signal_name,
+    ...)
 {
     va_list args;
     va_start (args, signal_name);

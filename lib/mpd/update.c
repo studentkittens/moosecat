@@ -13,14 +13,14 @@ const enum mpd_idle on_song_update   = (MPD_IDLE_PLAYER);
     if(events & on_event)                                                 \
     {                                                                     \
         if(var != NULL)                                                   \
-           free_func (var);                                               \
+            free_func (var);                                              \
                                                                           \
         var = update_func (conn);                                         \
         if (!var && mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS)  \
             g_print("Unable to send status/song/stats: %s\n",             \
-               mpd_connection_get_error_message(conn));                   \
+                    mpd_connection_get_error_message(conn));              \
     }                                                                     \
-
+     
 ////////////////////////
 
 void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
@@ -34,6 +34,8 @@ void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
             UPDATE_FIELD (on_status_update, self->status, mpd_status_free, mpd_run_status);
             UPDATE_FIELD (on_stats_update, self->stats, mpd_stats_free, mpd_run_stats);
             UPDATE_FIELD (on_song_update, self->song, mpd_song_free, mpd_run_current_song);
+
+            g_print ("Update!\n");
 
             mc_proto_put (self);
         }

@@ -38,7 +38,7 @@ env.ParseConfig('pkg-config --cflags --libs libmpdclient glib-2.0')
 
 # Make it a high warnlevel, also enable debugging
 env.Append(CCFLAGS = ['-std=c99'])
-env.Append(CCFLAGS = ['-g', '-Wall', '-W'])
+env.Append(CCFLAGS = ['-Os', '-Wall', '-W'])
 
 # Build libmoosecat.so
 # Building a .so is more sane since we need to

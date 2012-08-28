@@ -2,6 +2,7 @@
 #include "common.h"
 #include "../../util/gasyncqueue-watch.h"
 #include "../protocol.h"
+#include "../signal_helper.h"
 
 #include <glib.h>
 #include <string.h>
@@ -49,35 +50,20 @@ static gboolean cmnder_event_callback (
     gpointer user_data)
 {
     mc_Client * self = user_data;
+    enum mpd_idle events = 0;
     gpointer item = NULL;
 
     /* Pop all items from the queue that are in,
-     * enqueueue items into a list and remove dupes
+     * and b'or them into one single event.
      */
-    GList * event_list = NULL;
-    enum mpd_idle prev_events = 0;
     while ( (item = g_async_queue_try_pop (queue) ) )
-    {
-        enum mpd_idle events = GPOINTER_TO_INT (item);
-        if (events != prev_events)
-        {
-            event_list = g_list_prepend (event_list, GINT_TO_POINTER (events) );
-            prev_events = events;
-        }
-    }
+        events |= GPOINTER_TO_INT (item);
 
-    /*
-     * Now iterate over the happened events,
-     * and execute any registered event callbacks
-     */
-    for (GList * iter = event_list; iter; iter = iter->next)
-    {
-        enum mpd_idle event = GPOINTER_TO_INT (iter->data);
-        mc_proto_signal_dispatch (self, "client-event", self, event);
-    }
+    if (events != 0)
+        mc_shelper_report_client_event (self, events);
 
-    g_list_free (event_list);
     return TRUE;
+
 }
 
 ///////////////////
@@ -92,10 +78,12 @@ static gpointer cmnder_listener_thread (gpointer data)
         if ( (events = mpd_run_idle (self->idle_con) ) == 0)
         {
             g_print ("Info: No events received at all.");
+            mc_shelper_report_error ( (mc_Client *) self, self->idle_con);
             break;
         }
 
         g_async_queue_push (self->event_queue, GINT_TO_POINTER (events) );
+        mc_shelper_report_error ( (mc_Client *) self, self->idle_con);
     }
 
     g_print ("Listener thread exited.\n");
@@ -186,23 +174,23 @@ static char * cmnder_do_connect (
     int port,
     int timeout)
 {
+    char * error_message = NULL;
     mc_CmndClient * self = child (parent);
-    char * error = NULL;
 
-    self->cmnd_con = mpd_connect (host, port, timeout, &error);
-    if (error != NULL)
-        return error;
+    self->cmnd_con = mpd_connect ( (mc_Client *) self, host, port, timeout, &error_message);
+    if (error_message != NULL)
+        return error_message;
 
-    self->idle_con = mpd_connect (host, port, timeout, &error);
-    if (error != NULL)
-        return error;
+    self->idle_con = mpd_connect ( (mc_Client *) self, host, port, timeout, &error_message);
+    if (error_message != NULL)
+        return error_message;
 
     self->run_listener = TRUE;
     self->watch_source_id = -1;
     self->event_queue = g_async_queue_new();
-
     cmnder_create_glib_adapter (self, context);
-    return NULL;
+
+    return error_message;
 }
 
 ///////////////////////

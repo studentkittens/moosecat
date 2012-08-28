@@ -12,9 +12,9 @@ static void event (mc_Client * u_conn, enum mpd_idle event, void * user_data)
     (void) user_data;
     g_print ("%p %p %p\n", conn->status, conn->song, conn->stats);
     g_print ("event = %d\n", event);
-    g_print ("status = %d\n", mpd_status_get_song_id(conn->status));
-    g_print ("ctsong = %s\n", mpd_song_get_tag(conn->song, MPD_TAG_ARTIST, 0));
-    g_print ("statis = %d\n", mpd_stats_get_number_of_artists(conn->stats));
+    g_print ("status = %d\n", mpd_status_get_song_id (conn->status) );
+    g_print ("ctsong = %s\n", mpd_song_get_tag (conn->song, MPD_TAG_ARTIST, 0) );
+    g_print ("statis = %d\n", mpd_stats_get_number_of_artists (conn->stats) );
 }
 
 /////////////////////////////
@@ -23,7 +23,7 @@ gboolean next_song (gpointer user_data)
 {
     GMainLoop * loop = (GMainLoop *) user_data;
 
-    conn = mc_proto_create("command");
+    conn = mc_proto_create ("command");
     mc_proto_signal_add (conn, "client-event", event, loop);
 
     for (int i = 0; i < 5; i++)
@@ -41,9 +41,9 @@ gboolean next_song (gpointer user_data)
 
         for (int i = 0; i < 10; i++)
             mc_client_volume (conn, 100);
-        
-        gint wait = g_random_int_range(0, 1000 * 1000);
-        g_print("Waiting for %f\n", wait / (1000. * 1000.));
+
+        gint wait = g_random_int_range (0, 1000 * 1000);
+        g_print ("Waiting for %f\n", wait / (1000. * 1000.) );
         //g_usleep(wait);
 
         while (g_main_context_iteration (NULL, TRUE) );

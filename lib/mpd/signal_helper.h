@@ -11,18 +11,20 @@ struct mc_Client;
  *
  * Checks the connection for error, checks
  * if the error is fatal (if any), and also handles
- * it by calling mpd_connection_clear_error, 
+ * it by calling mpd_connection_clear_error,
  * and, if it's fatal, mc_proto_disconnect.
  *
  * The callback is called **after** cleaning up,
  * which allows the callee to reconnect if it desires too.
  *
+ * Will do nothing when no error happened.
+ *
  * @param self the client to operate on
  * @param cconn libmpdclient's mpd_connection
  */
 void mc_shelper_report_error (
-        struct mc_Client * self,
-        mpd_connection * cconn);
+    struct mc_Client * self,
+    mpd_connection * cconn);
 
 /**
  * @brief Dispatch the progress signal
@@ -36,15 +38,15 @@ void mc_shelper_report_error (
  * @param ... varargs as with printf
  */
 void mc_shelper_report_progress (
-        struct mc_Client * self,
-        const char * format,
-        ...);
+    struct mc_Client * self,
+    const char * format,
+    ...);
 
 /**
  * @brief Dispatch the connectivity signal
  *
  * Note: signal is disptatched always,
- *       caller should assure to not report 
+ *       caller should assure to not report
  *       connectivity twice.
  *
  * @param self the client to operate on.
@@ -52,9 +54,19 @@ void mc_shelper_report_progress (
  * @param new_port the new port passed to connect()
  */
 void mc_shelper_report_connectivity (
-        struct mc_Client * self,
-        const char * new_host,
-        int new_port);
+    struct mc_Client * self,
+    const char * new_host,
+    int new_port);
+
+/**
+ * @brief Disptatch the client-event signal
+ *
+ * @param self the client to operate on.
+ * @param event the event to dispatch
+ */
+void mc_shelper_report_client_event (
+        struct mc_Client * self, 
+        enum mpd_idle event);
 
 #endif /* end of include guard: MC_SIGNAL_HELPER_H */
 
