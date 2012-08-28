@@ -94,6 +94,22 @@ typedef struct mc_Client
 ///////////////////
 ///////////////////
 
+/**
+ * @brief Create a new client.
+ *
+ * This allocates some memory, but does no network at all.
+ * There are different protocol machines implemented in the background,
+ * you may choose one:
+ *
+ * - "idle" - uses one conenction for sending and events, uses idle and noidle to switch context.
+ * - "command" - uses one command connection, and one event listening conenction.
+ *
+ * Passing NULL to choose the default ("command").
+ *
+ * @param protocol_machine the name of the protocol machine
+ *
+ * @return a newly allocated mc_Client, free with mc_proto_free()
+ */
 mc_Client * mc_proto_create (const char * protocol_machine);
 
 /**
@@ -210,6 +226,13 @@ void mc_proto_signal_add_masked (
     void * user_data,
     enum mpd_idle mask);
 
+/**
+ * @brief Remove a previously added signal callback.
+ *
+ * @param self the client to operate on.
+ * @param signal_name the signal name this function was registered on.
+ * @param callback_addr the addr. of the registered function.
+ */
 void mc_proto_signal_rm (
     mc_Client * self,
     const char * signal_name,

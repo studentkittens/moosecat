@@ -61,7 +61,6 @@ void mc_signal_add_masked (
     if (tag != NULL)
     {
         mc_SignalType type = mc_convert_name_to_signal (signal_name);
-        g_print ("Type = %d\n", type);
         if (type != MC_SIGNAL_UNKNOWN)
         {
             list->signals[type] = g_list_prepend (list->signals[type], tag);

@@ -26,7 +26,7 @@ gboolean next_song (gpointer user_data)
     conn = mc_proto_create ("command");
     mc_proto_signal_add (conn, "client-event", event, loop);
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 100; i++)
     {
         g_print ("Connecting... ");
         char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
@@ -41,10 +41,6 @@ gboolean next_song (gpointer user_data)
 
         for (int i = 0; i < 10; i++)
             mc_client_volume (conn, 100);
-
-        gint wait = g_random_int_range (0, 1000 * 1000);
-        g_print ("Waiting for %f\n", wait / (1000. * 1000.) );
-        //g_usleep(wait);
 
         while (g_main_context_iteration (NULL, TRUE) );
 

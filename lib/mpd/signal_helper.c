@@ -4,10 +4,10 @@
 
 #include <glib/gprintf.h>
 
-void mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
+bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
 {
     if (self != NULL && cconn != NULL)
-        return;
+        return false;
 
     enum mpd_error error = mpd_connection_get_error (cconn);
     if (error != MPD_ERROR_SUCCESS)
@@ -21,7 +21,9 @@ void mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
         }
 
         mc_proto_signal_dispatch (self, "error", error, error_message, is_fatal);
+        return true;
     }
+    return false;
 }
 
 ///////////////////////////////

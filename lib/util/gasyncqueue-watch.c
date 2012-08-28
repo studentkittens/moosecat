@@ -89,8 +89,6 @@ static gboolean mc_async_queue_watch_dispatch (GSource *source, GSourceFunc call
                                    watch->timeout_max
                                );
 
-    g_print ("New timeout: %d\n", watch->iteration_timeout);
-
     /* Reset the timeout */
     g_timer_start (watch->iteration_timer);
 

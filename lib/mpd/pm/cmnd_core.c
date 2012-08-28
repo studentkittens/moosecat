@@ -77,7 +77,6 @@ static gpointer cmnder_listener_thread (gpointer data)
     {
         if ( (events = mpd_run_idle (self->idle_con) ) == 0)
         {
-            g_print ("Info: No events received at all.");
             mc_shelper_report_error ( (mc_Client *) self, self->idle_con);
             break;
         }
@@ -86,7 +85,7 @@ static gpointer cmnder_listener_thread (gpointer data)
         mc_shelper_report_error ( (mc_Client *) self, self->idle_con);
     }
 
-    g_print ("Listener thread exited.\n");
+    mc_shelper_report_progress ((mc_Client *)self, "Cmnd: Listener Thread exited.");
     return NULL;
 }
 

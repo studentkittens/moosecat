@@ -22,7 +22,7 @@ struct mc_Client;
  * @param self the client to operate on
  * @param cconn libmpdclient's mpd_connection
  */
-void mc_shelper_report_error (
+bool mc_shelper_report_error (
     struct mc_Client * self,
     mpd_connection * cconn);
 
