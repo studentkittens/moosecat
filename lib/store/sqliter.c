@@ -157,7 +157,7 @@ static void open_connection (sqlite3 ** memDB)
 
 static int idx = 0;
 
-static bool insert_song (mc_StoreDB * db, struct mpd_song * song)
+bool insert_song (mc_StoreDB * db, struct mpd_song * song)
 {
     sqlite3_bind_int (db->insert_stmt, 1, idx++);
     sqlite3_bind_text (db->insert_stmt, 2, mpd_song_get_uri (song), -1, NULL);
@@ -235,6 +235,7 @@ mc_StoreDB * create_store (void)
 
 ///////////////////////////////
 
+#if 0
 int main (int argc, char const *argv[])
 {
     mc_StoreDB * store = create_store();
@@ -276,3 +277,4 @@ int main (int argc, char const *argv[])
     loadOrSaveDb (store->db, "out.db", true);
     return EXIT_SUCCESS;
 }
+#endif

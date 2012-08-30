@@ -27,6 +27,8 @@ static const char * etable[] =
 ////  PRIVATE /////
 ///////////////////
 
+///////////////////
+
 static void mc_proto_reset (mc_Client * self)
 {
     /* Free status/song/stats */
@@ -74,6 +76,8 @@ char * mc_proto_connect (
     char * err = NULL;
     if (self == NULL)
         return g_strdup (etable[ERR_IS_NULL]);
+        
+    mc_shelper_report_progress (self, "Attempting to connect... ");
 
     err = g_strdup (self->do_connect (self, context, host, port, timeout) );
 
@@ -86,7 +90,7 @@ char * mc_proto_connect (
         mc_shelper_report_connectivity (self, host, port);
 
         /* Report some progress */
-        mc_shelper_report_progress (self, "Connecting ... Done!");
+        mc_shelper_report_progress (self, "Fully connected!");
     }
     return err;
 }
@@ -105,7 +109,7 @@ void mc_proto_put (mc_Client * self)
     /*
      * Put connection back to event listening.
      */
-    if (self && self->do_put != NULL)
+    if (self && mc_proto_is_connected(self) && self->do_put != NULL)
         self->do_put (self);
 }
 
@@ -117,7 +121,7 @@ mpd_connection * mc_proto_get (mc_Client * self)
      * Return the readily sendable connection
      */
     mpd_connection * cconn = NULL;
-    if (self)
+    if (self && mc_proto_is_connected (self))
     {
         cconn = self->do_get (self);
         mc_shelper_report_error (self, cconn);
@@ -138,6 +142,9 @@ char * mc_proto_disconnect (
 
         /* Reset status/song/stats to NULL */
         mc_proto_reset (self);
+        
+        /* Notify user of the disconnect */
+        mc_shelper_report_connectivity (self, NULL, 0);
 
         if (error_happenend)
             return g_strdup (etable[ERR_UNKNOWN]);
@@ -155,13 +162,14 @@ char * mc_proto_disconnect (
 
 void mc_proto_free (mc_Client * self)
 {
-    /* Free status/stats/song */
+    /* Disconnect if not done yet */
     mc_proto_disconnect (self);
 
     /* Kill any previously connected host info */
     if (self->_host != NULL)
         g_free (self->_host);
 
+    /* Forget any signals */
     mc_signal_list_destroy (&self->_signals);
 
     /* Allow special connector to cleanup */

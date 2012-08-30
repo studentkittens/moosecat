@@ -1,6 +1,8 @@
 #ifndef MC_SIGNAL_HELPER_H
 #define MC_SIGNAL_HELPER_H
 
+#include "../compiler.h"
+
 /* Only prototype needed */
 struct mc_Client;
 
@@ -37,7 +39,7 @@ bool mc_shelper_report_error (
  * @param format a printf format
  * @param ... varargs as with printf
  */
-void mc_shelper_report_progress (
+mc_cc_printf(2,3) void mc_shelper_report_progress (
     struct mc_Client * self,
     const char * format,
     ...);

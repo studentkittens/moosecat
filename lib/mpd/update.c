@@ -5,18 +5,18 @@
 ////////////////////////
 
 const enum mpd_idle on_status_update = (0
-                                        | MPD_IDLE_PLAYER
-                                        | MPD_IDLE_OPTIONS
-                                        | MPD_IDLE_MIXER
-                                        | MPD_IDLE_OUTPUT
-                                        | MPD_IDLE_QUEUE);
+        | MPD_IDLE_PLAYER
+        | MPD_IDLE_OPTIONS
+        | MPD_IDLE_MIXER
+        | MPD_IDLE_OUTPUT
+        | MPD_IDLE_QUEUE);
 
 const enum mpd_idle on_stats_update = (0
-                                       | MPD_IDLE_UPDATE
-                                       | MPD_IDLE_DATABASE);
+        | MPD_IDLE_UPDATE
+        | MPD_IDLE_DATABASE);
 
 const enum mpd_idle on_song_update = (0
-                                      | MPD_IDLE_PLAYER);
+        | MPD_IDLE_PLAYER);
 
 ////////////////////////
 
@@ -32,9 +32,9 @@ void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
         mpd_connection * conn = mc_proto_get (self);
         if (conn != NULL)
         {
-            bool update_status = (events & on_status_update);
-            bool update_stats = (events & on_stats_update);
-            bool update_song = (events & on_song_update);
+            const bool update_status = (events & on_status_update);
+            const bool update_stats = (events & on_stats_update);
+            const bool update_song = (events & on_song_update);
 
             /* Send a block of commands, speeds the thing up by 2x */
             mpd_command_list_begin (conn, true);
@@ -43,11 +43,11 @@ void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
                 if (update_status)
                     mpd_send_status (conn);
 
-                if (update_song)
-                    mpd_send_current_song (conn);
-
                 if (update_stats)
                     mpd_send_stats (conn);
+
+                if (update_song)
+                    mpd_send_current_song (conn);
             }
             mpd_command_list_end (conn);
             mc_shelper_report_error (self, conn);
@@ -55,8 +55,32 @@ void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
             /* Try to receive status */
             if (update_status)
             {
-                free_if_not_null (self->status, mpd_status_free);
-                self->status = mpd_recv_status (conn);
+                mpd_status * tmp_status;
+                tmp_status = mpd_recv_status (conn);
+
+                /* Be error tolerant, and keep at least the last status */
+                if (tmp_status)
+                {
+                    free_if_not_null (self->status, mpd_status_free);
+                    self->status = tmp_status;
+                }
+
+                mpd_response_next (conn);
+                mc_shelper_report_error (self, conn);
+            }
+
+            /* Try to receive statistics as last */
+            if (update_stats)
+            {
+                mpd_stats * tmp_stats;
+                tmp_stats = mpd_recv_stats (conn);
+
+                if (tmp_stats)
+                {
+                    free_if_not_null (self->stats, mpd_stats_free);
+                    self->stats = tmp_stats;
+                }
+
                 mpd_response_next (conn);
                 mc_shelper_report_error (self, conn);
             }
@@ -71,18 +95,12 @@ void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
                  * so we end the songlist,
                  * it should only return  NULL
                  * */
-                struct mpd_song * empty = mpd_recv_song (conn);
-                g_assert (empty == NULL);
-                mpd_response_next (conn);
-                mc_shelper_report_error (self, conn);
-            }
+                if (self->song != NULL)
+                {
+                    struct mpd_song * empty = mpd_recv_song (conn);
+                    g_assert (empty == NULL);
+                }
 
-            /* Try to receive statistics as last */
-            if (update_stats)
-            {
-                /* Always last, no next() needed */
-                free_if_not_null (self->stats, mpd_stats_free);
-                self->stats = mpd_recv_stats (conn);
                 mc_shelper_report_error (self, conn);
             }
 

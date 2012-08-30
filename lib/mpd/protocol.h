@@ -5,6 +5,9 @@
 /* Signal System */
 #include "signal.h"
 
+/* Compiler macros */
+#include "../compiler.h"
+
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
@@ -110,7 +113,7 @@ typedef struct mc_Client
  *
  * @return a newly allocated mc_Client, free with mc_proto_free()
  */
-mc_Client * mc_proto_create (const char * protocol_machine);
+mc_cc_malloc mc_Client * mc_proto_create (const char * protocol_machine);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.

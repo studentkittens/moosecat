@@ -6,8 +6,14 @@
 
 bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
 {
-    if (self != NULL && cconn != NULL)
-        return false;
+    if (self == NULL || cconn == NULL)
+    {
+        if (self != NULL)
+        {
+            mc_proto_signal_dispatch (self, "error", self, MPD_ERROR_CLOSED, "Not connected", true);
+        }
+        return true;
+    }
 
     enum mpd_error error = mpd_connection_get_error (cconn);
     if (error != MPD_ERROR_SUCCESS)
@@ -20,7 +26,7 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
             mc_proto_disconnect (self);
         }
 
-        mc_proto_signal_dispatch (self, "error", error, error_message, is_fatal);
+        mc_proto_signal_dispatch (self, "error", self, error, error_message, is_fatal);
         return true;
     }
     return false;

@@ -1,6 +1,7 @@
 #include "idle_core.h"
 #include "common.h"
 #include "../../util/gasyncqueue-watch.h"
+#include "../../compiler.h"
 #include "../protocol.h"
 #include "../signal_helper.h"
 
@@ -45,7 +46,7 @@ typedef struct
 
 //////////////////////
 
-static gboolean cmnder_event_callback (
+static mc_cc_hot gboolean cmnder_event_callback (
     GAsyncQueue * queue,
     gpointer user_data)
 {
@@ -68,7 +69,7 @@ static gboolean cmnder_event_callback (
 
 ///////////////////
 
-static gpointer cmnder_listener_thread (gpointer data)
+static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
 {
     mc_CmndClient * self = child (data);
     enum mpd_idle events = 0;

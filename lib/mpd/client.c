@@ -15,7 +15,7 @@
         mpd_connection * conn = mc_proto_get(self);  \
         if(conn != NULL)                             \
         {                                            \
-            _code_;                                  \
+;           _code_;                                  \
         }                                            \
         mc_proto_put(self);                          \
     }                                                \

@@ -11,3 +11,8 @@ test/test
 test/lib/.out
 
 doc/build
+
+.lock*
+.waf*
+build/
+waf

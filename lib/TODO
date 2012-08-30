@@ -1,0 +1,5 @@
+- c99 compilance (restrict, inline, gcc macros)
+- mpd_response_finish?
+- client command list option.. wie?
+- signal catchen
+- bug report funktionalität (daten sammeln, rausgeben.)
