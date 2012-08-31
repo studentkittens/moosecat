@@ -25,9 +25,11 @@ static const char * signal_to_name_table[] =
 
 static mc_SignalType mc_convert_name_to_signal (const char * signame)
 {
-    for (int i = 0; i < MC_SIGNAL_VALID_COUNT; i++)
-        if ( g_strcmp0 (signal_to_name_table[i], signame) == 0)
-            return i;
+
+    if (signame != NULL)
+        for (int i = 0; i < MC_SIGNAL_VALID_COUNT; i++)
+            if ( g_strcmp0 (signal_to_name_table[i], signame) == 0)
+                return i;
 
     return MC_SIGNAL_UNKNOWN;
 }
@@ -53,6 +55,9 @@ void mc_signal_add_masked (
     void * user_data,
     enum mpd_idle mask)
 {
+    if (list == NULL || callback_func == NULL)
+        return;
+
     mc_SignalTag * tag = g_new0 (mc_SignalTag, 1);
     tag->user_data = user_data;
     tag->callback = callback_func;
@@ -77,6 +82,20 @@ void mc_signal_add (
     void * user_data)
 {
     mc_signal_add_masked (list, signal_name, callback_func, user_data, INT_MAX);
+}
+
+///////////////////////////////
+
+int mc_signal_length (
+        mc_SignalList * list,
+        const char * signal_name)
+{
+
+    mc_SignalType type = mc_convert_name_to_signal (signal_name);
+    if (type != MC_SIGNAL_UNKNOWN)
+        return (list) ? (int)g_list_length(list->signals[type]) : -1;
+    else 
+        return -1;
 }
 
 ///////////////////////////////
@@ -115,7 +134,7 @@ void mc_signal_rm (
         {                                                  \
              
 #define DISPATCH_END                                       \
-    }                                                  \
+        }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)

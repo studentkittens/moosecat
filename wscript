@@ -1,14 +1,23 @@
 #!/usr/bin/env python
-# encoding: utf-8
+#encoding: utf-8
+import os
+import traceback
 
 # Global:
 
 APPNAME = 'moosecat'
 VERSION = '0.1'
 
-# Targets:
+# Needed flags:
+CFLAGS = ['-std=c99']
+
+# Optional flags:
+CFLAGS += ['-Os', '-Wall', '-W']
+
+
 def options(opt):
         opt.load('compiler_c')
+        opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')
 
 
 def configure(conf):
@@ -33,15 +42,17 @@ def configure(conf):
             args='--libs --cflags'
     )
 
-    conf.check(
-            fragment    = 'int main() { return 0; }\n',
-            define_name = 'FOO',
-            mandatory   = True)
-
     conf.write_config_header('lib/config.h')
 
 
 def _find_libmoosecat_src(ctx):
+    """
+    Find all .c files in lib/ which
+    are supposed to built libmoosecat.
+
+    If files are in there that shouldn't be built,
+    fill them in the exclude_files list.
+    """
     c_files = ctx.path.ant_glob('lib/**/*.c')
 
     exclude_files = ['lib/main.c']
@@ -57,31 +68,40 @@ def _find_libmoosecat_src(ctx):
 
 
 def build(bld):
-    bld.shlib(
+    LIBS = ['mpdclient', ] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3
+    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3
+
+    bld.stlib(
             source = _find_libmoosecat_src(bld),
             target = 'moosecat',
-            includes = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3,
-            lib = ['mpdclient', ] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3,
             install_path = 'bin',
-            cflags = ['-Os', '-Wall', '-W', '-std=c99']
+            includes = INCLUDES,
+            lib = LIBS,
+            cflags = CFLAGS
     )
 
     bld.program(
             source = 'lib/main.c',
             target = 'moosecat_runner',
-            includes = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3,
-            lib = ['mpdclient', ] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3,
+            libdir = ['build'],
+            includes = INCLUDES,
+            lib = LIBS,
             use = 'moosecat',
-            cflags = ['-Os', '-Wall', '-std=c99']
+            cflags = CFLAGS
     )
 
+    if bld.options.runtests:
+        for path in bld.path.ant_glob('test/lib/**/*.c'):
+            bld.program(
+                    features = 'test',
+                    source = path.relpath(),
+                    target = 'test_' + os.path.basename(path.abspath()),
+                    includes = INCLUDES,
+                    lib = LIBS,
+                    install_path = 'bin',
+                    use = 'moosecat',
+                    cflags = CFLAGS
+            )
 
-def libmoosecat_test(ctx):
-    """
-    1) Create test/.clar-out if it doesn't exist yet.
-    2) Copy all test-files (*.c) recursively to test/.clar-out/
-    3) Run clar over the files.
-    4) Compile all .c files in test/.clar-out, link with libmoosecat
-    """
-    for path in ctx.path.ant_glob('test/lib/**/*.c'):
-        print(path.abspath())
+        from waflib.Tools import waf_unit_test
+        bld.add_post_fun(waf_unit_test.summary)

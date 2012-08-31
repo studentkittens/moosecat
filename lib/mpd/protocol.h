@@ -253,4 +253,18 @@ void mc_proto_signal_dispatch (
     const char * signal_name,
     ...);
 
+/**
+ * @brief Simply returns the number of registered signals for this signal_name
+ *
+ * Mainly useful for testing.
+ *
+ * @param self the client to operate on
+ * @param signal_name the name of the signal to count.
+ *
+ * @return 0 - inf
+ */
+int mc_proto_signal_length (
+        mc_Client * self, 
+        const char * signal_name);
+
 #endif /* end of include guard: PROTOCOL_H */

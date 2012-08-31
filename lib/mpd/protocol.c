@@ -162,6 +162,9 @@ char * mc_proto_disconnect (
 
 void mc_proto_free (mc_Client * self)
 {
+    if (self == NULL)
+        return;
+
     /* Disconnect if not done yet */
     mc_proto_disconnect (self);
 
@@ -187,6 +190,9 @@ void mc_proto_signal_add (
     void * callback_func,
     void * user_data)
 {
+    if (self == NULL)
+        return;
+
     mc_signal_add (&self->_signals, signal_name, callback_func, user_data);
 }
 
@@ -199,6 +205,9 @@ void mc_proto_signal_add_masked (
     void * user_data,
     enum mpd_idle mask)
 {
+    if (self == NULL)
+        return;
+
     mc_signal_add_masked (&self->_signals, signal_name, callback_func, user_data, mask);
 }
 
@@ -209,6 +218,9 @@ void mc_proto_signal_rm (
     const char * signal_name,
     void * callback_addr)
 {
+    if (self == NULL)
+        return;
+
     mc_signal_rm (&self->_signals, signal_name, callback_addr);
 }
 
@@ -219,8 +231,24 @@ void mc_proto_signal_dispatch (
     const char * signal_name,
     ...)
 {
+    if (self == NULL)
+        return;
+
     va_list args;
     va_start (args, signal_name);
     mc_signal_report_event_v (&self->_signals, signal_name, args);
     va_end (args);
+}
+
+///////////////////
+//
+
+int mc_proto_signal_length (
+        mc_Client * self, 
+        const char * signal_name)
+{
+    if (self != NULL)
+        return mc_signal_length (&self->_signals, signal_name);
+    else
+        return -1;
 }

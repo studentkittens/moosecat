@@ -90,7 +90,7 @@ gboolean next_song (gpointer user_data)
         }
 
         for (int i = 0; i < 10; i++)
-            mc_client_next (conn);
+            mc_client_volume (conn, 100);
 
         while (g_main_context_pending (NULL))
             g_main_context_iteration (NULL, FALSE); 
