@@ -50,16 +50,22 @@ static void mc_proto_reset (mc_Client * self)
 ////  PUBLIC //////
 ///////////////////
 
-mc_Client * mc_proto_create (const char * protocol_machine)
+mc_Client * mc_proto_create (mc_PmType pm)
 {
     mc_Client * client = NULL;
-    if (g_strcmp0 (protocol_machine, "idle") == 0)
-        client = mc_proto_create_idler();
-    else if (g_strcmp0 (protocol_machine, "command") == 0)
-        client = mc_proto_create_cmnder();
+    switch(pm)
+    {
+        case MC_PM_IDLE:
+            client = mc_proto_create_idler();
+        case MC_PM_COMMAND:
+            client = mc_proto_create_cmnder();
+    }
 
     if (client != NULL)
+    {
+        client->_pm = pm;
         mc_signal_list_init (&client->_signals);
+    }
 
     return client;
 }
@@ -76,15 +82,20 @@ char * mc_proto_connect (
     char * err = NULL;
     if (self == NULL)
         return g_strdup (etable[ERR_IS_NULL]);
-        
+ 
+    /* Some progress! */
     mc_shelper_report_progress (self, "Attempting to connect... ");
 
+    /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup (self->do_connect (self, context, host, port, timeout) );
 
     if (err == NULL && mc_proto_is_connected (self) )
     {
         /* Force updating of status/stats/song on connect */
         mc_proto_update_context_info_cb (INT_MAX, self);
+        
+        /* For bugreports only */
+        self->_timeout = timeout;
 
         /* Check if server changed */
         mc_shelper_report_connectivity (self, host, port);

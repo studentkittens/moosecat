@@ -16,3 +16,4 @@ doc/build
 .waf*
 build/
 waf
+lib/config.h

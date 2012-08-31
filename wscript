@@ -6,7 +6,7 @@ import traceback
 # Global:
 
 APPNAME = 'moosecat'
-VERSION = '0.1'
+VERSION = '0.0.1'
 
 # Needed flags:
 CFLAGS = ['-std=c99']
@@ -18,6 +18,29 @@ CFLAGS += ['-Os', '-Wall', '-W']
 def options(opt):
         opt.load('compiler_c')
         opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')
+
+
+def define_config_h(conf):
+    version_numbers = [int(v) for v in VERSION.split('.')]
+    conf.define('MC_VERSION', VERSION)
+    conf.define('MC_VERSION_MAJOR', version_numbers[0])
+    conf.define('MC_VERSION_MINOR', version_numbers[1])
+    conf.define('MC_VERSION_PATCH', version_numbers[2])
+
+    return """
+#ifdef MC_CONFIG_H
+#define MC_CONFIG_H
+
+{content}
+
+/* Might come in useful */
+#define MC_CHECK_VERSION(X,Y,Z) (0
+    || X <= MC_VERSION_MAJOR
+    || Y <= MC_VERSION_MINOR
+    || Z <= MC_VERSION_MICRO)
+
+#endif
+""".format(content = conf.get_config_header())
 
 
 def configure(conf):
@@ -42,7 +65,7 @@ def configure(conf):
             args='--libs --cflags'
     )
 
-    conf.write_config_header('lib/config.h')
+    conf.path.make_node('lib/config.h').write(define_config_h(conf))
 
 
 def _find_libmoosecat_src(ctx):
@@ -68,7 +91,7 @@ def _find_libmoosecat_src(ctx):
 
 
 def build(bld):
-    LIBS = ['mpdclient', ] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3
+    LIBS = ['mpdclient'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3
     INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3
 
     bld.stlib(

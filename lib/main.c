@@ -1,5 +1,6 @@
 #include "mpd/protocol.h"
 #include "mpd/client.h"
+#include "misc/posix_signal.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -73,13 +74,15 @@ gboolean next_song (gpointer user_data)
 {
     GMainLoop * loop = (GMainLoop *) user_data;
 
-    conn = mc_proto_create ("command");
+    conn = mc_proto_create (MC_PM_COMMAND);
     mc_proto_signal_add (conn, "client-event", signal_event, NULL);
     mc_proto_signal_add (conn, "error", signal_error, NULL);
     mc_proto_signal_add (conn, "progress", signal_progress, NULL);
     mc_proto_signal_add (conn, "connectivity", signal_connectivity, NULL);
 
-    for (int i = 0; i < 1000; i++)
+    mc_misc_register_posix_signal (conn);
+
+    for (int i = 0; i < 10; i++)
     {
         char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
         if ( err != NULL )

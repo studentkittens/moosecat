@@ -1,6 +1,6 @@
 - c99 compilance (restrict, inline, gcc macros)
 - mpd_response_finish?
 - client command list option.. wie?
-- signal catchen
+- posix signal catchen
 - bug report funktionalität (daten sammeln, rausgeben.)
 - g_thread_start -> GThreadPool, für schnelleres connecten / disconnecten.

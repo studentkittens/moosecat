@@ -18,6 +18,11 @@ typedef struct mpd_song mpd_song;
 typedef struct mpd_status mpd_status;
 typedef struct mpd_stats mpd_stats;
 
+typedef enum {
+    MC_PM_IDLE = 0,
+    MC_PM_COMMAND
+} mc_PmType;
+
 /**
  * @brief Structure representing a connection handle,
  * and an interface to send commands and recv. events.
@@ -73,11 +78,13 @@ typedef struct mc_Client
      */
     void (* do_free) (struct mc_Client *);
 
-    /*
-     * Save last connected host / port / timeout.
-     */
+    /* Save last connected host / port */
     char * _host;
     int _port;
+
+    /* Only used for bug_report.c */
+    int _timeout;
+    mc_PmType _pm;
 
     /*
      * Signal functions are stored in here
@@ -104,16 +111,16 @@ typedef struct mc_Client
  * There are different protocol machines implemented in the background,
  * you may choose one:
  *
- * - "idle" - uses one conenction for sending and events, uses idle and noidle to switch context.
- * - "command" - uses one command connection, and one event listening conenction.
+ * - MC_PM_IDLE - uses one conenction for sending and events, uses idle and noidle to switch context.
+ * - MC_PM_COMMAND uses one command connection, and one event listening conenction.
  *
- * Passing NULL to choose the default ("command").
+ * Passing NULL to choose the default (MC_PM_COMMAND).
  *
  * @param protocol_machine the name of the protocol machine
  *
  * @return a newly allocated mc_Client, free with mc_proto_free()
  */
-mc_cc_malloc mc_Client * mc_proto_create (const char * protocol_machine);
+mc_cc_malloc mc_Client * mc_proto_create (mc_PmType pm);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
