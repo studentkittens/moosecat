@@ -37,7 +37,7 @@ static void signal_error (
     (void) u_conn;
     (void) is_fatal;
     (void) user_data;
-    g_print("ERROR [fatal: %s]: %d: %s\n", is_fatal ? "Yes" : "No", error, err_msg);
+    g_print("ERROR [Fatal: %s]: #%d: %s\n", is_fatal ? "Yes" : "No", error, err_msg);
 }
 
 /////////////////////////////
