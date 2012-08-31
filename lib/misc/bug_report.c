@@ -39,7 +39,7 @@ char * mc_misc_bug_report (mc_Client * client)
             "                                \n"
             "Compiled with:                  \n"
             "--------------                  \n"
-            "GLib (needed)    : %s           \n"
+            "GLib (needed)    : %s (%d.%d.%d)\n"
             "SQLite3 (needed) : %s           \n"
             "                                \n",
             ///////////////////////////////
@@ -49,7 +49,7 @@ char * mc_misc_bug_report (mc_Client * client)
             /* Hostname:Port:   */ client->_host, client->_port,
             /* Timeout:         */ client->_timeout,
             /* Protocol Machine:*/ client->_pm == MC_PM_IDLE ? "pm_idle" : "pm_command",
-            /* Glib:            */ HAVE_GLIB ? "Yes" : "No",
+            /* Glib (X.Y.Z):    */ HAVE_GLIB ? "Yes" : "No", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION,
             /* SQLite3:         */ HAVE_SQLITE3 ? "Yes" : "No"
     );
 }
