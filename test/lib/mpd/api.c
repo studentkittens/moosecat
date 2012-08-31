@@ -12,10 +12,7 @@
     mc_proto_disconnect(client);                                   \
                                                                    \
     /* Should yield NULL */                                        \
-    fct_chk(mc_proto_create("") == NULL);                          \
-                                                                   \
-    /* Spelled almost correct */                                   \
-    fct_chk(mc_proto_create("commands") == NULL);                  \
+    fct_chk(mc_proto_create(42) == NULL);                          \
                                                                    \
     fct_chk(mc_proto_is_connected(NULL) == false);                 \
                                                                    \
@@ -51,7 +48,7 @@ FCT_BGN()
 
         FCT_TEST_BGN(fill_in_invalid)
         {
-            mc_Client * client = mc_proto_create("command");
+            mc_Client * client = mc_proto_create(MC_PM_COMMAND);
             test_api(client);
         }
         FCT_TEST_END();
