@@ -3,6 +3,13 @@
 #include "update.h"
 
 #include <glib/gprintf.h>
+#include <string.h>
+
+///////////////////////////////
+
+#define copy_error_message(dest, src) if (src) { strncpy(dest, src, _MC_PROTO_MAX_ERR_LEN); }
+
+///////////////////////////////
 
 bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
 {
@@ -18,13 +25,15 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
     enum mpd_error error = mpd_connection_get_error (cconn);
     if (error != MPD_ERROR_SUCCESS)
     {
-        char * error_message = NULL;
-
         /* Prefer utf-8 encoded error message */
         if(MPD_ERROR_SYSTEM == error)
-            error_message = g_strdup(g_strerror(mpd_connection_get_system_error(cconn)));
+        {
+            copy_error_message(self->error_buffer, g_strerror(mpd_connection_get_system_error(cconn)));
+        }
         else
-            error_message = g_strdup(mpd_connection_get_error_message(cconn));
+        {
+            copy_error_message(self->error_buffer, mpd_connection_get_error_message(cconn))
+        }
 
         /* Try to clear the error */
         bool is_fatal = !mpd_connection_clear_error (cconn);
@@ -34,10 +43,8 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
             mc_proto_disconnect (self);
 
         /* Dispatch the error to the users */
-        mc_proto_signal_dispatch (self, "error", self, error, error_message, is_fatal);
+        mc_proto_signal_dispatch (self, "error", self, error, self->error_buffer, is_fatal);
 
-        /* Free message (mpd_connection_clear_error clears the error message :/) */
-        g_free(error_message);
         return true;
     }
     return false;
@@ -81,6 +88,6 @@ void mc_shelper_report_client_event (
         struct mc_Client * self,
         enum mpd_idle event)
 {
-    mc_proto_update_context_info_cb (event, self);
+    mc_proto_update_context_info_cb (self, event, NULL);
     mc_proto_signal_dispatch (self, "client-event", self, event);
 }

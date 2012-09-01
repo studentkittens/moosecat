@@ -6,6 +6,9 @@
 
 #include "signal_helper.h"
 
+/* memset */
+#include <string.h>
+
 enum
 {
     ERR_OK,
@@ -64,6 +67,7 @@ mc_Client * mc_proto_create (mc_PmType pm)
     if (client != NULL)
     {
         client->_pm = pm;
+        memset(client->error_buffer, 0, _MC_PROTO_MAX_ERR_LEN);
         mc_signal_list_init (&client->_signals);
     }
 
@@ -77,7 +81,7 @@ char * mc_proto_connect (
     GMainContext * context,
     const char * host,
     int port,
-    int timeout)
+    float timeout)
 {
     char * err = NULL;
     if (self == NULL)
@@ -87,12 +91,12 @@ char * mc_proto_connect (
     mc_shelper_report_progress (self, "Attempting to connect... ");
 
     /* Actual implementation of the connection in respective protcolmachine */
-    err = g_strdup (self->do_connect (self, context, host, port, timeout) );
+    err = g_strdup (self->do_connect (self, context, host, port, ABS(timeout) ));
 
     if (err == NULL && mc_proto_is_connected (self) )
     {
         /* Force updating of status/stats/song on connect */
-        mc_proto_update_context_info_cb (INT_MAX, self);
+        mc_proto_update_context_info_cb (self, INT_MAX, NULL);
         
         /* For bugreports only */
         self->_timeout = timeout;

@@ -2,6 +2,7 @@
 
 #include <glib.h>
 #include <string.h>
+#include <stdlib.h>
 
 /* define to cast a parent connector to the
  * concrete idle connector
@@ -21,12 +22,12 @@ typedef struct
 
 ///////////////////
 
-static char * idler_do_connect (mc_Client * self, GMainContext * context, const char * host, int port, int timeout)
+static char * idler_do_connect (mc_Client * self, GMainContext * context, const char * host, int port, float timeout)
 {
     (void) context;
     // Create one mpd connection, and
     // everything that needs to be initialized once here
-    g_print ("%p %s %d %d\n", self, host, port, timeout);
+    g_print ("%p %s %d %f\n", self, host, port, timeout);
     return NULL;
 }
 
@@ -81,5 +82,12 @@ mc_Client * mc_proto_create_idler (void)
     ctor->logic.do_connect = idler_do_connect;
 
     ctor->con = NULL; // <-- write connect code here
+
+    // ... for now just abort here.
+    g_print("NOTE: MC_PM_IDLE pm is not yet implemented!\n");
+    g_print("      Kittens didn't walk over the keybaord yet.\n");
+    g_print("      => Aborting!\n\n");
+    raise(SIGTERM);
+
     return (mc_Client *) ctor;
 }

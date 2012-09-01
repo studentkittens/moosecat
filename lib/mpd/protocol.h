@@ -11,6 +11,8 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
+#define _MC_PROTO_MAX_ERR_LEN 512
+
 /* lazy typedef */
 typedef struct mpd_connection mpd_connection;
 typedef struct mpd_async mpd_async;
@@ -45,7 +47,7 @@ typedef struct mc_Client
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char * (* do_connect) (struct mc_Client *, GMainContext * context, const char *, int, int);
+    char * (* do_connect) (struct mc_Client *, GMainContext * context, const char *, int, float);
 
     /*
      * Return the command sending connection, made ready to rock.
@@ -83,13 +85,16 @@ typedef struct mc_Client
     int _port;
 
     /* Only used for bug_report.c */
-    int _timeout;
+    float _timeout;
     mc_PmType _pm;
 
     /*
      * Signal functions are stored in here
      */
     mc_SignalList _signals;
+
+    /* Buffer for the last happened error */
+    char error_buffer[_MC_PROTO_MAX_ERR_LEN];
 
     /*
      * Up-to-date infos.
@@ -144,7 +149,7 @@ char * mc_proto_connect (
     GMainContext * context,
     const char * host,
     int port,
-    int timeout);
+    float timeout);
 
 /**
  * @brief Return the "send connection" of the Connector.

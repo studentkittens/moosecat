@@ -137,7 +137,7 @@ static void cmnder_shutdown_listener (mc_CmndClient * self)
 
 ///////////////////////
 
-static void cmnder_free (mc_CmndClient * self)
+static void cmnder_reset (mc_CmndClient * self)
 {
     if (self != NULL)
     {
@@ -172,7 +172,7 @@ static char * cmnder_do_connect (
     GMainContext * context,
     const char * host,
     int port,
-    int timeout)
+    float timeout)
 {
     char * error_message = NULL;
     mc_CmndClient * self = child (parent);
@@ -197,7 +197,7 @@ static char * cmnder_do_connect (
 
 static bool cmnder_do_disconnect (mc_Client * self)
 {
-    cmnder_free (child (self) );
+    cmnder_reset (child (self) );
     return true;
 }
 

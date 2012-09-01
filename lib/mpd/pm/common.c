@@ -40,7 +40,7 @@ GIOCondition mpd_async_to_gio (mpd_async_event events)
 
 ///////////////////////////
 
-mpd_connection * mpd_connect (mc_Client * self, const char * host, int port, int timeout, char ** err)
+mpd_connection * mpd_connect (mc_Client * self, const char * host, int port, float timeout, char ** err)
 {
     mpd_connection * con = mpd_connection_new (host, port, timeout * 1000);
 

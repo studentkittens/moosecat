@@ -17,6 +17,7 @@
 #define mc_cc_sentinel __attribute__((sentinel))
 #define mc_cc_printf(a,b) __attribute__((format(printf, a, b)))
 #define mc_cc_hot __attribute__((hot))
+#define mc_cc_unused __attribute__((unused))
 
 #else
 
@@ -29,6 +30,7 @@
 #define mc_cc_sentinel
 #define mc_cc_printf(a,b)
 #define mc_cc_hot
+#define mc_cc_unused
 
 #endif
 

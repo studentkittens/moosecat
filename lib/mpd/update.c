@@ -1,6 +1,7 @@
 #include "update.h"
 #include "protocol.h"
 #include "signal_helper.h"
+#include "../compiler.h"
 
 ////////////////////////
 
@@ -24,9 +25,11 @@ const enum mpd_idle on_song_update = (0
 
 ////////////////////////
 
-void mc_proto_update_context_info_cb (enum mpd_idle events, void * user_data)
+void mc_proto_update_context_info_cb (
+        struct mc_Client * self,
+        enum mpd_idle events,
+        mc_cc_unused void * user_data)
 {
-    mc_Client * self = user_data;
     if (self != NULL && events != 0)
     {
         mpd_connection * conn = mc_proto_get (self);

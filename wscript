@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #encoding: utf-8
 import os
-import traceback
+import subprocess
 
 # Global:
 
@@ -12,7 +12,7 @@ VERSION = '0.0.1'
 CFLAGS = ['-std=c99']
 
 # Optional flags:
-CFLAGS += ['-Os', '-Wall', '-W']
+CFLAGS += ['-ggdb3', '-Wall', '-W']
 
 
 def options(opt):
@@ -26,6 +26,12 @@ def define_config_h(conf):
     conf.define('MC_VERSION_MAJOR', version_numbers[0])
     conf.define('MC_VERSION_MINOR', version_numbers[1])
     conf.define('MC_VERSION_PATCH', version_numbers[2])
+
+    if not conf.env.GIT == []:
+        current_rev = subprocess.check_output([conf.env.GIT, 'log', '--pretty=format:"%h"', '-n 1'])
+        conf.define('MC_VERSION_GIT_REVISION', str(current_rev, 'UTF-8')[1:-1])
+    else:
+        conf.define('MC_VERSION_GIT_REVISION', '[not set]')
 
     return """
 #ifdef MC_CONFIG_H
@@ -51,6 +57,9 @@ def configure(conf):
     conf.end_msg(conf.options.prefix)
 
     conf.load('compiler_c')
+
+    # Try to find git
+    conf.find_program('git', mandatory=False)
 
     # Use pkg-config to find out l/cflags
     conf.check_cfg(

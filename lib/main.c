@@ -82,7 +82,7 @@ gboolean next_song (gpointer user_data)
 
     mc_misc_register_posix_signal (conn);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10000; i++)
     {
         char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
         if ( err != NULL )

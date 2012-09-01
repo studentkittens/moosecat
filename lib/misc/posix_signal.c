@@ -52,7 +52,9 @@ static void mc_signal_handler (int signal)
         case SIGABRT:
         case SIGSEGV:
             g_print("\n\nFATAL: libmoosecat received a terminal signal: %s\n\n", g_strsignal(signal));
-            g_print(mc_misc_bug_report((mc_Client *)gl_client));
+            gchar * bug_report = mc_misc_bug_report((mc_Client *)gl_client);
+            g_print(bug_report);
+            g_free(bug_report);
             mc_print_backtrace();
             break;
     }
