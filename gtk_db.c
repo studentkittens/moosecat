@@ -42,11 +42,14 @@ static void on_entry_text_changed(GtkEditable * editable, gpointer user_data)
     GtkListStore * list_store = GTK_LIST_STORE (tag->model);
     gdouble select_time, gui_time;
     GtkTreeIter iter;
+    gchar * entry_text = g_strdup(gtk_entry_get_text (GTK_ENTRY(editable)));
 
     g_timer_start(tag->profile_timer);
-    int found = mc_store_search_out(tag->store, gtk_entry_get_text (GTK_ENTRY(editable)), tag->song_buf, tag->song_buf_len);
+    int found = mc_store_search_out(tag->store, g_strstrip(entry_text), tag->song_buf, tag->song_buf_len);
     select_time = g_timer_elapsed (tag->profile_timer, NULL);
     
+    g_free (entry_text);
+
     if (found == 0)
         return;
 
@@ -63,7 +66,8 @@ static void on_entry_text_changed(GtkEditable * editable, gpointer user_data)
     }
     gui_time = g_timer_elapsed (tag->profile_timer, NULL);
     
-    g_print("Timing: select=%2.5fs + gui_redraw=%2.5fs = %2.5fs\n", select_time, gui_time, select_time + gui_time);
+    g_print("Timing: select=%2.5fs + gui_redraw=%2.5fs = %2.5fs (%-5d rows)\n",
+            select_time, gui_time, select_time + gui_time, found);
 }
 
 static gboolean window_closed (GtkWidget * widget, GdkEvent * event, gpointer user_data)
@@ -78,13 +82,21 @@ static gboolean window_closed (GtkWidget * widget, GdkEvent * event, gpointer us
 static EntryTag * setup_client(void) 
 {
     EntryTag * rc = NULL;
+    gdouble client_setup = 0.0, db_setup = 0.0;
+    GTimer * setup_timer = g_timer_new();
+
 
     mc_Client * client = mc_proto_create(MC_PM_COMMAND);
     mc_proto_connect (client, NULL, "localhost", 6600, 2.0);
 
     if (client && mc_proto_is_connected(client))
     {
+        client_setup = g_timer_elapsed(setup_timer, NULL);
+
+        g_timer_start(setup_timer);
         mc_StoreDB * store = mc_store_create(client, NULL, NULL);
+        db_setup = g_timer_elapsed(setup_timer, NULL);
+
         if (store != NULL)
         {
             rc = g_new0(EntryTag, 1);
@@ -95,6 +107,8 @@ static EntryTag * setup_client(void)
             rc->song_buf = g_new0(mpd_song *, rc->song_buf_len);
         }
     }
+    g_print("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",
+            client_setup, db_setup, client_setup + db_setup);
     return rc;
 }
 
