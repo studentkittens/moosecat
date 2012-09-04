@@ -47,6 +47,9 @@ static void on_entry_text_changed(GtkEditable * editable, gpointer user_data)
     int found = mc_store_search_out(tag->store, gtk_entry_get_text (GTK_ENTRY(editable)), tag->song_buf, tag->song_buf_len);
     select_time = g_timer_elapsed (tag->profile_timer, NULL);
     
+    if (found == 0)
+        return;
+
     g_timer_start(tag->profile_timer);
     gtk_list_store_clear (list_store);
     for (int i = 0; i < found; i++)
@@ -60,7 +63,7 @@ static void on_entry_text_changed(GtkEditable * editable, gpointer user_data)
     }
     gui_time = g_timer_elapsed (tag->profile_timer, NULL);
     
-    g_print("Timing: (select=%2.5f | gui_redraw=%2.5f)\n", select_time, gui_time);
+    g_print("Timing: select=%2.5fs + gui_redraw=%2.5fs = %2.5fs\n", select_time, gui_time, select_time + gui_time);
 }
 
 static gboolean window_closed (GtkWidget * widget, GdkEvent * event, gpointer user_data)
@@ -100,7 +103,7 @@ static void build_gui(EntryTag * tag)
     /* instance */
     tag->model = create_model();
     GtkWidget * wnd = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    GtkWidget * box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+    GtkWidget * box = gtk_vbox_new (false, 2);
     GtkWidget * ent = gtk_entry_new ();
     GtkWidget * tvw = gtk_tree_view_new_with_model (tag->model);
     GtkWidget * scw = gtk_scrolled_window_new (NULL, NULL);
@@ -127,16 +130,18 @@ static void build_gui(EntryTag * tag)
     for (gsize i = 0; i < sizeof(column_desc) / sizeof(char *); i++)
     {
         renderer = gtk_cell_renderer_text_new ();
+        gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer),1);
         column = gtk_tree_view_column_new_with_attributes (column_desc[i], renderer, "text", i, NULL);
         gtk_tree_view_column_set_min_width (column, 250);
         gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
+        gtk_tree_view_column_set_sort_indicator (column, true);
         gtk_tree_view_append_column (treeview, column);
     }
 
     /* packing */
     gtk_container_add (GTK_CONTAINER(scw), tvw);
     gtk_box_pack_start (GTK_BOX(box), scw, true, true, 1);
-    gtk_box_pack_start (GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), false, false, 3);
+    gtk_box_pack_start (GTK_BOX(box), gtk_hseparator_new(), false, false, 3);
     gtk_box_pack_start (GTK_BOX(box), ent, false, false, 1);
 
     gtk_container_add (GTK_CONTAINER(wnd), box);

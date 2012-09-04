@@ -75,7 +75,7 @@ def configure(conf):
     )
 
     conf.check_cfg(
-            package='gtk+-3.0',
+            package='gtk+-2.0',
             uselib_store='GTK3',
             args='--libs --cflags'
     )
