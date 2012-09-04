@@ -1,4 +1,5 @@
 #include "query.h"
+#include <glib.h>
 
 struct mc_StoreQuery
 {

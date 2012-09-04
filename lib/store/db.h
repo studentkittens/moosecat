@@ -5,15 +5,9 @@
  * API to serialize songs into
  * a persistent DB mc_Store
  */
-#include "query.h"
-#include "../mpd/protocol.h"
+#include "db_private.h"
 
 #include <glib.h>
-
-/**
- * @brief Opaque Struct to manage a Songmc_Store
- */
-struct mc_StoreDB;
 
 /**
  * @brief Create a new mc_Store.
@@ -30,9 +24,9 @@ struct mc_StoreDB;
  * insert the latest differences (which might be enourmous too,
  * since mpd returns all changes behind a certain ID)
  *
- * @return a new mc_StoreDB struct, free with mc_store_close()
+ * @return a new mc_StoreDB , free with mc_store_close()
  */
-struct mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname);
+ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname);
 
 /**
  * @brief Update the db to the latest Query of the MPD Server.
@@ -40,7 +34,7 @@ struct mc_StoreDB * mc_store_create (mc_Client * client, const char * directory,
  * @param self the mc_StoreDB to operate on.
  * @return the number of updated songs.
  */
-int mc_store_update (struct mc_StoreDB * self);
+int mc_store_update ( mc_StoreDB * self);
 
 /**
  * @brief Close the mc_Store.
@@ -50,7 +44,7 @@ int mc_store_update (struct mc_StoreDB * self);
  *
  * @param self the store to close.
  */
-void mc_store_close (struct mc_StoreDB * self);
+void mc_store_close ( mc_StoreDB * self);
 
 /**
  * @brief Search songs in the store, accoring to a mc_StoreQuery.
@@ -63,9 +57,16 @@ void mc_store_close (struct mc_StoreDB * self);
  *
  * Here is a humble warning.
  * DO NOT FUCKING FREE THE RETURNED MPD_SONGS!
- *
- * @return An GArray of mpd_songs
  */
-GArray * mc_store_search (struct mc_StoreDB * self, struct mc_StoreQuery * qry);
+mpd_song ** mc_store_search ( mc_StoreDB * self, struct mc_StoreQuery * qry);
+
+int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buf_len);
+
+/**
+ * @brief try to optimize the internal database ure.
+ *
+ * @param self the store to operate on.
+ */
+void mc_store_optimize ( mc_StoreDB * self);
 
 #endif /* end of include guard: DB_GUARD_H */

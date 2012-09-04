@@ -246,7 +246,10 @@ int main (int argc, char const *argv[])
 
             g_print ("Sended!\n");
 
-            sqlite3_exec (store->db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
+            
+            GTimer * db_timer = g_timer_new();
+            g_timer_start(db_timer);
+            sqlite3_exec (store->db, "BEGIN;", NULL, NULL, NULL);
 
             while ( (ent = mpd_recv_entity (con) ) != NULL)
             {
@@ -268,6 +271,7 @@ int main (int argc, char const *argv[])
             }
 
             sqlite3_exec(store->db, "INSERT INTO docs(docs) VALUES('optimize');", NULL, NULL, NULL);
+            g_print("Took %2f seconds to create DB.\n", g_timer_elapsed(db_timer, NULL));
 
 #if 0
             GTimer * timer = g_timer_new();
@@ -300,7 +304,7 @@ int main (int argc, char const *argv[])
         }
     }
 
-    loadOrSaveDb (store->db, "out.db", true);
+    //loadOrSaveDb (store->db, "out.db", true);
     return EXIT_SUCCESS;
 }
 #endif

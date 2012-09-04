@@ -1,5 +1,3 @@
-#include <glib.h>
-
 /**
  * @brief An opaque structure representing a mc_Store Query.
  *

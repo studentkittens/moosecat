@@ -159,7 +159,7 @@ char * mc_proto_disconnect (
         mc_proto_reset (self);
         
         /* Notify user of the disconnect */
-        mc_shelper_report_connectivity (self, NULL, 0);
+        mc_proto_signal_dispatch (self, "connectivity", self, false);
 
         if (error_happenend)
             return g_strdup (etable[ERR_UNKNOWN]);

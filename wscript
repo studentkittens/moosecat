@@ -12,7 +12,7 @@ VERSION = '0.0.1'
 CFLAGS = ['-std=c99']
 
 # Optional flags:
-CFLAGS += ['-ggdb3', '-Wall', '-W']
+CFLAGS += ['-Os', '-Wall', '-W']
 
 
 def options(opt):
@@ -74,6 +74,12 @@ def configure(conf):
             args='--libs --cflags'
     )
 
+    conf.check_cfg(
+            package='gtk+-3.0',
+            uselib_store='GTK3',
+            args='--libs --cflags'
+    )
+
     conf.path.make_node('lib/config.h').write(define_config_h(conf))
 
 
@@ -87,7 +93,7 @@ def _find_libmoosecat_src(ctx):
     """
     c_files = ctx.path.ant_glob('lib/**/*.c')
 
-    exclude_files = ['lib/main.c']
+    exclude_files = ['lib/main.c', 'lib/db_test.c']
     for exclude in exclude_files:
         exclude_node = ctx.path.make_node(exclude)
 
@@ -100,7 +106,7 @@ def _find_libmoosecat_src(ctx):
 
 
 def build(bld):
-    LIBS = ['mpdclient'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3
+    LIBS = ['mpdclient'] + ['curses'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3
     INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3
 
     bld.stlib(
@@ -112,14 +118,22 @@ def build(bld):
             cflags = CFLAGS
     )
 
-    bld.program(
-            source = 'lib/main.c',
-            target = 'moosecat_runner',
-            libdir = ['build'],
-            includes = INCLUDES,
-            lib = LIBS,
-            use = 'moosecat',
-            cflags = CFLAGS
+    def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
+        bld.program(
+                source = sources,
+                target = target_name,
+                libdir = ['build'],
+                includes = includes_h,
+                lib = libraries,
+                use = 'moosecat',
+                cflags = CFLAGS
+    )
+
+    build_test_program('lib/main.c', 'moosecat_runner')
+    build_test_program('lib/db_test.c', 'db_test')
+    build_test_program('gtk_db.c', 'gtk_db',
+            libraries = LIBS + bld.env.LIB_GTK3,
+            includes_h = INCLUDES + bld.env.INCLUDES_GTK3
     )
 
     if bld.options.runtests:

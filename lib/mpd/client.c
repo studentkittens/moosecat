@@ -7,19 +7,8 @@
  */
 
 #include "client.h"
+#include "client_private.h"
 
-///////////////////
-
-/* Template to define new commands */
-#define COMMAND(_code_)  {                           \
-        mpd_connection * conn = mc_proto_get(self);  \
-        if(conn != NULL)                             \
-        {                                            \
-;           _code_;                                  \
-        }                                            \
-        mc_proto_put(self);                          \
-    }                                                \
-     
 ///////////////////
 
 // Implemted as example
@@ -36,3 +25,10 @@ void mc_client_volume (mc_Client * self, int volume)
 }
 
 ///////////////////
+
+bool mc_client_password (mc_Client * self, const char * pwd)
+{
+    bool rc = false;
+    COMMAND (rc = mpd_run_password (conn, pwd) );
+    return rc;
+}
