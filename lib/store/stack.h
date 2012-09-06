@@ -15,7 +15,7 @@ void mc_store_stack_append (mc_StoreStack * self, void * ptr);
 void mc_store_stack_free (mc_StoreStack * self);
 
 /* For peformance reason a define (vs. inline function) */
-#define mc_store_stack_at(self, at) g_array_index (self->stack, mpd_song *, at)
+#define mc_store_stack_at(self, at) g_array_index (self->stack, struct mpd_song *, at)
 
 #endif /* end of include guard: MC_STORE_STACK_H */
 

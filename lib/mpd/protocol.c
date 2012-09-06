@@ -56,18 +56,18 @@ static void mc_proto_reset (mc_Client * self)
 mc_Client * mc_proto_create (mc_PmType pm)
 {
     mc_Client * client = NULL;
-    switch(pm)
+    switch (pm)
     {
-        case MC_PM_IDLE:
-            client = mc_proto_create_idler();
-        case MC_PM_COMMAND:
-            client = mc_proto_create_cmnder();
+    case MC_PM_IDLE:
+        client = mc_proto_create_idler();
+    case MC_PM_COMMAND:
+        client = mc_proto_create_cmnder();
     }
 
     if (client != NULL)
     {
         client->_pm = pm;
-        memset(client->error_buffer, 0, _MC_PROTO_MAX_ERR_LEN);
+        memset (client->error_buffer, 0, _MC_PROTO_MAX_ERR_LEN);
         mc_signal_list_init (&client->_signals);
     }
 
@@ -86,18 +86,18 @@ char * mc_proto_connect (
     char * err = NULL;
     if (self == NULL)
         return g_strdup (etable[ERR_IS_NULL]);
- 
+
     /* Some progress! */
     mc_shelper_report_progress (self, "Attempting to connect... ");
 
     /* Actual implementation of the connection in respective protcolmachine */
-    err = g_strdup (self->do_connect (self, context, host, port, ABS(timeout) ));
+    err = g_strdup (self->do_connect (self, context, host, port, ABS (timeout) ) );
 
     if (err == NULL && mc_proto_is_connected (self) )
     {
         /* Force updating of status/stats/song on connect */
         mc_proto_update_context_info_cb (self, INT_MAX, NULL);
-        
+
         /* For bugreports only */
         self->_timeout = timeout;
 
@@ -124,7 +124,7 @@ void mc_proto_put (mc_Client * self)
     /*
      * Put connection back to event listening.
      */
-    if (self && mc_proto_is_connected(self) && self->do_put != NULL)
+    if (self && mc_proto_is_connected (self) && self->do_put != NULL)
         self->do_put (self);
 }
 
@@ -136,7 +136,7 @@ mpd_connection * mc_proto_get (mc_Client * self)
      * Return the readily sendable connection
      */
     mpd_connection * cconn = NULL;
-    if (self && mc_proto_is_connected (self))
+    if (self && mc_proto_is_connected (self) )
     {
         cconn = self->do_get (self);
         mc_shelper_report_error (self, cconn);
@@ -157,7 +157,7 @@ char * mc_proto_disconnect (
 
         /* Reset status/song/stats to NULL */
         mc_proto_reset (self);
-        
+
         /* Notify user of the disconnect */
         mc_proto_signal_dispatch (self, "connectivity", self, false);
 
@@ -259,8 +259,8 @@ void mc_proto_signal_dispatch (
 //
 
 int mc_proto_signal_length (
-        mc_Client * self, 
-        const char * signal_name)
+    mc_Client * self,
+    const char * signal_name)
 {
     if (self != NULL)
         return mc_signal_length (&self->_signals, signal_name);

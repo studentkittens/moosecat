@@ -26,13 +26,13 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
     if (error != MPD_ERROR_SUCCESS)
     {
         /* Prefer utf-8 encoded error message */
-        if(MPD_ERROR_SYSTEM == error)
+        if (MPD_ERROR_SYSTEM == error)
         {
-            copy_error_message(self->error_buffer, g_strerror(mpd_connection_get_system_error(cconn)));
+            copy_error_message (self->error_buffer, g_strerror (mpd_connection_get_system_error (cconn) ) );
         }
         else
         {
-            copy_error_message(self->error_buffer, mpd_connection_get_error_message(cconn))
+            copy_error_message (self->error_buffer, mpd_connection_get_error_message (cconn) )
         }
 
         /* Try to clear the error */
@@ -68,9 +68,9 @@ void mc_shelper_report_progress (struct mc_Client * self, const char * format, .
 ///////////////////////////////
 
 void mc_shelper_report_connectivity (
-        struct mc_Client * self,
-        const char * new_host,
-        int new_port)
+    struct mc_Client * self,
+    const char * new_host,
+    int new_port)
 {
     bool server_changed = (g_strcmp0 (new_host, self->_host) != 0) || (new_port != self->_port);
     mc_proto_signal_dispatch (self, "connectivity", self, server_changed);
@@ -85,8 +85,8 @@ void mc_shelper_report_connectivity (
 ///////////////////////////////
 
 void mc_shelper_report_client_event (
-        struct mc_Client * self,
-        enum mpd_idle event)
+    struct mc_Client * self,
+    enum mpd_idle event)
 {
     mc_proto_update_context_info_cb (self, event, NULL);
     mc_proto_signal_dispatch (self, "client-event", self, event);

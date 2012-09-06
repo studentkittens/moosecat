@@ -121,7 +121,7 @@ static const char * sql_stmts[] =
     "musicbrainz_albumartist_id  TEXT,                                                              \n"
     "musicbrainz_track           TEXT,                                                              \n"
     "-- FTS options:                                                                                \n"
-    "tokenize=porter                                                                                \n"                     
+    "tokenize=porter                                                                                \n"
     ");                                                                                             \n"
     "                                                                                               \n"
     "-- Meta Table, containing information about the metadata itself.                               \n"
@@ -246,9 +246,9 @@ int main (int argc, char const *argv[])
 
             g_print ("Sended!\n");
 
-            
+
             GTimer * db_timer = g_timer_new();
-            g_timer_start(db_timer);
+            g_timer_start (db_timer);
             sqlite3_exec (store->db, "BEGIN;", NULL, NULL, NULL);
 
             while ( (ent = mpd_recv_entity (con) ) != NULL)
@@ -270,36 +270,39 @@ int main (int argc, char const *argv[])
                 mpd_connection_clear_error (con);
             }
 
-            sqlite3_exec(store->db, "INSERT INTO docs(docs) VALUES('optimize');", NULL, NULL, NULL);
-            g_print("Took %2f seconds to create DB.\n", g_timer_elapsed(db_timer, NULL));
+            sqlite3_exec (store->db, "INSERT INTO docs(docs) VALUES('optimize');", NULL, NULL, NULL);
+            g_print ("Took %2f seconds to create DB.\n", g_timer_elapsed (db_timer, NULL) );
 
 #if 0
             GTimer * timer = g_timer_new();
-            g_timer_start(timer);
-            for(int i = 0; i < 1000; i++) { (void)err; } 
-            g_timer_stop(timer);
-            g_print("Took %2f seconds to loop 1000x.\n", g_timer_elapsed(timer, NULL));
+            g_timer_start (timer);
+            for (int i = 0; i < 1000; i++)
+            {
+                (void) err;
+            }
+            g_timer_stop (timer);
+            g_print ("Took %2f seconds to loop 1000x.\n", g_timer_elapsed (timer, NULL) );
 
-            g_timer_start(timer);
-            for (int i = 0; i < 1000; i++) 
+            g_timer_start (timer);
+            for (int i = 0; i < 1000; i++)
                 sqlite3_exec (store->db, "select * from songs where uri match 'smile';", NULL, NULL, NULL);
-            g_timer_stop(timer);
-            g_print("Took %2f seconds to select.\n", g_timer_elapsed(timer, NULL));
+            g_timer_stop (timer);
+            g_print ("Took %2f seconds to select.\n", g_timer_elapsed (timer, NULL) );
 
-            g_timer_start(timer);
+            g_timer_start (timer);
             for (int i = 0; i < 1000; i++)
             {
                 struct mpd_song * song = NULL;
-                mpd_search_db_songs(con, false);
-                mpd_search_add_tag_constraint(con, MPD_OPERATOR_DEFAULT, MPD_TAG_ARTIST, "Smile");
-                mpd_search_commit(con);
+                mpd_search_db_songs (con, false);
+                mpd_search_add_tag_constraint (con, MPD_OPERATOR_DEFAULT, MPD_TAG_ARTIST, "Smile");
+                mpd_search_commit (con);
                 while ( (song = mpd_recv_song (con) ) != NULL)
                 {
-                    mpd_song_free(song);
+                    mpd_song_free (song);
                 }
             }
-            g_timer_stop(timer);
-            g_print("Took %2f seconds to mpd search.\n", g_timer_elapsed(timer, NULL));
+            g_timer_stop (timer);
+            g_print ("Took %2f seconds to mpd search.\n", g_timer_elapsed (timer, NULL) );
 #endif
         }
     }

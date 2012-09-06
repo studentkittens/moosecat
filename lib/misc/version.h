@@ -1,3 +1,3 @@
 #include "../config.h"
 
-#define MOOSECAT_VERSION 
+#define MOOSECAT_VERSION

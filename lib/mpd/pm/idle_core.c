@@ -84,10 +84,10 @@ mc_Client * mc_proto_create_idler (void)
     ctor->con = NULL; // <-- write connect code here
 
     // ... for now just abort here.
-    g_print("NOTE: MC_PM_IDLE pm is not yet implemented!\n");
-    g_print("      Kittens didn't walk over the keybaord yet.\n");
-    g_print("      => Aborting!\n\n");
-    raise(SIGTERM);
+    g_print ("NOTE: MC_PM_IDLE pm is not yet implemented!\n");
+    g_print ("      Kittens didn't walk over the keybaord yet.\n");
+    g_print ("      => Aborting!\n\n");
+    raise (SIGTERM);
 
     return (mc_Client *) ctor;
 }

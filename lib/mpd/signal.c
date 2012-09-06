@@ -87,14 +87,14 @@ void mc_signal_add (
 ///////////////////////////////
 
 int mc_signal_length (
-        mc_SignalList * list,
-        const char * signal_name)
+    mc_SignalList * list,
+    const char * signal_name)
 {
 
     mc_SignalType type = mc_convert_name_to_signal (signal_name);
     if (type != MC_SIGNAL_UNKNOWN)
-        return (list) ? (int)g_list_length(list->signals[type]) : -1;
-    else 
+        return (list) ? (int) g_list_length (list->signals[type]) : -1;
+    else
         return -1;
 }
 
@@ -134,7 +134,7 @@ void mc_signal_rm (
         {                                                  \
              
 #define DISPATCH_END                                       \
-        }                                                  \
+    }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)

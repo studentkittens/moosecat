@@ -6,18 +6,18 @@
 ////////////////////////
 
 const enum mpd_idle on_status_update = (0
-        | MPD_IDLE_PLAYER
-        | MPD_IDLE_OPTIONS
-        | MPD_IDLE_MIXER
-        | MPD_IDLE_OUTPUT
-        | MPD_IDLE_QUEUE);
+                                        | MPD_IDLE_PLAYER
+                                        | MPD_IDLE_OPTIONS
+                                        | MPD_IDLE_MIXER
+                                        | MPD_IDLE_OUTPUT
+                                        | MPD_IDLE_QUEUE);
 
 const enum mpd_idle on_stats_update = (0
-        | MPD_IDLE_UPDATE
-        | MPD_IDLE_DATABASE);
+                                       | MPD_IDLE_UPDATE
+                                       | MPD_IDLE_DATABASE);
 
 const enum mpd_idle on_song_update = (0
-        | MPD_IDLE_PLAYER);
+                                      | MPD_IDLE_PLAYER);
 
 ////////////////////////
 
@@ -26,9 +26,9 @@ const enum mpd_idle on_song_update = (0
 ////////////////////////
 
 void mc_proto_update_context_info_cb (
-        struct mc_Client * self,
-        enum mpd_idle events,
-        mc_cc_unused void * user_data)
+    struct mc_Client * self,
+    enum mpd_idle events,
+    mc_cc_unused void * user_data)
 {
     if (self != NULL && events != 0)
     {

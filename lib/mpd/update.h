@@ -4,7 +4,7 @@ struct mc_Client;
 
 /**
  * @brief Update status/stats/song.
- * 
+ *
  * The function looks like that, in order to be registered as event callback.
  *
  * @param events the happenene event. Use INT_MAX to update all events.

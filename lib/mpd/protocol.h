@@ -20,7 +20,8 @@ typedef struct mpd_song mpd_song;
 typedef struct mpd_status mpd_status;
 typedef struct mpd_stats mpd_stats;
 
-typedef enum {
+typedef enum
+{
     MC_PM_IDLE = 0,
     MC_PM_COMMAND
 } mc_PmType;
@@ -276,7 +277,7 @@ void mc_proto_signal_dispatch (
  * @return 0 - inf
  */
 int mc_proto_signal_length (
-        mc_Client * self, 
-        const char * signal_name);
+    mc_Client * self,
+    const char * signal_name);
 
 #endif /* end of include guard: PROTOCOL_H */

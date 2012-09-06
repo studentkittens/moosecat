@@ -8,13 +8,13 @@
 static mc_Client * conn = NULL;
 
 static void signal_event (
-        mc_Client * u_conn,
-        enum mpd_idle event,
-        void * user_data)
+    mc_Client * u_conn,
+    enum mpd_idle event,
+    void * user_data)
 {
     (void) u_conn;
     (void) user_data;
-    
+
     g_print ("%p %p %p\n", conn->status, conn->song, conn->stats);
 
     g_print ("event = %d\n", event);
@@ -28,44 +28,44 @@ static void signal_event (
 /////////////////////////////
 
 static void signal_error (
-        mc_Client * u_conn,
-        enum mpd_error error,
-        const char * err_msg,
-        bool is_fatal,
-        void * user_data)
+    mc_Client * u_conn,
+    enum mpd_error error,
+    const char * err_msg,
+    bool is_fatal,
+    void * user_data)
 {
     (void) u_conn;
     (void) is_fatal;
     (void) user_data;
-    g_print("ERROR [Fatal: %s]: #%d: %s\n", is_fatal ? "Yes" : "No", error, err_msg);
+    g_print ("ERROR [Fatal: %s]: #%d: %s\n", is_fatal ? "Yes" : "No", error, err_msg);
 }
 
 /////////////////////////////
 
 static void signal_progress (
-        mc_Client * client,
-        const char * progress,
-        void * user_data
-        )
+    mc_Client * client,
+    const char * progress,
+    void * user_data
+)
 {
     (void) user_data;
     (void) client;
-    g_print("PROGRESS: %s\n", progress);
+    g_print ("PROGRESS: %s\n", progress);
 }
 
 /////////////////////////////
 
 static void signal_connectivity (
-        mc_Client * client,
-        bool server_changed,
-        void * user_data
-        )
+    mc_Client * client,
+    bool server_changed,
+    void * user_data
+)
 {
     (void) user_data;
 
-    g_print("CONNECTION: is %s and server %s.\n",
-            mc_proto_is_connected(client) ? "connected" : "disconnected",
-            server_changed ? "changed" : "is still the same");
+    g_print ("CONNECTION: is %s and server %s.\n",
+             mc_proto_is_connected (client) ? "connected" : "disconnected",
+             server_changed ? "changed" : "is still the same");
 }
 
 /////////////////////////////
@@ -95,9 +95,9 @@ gboolean next_song (gpointer user_data)
         for (int i = 0; i < 10; i++)
             mc_client_volume (conn, 100);
 
-        while (g_main_context_pending (NULL))
-            g_main_context_iteration (NULL, FALSE); 
-        
+        while (g_main_context_pending (NULL) )
+            g_main_context_iteration (NULL, FALSE);
+
         mc_proto_disconnect (conn);
     }
 

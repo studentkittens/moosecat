@@ -76,8 +76,8 @@ void mc_signal_list_destroy (
     mc_SignalList * list);
 
 int mc_signal_length (
-        mc_SignalList * list,
-        const char * signal_name);
+    mc_SignalList * list,
+    const char * signal_name);
 
 #endif /* end of include guard: mc_signal_H */
 

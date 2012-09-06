@@ -26,15 +26,7 @@
  *
  * @return a new mc_StoreDB , free with mc_store_close()
  */
- mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname);
-
-/**
- * @brief Update the db to the latest Query of the MPD Server.
- *
- * @param self the mc_StoreDB to operate on.
- * @return the number of updated songs.
- */
-int mc_store_update ( mc_StoreDB * self);
+mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname);
 
 /**
  * @brief Close the mc_Store.
