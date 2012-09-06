@@ -1,5 +1,6 @@
 #include "db.h"
 #include "../mpd/client_private.h"
+#include "../mpd/signal_helper.h"
 
 /*
  * Will return true, if the database located on disk is still valid.
@@ -21,7 +22,7 @@ static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self)
     int song_count = -1;
 
     /* check #1 */
-    if (g_file_test (self->db_path, G_FILE_TEST_EXISTS) == TRUE)
+    if (g_file_test (self->db_path, G_FILE_TEST_IS_REGULAR) == TRUE)
     {
         /* check #2 */
         if (sqlite3_open (self->db_path, &self->handle) == SQLITE_OK)
@@ -80,6 +81,9 @@ static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self)
 */
 static void mc_store_do_list_all_info (mc_StoreDB * store)
 {
+    /* progress */
+    int progress_counter = 0;
+
     mc_Client * self = store->client;
     BEGIN_COMMAND
     {
@@ -97,6 +101,12 @@ static void mc_store_do_list_all_info (mc_StoreDB * store)
         {
             if (mpd_entity_get_type (ent) == MPD_ENTITY_TYPE_SONG)
             {
+                if (++progress_counter % 50 == 0)
+                {
+                    mc_shelper_report_progress(self, false, "database: retrieving songs from mpd ... [%d/%d]",
+                            progress_counter, mpd_stats_get_number_of_songs(self->stats));
+                }
+
                 song = mpd_entity_get_song (ent);
 
                 /* Store metadata */
@@ -143,7 +153,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
     int song_count = -1;
     if ( (song_count = mc_store_check_if_db_is_still_valid (store) ) < 0)
     {
-        g_print ("database: will fetch it from mpd.\n");
+        mc_shelper_report_progress (store->client, true, "database: will fetch stuff from mpd.");
 
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
@@ -167,7 +177,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
          * or an backup will be loaded into memory */
         mc_strprv_open_memdb (store);
         mc_stprv_prepare_all_statements (store);
-        g_print ("database: %s exists already.\n", store->db_path);
+        mc_shelper_report_progress (store->client, true, "database: %s exists already.", store->db_path);
 
         /* stack is allocated to the old size */
         store->stack = mc_store_stack_create (song_count + 1);

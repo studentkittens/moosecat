@@ -86,7 +86,7 @@ static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
         mc_shelper_report_error ( (mc_Client *) self, self->idle_con);
     }
 
-    mc_shelper_report_progress ( (mc_Client *) self, "Cmnd: Listener Thread exited.");
+    mc_shelper_report_progress ( (mc_Client *) self, true, "cmnd-core: Listener Thread exited.");
     return NULL;
 }
 

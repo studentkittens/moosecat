@@ -134,7 +134,7 @@ void mc_signal_rm (
         {                                                  \
              
 #define DISPATCH_END                                       \
-    }                                                  \
+        }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)
@@ -195,11 +195,12 @@ void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, 
     }
     case MC_SIGNAL_PROGRESS:
     {
+        int print_newline = va_arg (args, int);
         const char * progress = va_arg (args, const char *);
 
         DISPATCH_START
         {
-            ( (mc_ProgressCallback) tag->callback) (client, progress, tag->user_data);
+            ( (mc_ProgressCallback) tag->callback) (client, print_newline, progress, tag->user_data);
         }
         DISPATCH_END
 

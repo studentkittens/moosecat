@@ -38,7 +38,7 @@ typedef void (* mc_ErrorCallback) (struct mc_Client *, enum mpd_error, const cha
 typedef void (* mc_ConnectivityCallback) (struct mc_Client *, bool server_changed, void * user_data);
 
 /* Progress callback (for display&debug) */
-typedef void (* mc_ProgressCallback) (struct mc_Client *, const char * progress, void * user_data);
+typedef void (* mc_ProgressCallback) (struct mc_Client *, bool print_newline, const char * progress, void * user_data);
 
 ///////////////////////////////
 

@@ -29,6 +29,19 @@ bool mc_shelper_report_error (
     mpd_connection * cconn);
 
 /**
+ * @brief Same as mc_shelper_report_error, but in a printf like fashion.
+ *
+ * Errors will be assumed to be non-fatal.
+ *
+ * @param self the client to operate on
+ * @param format printf format
+ * @param ... varargs
+ */
+void mc_shelper_report_error_printf(
+        struct mc_Client * self, 
+        const char * format, ...);
+
+/**
  * @brief Dispatch the progress signal
  *
  * This is a helper function that works in printf()
@@ -39,8 +52,9 @@ bool mc_shelper_report_error (
  * @param format a printf format
  * @param ... varargs as with printf
  */
-mc_cc_printf (2,3) void mc_shelper_report_progress (
+mc_cc_printf (3,4) void mc_shelper_report_progress (
     struct mc_Client * self,
+    bool print_newline,
     const char * format,
     ...);
 

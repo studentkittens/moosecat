@@ -52,14 +52,33 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
 
 ///////////////////////////////
 
-void mc_shelper_report_progress (struct mc_Client * self, const char * format, ...)
+void mc_shelper_report_error_printf(
+        struct mc_Client * self, 
+        const char * format, ...)
 {
     char * full_string = NULL;
     va_list list_ptr;
     va_start (list_ptr, format);
     if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string)
     {
-        mc_proto_signal_dispatch (self, "progress", self, full_string);
+        mc_proto_signal_dispatch (self, "error", self, -1, full_string, false);
+    }
+    va_end (list_ptr);
+}
+
+///////////////////////////////
+
+void mc_shelper_report_progress (
+       struct mc_Client * self,
+       bool print_newline,
+       const char * format, ...)
+{
+    char * full_string = NULL;
+    va_list list_ptr;
+    va_start (list_ptr, format);
+    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string)
+    {
+        mc_proto_signal_dispatch (self, "progress", self, print_newline, full_string);
         g_free (full_string);
     }
     va_end (list_ptr);

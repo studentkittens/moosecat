@@ -44,13 +44,14 @@ static void signal_error (
 
 static void signal_progress (
     mc_Client * client,
+    bool print_newline,
     const char * progress,
     void * user_data
 )
 {
     (void) user_data;
     (void) client;
-    g_print ("PROGRESS: %s\n", progress);
+    g_print ("PROGRESS: %s%c", progress, print_newline ? '\n' : '\r');
 }
 
 /////////////////////////////

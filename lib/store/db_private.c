@@ -1,4 +1,5 @@
 #include "db_private.h"
+#include "../mpd/signal_helper.h"
 
 /* strlen() */
 #include <string.h>
@@ -16,6 +17,9 @@
  *
  * Please excuse any eye cancer while reading this. Thank you!
  */
+
+#define REPORT_SQL_ERROR(store, message) \
+    mc_shelper_report_error_printf (store->client, "[%s:%d] %s: %d", __FILE__, __LINE__, message, sqlite3_errmsg(store->handle))
 
 ///////////////////
 
@@ -168,8 +172,7 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 
         /* Uh-Oh. Typo? */
         if (prep_error != SQLITE_OK)
-            g_print ("WARNING: Cannot prepare statement #%d: %s\n",
-                     i, sqlite3_errmsg (self->handle) );
+            REPORT_SQL_ERROR(self, "WARNING: cannot preate statement");
     }
 }
 
@@ -180,8 +183,7 @@ void mc_stprv_finalize_all_statements (mc_StoreDB * self)
     for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT; i < _MC_SQL_SOURCE_COUNT; i++)
     {
         if (sqlite3_finalize (self->sql_prep_stmts[i]) != SQLITE_OK)
-            g_print ("WARNING: Cannot finalize statement #%d: %s\n",
-                     i, sqlite3_errmsg (self->handle) );
+            REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
     }
 }
 
@@ -191,7 +193,7 @@ bool mc_strprv_open_memdb (mc_StoreDB * self)
 {
     if (sqlite3_open (":memory:", &self->handle) != SQLITE_OK)
     {
-        g_print ("Cannot open db: %s\n", sqlite3_errmsg (self->handle) );
+        REPORT_SQL_ERROR (self, "ERROR: cannot open :memory: database. Dude, that's weird...");
         self->handle = NULL;
         return false;
     }
@@ -203,7 +205,7 @@ bool mc_strprv_open_memdb (mc_StoreDB * self)
 void mc_stprv_begin (mc_StoreDB * self)
 {
     if ( sqlite3_step (SQL_STMT (self, BEGIN) ) != SQLITE_DONE)
-        g_print ("Unable to execute BEGIN\n");
+        REPORT_SQL_ERROR (self, "WARNING: Unable to execute BEGIN");
 }
 
 ////////////////////////////////
@@ -211,7 +213,7 @@ void mc_stprv_begin (mc_StoreDB * self)
 void mc_stprv_commit (mc_StoreDB * self)
 {
     if ( sqlite3_step (SQL_STMT (self, COMMIT) ) != SQLITE_DONE)
-        g_print ("Unable to execute COMMIT\n");
+        REPORT_SQL_ERROR (self, "WARNING: Unable to execute COMMIT");
 }
 
 ////////////////////////////////
@@ -258,7 +260,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
-        g_print ("INSERT: Error while binding: #%d\n", error_id);
+        REPORT_SQL_ERROR (db, "WARNING: Error while binding");
 
     /* evaluate prepared statement, only check for errors */
     while ( (error_id = sqlite3_step (SQL_STMT (db, INSERT) ) ) == SQLITE_BUSY)
@@ -269,7 +271,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
     sqlite3_clear_bindings (SQL_STMT (db, INSERT) );
 
     if ( (rc = (error_id != SQLITE_DONE) ) == true)
-        g_print ("Cannot INSERT into :memory: : %s\n", sqlite3_errmsg (db->handle) );
+        REPORT_SQL_ERROR (db, "WARNING: cannot insert into :memory: - that's pretty serious.");
 
     return rc;
 }
@@ -294,7 +296,7 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song 
         select_stmt = SQL_STMT (self, SELECT_MATCHED);
         bind_txt (self, SELECT_MATCHED, pos_id, match_clause, error_id);
         if (error_id != SQLITE_OK)
-            g_print ("Select: Error while binding: #%d\n", error_id);
+            REPORT_SQL_ERROR (self, "WARNING: Error while binding");
     }
 
     while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW &&
@@ -305,7 +307,7 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song 
     }
 
     if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)
-        g_print ("Cannot SELECT: %s\n", sqlite3_errmsg (self->handle) );
+        REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT");
 
     sqlite3_reset (select_stmt);
     sqlite3_clear_bindings (select_stmt);
@@ -415,6 +417,9 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self)
     /* range parsing */
     int start = 0, end = 0;
 
+    /* progress */
+    int progress_counter = 0;
+
     /* loop over all rows in the songs table */
     while ( (error_id = sqlite3_step (stmt) ) == SQLITE_ROW)
     {
@@ -431,8 +436,6 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self)
          * It's also case-sensitive.
          */
         mpd_song * song = mpd_song_begin (&pair);
-        if (song == NULL)
-            g_print ("Warning: unable to begin parsing of song.\n");
 
         g_assert (song != NULL);
 
@@ -480,27 +483,32 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self)
         feed_tag (MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
 
         mc_store_stack_append (self->stack, song);
+
+        if (++progress_counter % 50 == 0) {
+            mc_shelper_report_progress(self->client, false, "database: deserializing songs from db ... [%d/%d]",
+                    progress_counter, mpd_stats_get_number_of_songs(self->client->stats));
+        }
     }
 
     if (error_id != SQLITE_DONE)
     {
-        g_print ("Cannot load songs from the database: %s\n", sqlite3_errmsg (self->handle) );
+        REPORT_SQL_ERROR(self, "ERROR: cannot load songs from database");
     }
 }
 
 ////////////////////////////////
 
-#define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)       \
-    {                                                                                                \
-        int error_id = SQLITE_OK;                                                                    \
-        if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)                     \
-            out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                         \
-        if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                                       \
-            g_print ("Cannot SELECT META: (Error #%d) %s\n", error_id, sqlite3_errmsg (self->handle) );  \
-        out_var = (cast_type)copy_func((cast_type)out_var);                                          \
-        sqlite3_reset (SQL_STMT (self, meta_enum));                                                  \
-    }                                                                                                \
-     
+#define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)  \
+{                                                                                           \
+    int error_id = SQLITE_OK;                                                               \
+    if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)                \
+        out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                     \
+    if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                                  \
+        REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                             \
+    out_var = (cast_type)copy_func((cast_type)out_var);                                     \
+    sqlite3_reset (SQL_STMT (self, meta_enum));                                             \
+}                                                                                           \
+
 
 ////////////////////////////////
 

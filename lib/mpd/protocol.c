@@ -88,7 +88,7 @@ char * mc_proto_connect (
         return g_strdup (etable[ERR_IS_NULL]);
 
     /* Some progress! */
-    mc_shelper_report_progress (self, "Attempting to connect... ");
+    mc_shelper_report_progress (self, true, "Attempting to connect... ");
 
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup (self->do_connect (self, context, host, port, ABS (timeout) ) );
@@ -105,7 +105,7 @@ char * mc_proto_connect (
         mc_shelper_report_connectivity (self, host, port);
 
         /* Report some progress */
-        mc_shelper_report_progress (self, "Fully connected!");
+        mc_shelper_report_progress (self, true, "Fully connected!");
     }
     return err;
 }
