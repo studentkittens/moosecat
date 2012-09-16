@@ -109,11 +109,13 @@ static const char * _sql_stmts[] =
     [_MC_SQL_INSERT] =
     "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [_MC_SQL_SELECT_MATCHED] =
-    "SELECT rowid FROM songs WHERE artist MATCH ?;",
+    "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
     [_MC_SQL_SELECT_MATCHED_ALL] =
     "SELECT rowid FROM songs;",
     [_MC_SQL_SELECT_ALL] =
     "SELECT * FROM songs;",
+    [_MC_SQL_DELETE_ALL] = 
+    "DELETE * FROM songs;",
     [_MC_SQL_BEGIN] =
     "BEGIN IMMEDIATE;",
     [_MC_SQL_COMMIT] =
@@ -132,6 +134,17 @@ static const char * _sql_stmts[] =
 
 ////////////////////////////////
 
+/*
+ * Fill information into the meta-table.
+ * Before inserting the table is dropped. Yes, really.
+ * But it's re-created immediately, and then inserted.
+ *
+ * This way we will always have only one single row there.
+ *
+ * Also note, that this cannot be done using prepared statements,
+ * since they rely on already created tables. That's why we 
+ * have to insert the values manually.
+ */
 void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
 {
     char * dyn_insert_meta = g_strdup_printf (SQL_CODE (META),
@@ -140,7 +153,7 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
                              MC_DB_SCHEMA_VERSION,
                              self->client->_port,
                              self->client->_host
-                                             );
+    );
 
     if (sqlite3_exec (self->handle, dyn_insert_meta, NULL, NULL, NULL) != SQLITE_OK)
         g_print ("Cannot insert meta attributes.\n");
@@ -155,9 +168,7 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
     int prep_error = 0;
 
     if (sqlite3_exec (self->handle, _sql_stmts[_MC_SQL_CREATE], NULL, NULL, NULL) != SQLITE_OK)
-    {
-        g_print ("Cannot CREATE table structure. This is pretty fatal, you know?\n");
-    }
+        g_print ("Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
 
     mc_stprv_insert_meta_attributes (self);
 
@@ -178,6 +189,10 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 
 ////////////////////////////////
 
+/* 
+ * Go through all (prepared) statements, and finalize them. 
+ * sqlit3_close will refuse to do it's job otherwise.
+ */
 void mc_stprv_finalize_all_statements (mc_StoreDB * self)
 {
     for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT; i < _MC_SQL_SOURCE_COUNT; i++)
@@ -189,6 +204,11 @@ void mc_stprv_finalize_all_statements (mc_StoreDB * self)
 
 ////////////////////////////////
 
+/*
+ * Open a sqlite3 handle to the memory.
+ *
+ * Returns: true on success.
+ */
 bool mc_strprv_open_memdb (mc_StoreDB * self)
 {
     if (sqlite3_open (":memory:", &self->handle) != SQLITE_OK)
@@ -218,6 +238,14 @@ void mc_stprv_commit (mc_StoreDB * self)
 
 ////////////////////////////////
 
+void mc_stprv_delete_songs_table (mc_StoreDB * self)
+{
+    if ( sqlite3_step (SQL_STMT (self, DELETE_ALL) ) != SQLITE_DONE)
+        REPORT_SQL_ERROR (self, "WARNING: Cannot delete table contentes of 'songs'");
+}
+
+////////////////////////////////
+
 /* Make binding values to prepared statements less painful */
 #define bind_int(db, type, pos_idx, value, error_id) \
     error_id |= sqlite3_bind_int (SQL_STMT(db, type), (pos_idx)++, value);
@@ -228,6 +256,16 @@ void mc_stprv_commit (mc_StoreDB * self)
 #define bind_tag(db, type, pos_idx, song, tag_id, error_id) \
     bind_txt (db, type, pos_idx, mpd_song_get_tag (song, tag_id, 0), error_id)
 
+/*
+ * Insert a single song into the 'songs' table.
+ * This inserts all attributes of the song, even if they are not set,
+ * or not used in moosecat itself
+ *
+ * You should call mc_stprv_begin and mc_stprv_commit before/after
+ * inserting, especially if inserting many songs.
+ *
+ * A prepared statement is used for simplicity & speed reasons.
+ */
 bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
 {
     int error_id = SQLITE_OK;
@@ -279,22 +317,50 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
 
 ////////////////////////////////
 
+/*
+ * Search stuff in the 'songs' table using a SELECT clause (also using MATCH).
+ * Instead of selecting the actual songs, only the docid is selected, and used as
+ * an index to the song-stack, which is quite a bit faster/memory efficient for 
+ * large returns.
+ *
+ * It uses the buffer passed to the function to store the pointer to mpd songs it found.
+ * Do not free these, the memory of these are manged internally!
+ *
+ * This function will select at max. buffer_len songs.
+ *
+ * Returns: number of actually found songs, or -1 on error.
+ */
 int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buffer_len)
 {
     int error_id = SQLITE_OK,
         pos_id = 1,
         buf_pos = 0;
 
+    /* 
+     * Sanitize buffer_len
+     */
+    buffer_len = MAX(buffer_len, 0);
+
+    /*
+     * Duplicate this, in order to strip it.
+     * We do not want to modify caller's stuff. He would hate us.
+     */
+    gchar * match_clause_dup = g_strstrip (g_strdup (match_clause));
+    
     sqlite3_stmt * select_stmt = NULL;
 
-    if (match_clause == NULL || *match_clause == 0)
+    /*
+     * If the query is empty anyway, we just select eveything
+     */
+    if (match_clause_dup == NULL || *match_clause_dup == 0)
     {
         select_stmt = SQL_STMT (self, SELECT_MATCHED_ALL);
     }
     else
     {
         select_stmt = SQL_STMT (self, SELECT_MATCHED);
-        bind_txt (self, SELECT_MATCHED, pos_id, match_clause, error_id);
+        bind_txt (self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
+        bind_int (self, SELECT_MATCHED, pos_id, buffer_len, error_id);
         if (error_id != SQLITE_OK)
             REPORT_SQL_ERROR (self, "WARNING: Error while binding");
     }
@@ -311,6 +377,7 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song 
 
     sqlite3_reset (select_stmt);
     sqlite3_clear_bindings (select_stmt);
+    g_free (match_clause_dup);
 
     return buf_pos;
 }
@@ -388,14 +455,31 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
 
 ////////////////////////////////
 
+void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self)
+{
+    g_thread_new ("db-deserialize-thread", (GThreadFunc)mc_stprv_deserialize_songs, self);
+}
+
+////////////////////////////////
+
 #define feed_tag(tag_enum, sql_col_pos, stmt, song, pair)         \
     pair.value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
     if (pair.value) {                                             \
         pair.name  = mpd_tag_name(tag_enum);                      \
         mpd_song_feed(song, &pair);                               \
     }                                                             \
-     
-void mc_stprv_deserialize_songs (mc_StoreDB * self)
+
+/*
+ * Selects all rows from the 'songs' table and compose a mpd_song structure from it.
+ * It does this by emulating the MPD protocol, and using mpd_song_begin/feed to set 
+ * the actual values. This could be speed up a lot if there would be setters for this.
+ *
+ * Anyway, in it's current state, it loads my total db from disk in 0.35 seconds, which should be 
+ * okay for a once-a-start operation, especially when done in background.
+ * 
+ * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
+ */
+gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
@@ -419,6 +503,9 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self)
 
     /* progress */
     int progress_counter = 0;
+    
+    self->db_is_locked = TRUE;
+    g_rec_mutex_lock (&self->db_update_lock);
 
     /* loop over all rows in the songs table */
     while ( (error_id = sqlite3_step (stmt) ) == SQLITE_ROW)
@@ -427,6 +514,7 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self)
         pair.value = (char *) sqlite3_column_text (stmt, SQL_COL_URI);
 
         /* Following fields are understood by libmpdclient:
+         * file (= uri)
          * Time (= duration)
          * Range (= start-end)
          * Last-Modified
@@ -494,6 +582,11 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self)
     {
         REPORT_SQL_ERROR(self, "ERROR: cannot load songs from database");
     }
+    
+    self->db_is_locked = FALSE;
+    g_rec_mutex_unlock (&self->db_update_lock);
+
+    return NULL;
 }
 
 ////////////////////////////////

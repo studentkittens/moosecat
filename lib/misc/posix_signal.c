@@ -56,6 +56,7 @@ static void mc_signal_handler (int signal)
         g_print (bug_report);
         g_free (bug_report);
         mc_print_backtrace();
+        g_print("Most recent call first. I'm going to die now. Please debug me.\n\n");
         break;
     }
 }

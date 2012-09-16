@@ -12,7 +12,7 @@ VERSION = '0.0.1'
 CFLAGS = ['-std=c99']
 
 # Optional flags:
-CFLAGS += ['-Os', '-Wall', '-W']
+CFLAGS += ['-O3', '-Wall', '-W']
 
 
 def options(opt):

@@ -1,5 +1,6 @@
 #include "mpd/protocol.h"
 #include "store/db.h"
+#include "misc/posix_signal.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -9,7 +10,7 @@
 static void print_progress(mc_Client * self, bool print_newline, const char * msg, void * userdata)
 {
     (void) self;
-    (void) userdata;
+    (void)
     g_print("%s                                     %c", msg, print_newline ? '\n' : '\r');
 }
 
@@ -17,9 +18,12 @@ static void print_progress(mc_Client * self, bool print_newline, const char * ms
 
 int main (void)
 {
+
     mc_Client * client = mc_proto_create (MC_PM_COMMAND);
     mc_proto_connect (client, NULL, "localhost", 6600, 2.0);
     mc_proto_signal_add(client, "progress", print_progress, NULL);
+    
+    mc_misc_register_posix_signal (client);
 
     GTimer * db_timer = g_timer_new ();
     g_timer_start (db_timer);
@@ -50,6 +54,12 @@ int main (void)
 
             if (g_strcmp0 (line_buf, ":q") == 0)
                 break;
+            
+            if (g_strcmp0 (line_buf, ":u") == 0)
+            {
+                mc_proto_signal_dispatch (client, "client-event", client, MPD_IDLE_DATABASE);
+                continue;
+            }
 
             int selected = mc_store_search_out (db, line_buf, song_buf, song_buf_size);
 

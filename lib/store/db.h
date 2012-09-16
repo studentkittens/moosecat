@@ -54,11 +54,6 @@ mpd_song ** mc_store_search ( mc_StoreDB * self, struct mc_StoreQuery * qry);
 
 int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buf_len);
 
-/**
- * @brief try to optimize the internal database ure.
- *
- * @param self the store to operate on.
- */
-void mc_store_optimize ( mc_StoreDB * self);
+void mc_store_wait (mc_StoreDB * self);
 
 #endif /* end of include guard: DB_GUARD_H */
