@@ -2,8 +2,7 @@
 
 ///////////////////////////
 
-static const int map_io_enums[][2] =
-{
+static const int map_io_enums[][2] = {
     {G_IO_IN,  MPD_ASYNC_EVENT_READ  },
     {G_IO_OUT, MPD_ASYNC_EVENT_WRITE },
     {G_IO_HUP, MPD_ASYNC_EVENT_HUP   },
@@ -44,26 +43,20 @@ mpd_connection * mpd_connect (mc_Client * self, const char * host, int port, flo
 {
     mpd_connection * con = mpd_connection_new (host, port, timeout * 1000);
 
-    if (con && mpd_connection_get_error (con) != MPD_ERROR_SUCCESS)
-    {
+    if (con && mpd_connection_get_error (con) != MPD_ERROR_SUCCESS) {
         char * error_message = g_strdup (mpd_connection_get_error_message (con) );
         bool is_fatal = !mpd_connection_clear_error (con);
         mc_proto_signal_dispatch (self, "error", self, error_message, is_fatal);
 
-        if (err != NULL)
-        {
+        if (err != NULL) {
             *err = error_message;
-        }
-        else
-        {
+        } else {
             g_free (error_message);
         }
 
         mpd_connection_free (con);
         con = NULL;
-    }
-    else if (err != NULL)
-    {
+    } else if (err != NULL) {
         *err = NULL;
     }
 

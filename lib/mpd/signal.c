@@ -7,15 +7,13 @@
 ///////////////////////////////
 ////////// PRIVATE ////////////
 ///////////////////////////////
-typedef struct
-{
+typedef struct {
     mc_ClientEventCallback callback;
     gpointer user_data;
     enum mpd_idle mask;
 } mc_SignalTag;
 
-static const char * signal_to_name_table[] =
-{
+static const char * signal_to_name_table[] = {
     [MC_SIGNAL_CLIENT_EVENT] = "client-event",
     [MC_SIGNAL_ERROR]        = "error",
     [MC_SIGNAL_CONNECTIVITY] = "connectivity",
@@ -63,11 +61,9 @@ void mc_signal_add_masked (
     tag->callback = callback_func;
     tag->mask = mask;
 
-    if (tag != NULL)
-    {
+    if (tag != NULL) {
         mc_SignalType type = mc_convert_name_to_signal (signal_name);
-        if (type != MC_SIGNAL_UNKNOWN)
-        {
+        if (type != MC_SIGNAL_UNKNOWN) {
             list->signals[type] = g_list_prepend (list->signals[type], tag);
         }
     }
@@ -106,16 +102,12 @@ void mc_signal_rm (
     void * callback_addr)
 {
     mc_SignalType type = mc_convert_name_to_signal (signal_name);
-    if (type != MC_SIGNAL_UNKNOWN)
-    {
+    if (type != MC_SIGNAL_UNKNOWN) {
         GList * head = list->signals[type];
-        for (GList * iter = head; iter; iter = iter->next)
-        {
+        for (GList * iter = head; iter; iter = iter->next) {
             mc_SignalTag * tag = iter->data;
-            if (tag != NULL)
-            {
-                if (tag->callback == callback_addr)
-                {
+            if (tag != NULL) {
+                if (tag->callback == callback_addr) {
                     list->signals[type] = g_list_delete_link (head, iter);
                     return;
                 }
@@ -134,7 +126,7 @@ void mc_signal_rm (
         {                                                  \
              
 #define DISPATCH_END                                       \
-        }                                                  \
+    }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)
@@ -150,16 +142,12 @@ void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, 
     /* All callbacks get a client as first param */
     struct mc_Client * client = va_arg (args, struct mc_Client *);
 
-    switch (sig_type)
-    {
-    case MC_SIGNAL_CLIENT_EVENT:
-    {
+    switch (sig_type) {
+    case MC_SIGNAL_CLIENT_EVENT: {
         enum mpd_idle event = va_arg (args, enum mpd_idle);
 
-        DISPATCH_START
-        {
-            if (tag->mask & event)
-            {
+        DISPATCH_START {
+            if (tag->mask & event) {
                 ( (mc_ClientEventCallback) tag->callback) (client, event, tag->user_data);
             }
         }
@@ -167,39 +155,33 @@ void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, 
 
         break;
     }
-    case MC_SIGNAL_ERROR:
-    {
+    case MC_SIGNAL_ERROR: {
         enum mpd_error error = va_arg (args, enum mpd_error);
         const char * error_msg = va_arg (args, const char *);
         int is_fatal = va_arg (args, int);
 
-        DISPATCH_START
-        {
+        DISPATCH_START {
             ( (mc_ErrorCallback) tag->callback) (client, error, error_msg, is_fatal, tag->user_data);
         }
         DISPATCH_END
 
         break;
     }
-    case MC_SIGNAL_CONNECTIVITY:
-    {
+    case MC_SIGNAL_CONNECTIVITY: {
         int server_changed = va_arg (args, int);
 
-        DISPATCH_START
-        {
+        DISPATCH_START {
             ( (mc_ConnectivityCallback) tag->callback) (client, server_changed, tag->user_data);
         }
         DISPATCH_END
 
         break;
     }
-    case MC_SIGNAL_PROGRESS:
-    {
+    case MC_SIGNAL_PROGRESS: {
         int print_newline = va_arg (args, int);
         const char * progress = va_arg (args, const char *);
 
-        DISPATCH_START
-        {
+        DISPATCH_START {
             ( (mc_ProgressCallback) tag->callback) (client, print_newline, progress, tag->user_data);
         }
         DISPATCH_END
@@ -226,12 +208,9 @@ void mc_signal_report_event (mc_SignalList *  list, const char * signal_name, ..
 
 void mc_signal_list_destroy (mc_SignalList * list)
 {
-    if (list != NULL)
-    {
-        for (int i = 0; i < MC_SIGNAL_VALID_COUNT; i++)
-        {
-            for (GList * iter = list->signals[i]; iter; iter = iter->next)
-            {
+    if (list != NULL) {
+        for (int i = 0; i < MC_SIGNAL_VALID_COUNT; i++) {
+            for (GList * iter = list->signals[i]; iter; iter = iter->next) {
                 mc_SignalTag * tag = iter->data;
                 g_free (tag);
             }

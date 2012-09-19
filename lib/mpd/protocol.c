@@ -9,8 +9,7 @@
 /* memset */
 #include <string.h>
 
-enum
-{
+enum {
     ERR_OK,
     ERR_IS_NULL,
     ERR_UNKNOWN
@@ -18,8 +17,7 @@ enum
 
 ///////////////////
 
-static const char * etable[] =
-{
+static const char * etable[] = {
     [ERR_OK]      = NULL,
     [ERR_IS_NULL] = "NULL is not a valid connector.",
     [ERR_UNKNOWN] = "Operation failed for unknow reason."
@@ -56,16 +54,14 @@ static void mc_proto_reset (mc_Client * self)
 mc_Client * mc_proto_create (mc_PmType pm)
 {
     mc_Client * client = NULL;
-    switch (pm)
-    {
+    switch (pm) {
     case MC_PM_IDLE:
         client = mc_proto_create_idler();
     case MC_PM_COMMAND:
         client = mc_proto_create_cmnder();
     }
 
-    if (client != NULL)
-    {
+    if (client != NULL) {
         client->_pm = pm;
         memset (client->error_buffer, 0, _MC_PROTO_MAX_ERR_LEN);
         mc_signal_list_init (&client->_signals);
@@ -93,8 +89,7 @@ char * mc_proto_connect (
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup (self->do_connect (self, context, host, port, ABS (timeout) ) );
 
-    if (err == NULL && mc_proto_is_connected (self) )
-    {
+    if (err == NULL && mc_proto_is_connected (self) ) {
         /* Force updating of status/stats/song on connect */
         mc_proto_update_context_info_cb (self, INT_MAX, NULL);
 
@@ -136,8 +131,7 @@ mpd_connection * mc_proto_get (mc_Client * self)
      * Return the readily sendable connection
      */
     mpd_connection * cconn = NULL;
-    if (self && mc_proto_is_connected (self) )
-    {
+    if (self && mc_proto_is_connected (self) ) {
         cconn = self->do_get (self);
         mc_shelper_report_error (self, cconn);
     }
@@ -150,8 +144,7 @@ mpd_connection * mc_proto_get (mc_Client * self)
 char * mc_proto_disconnect (
     mc_Client * self)
 {
-    if (self && mc_proto_is_connected (self) )
-    {
+    if (self && mc_proto_is_connected (self) ) {
         /* let the connector clean up itself */
         bool error_happenend = !self->do_disconnect (self);
 

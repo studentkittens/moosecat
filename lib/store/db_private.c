@@ -4,6 +4,9 @@
 /* strlen() */
 #include <string.h>
 
+/* strtol() */
+#include <stdlib.h>
+
 /* gmtime(), strftime() */
 #define _POSIX_SOURCE
 #include <time.h>
@@ -17,15 +20,15 @@
  *
  * Please excuse any eye cancer while reading this. Thank you!
  */
-
 #define REPORT_SQL_ERROR(store, message) \
-    mc_shelper_report_error_printf (store->client, "[%s:%d] %s: %d", __FILE__, __LINE__, message, sqlite3_errmsg(store->handle))
-
+    mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)", \
+                                    __FILE__, __LINE__, message,                                     \
+                                    sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle))   \
+     
 ///////////////////
 
 /* this enum mirros the order in the CREATE statement */
-enum
-{
+enum {
     SQL_COL_URI = 0,
     SQL_COL_START,
     SQL_COL_END,
@@ -45,16 +48,19 @@ enum
     SQL_COL_MUSICBRAINZ_ARTIST_ID,
     SQL_COL_MUSICBRAINZ_ALBUM_ID,
     SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID,
-    SQL_COL_MUSICBRAINZ_TRACK_ID
+    SQL_COL_MUSICBRAINZ_TRACK_ID,
+    SQL_COL_QUEUE_POS,
+    SQL_COL_QUEUE_IDX,
+    SQL_COL_QUEUE_URI_HASH
 };
 
 ///////////////////
 
-static const char * _sql_stmts[] =
-{
+static const char * _sql_stmts[] = {
     [_MC_SQL_CREATE] =
+    "PRAGMA journal_mode = MEMORY;                                                                  \n"
     "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.    \n"
-    "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING Fts4(                                           \n"
+    "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                           \n"
     "uri            TEXT UNIQUE NOT NULL,     -- Path to file, or URL to webradio etc.              \n"
     "start          INTEGER NOT NULL,         -- Start of the virtual song within the physical file \n"
     "end            INTEGER NOT NULL,         -- End of the virtual song within the physical file   \n"
@@ -77,9 +83,14 @@ static const char * _sql_stmts[] =
     "musicbrainz_album_id        TEXT,                                                              \n"
     "musicbrainz_albumartist_id  TEXT,                                                              \n"
     "musicbrainz_track           TEXT,                                                              \n"
+    "-- Queue Data:                                                                                 \n"
+    "queue_pos INTEGER NOT NULL,                                                                    \n"
+    "queue_idx INTEGER NOT NULL,                                                                    \n"
     "-- FTS options:                                                                                \n"
-    "tokenize=porter -- todo: make this interchangeable.                                            \n"
-    ");                                                                                             \n",
+    "tokenize=%s                                                                                    \n"
+    ");                                                                                             \n"
+    "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                     \n"
+    "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                     \n",
     [_MC_SQL_META] =
     "-- Meta Table, containing information about the metadata itself.                \n"
     "BEGIN IMMEDIATE;                                                                \n"
@@ -107,15 +118,17 @@ static const char * _sql_stmts[] =
     [_MC_SQL_COUNT] =
     "SELECT count(*) FROM songs;",
     [_MC_SQL_INSERT] =
-    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    [_MC_SQL_QUEUE_UPDATE_ROW] =
+    "UPDATE songs_content SET c20queue_pos = ?, c21queue_idx = ? WHERE c0uri = ?;",
     [_MC_SQL_SELECT_MATCHED] =
     "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
     [_MC_SQL_SELECT_MATCHED_ALL] =
     "SELECT rowid FROM songs;",
     [_MC_SQL_SELECT_ALL] =
     "SELECT * FROM songs;",
-    [_MC_SQL_DELETE_ALL] = 
-    "DELETE * FROM songs;",
+    [_MC_SQL_DELETE_ALL] =
+    "DELETE FROM songs;",
     [_MC_SQL_BEGIN] =
     "BEGIN IMMEDIATE;",
     [_MC_SQL_COMMIT] =
@@ -142,18 +155,18 @@ static const char * _sql_stmts[] =
  * This way we will always have only one single row there.
  *
  * Also note, that this cannot be done using prepared statements,
- * since they rely on already created tables. That's why we 
+ * since they rely on already created tables. That's why we
  * have to insert the values manually.
  */
 void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
 {
     char * dyn_insert_meta = g_strdup_printf (SQL_CODE (META),
                              mpd_stats_get_db_update_time (self->client->stats),
-                             mpd_status_get_queue_version,
+                             mpd_status_get_queue_version (self->client->status),
                              MC_DB_SCHEMA_VERSION,
                              self->client->_port,
                              self->client->_host
-    );
+                                             );
 
     if (sqlite3_exec (self->handle, dyn_insert_meta, NULL, NULL, NULL) != SQLITE_OK)
         g_print ("Cannot insert meta attributes.\n");
@@ -163,17 +176,30 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
 
 ////////////////////////////////
 
+bool mc_stprv_create_song_table (mc_StoreDB * self)
+{
+    if (self == NULL)
+        return false;
+
+    char * sql_create = g_strdup_printf (SQL_CODE (CREATE), "porter");
+
+    if (sqlite3_exec (self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
+        g_print ("Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
+        return false;
+    }
+
+    return true;
+}
+
+////////////////////////////////
+
 void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 {
     int prep_error = 0;
 
-    if (sqlite3_exec (self->handle, _sql_stmts[_MC_SQL_CREATE], NULL, NULL, NULL) != SQLITE_OK)
-        g_print ("Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
-
     mc_stprv_insert_meta_attributes (self);
 
-    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT; i < _MC_SQL_SOURCE_COUNT; i++)
-    {
+    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
         prep_error = sqlite3_prepare_v2 (
                          self->handle,
                          _sql_stmts[i],
@@ -181,22 +207,23 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
                          &self->sql_prep_stmts[i],
                          NULL);
 
+        //g_print("Compiling stmt %s\n", _sql_stmts[i]);
+
         /* Uh-Oh. Typo? */
         if (prep_error != SQLITE_OK)
-            REPORT_SQL_ERROR(self, "WARNING: cannot preate statement");
+            REPORT_SQL_ERROR (self, "WARNING: cannot prepare statement");
     }
 }
 
 ////////////////////////////////
 
-/* 
- * Go through all (prepared) statements, and finalize them. 
+/*
+ * Go through all (prepared) statements, and finalize them.
  * sqlit3_close will refuse to do it's job otherwise.
  */
 void mc_stprv_finalize_all_statements (mc_StoreDB * self)
 {
-    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT; i < _MC_SQL_SOURCE_COUNT; i++)
-    {
+    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
         if (sqlite3_finalize (self->sql_prep_stmts[i]) != SQLITE_OK)
             REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
     }
@@ -211,13 +238,16 @@ void mc_stprv_finalize_all_statements (mc_StoreDB * self)
  */
 bool mc_strprv_open_memdb (mc_StoreDB * self)
 {
-    if (sqlite3_open (":memory:", &self->handle) != SQLITE_OK)
-    {
+    if (sqlite3_open (":memory:", &self->handle) != SQLITE_OK) {
         REPORT_SQL_ERROR (self, "ERROR: cannot open :memory: database. Dude, that's weird...");
         self->handle = NULL;
         return false;
     }
-    return true;
+
+    if (mc_stprv_create_song_table (self) == false)
+        return false;
+    else
+        return true;
 }
 
 ////////////////////////////////
@@ -296,6 +326,13 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
     bind_tag (db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
     bind_tag (db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_TRACKID, error_id);
 
+    /* Since we retrieve songs from the database,
+     * these attributes are unset in the mpd_song.
+     * -1 will indicate this.
+     */
+    bind_int (db, INSERT, pos_idx, -1, error_id);
+    bind_int (db, INSERT, pos_idx, -1, error_id);
+
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
         REPORT_SQL_ERROR (db, "WARNING: Error while binding");
@@ -320,7 +357,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
 /*
  * Search stuff in the 'songs' table using a SELECT clause (also using MATCH).
  * Instead of selecting the actual songs, only the docid is selected, and used as
- * an index to the song-stack, which is quite a bit faster/memory efficient for 
+ * an index to the song-stack, which is quite a bit faster/memory efficient for
  * large returns.
  *
  * It uses the buffer passed to the function to store the pointer to mpd songs it found.
@@ -336,28 +373,25 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song 
         pos_id = 1,
         buf_pos = 0;
 
-    /* 
+    /*
      * Sanitize buffer_len
      */
-    buffer_len = MAX(buffer_len, 0);
+    buffer_len = MAX (buffer_len, 0);
 
     /*
      * Duplicate this, in order to strip it.
      * We do not want to modify caller's stuff. He would hate us.
      */
-    gchar * match_clause_dup = g_strstrip (g_strdup (match_clause));
-    
+    gchar * match_clause_dup = g_strstrip (g_strdup (match_clause) );
+
     sqlite3_stmt * select_stmt = NULL;
 
     /*
      * If the query is empty anyway, we just select eveything
      */
-    if (match_clause_dup == NULL || *match_clause_dup == 0)
-    {
+    if (match_clause_dup == NULL || *match_clause_dup == 0) {
         select_stmt = SQL_STMT (self, SELECT_MATCHED_ALL);
-    }
-    else
-    {
+    } else {
         select_stmt = SQL_STMT (self, SELECT_MATCHED);
         bind_txt (self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
         bind_int (self, SELECT_MATCHED, pos_id, buffer_len, error_id);
@@ -366,8 +400,7 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song 
     }
 
     while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW &&
-            buf_pos < buffer_len)
-    {
+            buf_pos < buffer_len) {
         int song_idx = sqlite3_column_int (select_stmt, 0);
         song_buffer[buf_pos++] = mc_store_stack_at (self->stack, song_idx - 1);
     }
@@ -415,8 +448,7 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
     /* Open the database file identified by zFilename. Exit early if this fails
      ** for any reason. */
     rc = sqlite3_open (self->db_path, &pFile);
-    if (rc == SQLITE_OK)
-    {
+    if (rc == SQLITE_OK) {
 
         /* If this is a 'load' operation (isSave==0), then data is copied
          ** from the database file just opened to database pInMemory.
@@ -439,8 +471,7 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
          ** to pTo is set to SQLITE_OK.
          */
         pBackup = sqlite3_backup_init (pTo, "main", pFrom, "main");
-        if ( pBackup )
-        {
+        if ( pBackup ) {
             sqlite3_backup_step (pBackup, -1);
             sqlite3_backup_finish (pBackup);
         }
@@ -457,7 +488,7 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
 
 void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self)
 {
-    g_thread_new ("db-deserialize-thread", (GThreadFunc)mc_stprv_deserialize_songs, self);
+    g_thread_new ("db-deserialize-thread", (GThreadFunc) mc_stprv_deserialize_songs, self);
 }
 
 ////////////////////////////////
@@ -468,15 +499,15 @@ void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self)
         pair.name  = mpd_tag_name(tag_enum);                      \
         mpd_song_feed(song, &pair);                               \
     }                                                             \
-
+     
 /*
  * Selects all rows from the 'songs' table and compose a mpd_song structure from it.
- * It does this by emulating the MPD protocol, and using mpd_song_begin/feed to set 
+ * It does this by emulating the MPD protocol, and using mpd_song_begin/feed to set
  * the actual values. This could be speed up a lot if there would be setters for this.
  *
- * Anyway, in it's current state, it loads my total db from disk in 0.35 seconds, which should be 
+ * Anyway, in it's current state, it loads my total db from disk in 0.35 seconds, which should be
  * okay for a once-a-start operation, especially when done in background.
- * 
+ *
  * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
  */
 gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
@@ -503,13 +534,12 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
 
     /* progress */
     int progress_counter = 0;
-    
+
     self->db_is_locked = TRUE;
     g_rec_mutex_lock (&self->db_update_lock);
 
     /* loop over all rows in the songs table */
-    while ( (error_id = sqlite3_step (stmt) ) == SQLITE_ROW)
-    {
+    while ( (error_id = sqlite3_step (stmt) ) == SQLITE_ROW) {
         pair.name = "file";
         pair.value = (char *) sqlite3_column_text (stmt, SQL_COL_URI);
 
@@ -553,6 +583,14 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
         pair.value = val_buf;
         mpd_song_feed (song, &pair);
 
+        pair.name = "Pos";
+        char * pos_text = (char *) sqlite3_column_text (stmt, SQL_COL_QUEUE_POS);
+        if (pos_text != NULL)
+            mpd_song_set_pos (song, strtol (pos_text, NULL, 10) );
+
+        pair.name = "Id";
+        pair.value = (char *) sqlite3_column_text (stmt, SQL_COL_QUEUE_IDX);
+
         /* Now feed the tags */
         feed_tag (MPD_TAG_ARTIST, SQL_COL_ARTIST, stmt, song, pair);
         feed_tag (MPD_TAG_ALBUM, SQL_COL_ALBUM, stmt, song, pair);
@@ -573,16 +611,15 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
         mc_store_stack_append (self->stack, song);
 
         if (++progress_counter % 50 == 0) {
-            mc_shelper_report_progress(self->client, false, "database: deserializing songs from db ... [%d/%d]",
-                    progress_counter, mpd_stats_get_number_of_songs(self->client->stats));
+            mc_shelper_report_progress (self->client, false, "database: deserializing songs from db ... [%d/%d]",
+                                        progress_counter, mpd_stats_get_number_of_songs (self->client->stats) );
         }
     }
 
-    if (error_id != SQLITE_DONE)
-    {
-        REPORT_SQL_ERROR(self, "ERROR: cannot load songs from database");
+    if (error_id != SQLITE_DONE) {
+        REPORT_SQL_ERROR (self, "ERROR: cannot load songs from database");
     }
-    
+
     self->db_is_locked = FALSE;
     g_rec_mutex_unlock (&self->db_update_lock);
 
@@ -592,16 +629,16 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
 ////////////////////////////////
 
 #define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)  \
-{                                                                                           \
-    int error_id = SQLITE_OK;                                                               \
-    if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)                \
-        out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                     \
-    if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                                  \
-        REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                             \
-    out_var = (cast_type)copy_func((cast_type)out_var);                                     \
-    sqlite3_reset (SQL_STMT (self, meta_enum));                                             \
-}                                                                                           \
-
+    {                                                                                           \
+        int error_id = SQLITE_OK;                                                               \
+        if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)                \
+            out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                     \
+        if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                                  \
+            REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                             \
+        out_var = (cast_type)copy_func((cast_type)out_var);                                     \
+        sqlite3_reset (SQL_STMT (self, meta_enum));                                             \
+    }                                                                                           \
+     
 
 ////////////////////////////////
 
@@ -655,4 +692,26 @@ char * mc_stprv_get_mpd_host (mc_StoreDB * self)
     char * mpd_host = NULL;
     select_meta_attribute (self, SELECT_META_MPD_HOST, sqlite3_column_text, mpd_host, g_strdup, char *);
     return mpd_host;
+}
+
+/////////////////// QUEUE STUFF ////////////////////
+
+void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file)
+{
+    int pos_idx = 1, error_id = SQLITE_OK;
+    bind_int (self, QUEUE_UPDATE_ROW, pos_idx, pos, error_id);
+    bind_int (self, QUEUE_UPDATE_ROW, pos_idx, idx, error_id);
+    bind_txt (self, QUEUE_UPDATE_ROW, pos_idx, file, error_id);
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot prepare UPDATE statment.");
+        return;
+    }
+
+    if (sqlite3_step (SQL_STMT (self, QUEUE_UPDATE_ROW) ) != SQLITE_DONE)
+        REPORT_SQL_ERROR (self, "Unable to UPDATE song in playlist.");
+
+    /* Make sure bindings are ready for the next insert */
+    sqlite3_reset (SQL_STMT (self, QUEUE_UPDATE_ROW) );
+    sqlite3_clear_bindings (SQL_STMT (self, QUEUE_UPDATE_ROW) );
 }

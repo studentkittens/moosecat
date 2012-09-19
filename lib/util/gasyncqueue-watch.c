@@ -18,8 +18,7 @@
 /**
  * @brief: GSource for watching a GAsyncQueue in the main loop
  */
-typedef struct
-{
+typedef struct {
     GSource source;
     GAsyncQueue *queue;
     gint iteration_timeout;
@@ -36,25 +35,27 @@ static gint mc_async_queue_watch_calc_next_timeout (
     guint min,
     guint max)
 {
+    guint result = 0;
     /* Eq. Solved for:
      *
      * A = (0, max)
      * B = (1, min)
      * C = (5, (max + min) / 2)
+     *
+     * f(x) = A*x*x + B*x + C
      */
 
-    if (x < 4.0)
-    {
+    if (x < 4.0) {
         gdouble a = (-9. * min + 9.  * max) / 40.;
         gdouble b = (49. * min - 49. * max) / 40.;
         gdouble c = max;
 
-        return (prev_timeout + 2 * (a * (x * x) + b * x + c) ) / 3.;
+        result = (prev_timeout + 2 * (a * (x * x) + b * x + c) ) / 3.;
+    } else {
+        result = 30;
     }
-    else
-    {
-        return 30;
-    }
+
+    return CLAMP (result, min, max);
 }
 
 //////////////////////
@@ -106,8 +107,7 @@ static void mc_async_queue_watch_finalize (GSource *source)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
 
-    if (watch->queue != NULL)
-    {
+    if (watch->queue != NULL) {
         g_async_queue_unref (watch->queue);
         g_timer_destroy (watch->iteration_timer);
         watch->queue = NULL;
@@ -116,8 +116,7 @@ static void mc_async_queue_watch_finalize (GSource *source)
 
 //////////////////////
 
-static GSourceFuncs mc_async_queue_watch_funcs =
-{
+static GSourceFuncs mc_async_queue_watch_funcs = {
     mc_async_queue_watch_prepare,
     mc_async_queue_watch_check,
     mc_async_queue_watch_dispatch,

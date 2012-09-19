@@ -9,16 +9,14 @@
  * It apparently is, but redrawing takes much longer than searching.
  */
 
-enum
-{
+enum {
     COLUMN_ARTIST = 0,
     COLUMN_ALBUM,
     COLUMN_TITLE,
     NUM_COLUMNS
 };
 
-typedef struct
-{
+typedef struct {
     mc_Client * client;
     mc_StoreDB * store;
     GtkTreeModel * model;
@@ -56,8 +54,7 @@ static void on_entry_text_changed (GtkEditable * editable, gpointer user_data)
 
     g_timer_start (tag->profile_timer);
     gtk_list_store_clear (list_store);
-    for (int i = 0; i < found; i++)
-    {
+    for (int i = 0; i < found; i++) {
         gtk_list_store_append (list_store, &iter);
         gtk_list_store_set (list_store, &iter,
                             COLUMN_ARTIST, mpd_song_get_tag (tag->song_buf[i], MPD_TAG_ARTIST, 0),
@@ -90,16 +87,14 @@ static EntryTag * setup_client (void)
     mc_Client * client = mc_proto_create (MC_PM_COMMAND);
     mc_proto_connect (client, NULL, "localhost", 6600, 2.0);
 
-    if (client && mc_proto_is_connected (client) )
-    {
+    if (client && mc_proto_is_connected (client) ) {
         client_setup = g_timer_elapsed (setup_timer, NULL);
 
         g_timer_start (setup_timer);
         mc_StoreDB * store = mc_store_create (client, NULL, NULL);
         db_setup = g_timer_elapsed (setup_timer, NULL);
 
-        if (store != NULL)
-        {
+        if (store != NULL) {
             rc = g_new0 (EntryTag, 1);
             rc->client = client;
             rc->store = store;
@@ -140,16 +135,14 @@ static void build_gui (EntryTag * tag)
     gtk_scrolled_window_set_policy  (GTK_SCROLLED_WINDOW (scw), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
     gtk_tree_view_set_fixed_height_mode (treeview, true);
 
-    static const char * column_desc[] =
-    {
+    static const char * column_desc[] = {
         "Artist",
         "Album",
         "Title"
     };
 
     /* columns */
-    for (gsize i = 0; i < sizeof (column_desc) / sizeof (char *); i++)
-    {
+    for (gsize i = 0; i < sizeof (column_desc) / sizeof (char *); i++) {
         renderer = gtk_cell_renderer_text_new ();
         gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer),1);
         column = gtk_tree_view_column_new_with_attributes (column_desc[i], renderer, "text", i, NULL);

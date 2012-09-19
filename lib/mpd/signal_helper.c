@@ -13,25 +13,19 @@
 
 bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
 {
-    if (self == NULL || cconn == NULL)
-    {
-        if (self != NULL)
-        {
+    if (self == NULL || cconn == NULL) {
+        if (self != NULL) {
             mc_proto_signal_dispatch (self, "error", self, MPD_ERROR_CLOSED, "Not connected", true);
         }
         return true;
     }
 
     enum mpd_error error = mpd_connection_get_error (cconn);
-    if (error != MPD_ERROR_SUCCESS)
-    {
+    if (error != MPD_ERROR_SUCCESS) {
         /* Prefer utf-8 encoded error message */
-        if (MPD_ERROR_SYSTEM == error)
-        {
+        if (MPD_ERROR_SYSTEM == error) {
             copy_error_message (self->error_buffer, g_strerror (mpd_connection_get_system_error (cconn) ) );
-        }
-        else
-        {
+        } else {
             copy_error_message (self->error_buffer, mpd_connection_get_error_message (cconn) )
         }
 
@@ -52,15 +46,14 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
 
 ///////////////////////////////
 
-void mc_shelper_report_error_printf(
-        struct mc_Client * self, 
-        const char * format, ...)
+void mc_shelper_report_error_printf (
+    struct mc_Client * self,
+    const char * format, ...)
 {
     char * full_string = NULL;
     va_list list_ptr;
     va_start (list_ptr, format);
-    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string)
-    {
+    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string) {
         mc_proto_signal_dispatch (self, "error", self, -1, full_string, false);
     }
     va_end (list_ptr);
@@ -69,15 +62,14 @@ void mc_shelper_report_error_printf(
 ///////////////////////////////
 
 void mc_shelper_report_progress (
-       struct mc_Client * self,
-       bool print_newline,
-       const char * format, ...)
+    struct mc_Client * self,
+    bool print_newline,
+    const char * format, ...)
 {
     char * full_string = NULL;
     va_list list_ptr;
     va_start (list_ptr, format);
-    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string)
-    {
+    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string) {
         mc_proto_signal_dispatch (self, "progress", self, print_newline, full_string);
         g_free (full_string);
     }

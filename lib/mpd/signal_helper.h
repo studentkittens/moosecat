@@ -37,9 +37,9 @@ bool mc_shelper_report_error (
  * @param format printf format
  * @param ... varargs
  */
-void mc_shelper_report_error_printf(
-        struct mc_Client * self, 
-        const char * format, ...);
+void mc_shelper_report_error_printf (
+    struct mc_Client * self,
+    const char * format, ...);
 
 /**
  * @brief Dispatch the progress signal

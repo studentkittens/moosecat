@@ -26,13 +26,11 @@ static void mc_print_backtrace (void)
     bt_size = backtrace (bt_array, bt_length);
     calls = backtrace_symbols (bt_array, bt_size);
 
-    if (calls != NULL)
-    {
+    if (calls != NULL) {
         g_print ("\nLast %02d function calls shown:\n", bt_length);
         g_print ("=============================\n\n");
 
-        for (int i = 0; i < bt_size; i++)
-        {
+        for (int i = 0; i < bt_size; i++) {
             g_print (" [%02d] %s\n", i + 1, calls[i]);
         }
 
@@ -46,8 +44,7 @@ static void mc_print_backtrace (void)
 
 static void mc_signal_handler (int signal)
 {
-    switch (signal)
-    {
+    switch (signal) {
     case SIGFPE:
     case SIGABRT:
     case SIGSEGV:
@@ -56,7 +53,7 @@ static void mc_signal_handler (int signal)
         g_print (bug_report);
         g_free (bug_report);
         mc_print_backtrace();
-        g_print("Most recent call first. I'm going to die now. Please debug me.\n\n");
+        g_print ("Most recent call first. I'm going to die now. Please debug me.\n\n");
         break;
     }
 }

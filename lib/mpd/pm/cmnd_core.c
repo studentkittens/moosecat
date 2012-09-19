@@ -17,8 +17,7 @@
 // Private Interface //
 ///////////////////////
 
-typedef struct
-{
+typedef struct {
     /* Parent struct */
     mc_Client logic;
 
@@ -74,10 +73,8 @@ static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
     mc_CmndClient * self = child (data);
     enum mpd_idle events = 0;
 
-    while (self->run_listener)
-    {
-        if ( (events = mpd_run_idle (self->idle_con) ) == 0)
-        {
+    while (self->run_listener) {
+        if ( (events = mpd_run_idle (self->idle_con) ) == 0) {
             mc_shelper_report_error ( (mc_Client *) self, self->idle_con);
             break;
         }
@@ -96,8 +93,7 @@ static void cmnder_create_glib_adapter (
     mc_CmndClient * self,
     GMainContext * context)
 {
-    if (self->watch_source_id == -1)
-    {
+    if (self->watch_source_id == -1) {
         /* Start the listener thread and set the Queue Watcher on it */
         self->listener_thread = g_thread_new ("listener", cmnder_listener_thread, self);
         self->watch_source_id = mc_async_queue_watch_new (
@@ -125,8 +121,7 @@ static void cmnder_shutdown_listener (mc_CmndClient * self)
 
     mpd_run_crossfade (self->cmnd_con, 0);
 
-    if (self->watch_source_id != -1)
-    {
+    if (self->watch_source_id != -1) {
         g_source_remove (self->watch_source_id);
         g_thread_join (self->listener_thread);
     }
@@ -139,24 +134,20 @@ static void cmnder_shutdown_listener (mc_CmndClient * self)
 
 static void cmnder_reset (mc_CmndClient * self)
 {
-    if (self != NULL)
-    {
+    if (self != NULL) {
         cmnder_shutdown_listener (self);
 
-        if (self->idle_con)
-        {
+        if (self->idle_con) {
             mpd_connection_free (self->idle_con);
             self->idle_con = NULL;
         }
 
-        if (self->event_queue)
-        {
+        if (self->event_queue) {
             g_async_queue_unref (self->event_queue);
             self->event_queue = NULL;
         }
 
-        if (self->cmnd_con)
-        {
+        if (self->cmnd_con) {
             mpd_connection_free (self->cmnd_con);
             self->cmnd_con = NULL;
         }

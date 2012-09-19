@@ -3,8 +3,7 @@
 
 #include <glib.h>
 
-typedef struct
-{
+typedef struct {
     GPtrArray * stack;
     GDestroyNotify free_func;
 } mc_StoreStack;

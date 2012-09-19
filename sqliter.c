@@ -35,8 +35,7 @@ int loadOrSaveDb (sqlite3 *pInMemory, const char *zFilename, int isSave)
     /* Open the database file identified by zFilename. Exit early if this fails
     ** for any reason. */
     rc = sqlite3_open (zFilename, &pFile);
-    if ( rc==SQLITE_OK )
-    {
+    if ( rc==SQLITE_OK ) {
 
         /* If this is a 'load' operation (isSave==0), then data is copied
         ** from the database file just opened to database pInMemory.
@@ -59,8 +58,7 @@ int loadOrSaveDb (sqlite3 *pInMemory, const char *zFilename, int isSave)
         ** to pTo is set to SQLITE_OK.
         */
         pBackup = sqlite3_backup_init (pTo, "main", pFrom, "main");
-        if ( pBackup )
-        {
+        if ( pBackup ) {
             sqlite3_backup_step (pBackup, -1);
             sqlite3_backup_finish (pBackup);
         }
@@ -75,23 +73,20 @@ int loadOrSaveDb (sqlite3 *pInMemory, const char *zFilename, int isSave)
 
 ////////////////////////////////
 
-typedef struct
-{
+typedef struct {
     sqlite3 * db;
     sqlite3_stmt * insert_stmt;
 } mc_StoreDB;
 
 ////////////////////////////////
 
-enum
-{
+enum {
     SQL_CREATE,
     SQL_INSERT,
     SQL_SELECT
 };
 
-static const char * sql_stmts[] =
-{
+static const char * sql_stmts[] = {
     [SQL_CREATE] =
     "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.    \n"
     "CREATE VIRTUAL TABLE IF NOT EXISTS songs using fts4(                                           \n"
@@ -141,8 +136,7 @@ static const char * sql_stmts[] =
 static void open_connection (sqlite3 ** memDB)
 {
     int rc = sqlite3_open (":memory:", memDB);
-    if (rc != SQLITE_OK)
-    {
+    if (rc != SQLITE_OK) {
         printf ("Cannot open db: %s\n", sqlite3_errmsg (*memDB) );
         *memDB = NULL;
     }
@@ -185,8 +179,7 @@ bool insert_song (mc_StoreDB * db, struct mpd_song * song)
     sqlite3_reset (db->insert_stmt);
     sqlite3_clear_bindings (db->insert_stmt);
 
-    if (err != SQLITE_DONE)
-    {
+    if (err != SQLITE_DONE) {
         g_print ("Cannot INSERT: %s\n", sqlite3_errmsg (db->db) );
         return false;
     }
@@ -202,8 +195,7 @@ mc_StoreDB * create_store (void)
     /* Make initial connection */
     store->db = NULL;
     open_connection (&store->db);
-    if (store->db == NULL)
-    {
+    if (store->db == NULL) {
         g_free (store);
         return NULL;
     }
@@ -219,8 +211,7 @@ mc_StoreDB * create_store (void)
                        &store->insert_stmt,
                        NULL);
 
-    if (prep_err != SQLITE_OK)
-    {
+    if (prep_err != SQLITE_OK) {
         g_print ("cannot prepare statement: %s\n",
                  sqlite3_errmsg (store->db) );
     }
@@ -235,11 +226,9 @@ int main (int argc, char const *argv[])
 {
     mc_StoreDB * store = create_store();
 
-    if (store != NULL)
-    {
+    if (store != NULL) {
         struct mpd_connection * con = mpd_connection_new ("localhost", 6600, 30 * 1000);
-        if (con != NULL)
-        {
+        if (con != NULL) {
             mpd_send_list_all_meta (con, "/");
             struct mpd_entity * ent = NULL;
             const struct mpd_song * song = NULL;
@@ -251,10 +240,8 @@ int main (int argc, char const *argv[])
             g_timer_start (db_timer);
             sqlite3_exec (store->db, "BEGIN;", NULL, NULL, NULL);
 
-            while ( (ent = mpd_recv_entity (con) ) != NULL)
-            {
-                if (mpd_entity_get_type (ent) == MPD_ENTITY_TYPE_SONG)
-                {
+            while ( (ent = mpd_recv_entity (con) ) != NULL) {
+                if (mpd_entity_get_type (ent) == MPD_ENTITY_TYPE_SONG) {
                     song = mpd_entity_get_song (ent);
                     insert_song (store, (struct mpd_song *) song);
                 }
@@ -264,8 +251,7 @@ int main (int argc, char const *argv[])
             sqlite3_exec (store->db, "COMMIT;", NULL, NULL, NULL);
 
             enum mpd_error err = 0;
-            if ( (err = mpd_connection_get_error (con) ) != MPD_ERROR_SUCCESS)
-            {
+            if ( (err = mpd_connection_get_error (con) ) != MPD_ERROR_SUCCESS) {
                 g_print ("%d: %s\n", err, mpd_connection_get_error_message (con) );
                 mpd_connection_clear_error (con);
             }
@@ -276,8 +262,7 @@ int main (int argc, char const *argv[])
 #if 0
             GTimer * timer = g_timer_new();
             g_timer_start (timer);
-            for (int i = 0; i < 1000; i++)
-            {
+            for (int i = 0; i < 1000; i++) {
                 (void) err;
             }
             g_timer_stop (timer);
@@ -290,14 +275,12 @@ int main (int argc, char const *argv[])
             g_print ("Took %2f seconds to select.\n", g_timer_elapsed (timer, NULL) );
 
             g_timer_start (timer);
-            for (int i = 0; i < 1000; i++)
-            {
+            for (int i = 0; i < 1000; i++) {
                 struct mpd_song * song = NULL;
                 mpd_search_db_songs (con, false);
                 mpd_search_add_tag_constraint (con, MPD_OPERATOR_DEFAULT, MPD_TAG_ARTIST, "Smile");
                 mpd_search_commit (con);
-                while ( (song = mpd_recv_song (con) ) != NULL)
-                {
+                while ( (song = mpd_recv_song (con) ) != NULL) {
                     mpd_song_free (song);
                 }
             }

@@ -10,8 +10,7 @@ struct mc_Client;
 
 ///////////////////////////////
 
-typedef enum
-{
+typedef enum {
     MC_SIGNAL_CLIENT_EVENT = 0,
     MC_SIGNAL_ERROR,
     MC_SIGNAL_CONNECTIVITY,
@@ -21,8 +20,7 @@ typedef enum
     MC_SIGNAL_UNKNOWN
 } mc_SignalType;
 
-typedef struct
-{
+typedef struct {
     GList * signals[MC_SIGNAL_VALID_COUNT];
 } mc_SignalList;
 

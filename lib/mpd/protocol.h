@@ -20,8 +20,7 @@ typedef struct mpd_song mpd_song;
 typedef struct mpd_status mpd_status;
 typedef struct mpd_stats mpd_stats;
 
-typedef enum
-{
+typedef enum {
     MC_PM_IDLE = 0,
     MC_PM_COMMAND
 } mc_PmType;
@@ -42,8 +41,7 @@ typedef enum
  *
  *        Read their respective docs.
  */
-typedef struct mc_Client
-{
+typedef struct mc_Client {
     /*
      * Called on connect, initialize the connector.
      * May not be NULL.

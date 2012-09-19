@@ -13,8 +13,7 @@
 // Private Interface //
 ///////////////////////
 
-typedef struct
-{
+typedef struct {
     mc_Client logic;
 
     mpd_connection * con;
@@ -51,8 +50,7 @@ static void idler_do_put (mc_Client * self)
 
 static void idler_free (mc_IdleClient * ctor)
 {
-    if (ctor != NULL)
-    {
+    if (ctor != NULL) {
         memset (ctor, 0, sizeof (mc_IdleClient) );
         g_free (ctor);
     }

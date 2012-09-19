@@ -226,8 +226,7 @@ fct_switch_std_to_buffer (int std_pipe[2], FILE *out, int fileno_, int *save_han
 {
     fflush (out);
     *save_handle = _fct_dup (fileno_);
-    if ( _fct_pipe (std_pipe) != 0 )
-    {
+    if ( _fct_pipe (std_pipe) != 0 ) {
         exit (1);
     }
     _fct_dup2 (std_pipe[1], fileno_);
@@ -326,14 +325,12 @@ fctstr_clone_lower (char const *s)
     char *k =NULL;
     size_t klen =0;
     size_t i;
-    if ( s == NULL )
-    {
+    if ( s == NULL ) {
         return NULL;
     }
     klen = strlen (s) +1;
     k = (char*) malloc (sizeof (char) *klen+1);
-    for ( i=0; i != klen; ++i )
-    {
+    for ( i=0; i != klen; ++i ) {
         k[i] = (char) tolower (s[i]);
     }
     return k;
@@ -355,20 +352,17 @@ fct_filter_pass (char const *prefix, char const *test_str)
     FCT_ASSERT ( test_str != NULL );
 
     /* When the prefix is NULL or blank, we always return FCT_TRUE. */
-    if ( prefix == NULL  || prefix[0] == '\0' )
-    {
+    if ( prefix == NULL  || prefix[0] == '\0' ) {
         return FCT_TRUE;
     }
 
     /* Iterate through both character arrays at the same time. We are
     going to play a game and see if we can beat the house. */
     for ( prefix_p = prefix, test_str_p = test_str;
-            *prefix_p != '\0' && *test_str_p != '\0';
-            ++prefix_p, ++test_str_p )
-    {
+          *prefix_p != '\0' && *test_str_p != '\0';
+          ++prefix_p, ++test_str_p ) {
         is_match = *prefix_p == *test_str_p;
-        if ( !is_match )
-        {
+        if ( !is_match ) {
             break;   /* Quit the first time we don't match. */
         }
     }
@@ -377,8 +371,7 @@ fct_filter_pass (char const *prefix, char const *test_str)
     the iterator for the prefix string is not, then the prefix string is
     larger than the actual test string, and therefore we failed to pass the
     filter. */
-    if ( *test_str_p == '\0' && *prefix_p != '\0' )
-    {
+    if ( *test_str_p == '\0' && *prefix_p != '\0' ) {
         return FCT_FALSE;
     }
 
@@ -395,17 +388,14 @@ http://publications.gbdirect.co.uk/c_book/chapter5/character_handling.html
 static int
 fctstr_eq (char const *s1, char const *s2)
 {
-    if ( s1 == s2 )
-    {
+    if ( s1 == s2 ) {
         return 1;
     }
     if ( (s1 == NULL && s2 != NULL)
-            || (s1 != NULL && s2 == NULL) )
-    {
+         || (s1 != NULL && s2 == NULL) ) {
         return 0;
     }
-    while (*s1 == *s2)
-    {
+    while (*s1 == *s2) {
         if (*s1 == '\0')
             return 1;
         s1++;
@@ -419,17 +409,14 @@ fctstr_eq (char const *s1, char const *s2)
 static int
 fctstr_ieq (char const *s1, char const *s2)
 {
-    if ( s1 == s2 )
-    {
+    if ( s1 == s2 ) {
         return 1;
     }
     if ( (s1 == NULL && s2 != NULL)
-            || (s1 != NULL && s2 == NULL) )
-    {
+         || (s1 != NULL && s2 == NULL) ) {
         return 0;
     }
-    while (tolower (*s1) == tolower (*s2) )
-    {
+    while (tolower (*s1) == tolower (*s2) ) {
         if (*s1 == '\0')
             return 1;
         s1++;
@@ -449,16 +436,13 @@ fctstr_incl (char const *str, char const *check_incl)
 {
     static char const *blank_s = "";
     char const *found = NULL;
-    if ( str == NULL )
-    {
+    if ( str == NULL ) {
         str = blank_s;
     }
-    if ( check_incl == NULL )
-    {
+    if ( check_incl == NULL ) {
         check_incl = blank_s;
     }
-    if ( str == check_incl )
-    {
+    if ( str == check_incl ) {
         return 1;
     }
     found = strstr (str, check_incl);
@@ -488,13 +472,10 @@ static int
 fctstr_startswith (char const *str, char const *check)
 {
     char const *sp;
-    if ( str == NULL && check == NULL )
-    {
+    if ( str == NULL && check == NULL ) {
         return 1;
-    }
-    else if ( ( (str == NULL) && (check != NULL) )
-              || ( (str != NULL) && (check == NULL) ) )
-    {
+    } else if ( ( (str == NULL) && (check != NULL) )
+                || ( (str != NULL) && (check == NULL) ) ) {
         return 0;
     }
     sp = strstr (str, check);
@@ -525,25 +506,19 @@ fctstr_endswith (char const *str, char const *check)
 {
     size_t check_i;
     size_t str_i;
-    if ( str == NULL && check == NULL )
-    {
+    if ( str == NULL && check == NULL ) {
         return 1;
-    }
-    else if ( ( (str == NULL) && (check != NULL) )
-              || ( (str != NULL) && (check == NULL) ) )
-    {
+    } else if ( ( (str == NULL) && (check != NULL) )
+                || ( (str != NULL) && (check == NULL) ) ) {
         return 0;
     }
     check_i = strlen (check);
     str_i = strlen (str);
-    if ( str_i < check_i )
-    {
+    if ( str_i < check_i ) {
         return 0;   /* Can't do it string is too small. */
     }
-    for ( ; check_i != 0; --check_i, --str_i)
-    {
-        if ( str[str_i] != check[check_i] )
-        {
+    for ( ; check_i != 0; --check_i, --str_i) {
+        if ( str[str_i] != check[check_i] ) {
             return 0; /* Found a case where they are not equal. */
         }
     }
@@ -557,25 +532,19 @@ fctstr_iendswith (char const *str, char const *check)
 {
     size_t check_i;
     size_t str_i;
-    if ( str == NULL && check == NULL )
-    {
+    if ( str == NULL && check == NULL ) {
         return 1;
-    }
-    else if ( ( (str == NULL) && (check != NULL) )
-              || ( (str != NULL) && (check == NULL) ) )
-    {
+    } else if ( ( (str == NULL) && (check != NULL) )
+                || ( (str != NULL) && (check == NULL) ) ) {
         return 0;
     }
     check_i = strlen (check);
     str_i = strlen (str);
-    if ( str_i < check_i )
-    {
+    if ( str_i < check_i ) {
         return 0;   /* Can't do it string is too small. */
     }
-    for ( ; check_i != 0; --check_i, --str_i)
-    {
-        if ( tolower (str[str_i]) != tolower (check[check_i]) )
-        {
+    for ( ; check_i != 0; --check_i, --str_i) {
+        if ( tolower (str[str_i]) != tolower (check[check_i]) ) {
             return 0; /* Found a case where they are not equal. */
         }
     }
@@ -602,8 +571,7 @@ fct_dotted_line_start (size_t maxwidth, char const *startwith)
     len = strlen (startwith);
     line_len = FCTMIN (maxwidth-1, len);
     memcpy (line, startwith, sizeof (char) *line_len);
-    if ( len < maxwidth-1)
-    {
+    if ( len < maxwidth-1) {
         line[len] = ' ';
     }
     line[maxwidth-1] = '\0';
@@ -629,8 +597,7 @@ implementation from the rest of the code.
 */
 
 typedef struct _fct_timer_t fct_timer_t;
-struct _fct_timer_t
-{
+struct _fct_timer_t {
     clock_t start;
     clock_t stop;
     double duration;
@@ -709,8 +676,7 @@ to do something like,
 the STL vector, where the array grows as more items are
 appended. */
 typedef struct _fct_nlist_t fct_nlist_t;
-struct _fct_nlist_t
-{
+struct _fct_nlist_t {
     /* Item's are stored as pointers to void. */
     void **itm_list;
 
@@ -731,10 +697,8 @@ fct_nlist__clear (fct_nlist_t *list, fct_nlist_on_del_t on_del)
 {
     size_t itm_i__ =0;
     FCT_ASSERT ( list != NULL );
-    if ( on_del != NULL )
-    {
-        for ( itm_i__=0; itm_i__ != list->used_itm_num; ++itm_i__ )
-        {
+    if ( on_del != NULL ) {
+        for ( itm_i__=0; itm_i__ != list->used_itm_num; ++itm_i__ ) {
             on_del (list->itm_list[itm_i__]);
         }
     }
@@ -757,15 +721,11 @@ static int
 fct_nlist__init2 (fct_nlist_t *list, size_t start_sz)
 {
     FCT_ASSERT ( list != NULL );
-    if ( start_sz == 0 )
-    {
+    if ( start_sz == 0 ) {
         list->itm_list = NULL;
-    }
-    else
-    {
+    } else {
         list->itm_list = (void**) malloc (sizeof (void*) *start_sz);
-        if ( list->itm_list == NULL )
-        {
+        if ( list->itm_list == NULL ) {
             return 0;
         }
     }
@@ -812,8 +772,7 @@ fct_nlist__append (fct_nlist_t *list, void *itm)
     available space, in this case we need to grow a little more. If this
     list started as size 0, then we should encounter the same effect as
     "running out of room." */
-    if ( list->used_itm_num == list->avail_itm_num )
-    {
+    if ( list->used_itm_num == list->avail_itm_num ) {
         /* Use multiple and add, since the avail_itm_num could be 0. */
         list->avail_itm_num = list->avail_itm_num*FCT_LIST_GROWTH_FACTOR+\
                               FCT_LIST_GROWTH_FACTOR;
@@ -838,8 +797,7 @@ and where it occurred. A "Test" object will have-a bunch
 of "checks".
 */
 
-struct _fctchk_t
-{
+struct _fctchk_t {
     /* This string that represents the condition. */
     char cndtn[FCT_MAX_LOG_LINE];
 
@@ -877,8 +835,7 @@ fctchk_new (int is_pass,
     FCT_ASSERT ( lineno > 0 );
 
     chk = (fctchk_t*) calloc (1, sizeof (fctchk_t) );
-    if ( chk == NULL )
-    {
+    if ( chk == NULL ) {
         return NULL;
     }
 
@@ -888,12 +845,9 @@ fctchk_new (int is_pass,
 
     chk->is_pass =is_pass;
 
-    if ( format != NULL )
-    {
+    if ( format != NULL ) {
         fct_vsnprintf (chk->msg, FCT_MAX_LOG_LINE, format, args);
-    }
-    else
-    {
+    } else {
         /* Default to make the condition be the message, if there was no format
         specified. */
         fctstr_safe_cpy (chk->msg, cndtn, FCT_MAX_LOG_LINE);
@@ -908,8 +862,7 @@ nothing. */
 static void
 fctchk__del (fctchk_t *chk)
 {
-    if ( chk == NULL )
-    {
+    if ( chk == NULL ) {
         return;
     }
     free ( chk );
@@ -924,8 +877,7 @@ A suite will have-a list of tests. Where each test will have-a
 list of failed and passed checks.
 */
 
-struct _fct_test_t
-{
+struct _fct_test_t {
     /* List of failed and passed "checks" (fctchk_t). Two seperate
     lists make it faster to determine how many checks passed and how
     many checks failed. */
@@ -949,8 +901,7 @@ struct _fct_test_t
 static void
 fct_test__del (fct_test_t *test)
 {
-    if (test == NULL )
-    {
+    if (test == NULL ) {
         return;
     }
     fct_nlist__final (& (test->passed_chks), (fct_nlist_on_del_t) fctchk__del);
@@ -966,8 +917,7 @@ fct_test_new (char const *name)
     fct_test_t *test =NULL;
 
     test = (fct_test_t*) malloc (sizeof (fct_test_t) );
-    if ( test == NULL )
-    {
+    if ( test == NULL ) {
         return NULL;
     }
 
@@ -976,8 +926,7 @@ fct_test_new (char const *name)
     /* Failures are an exception, so lets not allocate up
     the list until we need to. */
     fct_nlist__init2 (& (test->failed_chks), 0);
-    if (!fct_nlist__init (& (test->passed_chks) ) )
-    {
+    if (!fct_nlist__init (& (test->passed_chks) ) ) {
         ok =FCT_FALSE;
         goto finally;
     }
@@ -986,8 +935,7 @@ fct_test_new (char const *name)
 
     ok =FCT_TRUE;
 finally:
-    if ( !ok )
-    {
+    if ( !ok ) {
         fct_test__del (test);
         test =NULL;
     }
@@ -1034,12 +982,9 @@ fct_test__add (fct_test_t *test, fctchk_t *chk)
     FCT_ASSERT ( test != NULL );
     FCT_ASSERT ( chk != NULL );
 
-    if ( fctchk__is_pass (chk) )
-    {
+    if ( fctchk__is_pass (chk) ) {
         fct_nlist__append (& (test->passed_chks), (void*) chk);
-    }
-    else
-    {
+    } else {
         fct_nlist__append (& (test->failed_chks), (void*) chk);
     }
 }
@@ -1080,8 +1025,7 @@ start      |                              [if no more tests] |
                    +----------->---[if fct_req fails]--------+
 
 */
-enum ts_mode
-{
+enum ts_mode {
     ts_mode_cnt,         /* To setup when done counting. */
     ts_mode_setup,       /* To test when done setup. */
     ts_mode_teardown,    /* To ending mode, when no more tests. */
@@ -1092,15 +1036,13 @@ enum ts_mode
 };
 
 /* Types of states the test could be in. */
-typedef enum
-{
+typedef enum {
     fct_test_status_SUCCESS,
     fct_test_status_FAILURE
 } fct_test_status;
 
 
-struct _fct_ts_t
-{
+struct _fct_ts_t {
     /* For counting our 'current' test number, and the total number of
     tests. */
     int  curr_test_num;
@@ -1139,8 +1081,7 @@ there was nothing more to do. */
 static void
 fct_ts__del (fct_ts_t *ts)
 {
-    if ( ts == NULL )
-    {
+    if ( ts == NULL ) {
         return;
     }
     fct_nlist__final (& (ts->test_list), (fct_nlist_on_del_t) fct_test__del);
@@ -1217,8 +1158,7 @@ setup mode. You must be already in setup mode for this to work! */
 static void
 fct_ts__setup_end (fct_ts_t *ts)
 {
-    if ( ts->mode != ts_mode_abort )
-    {
+    if ( ts->mode != ts_mode_abort ) {
         ts->mode = ts_mode_test;
     }
 }
@@ -1246,19 +1186,15 @@ into setup mode (for the next 'iteration'). */
 static void
 fct_ts__teardown_end (fct_ts_t *ts)
 {
-    if ( ts->mode == ts_mode_abort )
-    {
+    if ( ts->mode == ts_mode_abort ) {
         return; /* Because we are aborting . */
     }
     /* We have to decide if we should keep on testing by moving into tear down
     mode or if we have reached the real end and should be moving into the
     ending mode. */
-    if ( fct_ts__is_more_tests (ts) )
-    {
+    if ( fct_ts__is_more_tests (ts) ) {
         ts->mode = ts_mode_setup;
-    }
-    else
-    {
+    } else {
         ts->mode = ts_mode_ending;
     }
 }
@@ -1274,12 +1210,9 @@ fct_ts__cnt_end (fct_ts_t *ts)
     FCT_ASSERT ( ts != NULL );
     FCT_ASSERT ( fct_ts__is_cnt_mode (ts) );
     FCT_ASSERT ( !fct_ts__is_end (ts) );
-    if (ts->total_test_num == 0  )
-    {
+    if (ts->total_test_num == 0  ) {
         ts->mode = ts_mode_ending;
-    }
-    else
-    {
+    } else {
         ts->mode = ts_mode_setup;
     }
 }
@@ -1322,10 +1255,8 @@ fct_ts__tst_cnt_passed (fct_ts_t const *ts)
     FCT_ASSERT ( ts != NULL );
     FCT_ASSERT ( fct_ts__is_end (ts) );
 
-    FCT_NLIST_FOREACH_BGN (fct_test_t*, test, & (ts->test_list) )
-    {
-        if ( fct_test__is_pass (test) )
-        {
+    FCT_NLIST_FOREACH_BGN (fct_test_t*, test, & (ts->test_list) ) {
+        if ( fct_test__is_pass (test) ) {
             tally += 1;
         }
     }
@@ -1342,8 +1273,7 @@ fct_ts__chk_cnt (fct_ts_t const *ts)
 
     FCT_ASSERT ( ts != NULL );
 
-    FCT_NLIST_FOREACH_BGN (fct_test_t *, test, & (ts->test_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_test_t *, test, & (ts->test_list) ) {
         tally += fct_test__chk_cnt (test);
     }
     FCT_NLIST_FOREACH_END();
@@ -1356,8 +1286,7 @@ fct_ts__duration (fct_ts_t const *ts)
 {
     double tally =0.0;
     FCT_ASSERT ( ts != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_test_t *, test, & (ts->test_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_test_t *, test, & (ts->test_list) ) {
         tally += fct_test__duration (test);
     }
     FCT_NLIST_FOREACH_END();
@@ -1375,16 +1304,14 @@ not delete the char*'s present on this structure.
 */
 
 
-typedef enum
-{
+typedef enum {
     FCTCL_STORE_UNDEFINED,
     FCTCL_STORE_TRUE,
     FCTCL_STORE_VALUE
 } fctcl_store_t;
 
 
-typedef struct _fctcl_init_t
-{
+typedef struct _fctcl_init_t {
     /* What to parse for this option. --long versus -s. */
     char const *long_opt;     /* i.e. --help */
     char const *short_opt;    /* i.e. -h */
@@ -1418,8 +1345,7 @@ worry about dealing with memory. */
 #define FCTCL_TRUE_STR "1"
 
 
-typedef struct _fctcl_t
-{
+typedef struct _fctcl_t {
     /* What to parse for this option. --long versus -s. */
     char *long_opt;     /* i.e. --help */
     char *short_opt;    /* i.e. -h */
@@ -1441,24 +1367,19 @@ typedef struct _fctcl_t
 static void
 fctcl__del (fctcl_t *clo)
 {
-    if ( clo == NULL )
-    {
+    if ( clo == NULL ) {
         return;
     }
-    if ( clo->long_opt )
-    {
+    if ( clo->long_opt ) {
         free (clo->long_opt);
     }
-    if ( clo->short_opt)
-    {
+    if ( clo->short_opt) {
         free (clo->short_opt);
     }
-    if ( clo->value )
-    {
+    if ( clo->value ) {
         free (clo->value);
     }
-    if ( clo->help )
-    {
+    if ( clo->help ) {
         free (clo->help);
     }
     free (clo);
@@ -1471,54 +1392,40 @@ fctcl_new2 (fctcl_init_t const *clo_init)
     fctcl_t *clone = NULL;
     int ok =0;
     clone = fctcl_new();
-    if ( clone == NULL )
-    {
+    if ( clone == NULL ) {
         return NULL;
     }
     clone->action = clo_init->action;
-    if ( clo_init->help == NULL )
-    {
+    if ( clo_init->help == NULL ) {
         clone->help = NULL;
-    }
-    else
-    {
+    } else {
         clone->help = fctstr_clone (clo_init->help);
-        if ( clone->help == NULL )
-        {
+        if ( clone->help == NULL ) {
             ok =0;
             goto finally;
         }
     }
-    if ( clo_init->long_opt == NULL )
-    {
+    if ( clo_init->long_opt == NULL ) {
         clone->long_opt = NULL;
-    }
-    else
-    {
+    } else {
         clone->long_opt = fctstr_clone (clo_init->long_opt);
-        if ( clone->long_opt == NULL )
-        {
+        if ( clone->long_opt == NULL ) {
             ok = 0;
             goto finally;
         }
     }
-    if ( clo_init->short_opt == NULL )
-    {
+    if ( clo_init->short_opt == NULL ) {
         clone->short_opt = NULL;
-    }
-    else
-    {
+    } else {
         clone->short_opt = fctstr_clone (clo_init->short_opt);
-        if ( clone->short_opt == NULL )
-        {
+        if ( clone->short_opt == NULL ) {
             ok =0;
             goto finally;
         }
     }
     ok = 1;
 finally:
-    if ( !ok )
-    {
+    if ( !ok ) {
         fctcl__del (clone);
         clone = NULL;
     }
@@ -1530,8 +1437,7 @@ static int
 fctcl__is_option (fctcl_t const *clo, char const *option)
 {
     FCT_ASSERT ( clo != NULL );
-    if ( option == NULL )
-    {
+    if ( option == NULL ) {
         return 0;
     }
     return ( (clo->long_opt != NULL
@@ -1554,8 +1460,7 @@ FCT COMMAND PARSER (fct_clp)
 
 #define FCT_CLP_MAX_ERR_MSG_LEN     256
 
-typedef struct _fct_clp_t
-{
+typedef struct _fct_clp_t {
     /* List of command line options. */
     fct_nlist_t clo_list;
 
@@ -1581,11 +1486,9 @@ fct_clp__add_options (fct_clp_t *clp, fctcl_init_t const *options)
 {
     fctcl_init_t const *pclo =NULL;
     int ok;
-    for ( pclo = options; pclo->action != FCTCL_STORE_UNDEFINED; ++pclo )
-    {
+    for ( pclo = options; pclo->action != FCTCL_STORE_UNDEFINED; ++pclo ) {
         fctcl_t *cpy = fctcl_new2 (pclo);
-        if ( cpy == NULL )
-        {
+        if ( cpy == NULL ) {
             ok = 0;
             goto finally;
         }
@@ -1605,27 +1508,22 @@ fct_clp__init (fct_clp_t *clp, fctcl_init_t const *options)
     /* It is just much saner to manage a clone of the options. Then we know
     who is in charge of the memory. */
     ok = fct_nlist__init (& (clp->clo_list) );
-    if ( !ok )
-    {
+    if ( !ok ) {
         goto finally;
     }
-    if ( options != NULL )
-    {
+    if ( options != NULL ) {
         ok = fct_clp__add_options (clp, options);
-        if ( !ok )
-        {
+        if ( !ok ) {
             goto finally;
         }
     }
     ok = fct_nlist__init (& (clp->param_list) );
-    if ( !ok )
-    {
+    if ( !ok ) {
         goto finally;
     }
     ok =1;
 finally:
-    if ( !ok )
-    {
+    if ( !ok ) {
         fct_clp__final (clp);
     }
     return ok;
@@ -1646,8 +1544,7 @@ fct_clp__parse (fct_clp_t *clp, int argc, char const *argv[])
     clp->error_msg[0] = '\0';
     clp->is_error =0;
 
-    while ( argi < argc )
-    {
+    while ( argi < argc ) {
         is_option =0;
         token =NULL;
         next_token = NULL;
@@ -1660,25 +1557,18 @@ fct_clp__parse (fct_clp_t *clp, int argc, char const *argv[])
         next_token = strtok (NULL, "=");
 #endif
 
-        FCT_NLIST_FOREACH_BGN (fctcl_t*, pclo, & (clp->clo_list) )
-        {
+        FCT_NLIST_FOREACH_BGN (fctcl_t*, pclo, & (clp->clo_list) ) {
             /* Need to reset for each search. strtok below is destructive. */
-            if ( fctcl__is_option (pclo, token) )
-            {
+            if ( fctcl__is_option (pclo, token) ) {
                 is_option =1;
-                if ( pclo->action == FCTCL_STORE_VALUE )
-                {
+                if ( pclo->action == FCTCL_STORE_VALUE ) {
                     /* If this is --xxxx=value then the next strtok should succeed.
                     Otherwise, we need to chew up the next argument. */
-                    if ( next_token != NULL && strlen (next_token) > 0 )
-                    {
+                    if ( next_token != NULL && strlen (next_token) > 0 ) {
                         fctcl__set_value (pclo, next_token);
-                    }
-                    else
-                    {
+                    } else {
                         ++argi; /* Chew up the next value */
-                        if ( argi >= argc )
-                        {
+                        if ( argi >= argc ) {
                             /* error */
                             fct_snprintf (
                                 clp->error_msg,
@@ -1691,13 +1581,9 @@ fct_clp__parse (fct_clp_t *clp, int argc, char const *argv[])
                         }
                         fctcl__set_value (pclo, argv[argi]);
                     }
-                }
-                else if (pclo->action == FCTCL_STORE_TRUE)
-                {
+                } else if (pclo->action == FCTCL_STORE_TRUE) {
                     fctcl__set_value (pclo, FCTCL_TRUE_STR);
-                }
-                else
-                {
+                } else {
                     FCT_ASSERT ("undefined action requested");
                 }
                 break;  /* No need to parse this argument further. */
@@ -1705,21 +1591,18 @@ fct_clp__parse (fct_clp_t *clp, int argc, char const *argv[])
         }
         FCT_NLIST_FOREACH_END();
         /* If we have an error, exit. */
-        if ( clp->is_error )
-        {
+        if ( clp->is_error ) {
             break;
         }
         /* If we walked through all the options, and didn't find
         anything, then we must have a parameter. Forget the fact that
         an unknown option will be treated like a parameter... */
-        if ( !is_option )
-        {
+        if ( !is_option ) {
             fct_nlist__append (& (clp->param_list), arg);
             arg =NULL;  /* Owned by the nlist */
         }
         ++argi;
-        if ( arg != NULL )
-        {
+        if ( arg != NULL ) {
             free (arg);
             arg =NULL;
         }
@@ -1732,10 +1615,8 @@ fct_clp__get_clo (fct_clp_t const *clp, char const *option)
 {
     fctcl_t const *found =NULL;
 
-    FCT_NLIST_FOREACH_BGN (fctcl_t const*, pclo, & (clp->clo_list) )
-    {
-        if ( fctcl__is_option (pclo, option) )
-        {
+    FCT_NLIST_FOREACH_BGN (fctcl_t const*, pclo, & (clp->clo_list) ) {
+        if ( fctcl__is_option (pclo, option) ) {
             found = pclo;
             break;
         }
@@ -1758,8 +1639,7 @@ fct_clp__optval2 (fct_clp_t *clp, char const *option, char const *default_val)
     FCT_ASSERT ( clp != NULL );
     FCT_ASSERT ( option != NULL );
     clo = fct_clp__get_clo (clp, option);
-    if ( clo == NULL || clo->value == NULL)
-    {
+    if ( clo == NULL || clo->value == NULL) {
         return default_val;
     }
     return clo->value;
@@ -1771,14 +1651,11 @@ fct_clp__optval2 (fct_clp_t *clp, char const *option, char const *default_val)
 static int
 fct_clp__is_param (fct_clp_t *clp, char const *param)
 {
-    if ( clp == NULL || param == NULL )
-    {
+    if ( clp == NULL || param == NULL ) {
         return 0;
     }
-    FCT_NLIST_FOREACH_BGN (char *, aparam, & (clp->param_list) )
-    {
-        if ( fctstr_eq (aparam, param) )
-        {
+    FCT_NLIST_FOREACH_BGN (char *, aparam, & (clp->param_list) ) {
+        if ( fctstr_eq (aparam, param) ) {
             return 1;
         }
     }
@@ -1818,8 +1695,7 @@ The macros below start to pollute the watch window with
 lots of "system" variables. This NAMESPACE is an
 attempt to hide all the "system" variables in one place.
 */
-typedef struct _fct_namespace_t
-{
+typedef struct _fct_namespace_t {
     /* The currently active test suite. */
     fct_ts_t *ts_curr;
     int ts_is_skip_suite;
@@ -1856,8 +1732,7 @@ The "fctkern" is a singleton that is defined throughout the
 system.
 */
 
-struct _fctkern_t
-{
+struct _fctkern_t {
     /* Holds variables used throughout MACRO MAGIC. In order to reduce
     the "noise" in the watch window during a debug trace. */
     fct_namespace_t ns;
@@ -1901,8 +1776,7 @@ struct _fctkern_t
 #define FCT_OPT_HELP_SHORT    "-h"
 #define FCT_OPT_LOGGER        "--logger"
 #define FCT_OPT_LOGGER_SHORT  "-l"
-static fctcl_init_t FCT_CLP_OPTIONS[] =
-{
+static fctcl_init_t FCT_CLP_OPTIONS[] = {
     /* Totally unsafe, since we are assuming we can clean out this data,
     what I need to do is have an "initialization" object, full of
     const objects. But for now, this should work. */
@@ -1928,15 +1802,13 @@ static fctcl_init_t FCT_CLP_OPTIONS[] =
 };
 
 typedef fct_logger_i* (*fct_logger_new_fn) (void);
-struct _fct_logger_types_t
-{
+struct _fct_logger_types_t {
     char const *name;
     fct_logger_new_fn logger_new_fn;
     char const *desc;
 };
 
-static fct_logger_types_t FCT_LOGGER_TYPES[] =
-{
+static fct_logger_types_t FCT_LOGGER_TYPES[] = {
     {
         "standard",
         (fct_logger_new_fn) fct_standard_logger_new,
@@ -1974,23 +1846,16 @@ fctkern__write_help (fctkern_t *nk, FILE *out)
 {
     fct_clp_t *clp = & (nk->cl_parser);
     fprintf (out, "test.exe [options] prefix_filter ...\n\n");
-    FCT_NLIST_FOREACH_BGN (fctcl_t*, clo, & (clp->clo_list) )
-    {
-        if ( clo->short_opt != NULL )
-        {
+    FCT_NLIST_FOREACH_BGN (fctcl_t*, clo, & (clp->clo_list) ) {
+        if ( clo->short_opt != NULL ) {
             fprintf (out, "%s, %s\n", clo->short_opt, clo->long_opt);
-        }
-        else
-        {
+        } else {
             fprintf (out, "%s\n", clo->long_opt);
         }
-        if ( !fctstr_ieq (clo->long_opt, FCT_OPT_LOGGER) )
-        {
+        if ( !fctstr_ieq (clo->long_opt, FCT_OPT_LOGGER) ) {
             /* For now lets not get to fancy with the text wrapping. */
             fprintf (out, "  %s\n", clo->help);
-        }
-        else
-        {
+        } else {
             fct_logger_types_t *types[2];
             int type_i;
             fct_logger_types_t *itr;
@@ -1998,10 +1863,8 @@ fctkern__write_help (fctkern_t *nk, FILE *out)
             types[1] = nk->lt_usr;
             fputs ("  Sets the logger. The types of loggers currently "
                    "available are,\n", out);
-            for (type_i =0; type_i != 2; ++type_i )
-            {
-                for ( itr=types[type_i]; itr && itr->name != NULL; ++itr )
-                {
+            for (type_i =0; type_i != 2; ++type_i ) {
+                for ( itr=types[type_i]; itr && itr->name != NULL; ++itr ) {
                     fprintf (out, "   =%s : %s\n", itr->name, itr->desc);
                 }
             }
@@ -2038,8 +1901,7 @@ fctkern__add_prefix_filter (fctkern_t *nk, char const *prefix_filter)
 static void
 fctkern__final (fctkern_t *nk)
 {
-    if ( nk == NULL )
-    {
+    if ( nk == NULL ) {
         return;
     }
     fct_clp__final (& (nk->cl_parser) );
@@ -2070,8 +1932,7 @@ static char const *
 fctkern__cl_val2 (fctkern_t *nk, char const *opt_str, char const *def_str)
 {
     FCT_ASSERT ( opt_str != NULL );
-    if ( nk == NULL )
-    {
+    if ( nk == NULL ) {
         return NULL;
     }
     return fct_clp__optval2 (& (nk->cl_parser), opt_str, def_str);
@@ -2087,10 +1948,8 @@ fckern_sel_log (fct_logger_types_t *search, char const *sel_logger)
     FCT_ASSERT (search != NULL);
     FCT_ASSERT (sel_logger != NULL);
     FCT_ASSERT (strlen (sel_logger) > 0);
-    for ( iter = search; iter->name != NULL; ++iter)
-    {
-        if ( fctstr_ieq (iter->name, sel_logger) )
-        {
+    for ( iter = search; iter->name != NULL; ++iter) {
+        if ( fctstr_ieq (iter->name, sel_logger) ) {
             return iter->logger_new_fn();
         }
     }
@@ -2107,16 +1966,13 @@ fctkern__cl_parse_config_logger (fctkern_t *nk)
     FCT_ASSERT (sel_logger != NULL && "should never be NULL");
     /* First search the user selected types, then search the
     built-in types. */
-    if ( nk->lt_usr != NULL )
-    {
+    if ( nk->lt_usr != NULL ) {
         logger = fckern_sel_log (nk->lt_usr, sel_logger);
     }
-    if ( nk->lt_sys != NULL && logger == NULL )
-    {
+    if ( nk->lt_sys != NULL && logger == NULL ) {
         logger = fckern_sel_log (nk->lt_sys, sel_logger);
     }
-    if ( logger == NULL )
-    {
+    if ( logger == NULL ) {
         /* No logger configured, you must have supplied an invalid selection. */
         fprintf (stderr, "error: unknown logger selected - '%s'", sel_logger);
         return 0;
@@ -2137,14 +1993,11 @@ fctkern__cl_parse (fctkern_t *nk)
     int status =0;
     size_t num_params =0;
     size_t param_i =0;
-    if ( nk == NULL )
-    {
+    if ( nk == NULL ) {
         return 0;
     }
-    if ( nk->cl_user_opts != NULL )
-    {
-        if ( !fct_clp__add_options (& (nk->cl_parser), nk->cl_user_opts) )
-        {
+    if ( nk->cl_user_opts != NULL ) {
+        if ( !fct_clp__add_options (& (nk->cl_parser), nk->cl_user_opts) ) {
             status =0;
             goto finally;
         }
@@ -2152,39 +2005,33 @@ fctkern__cl_parse (fctkern_t *nk)
     /* You want to add the "house options" after the user defined ones. The
     options are stored as a list so it means that any option listed after
     the above ones won't get parsed. */
-    if ( !fct_clp__add_options (& (nk->cl_parser), FCT_CLP_OPTIONS) )
-    {
+    if ( !fct_clp__add_options (& (nk->cl_parser), FCT_CLP_OPTIONS) ) {
         status =0;
         goto finally;
     }
     fct_clp__parse (& (nk->cl_parser), nk->cl_argc, nk->cl_argv);
-    if ( fct_clp__is_error (& (nk->cl_parser) ) )
-    {
+    if ( fct_clp__is_error (& (nk->cl_parser) ) ) {
         char *err = fct_clp__get_error (& (nk->cl_parser) );
         fprintf (stderr, "error: %s", err);
         status =0;
         goto finally;
     }
     num_params = fct_clp__param_cnt (& (nk->cl_parser) );
-    for ( param_i =0; param_i != num_params; ++param_i )
-    {
+    for ( param_i =0; param_i != num_params; ++param_i ) {
         char const *param = fct_clp__param_at (& (nk->cl_parser), param_i);
         fctkern__add_prefix_filter (nk, param);
     }
-    if ( fctkern__cl_is (nk, FCT_OPT_VERSION) )
-    {
+    if ( fctkern__cl_is (nk, FCT_OPT_VERSION) ) {
         (void) printf ("Built using FCTX version %s.\n", FCT_VERSION_STR);
         status = -1;
         goto finally;
     }
-    if ( fctkern__cl_is (nk, FCT_OPT_HELP) )
-    {
+    if ( fctkern__cl_is (nk, FCT_OPT_HELP) ) {
         fctkern__write_help (nk, stdout);
         status = -1;
         goto finally;
     }
-    if ( !fctkern__cl_parse_config_logger (nk) )
-    {
+    if ( !fctkern__cl_parse_config_logger (nk) ) {
         status = -1;
         goto finally;
     }
@@ -2201,8 +2048,7 @@ should be directly from the program's main. */
 static int
 fctkern__init (fctkern_t *nk, int argc, const char *argv[])
 {
-    if ( argc == 0 && argv == NULL )
-    {
+    if ( argc == 0 && argv == NULL ) {
         return 0;
     }
     memset (nk, 0, sizeof (fctkern_t) );
@@ -2247,21 +2093,18 @@ fctkern__pass_filter (fctkern_t *nk, char const *test_name)
     FCT_ASSERT ( strlen (test_name) > 0 );
     prefix_list_size = fctkern__filter_cnt (nk);
     /* If there is no filter list, then we return FCT_TRUE always. */
-    if ( prefix_list_size == 0 )
-    {
+    if ( prefix_list_size == 0 ) {
         return FCT_TRUE;
     }
     /* Iterate through the prefix filter list, and see if we have
     anything that does not pass. All we require is ONE item that
     passes the test in order for us to succeed here. */
-    for ( prefix_i = 0; prefix_i != prefix_list_size; ++prefix_i )
-    {
+    for ( prefix_i = 0; prefix_i != prefix_list_size; ++prefix_i ) {
         char const *prefix = (char const*) fct_nlist__at (
                                  & (nk->prefix_list), prefix_i
                              );
         nbool_t pass = fct_filter_pass (prefix, test_name);
-        if ( pass )
-        {
+        if ( pass ) {
             return FCT_TRUE;
         }
     }
@@ -2278,8 +2121,7 @@ fctkern__tst_cnt (fctkern_t const *nk)
 {
     size_t tally =0;
     FCT_ASSERT ( nk != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_ts_t *, ts, & (nk->ts_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_ts_t *, ts, & (nk->ts_list) ) {
         tally += fct_ts__tst_cnt (ts);
     }
     FCT_NLIST_FOREACH_END();
@@ -2294,8 +2136,7 @@ fctkern__tst_cnt_passed (fctkern_t const *nk)
     size_t tally =0;
     FCT_ASSERT ( nk != NULL );
 
-    FCT_NLIST_FOREACH_BGN (fct_ts_t*, ts, & (nk->ts_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_ts_t*, ts, & (nk->ts_list) ) {
         tally += fct_ts__tst_cnt_passed (ts);
     }
     FCT_NLIST_FOREACH_END();
@@ -2317,8 +2158,7 @@ fctkern__chk_cnt (fctkern_t const *nk)
     size_t tally =0;
     FCT_ASSERT ( nk != NULL );
 
-    FCT_NLIST_FOREACH_BGN (fct_ts_t *, ts, & (nk->ts_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_ts_t *, ts, & (nk->ts_list) ) {
         tally += fct_ts__chk_cnt (ts);
     }
     FCT_NLIST_FOREACH_END();
@@ -2336,8 +2176,7 @@ fctkern__log_suite_start (fctkern_t *nk, fct_ts_t const *ts)
 {
     FCT_ASSERT ( nk != NULL );
     FCT_ASSERT ( ts != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_test_suite_start (logger, ts);
     }
     FCT_NLIST_FOREACH_END();
@@ -2349,8 +2188,7 @@ fctkern__log_suite_end (fctkern_t *nk, fct_ts_t const *ts)
 {
     FCT_ASSERT ( nk != NULL );
     FCT_ASSERT ( ts != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_test_suite_end (logger, ts);
     }
     FCT_NLIST_FOREACH_END();
@@ -2360,12 +2198,10 @@ fctkern__log_suite_end (fctkern_t *nk, fct_ts_t const *ts)
 static void
 fctkern__log_suite_skip (fctkern_t *nk, char const *condition, char const *name)
 {
-    if ( nk == NULL )
-    {
+    if ( nk == NULL ) {
         return;
     }
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_test_suite_skip (logger, condition, name);
     }
     FCT_NLIST_FOREACH_END();
@@ -2375,8 +2211,7 @@ fctkern__log_suite_skip (fctkern_t *nk, char const *condition, char const *name)
 static void
 fctkern__log_test_skip (fctkern_t *nk, char const *condition, char const *name)
 {
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_test_skip (logger, condition, name);
     }
     FCT_NLIST_FOREACH_END();
@@ -2390,8 +2225,7 @@ fctkern__log_chk (fctkern_t *nk, fctchk_t const *chk)
 {
     FCT_ASSERT ( nk != NULL );
     FCT_ASSERT ( chk != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_chk (logger, chk);
     }
     FCT_NLIST_FOREACH_END();
@@ -2404,8 +2238,7 @@ fctkern__log_warn (fctkern_t *nk, char const *warn)
 {
     FCT_ASSERT ( nk != NULL );
     FCT_ASSERT ( warn != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_warn (logger, warn);
     }
     FCT_NLIST_FOREACH_END();
@@ -2418,8 +2251,7 @@ fctkern__log_test_start (fctkern_t *nk, fct_test_t const *test)
 {
     FCT_ASSERT ( nk != NULL );
     FCT_ASSERT ( test != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_test_start (logger, test);
     }
     FCT_NLIST_FOREACH_END();
@@ -2431,8 +2263,7 @@ fctkern__log_test_end (fctkern_t *nk, fct_test_t *test)
 {
     FCT_ASSERT ( nk != NULL );
     FCT_ASSERT ( test != NULL );
-    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_logger_i*, logger, & (nk->logger_list) ) {
         fct_logger__on_test_end (logger, test);
     }
     FCT_NLIST_FOREACH_END();
@@ -2476,8 +2307,7 @@ of the implementation.
 
 /* Common event argument. The values of the each event may or may not be
 defined depending on the event in question. */
-struct _fct_logger_evt_t
-{
+struct _fct_logger_evt_t {
     fctkern_t const *kern;
     fctchk_t const *chk;
     fct_test_t const *test;
@@ -2488,8 +2318,7 @@ struct _fct_logger_evt_t
 };
 
 
-typedef struct _fct_logger_i_vtable_t
-{
+typedef struct _fct_logger_i_vtable_t {
     /* 1
      * Fired when an "fct_chk*" (check) function is completed. The event
      * will contain a reference to the "chk" object created.
@@ -2556,8 +2385,7 @@ typedef struct _fct_logger_i_vtable_t
     fct_logger_i_vtable_t vtable; \
     fct_logger_evt_t evt
 
-struct _fct_logger_i
-{
+struct _fct_logger_i {
     _fct_logger_head;
 };
 
@@ -2570,8 +2398,7 @@ fct_logger__stub (fct_logger_i *l, fct_logger_evt_t const *e)
 }
 
 
-static fct_logger_i_vtable_t fct_logger_default_vtable =
-{
+static fct_logger_i_vtable_t fct_logger_default_vtable = {
     fct_logger__stub,   /* 1.  on_chk */
     fct_logger__stub,   /* 2.  on_test_start */
     fct_logger__stub,   /* 3.  on_test_end */
@@ -2603,8 +2430,7 @@ fct_logger__init (fct_logger_i *logger)
 static void
 fct_logger__del (fct_logger_i *logger)
 {
-    if ( logger )
-    {
+    if ( logger ) {
         logger->vtable.on_delete (logger, & (logger->evt) );
     }
 }
@@ -2726,8 +2552,7 @@ fct_logger_print_failures (fct_nlist_t const *fail_list)
         "\n----------------------------------------------------------------------------\n"
     );
     puts ("FAILED TESTS\n\n");
-    FCT_NLIST_FOREACH_BGN (char *, cndtn_str, fail_list)
-    {
+    FCT_NLIST_FOREACH_BGN (char *, cndtn_str, fail_list) {
         printf ("%s\n", cndtn_str);
     }
     FCT_NLIST_FOREACH_END();
@@ -2752,8 +2577,7 @@ loggers.
 
 /* Minimal logger, reports the minimum amount of information needed
 to determine "something is happening". */
-struct _fct_minimal_logger_t
-{
+struct _fct_minimal_logger_t {
     _fct_logger_head;
     /* A list of char*'s that needs to be cleaned up. */
     fct_nlist_t failed_cndtns_list;
@@ -2767,12 +2591,9 @@ fct_minimal_logger__on_chk (
 )
 {
     fct_minimal_logger_t *self = (fct_minimal_logger_t*) self_;
-    if ( fctchk__is_pass (e->chk) )
-    {
+    if ( fctchk__is_pass (e->chk) ) {
         fputs (".", stdout);
-    }
-    else
-    {
+    } else {
         fputs ("x", stdout);
         fct_logger_record_failure (e->chk, & (self->failed_cndtns_list) );
 
@@ -2787,8 +2608,7 @@ fct_minimal_logger__on_fctx_end (
 {
     fct_minimal_logger_t *self = (fct_minimal_logger_t*) self_;
     fct_unused (e);
-    if ( fct_nlist__size (& (self->failed_cndtns_list) ) >0 )
-    {
+    if ( fct_nlist__size (& (self->failed_cndtns_list) ) >0 ) {
         fct_logger_print_failures (& (self->failed_cndtns_list) );
     }
 }
@@ -2813,8 +2633,7 @@ fct_minimal_logger_new (void)
 {
     fct_minimal_logger_t *self = (fct_minimal_logger_t*) \
                                  calloc (1,sizeof (fct_minimal_logger_t) );
-    if ( self == NULL )
-    {
+    if ( self == NULL ) {
         return NULL;
     }
     fct_logger__init ( (fct_logger_i*) self);
@@ -2832,8 +2651,7 @@ STANDARD LOGGER
 -----------------------------------------------------------
 */
 
-struct _fct_standard_logger_t
-{
+struct _fct_standard_logger_t {
     _fct_logger_head;
 
     /* Start time. For now we use the low-accuracy time_t version. */
@@ -2857,8 +2675,7 @@ fct_standard_logger__on_chk (
 {
     fct_standard_logger_t *logger = (fct_standard_logger_t*) logger_;
     /* Only record failures. */
-    if ( !fctchk__is_pass (e->chk) )
-    {
+    if ( !fctchk__is_pass (e->chk) ) {
         fct_logger_record_failure (e->chk, & (logger->failed_cndtns_list) );
     }
 }
@@ -2937,8 +2754,7 @@ fct_standard_logger__on_fctx_end (
 
     is_success = fct_nlist__size (& (logger->failed_cndtns_list) ) ==0;
 
-    if (  !is_success )
-    {
+    if (  !is_success ) {
         fct_logger_print_failures (& (logger->failed_cndtns_list) );
     }
     puts (
@@ -2953,12 +2769,9 @@ fct_standard_logger__on_fctx_end (
         (unsigned long) num_tests
     );
     elasped_time = fct_timer__duration (& (logger->timer) );
-    if ( elasped_time > 0.0000001 )
-    {
+    if ( elasped_time > 0.0000001 ) {
         printf (" in %.6fs)\n", elasped_time);
-    }
-    else
-    {
+    } else {
         /* Don't bother displaying the time to execute. */
         puts (")\n");
     }
@@ -2996,8 +2809,7 @@ fct_standard_logger_new (void)
     fct_standard_logger_t *logger = (fct_standard_logger_t *) calloc (
                                         1, sizeof (fct_standard_logger_t)
                                     );
-    if ( logger == NULL )
-    {
+    if ( logger == NULL ) {
         return NULL;
     }
     fct_logger__init ( (fct_logger_i*) logger);
@@ -3023,8 +2835,7 @@ JUNIT LOGGER
 
 
 /* JUnit logger */
-struct _fct_junit_logger_t
-{
+struct _fct_junit_logger_t {
     _fct_logger_head;
 };
 
@@ -3071,28 +2882,23 @@ fct_junit_logger__on_test_suite_end (
             fct_ts__name (ts),
             elasped_time);
 
-    FCT_NLIST_FOREACH_BGN (fct_test_t*, test, & (ts->test_list) )
-    {
+    FCT_NLIST_FOREACH_BGN (fct_test_t*, test, & (ts->test_list) ) {
         is_pass = fct_test__is_pass (test);
 
         /* opening testcase tag */
-        if (is_pass)
-        {
+        if (is_pass) {
             printf ("\t\t<testcase name=\"%s\" time=\"%.3f\"",
                     fct_test__name (test),
                     fct_test__duration (test)
                    );
-        }
-        else
-        {
+        } else {
             printf ("\t\t<testcase name=\"%s\" time=\"%.3f\">\n",
                     fct_test__name (test),
                     fct_test__duration (test)
                    );
         }
 
-        FCT_NLIST_FOREACH_BGN (fctchk_t*, chk, & (test->failed_chks) )
-        {
+        FCT_NLIST_FOREACH_BGN (fctchk_t*, chk, & (test->failed_chks) ) {
             /* error tag */
             printf ("\t\t\t<error message=\"%s\" "
                     "type=\"fctx\">", chk->msg);
@@ -3102,12 +2908,9 @@ fct_junit_logger__on_test_suite_end (
         FCT_NLIST_FOREACH_END();
 
         /* closing testcase tag */
-        if (is_pass)
-        {
+        if (is_pass) {
             printf (" />\n");
-        }
-        else
-        {
+        } else {
             printf ("\t\t</testcase>\n");
         }
     }
@@ -3116,10 +2919,8 @@ fct_junit_logger__on_test_suite_end (
     /* print the std streams */
     first_out_line = 1;
     printf ("\t\t<system-out>\n\t\t\t<![CDATA[");
-    while ( (read_length = _fct_read (fct_stdout_pipe[0], std_buffer, 1024) ) > 0)
-    {
-        if (first_out_line)
-        {
+    while ( (read_length = _fct_read (fct_stdout_pipe[0], std_buffer, 1024) ) > 0) {
+        if (first_out_line) {
             printf ("\n");
             first_out_line = 0;
         }
@@ -3129,10 +2930,8 @@ fct_junit_logger__on_test_suite_end (
 
     first_out_line = 1;
     printf ("\t\t<system-err>\n\t\t\t<![CDATA[");
-    while ( (read_length = _fct_read (fct_stderr_pipe[0], std_buffer, 1024) ) > 0)
-    {
-        if (first_out_line)
-        {
+    while ( (read_length = _fct_read (fct_stderr_pipe[0], std_buffer, 1024) ) > 0) {
+        if (first_out_line) {
             printf ("\n");
             first_out_line = 0;
         }
@@ -3185,8 +2984,7 @@ fct_junit_logger_new (void)
 {
     fct_junit_logger_t *logger =
         (fct_junit_logger_t *) calloc (1, sizeof (fct_junit_logger_t) );
-    if ( logger == NULL )
-    {
+    if ( logger == NULL ) {
         return NULL;
     }
     fct_logger__init ( (fct_logger_i*) logger);
@@ -3283,7 +3081,7 @@ they are needed, but at runtime, only the cheap, first call is made. */
     FCT_ASSERT( !((int)fctkern_ptr__->ns.num_total_failed < 0)      \
                 && "or we got truncated!");                         \
     if ( fctkern_ptr__->ns.num_total_failed ==                      \
-            fctkern_ptr__->num_expected_failures) {                    \
+         fctkern_ptr__->num_expected_failures) {                    \
         fctkern_ptr__->ns.num_total_failed = 0;                     \
     }                                                               \
      
@@ -3401,7 +3199,7 @@ specification. */
             {\
                 fctkern_ptr__->ns.test_num = -1;\
                 if ( fct_ts__is_ending_mode(fctkern_ptr__->ns.ts_curr) \
-                        || fct_ts__is_abort_mode(fctkern_ptr__->ns.ts_curr) )\
+                     || fct_ts__is_abort_mode(fctkern_ptr__->ns.ts_curr) )\
                 {\
                     _fct_cmt("flag the test suite as complete.");\
                     fct_ts__end(fctkern_ptr__->ns.ts_curr);\
@@ -3467,8 +3265,7 @@ do it by 'stubbing' out the setup/teardown logic. */
          
 #define FCT_SUITE_END_IF() } FCT_FIXTURE_SUITE_END_IF()
 
-typedef enum
-{
+typedef enum {
     FCT_TEST_END_FLAG_Default    = 0x0000,
     FCT_TEST_END_FLAG_ClearFail  = 0x0001
 } FCT_TEST_END_FLAG;
@@ -3586,8 +3383,7 @@ _fct_xchk_fn_varg (
               format,
               args
           );
-    if ( chk == NULL )
-    {
+    if ( chk == NULL ) {
         fctkern__log_warn (fct_xchk_kern, "out of memory (aborting test)");
         goto finally;
     }
@@ -3717,8 +3513,7 @@ functions */
 static int
 _fct_chk_empty_str (char const *s)
 {
-    if ( s == NULL )
-    {
+    if ( s == NULL ) {
         return 1;
     }
     return strlen (s) ==0;
@@ -3726,8 +3521,7 @@ _fct_chk_empty_str (char const *s)
 static int
 _fct_chk_full_str (char const *s)
 {
-    if ( s == NULL )
-    {
+    if ( s == NULL ) {
         return 0;
     }
     return strlen (s) >0;

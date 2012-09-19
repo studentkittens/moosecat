@@ -30,10 +30,8 @@
 /* Now lets define our testing scope. */
 FCT_BGN()
 {
-    FCT_SUITE_BGN (rape_api)
-    {
-        FCT_TEST_BGN (fill_in_nul)
-        {
+    FCT_SUITE_BGN (rape_api) {
+        FCT_TEST_BGN (fill_in_nul) {
             mc_Client * client = NULL;
             char * err = mc_proto_connect (client, NULL, NULL, 0, 0);
             fct_chk (err != NULL);
@@ -46,8 +44,7 @@ FCT_BGN()
 
         /////////////////////
 
-        FCT_TEST_BGN (fill_in_invalid)
-        {
+        FCT_TEST_BGN (fill_in_invalid) {
             mc_Client * client = mc_proto_create (MC_PM_COMMAND);
             test_api (client);
         }

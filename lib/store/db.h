@@ -54,6 +54,6 @@ mpd_song ** mc_store_search ( mc_StoreDB * self, struct mc_StoreQuery * qry);
 
 int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buf_len);
 
-void mc_store_wait (mc_StoreDB * self);
+void mc_store_wait (mc_StoreDB * self, bool wait_for_db_finish);
 
 #endif /* end of include guard: DB_GUARD_H */

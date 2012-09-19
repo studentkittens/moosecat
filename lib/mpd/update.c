@@ -30,11 +30,9 @@ void mc_proto_update_context_info_cb (
     enum mpd_idle events,
     mc_cc_unused void * user_data)
 {
-    if (self != NULL && events != 0)
-    {
+    if (self != NULL && events != 0) {
         mpd_connection * conn = mc_proto_get (self);
-        if (conn != NULL)
-        {
+        if (conn != NULL) {
             const bool update_status = (events & on_status_update);
             const bool update_stats = (events & on_stats_update);
             const bool update_song = (events & on_song_update);
@@ -56,14 +54,12 @@ void mc_proto_update_context_info_cb (
             mc_shelper_report_error (self, conn);
 
             /* Try to receive status */
-            if (update_status)
-            {
+            if (update_status) {
                 mpd_status * tmp_status;
                 tmp_status = mpd_recv_status (conn);
 
                 /* Be error tolerant, and keep at least the last status */
-                if (tmp_status)
-                {
+                if (tmp_status) {
                     free_if_not_null (self->status, mpd_status_free);
                     self->status = tmp_status;
                 }
@@ -73,13 +69,11 @@ void mc_proto_update_context_info_cb (
             }
 
             /* Try to receive statistics as last */
-            if (update_stats)
-            {
+            if (update_stats) {
                 mpd_stats * tmp_stats;
                 tmp_stats = mpd_recv_stats (conn);
 
-                if (tmp_stats)
-                {
+                if (tmp_stats) {
                     free_if_not_null (self->stats, mpd_stats_free);
                     self->stats = tmp_stats;
                 }
@@ -89,8 +83,7 @@ void mc_proto_update_context_info_cb (
             }
 
             /* Try to receive the current song */
-            if (update_song)
-            {
+            if (update_song) {
                 free_if_not_null (self->song, mpd_song_free);
                 self->song = mpd_recv_song (conn);
 
@@ -98,8 +91,7 @@ void mc_proto_update_context_info_cb (
                  * so we end the songlist,
                  * it should only return  NULL
                  * */
-                if (self->song != NULL)
-                {
+                if (self->song != NULL) {
                     struct mpd_song * empty = mpd_recv_song (conn);
                     g_assert (empty == NULL);
                 }
@@ -108,8 +100,7 @@ void mc_proto_update_context_info_cb (
             }
 
             /* Finish repsonse */
-            if (update_song || update_stats || update_status)
-            {
+            if (update_song || update_stats || update_status) {
                 mpd_response_finish (conn);
                 mc_shelper_report_error (self, conn);
             }

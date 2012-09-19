@@ -8,11 +8,11 @@ import subprocess
 APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
-# Needed flags:
-CFLAGS = ['-std=c99']
+# Needed/Adviceable flags:
+CFLAGS = ['-std=c99', '-pipe']
 
 # Optional flags:
-CFLAGS += ['-O3', '-Wall', '-W']
+CFLAGS += ['-ggdb3', '-Wall', '-W']
 
 
 def options(opt):

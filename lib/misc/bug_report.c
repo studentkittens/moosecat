@@ -13,13 +13,11 @@ char * mc_misc_bug_report (mc_Client * client)
     const unsigned disconnected_version[] = {0, 0, 0};
     const unsigned * server_version = disconnected_version;
 
-    if (mc_proto_is_connected (client) )
-    {
+    if (mc_proto_is_connected (client) ) {
         is_connected = true;
 
         mpd_connection * connection = mc_proto_get (client);
-        if (connection != NULL)
-        {
+        if (connection != NULL) {
             server_version = mpd_connection_get_server_version (connection);
         }
     }
