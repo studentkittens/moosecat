@@ -20,6 +20,6 @@
  *
  * @return a newly allocated connector
  */
-mc_Client * mc_proto_create_cmnder (void);
+mc_Client * mc_proto_create_cmnder (long connection_timeout_ms);
 
 #endif /* end of include guard: CMND_CORE_H */

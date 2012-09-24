@@ -10,13 +10,15 @@
 static void print_progress (mc_Client * self, bool print_newline, const char * msg, void * userdata)
 {
     (void) self;
+    (void) userdata;
     g_print ("%s                                     %c", msg, print_newline ? '\n' : '\r');
 }
 
 ///////////////////////////////
 
-static void print_error (mc_Client * self, enum mpd_error err,  const char * err_msg, bool is_fatal, void * user_data)
+static void print_error (mc_Client * self, enum mpd_error err,  const char * err_msg, bool is_fatal, void * userdata)
 {
+    (void) self; (void) userdata; (void) err; (void) is_fatal;
     g_print ("ERROR: %s\n", err_msg);
 }
 
@@ -30,7 +32,7 @@ int main (int argc, char * argv[])
     }
 
     mc_Client * client = mc_proto_create (MC_PM_COMMAND);
-    mc_proto_connect (client, NULL, "localhost", 6600, 20.0);
+    mc_proto_connect (client, NULL, "localhost", 6600, 10.0);
     mc_proto_signal_add (client, "progress", print_progress, NULL);
     mc_proto_signal_add (client, "error", print_error, NULL);
     mc_misc_register_posix_signal (client);
@@ -40,6 +42,8 @@ int main (int argc, char * argv[])
         if (g_strcmp0 (argv[1], "search") == 0) {
             const int song_buf_size = 100;
             const int line_buf_size = 32;
+
+            bool queue_only = true;
 
             char line_buf[line_buf_size];
             mpd_song ** song_buf = g_malloc (sizeof (mpd_song *) * song_buf_size);
@@ -62,8 +66,24 @@ int main (int argc, char * argv[])
                     mc_proto_signal_dispatch (client, "client-event", client, MPD_IDLE_DATABASE);
                     continue;
                 }
+                
+                if (g_strcmp0 (line_buf, ":o") == 0) {
+                    queue_only = !queue_only;
+                    continue;
+                }
+                
+                if (g_strcmp0 (line_buf, ":disconnect") == 0) {
+                    mc_proto_disconnect (client);
+                    continue;
+                }
+                
+                if (g_strcmp0 (line_buf, ":connect") == 0) {
+                    mc_proto_connect (client, NULL, "localhost", 6600, 10.0);
+                    continue;
+                }
 
-                int selected = mc_store_search_out (db, line_buf, song_buf, song_buf_size);
+
+                int selected = mc_store_search_out (db, line_buf, queue_only, song_buf, song_buf_size);
 
                 if (selected > 0) {
                     g_print ("%-35s | %-35s | %-35s\n", "Artist", "Album", "Title");

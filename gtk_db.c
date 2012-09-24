@@ -44,7 +44,7 @@ static void on_entry_text_changed (GtkEditable * editable, gpointer user_data)
     gchar * entry_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (editable) ) );
 
     g_timer_start (tag->profile_timer);
-    int found = mc_store_search_out (tag->store, g_strstrip (entry_text), tag->song_buf, tag->song_buf_len);
+    int found = mc_store_search_out (tag->store, g_strstrip (entry_text), true, tag->song_buf, tag->song_buf_len);
     select_time = g_timer_elapsed (tag->profile_timer, NULL);
 
     g_free (entry_text);

@@ -29,6 +29,16 @@ bool mc_shelper_report_error (
     mpd_connection * cconn);
 
 /**
+ * @brief Same as mc_shelper_report_error, but do no handle actual error (by disconnecting)
+ *
+ * @param self the client to operate on
+ * @param cconn libmpdclient's mpd_connection
+ */
+bool mc_shelper_report_error_without_handling (
+        struct mc_Client * self,
+        mpd_connection * cconn);
+
+/**
  * @brief Same as mc_shelper_report_error, but in a printf like fashion.
  *
  * Errors will be assumed to be non-fatal.

@@ -79,6 +79,11 @@ typedef struct mc_Client {
      */
     void (* do_free) (struct mc_Client *);
 
+    /* This is locked on do_get(),
+     * and unlocked on do_put()
+     */
+    GRecMutex _getput_mutex;
+    
     /* Save last connected host / port */
     char * _host;
     int _port;

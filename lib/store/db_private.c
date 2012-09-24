@@ -127,6 +127,8 @@ static const char * _sql_stmts[] = {
     "SELECT rowid FROM songs;",
     [_MC_SQL_SELECT_ALL] =
     "SELECT * FROM songs;",
+    [_MC_SQL_SELECT_ALL_QUEUE] =
+    "SELECT rowid, queue_pos, queue_idx FROM songs WHERE queue_idx > 0;",
     [_MC_SQL_DELETE_ALL] =
     "DELETE FROM songs;",
     [_MC_SQL_BEGIN] =
@@ -181,6 +183,7 @@ bool mc_stprv_create_song_table (mc_StoreDB * self)
     if (self == NULL)
         return false;
 
+    // TODO: parametrize
     char * sql_create = g_strdup_printf (SQL_CODE (CREATE), "porter");
 
     if (sqlite3_exec (self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
@@ -206,8 +209,6 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
                          strlen (_sql_stmts[i]) + 1,
                          &self->sql_prep_stmts[i],
                          NULL);
-
-        //g_print("Compiling stmt %s\n", _sql_stmts[i]);
 
         /* Uh-Oh. Typo? */
         if (prep_error != SQLITE_OK)
@@ -326,7 +327,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
     bind_tag (db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
     bind_tag (db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_TRACKID, error_id);
 
-    /* Since we retrieve songs from the database,
+    /* Since we retrieve songs from mpd's db,
      * these attributes are unset in the mpd_song.
      * -1 will indicate this.
      */
@@ -367,7 +368,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
  *
  * Returns: number of actually found songs, or -1 on error.
  */
-int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buffer_len)
+int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buffer_len)
 {
     int error_id = SQLITE_OK,
         pos_id = 1,
@@ -402,7 +403,13 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song 
     while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW &&
             buf_pos < buffer_len) {
         int song_idx = sqlite3_column_int (select_stmt, 0);
-        song_buffer[buf_pos++] = mc_store_stack_at (self->stack, song_idx - 1);
+        mpd_song * selected = mc_store_stack_at (self->stack, song_idx - 1);
+
+        /* Even if we set queue_only == true, all rows are searched using MATCH.
+         * This is because of MATCH does not like additianal constraints.
+         * Therefore we filter here the queue songs ourselves. */
+        if (queue_only == false || (queue_only && mpd_song_get_pos(selected) > 0))
+            song_buffer[buf_pos++] = selected;
     }
 
     if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)
@@ -714,4 +721,36 @@ void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const cha
     /* Make sure bindings are ready for the next insert */
     sqlite3_reset (SQL_STMT (self, QUEUE_UPDATE_ROW) );
     sqlite3_clear_bindings (SQL_STMT (self, QUEUE_UPDATE_ROW) );
+}
+
+/////////////////// 
+
+void mc_stprv_queue_update_stack_posid (mc_StoreDB * self)
+{
+    int error_id = SQLITE_OK;
+    sqlite3_stmt * select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
+
+    mc_stprv_begin (self);
+    while ((error_id = sqlite3_step (select_stmt)) == SQLITE_ROW) {
+        int row_idx  = sqlite3_column_int (select_stmt, 0);
+
+        if (row_idx > 0) {
+            mpd_song * song = mc_store_stack_at (self->stack, row_idx - 1);
+            if (song != NULL) {
+                /* Set the ID by parsing the ID */
+                struct mpd_pair parse_pair;
+                parse_pair.name = "Id";
+                parse_pair.value = (char *)sqlite3_column_text (select_stmt, 2);
+                mpd_song_feed (song, &parse_pair);
+
+                /* Luckily we have a setter here */
+                mpd_song_set_pos (song, sqlite3_column_int (select_stmt, 1));
+            }
+        }
+    }
+
+    if (error_id != SQLITE_DONE) {
+        REPORT_SQL_ERROR (self, "selecting all songs from queue failed");
+    }
+    mc_stprv_commit (self);
 }

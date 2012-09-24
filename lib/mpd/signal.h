@@ -21,7 +21,15 @@ typedef enum {
 } mc_SignalType;
 
 typedef struct {
+    /* Holds a list of callbacks,
+     * one list for each type.
+     */
     GList * signals[MC_SIGNAL_VALID_COUNT];
+    
+    /* This is locked when a signal is dispatched.
+     * We do not want to have to dispatch signals in parallel.
+     */
+    GRecMutex dispatch_mutex;
 } mc_SignalList;
 
 ///////////////////////////////

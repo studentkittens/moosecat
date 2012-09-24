@@ -7,8 +7,6 @@
  */
 #include "db_private.h"
 
-#include <glib.h>
-
 /**
  * @brief Create a new mc_Store.
  *
@@ -39,21 +37,29 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
 void mc_store_close ( mc_StoreDB * self);
 
 /**
- * @brief Search songs in the store, accoring to a mc_StoreQuery.
+ * @brief Perform a song search on the database.
  *
- * @param self mc_Store to operate on.
- * @param qry
+ * Searches the songs table using the MATCH clause.
+ * See http://www.sqlite.org/fts3.html#section_1_4 for the syntax
  *
- * The mc_Store will look through the metadata, and return pointers
- * to the internally cached mpd_songs, encapsulated in a GArray.
+ * @param self the store to operate on
+ * @param match_clause search term
+ * @param queue_only if true, only the queue contents is searched.
+ * @param song_buffer a 
+ * @param buf_len the length of the buffer you passed. Also used as LIMIT.
  *
- * Here is a humble warning.
- * DO NOT FUCKING FREE THE RETURNED MPD_SONGS!
+ * @return the number of actually found songs, or -1 on failure.
  */
-mpd_song ** mc_store_search ( mc_StoreDB * self, struct mc_StoreQuery * qry);
+int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buf_len);
 
-int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buf_len);
-
-void mc_store_wait (mc_StoreDB * self, bool wait_for_db_finish);
+/**
+ * @brief Tell routines to wait for db updates or return immediately.
+ *
+ * By default method return immediately.
+ *
+ * @param self the store to operate on
+ * @param wait_for_db_finish if true, it waits for the lock.
+ */
+void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish);
 
 #endif /* end of include guard: DB_GUARD_H */

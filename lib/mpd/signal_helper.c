@@ -7,34 +7,49 @@
 
 ///////////////////////////////
 
-#define copy_error_message(dest, src) if (src) { strncpy(dest, src, _MC_PROTO_MAX_ERR_LEN); }
+static void compose_error_msg (const char * topic, char * dest, const char * src)
+{
+    if (src && topic) {
+        g_snprintf(dest, _MC_PROTO_MAX_ERR_LEN, "%s: ,,%s''", topic, src);
+    }
+}
 
 ///////////////////////////////
 
-bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
+static bool mc_shelper_report_error_impl (struct mc_Client * self, mpd_connection * cconn, bool handle_fatal)
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
-            mc_proto_signal_dispatch (self, "error", self, MPD_ERROR_CLOSED, "Not connected", true);
+            mc_proto_signal_dispatch (self, "error", self, MPD_ERROR_CLOSED,
+                    "Not connected. (That is no real error)", true);
         }
         return true;
     }
 
     enum mpd_error error = mpd_connection_get_error (cconn);
+
     if (error != MPD_ERROR_SUCCESS) {
-        /* Prefer utf-8 encoded error message */
         if (MPD_ERROR_SYSTEM == error) {
-            copy_error_message (self->error_buffer, g_strerror (mpd_connection_get_system_error (cconn) ) );
+            compose_error_msg ("System-Error", self->error_buffer,
+                    g_strerror (mpd_connection_get_system_error (cconn) ));
+        } else if (MPD_ERROR_SERVER == error) {
+            compose_error_msg ("Server-Error", self->error_buffer,
+                    mpd_connection_get_error_message (cconn));
         } else {
-            copy_error_message (self->error_buffer, mpd_connection_get_error_message (cconn) )
+            compose_error_msg ("Client-Error", self->error_buffer,
+                    mpd_connection_get_error_message (cconn));
         }
 
-        /* Try to clear the error */
-        bool is_fatal = !mpd_connection_clear_error (cconn);
 
-        /* On really fatal error we better disconnect */
-        if (is_fatal)
+        /* Try to clear the error */
+        bool is_fatal = !(mpd_connection_clear_error (cconn));
+        
+        /* On really fatal error we better disconnect,
+         * than using an invalid connection */
+        if (handle_fatal && is_fatal) {
+            g_print("Disconnecting finished\n");
             mc_proto_disconnect (self);
+        }
 
         /* Dispatch the error to the users */
         mc_proto_signal_dispatch (self, "error", self, error, self->error_buffer, is_fatal);
@@ -42,6 +57,20 @@ bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
         return true;
     }
     return false;
+}
+
+///////////////////////////////
+
+bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
+{
+    return mc_shelper_report_error_impl (self, cconn, true);
+}
+
+///////////////////////////////
+
+bool mc_shelper_report_error_without_handling (struct mc_Client * self, mpd_connection * cconn)
+{
+    return mc_shelper_report_error_impl (self, cconn, false);
 }
 
 ///////////////////////////////

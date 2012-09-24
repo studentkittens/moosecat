@@ -57,8 +57,8 @@ mc_Client * mc_proto_create (mc_PmType pm)
     switch (pm) {
     case MC_PM_IDLE:
         client = mc_proto_create_idler();
-    case MC_PM_COMMAND:
-        client = mc_proto_create_cmnder();
+    case MC_PM_COMMAND: // TODO: 
+        client = mc_proto_create_cmnder(-1);
     }
 
     if (client != NULL) {
@@ -85,6 +85,9 @@ char * mc_proto_connect (
 
     /* Some progress! */
     mc_shelper_report_progress (self, true, "Attempting to connect... ");
+
+    /* init the getput mutex */
+    g_rec_mutex_init (&self->_getput_mutex);
 
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup (self->do_connect (self, context, host, port, ABS (timeout) ) );
@@ -116,22 +119,32 @@ bool mc_proto_is_connected (mc_Client * self)
 
 void mc_proto_put (mc_Client * self)
 {
-    /*
-     * Put connection back to event listening.
-     */
-    if (self && mc_proto_is_connected (self) && self->do_put != NULL)
+    g_assert (self);
+
+    /* Put connection back to event listening. */
+    if (mc_proto_is_connected (self) && self->do_put != NULL)
         self->do_put (self);
+
+    /* Make the connection accesible to other threads */
+    g_rec_mutex_unlock (&self->_getput_mutex);
 }
 
 ///////////////////
 
 mpd_connection * mc_proto_get (mc_Client * self)
 {
+    g_assert (self);
+    
+    /* lock the connection to make sure, only one thread
+     * can use it. This prevents us from relying on
+     * the user to lock himself. */
+    g_rec_mutex_lock (&self->_getput_mutex);
+
     /*
      * Return the readily sendable connection
      */
     mpd_connection * cconn = NULL;
-    if (self && mc_proto_is_connected (self) ) {
+    if (mc_proto_is_connected (self) ) {
         cconn = self->do_get (self);
         mc_shelper_report_error (self, cconn);
     }
@@ -160,10 +173,7 @@ char * mc_proto_disconnect (
             return NULL;
     }
 
-    if (self == NULL)
-        return g_strdup (etable[ERR_IS_NULL]);
-    else
-        return NULL;
+    return (self == NULL) ? g_strdup (etable[ERR_IS_NULL]) : NULL;
 }
 
 ///////////////////
@@ -182,6 +192,9 @@ void mc_proto_free (mc_Client * self)
 
     /* Forget any signals */
     mc_signal_list_destroy (&self->_signals);
+
+    /* kill the mutex */
+    g_rec_mutex_clear (&self->_getput_mutex);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)

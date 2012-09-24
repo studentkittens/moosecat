@@ -25,6 +25,8 @@ enum {
     _MC_SQL_SELECT_MATCHED_ALL,
     /* select all */
     _MC_SQL_SELECT_ALL,
+    /* select all queue songs */
+    _MC_SQL_SELECT_ALL_QUEUE,
     /* delete all content from 'songs' */
     _MC_SQL_DELETE_ALL,
     /* select meta attributes */
@@ -77,7 +79,7 @@ typedef struct mc_StoreDB {
     /* songs that are received on network,
      * are pushed to this queue,
      * and are processed by SQL */
-    GAsyncQueue * listalltosql_queue;
+    GAsyncQueue * sqltonet_queue;
 
     /* If db is locked, should we wait for it to finish? */
     bool wait_for_db_finish;
@@ -97,7 +99,7 @@ void mc_stprv_begin (mc_StoreDB * self);
 void mc_stprv_delete_songs_table (mc_StoreDB * self);
 
 int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save);
-int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buffer_len);
+int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buffer_len);
 gpointer mc_stprv_deserialize_songs (mc_StoreDB * self);
 void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self);
 
@@ -111,5 +113,6 @@ int mc_stprv_get_song_count (mc_StoreDB * self);
 char * mc_stprv_get_mpd_host (mc_StoreDB * self);
 
 void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file);
+void mc_stprv_queue_update_stack_posid (mc_StoreDB * self);
 
 #endif /* end of include guard: MC_DB_PRIVATE_H */

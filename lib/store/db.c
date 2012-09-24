@@ -2,6 +2,8 @@
 #include "../mpd/client_private.h"
 #include "../mpd/signal_helper.h"
 
+#include <glib.h>
+
 /* macro to exit early if db is currently locked */
 #define return_if_locked(store, return_code)             \
     if(store->db_is_locked) {                            \
@@ -72,10 +74,17 @@ static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self)
 
 ///////////////
 
+/* Perhaps a bit hacky, but NULL is not accepted by GAsyncQueue,
+ * and 0x1 seemed much simpler than extra allocating 
+ * a new dummy mpd_song. */
 const gpointer async_queue_terminator = (gpointer) 0x1;
 
 ///////////////
 
+/* Hopefully we can exchange this by using 
+ * only filename/pos/id instead of getting a full featured song,
+ * and throwing away most of it
+ */
 static gpointer mc_store_do_plchanges_sql_thread (mc_StoreDB * self)
 {
     mpd_song * song = NULL;
@@ -83,17 +92,20 @@ static gpointer mc_store_do_plchanges_sql_thread (mc_StoreDB * self)
     /* BEGIN IMMEDIATE; */
     mc_stprv_begin (self);
 
-    while ( (gpointer) (song = g_async_queue_pop (self->listalltosql_queue) ) > async_queue_terminator) {
+    while ( (gpointer) (song = g_async_queue_pop (self->sqltonet_queue) ) > async_queue_terminator) {
         mc_stprv_queue_update_posid (self,
                                      mpd_song_get_pos (song),
                                      mpd_song_get_id (song),
                                      mpd_song_get_uri (song)
                                     );
+
         mpd_song_free (song);
     }
 
     /* COMMIT; */
     mc_stprv_commit (self);
+
+    mc_stprv_queue_update_stack_posid (self);
 
     return NULL;
 }
@@ -136,20 +148,20 @@ static gpointer mc_store_do_plchanges (mc_StoreDB * store)
     BEGIN_COMMAND {
         g_timer_start (timer);
 
-        mc_shelper_report_progress (self, true, "database: Will do ,,plchanges %d''", (int) last_pl_version);
+        mc_shelper_report_progress (self, true, "database: Queue was updated. Will do ,,plchanges %d''", (int) last_pl_version);
         if (mpd_send_queue_changes_meta (conn, last_pl_version) ) {
             mpd_song * song = NULL;
             while ( (song = mpd_recv_song (conn) ) != NULL) {
-                g_async_queue_push (store->listalltosql_queue, song);
+                g_async_queue_push (store->sqltonet_queue, song);
                 if (progress_counter++ % 50 == 0)
                     mc_shelper_report_progress (self, false, "database: receiving queue contents ... [%d/%d]",
-                    progress_counter, mpd_status_get_queue_length (store->client->status) );
+                      progress_counter, mpd_status_get_queue_length (store->client->status) );
             }
         }
     }
     END_COMMAND
 
-    g_async_queue_push (store->listalltosql_queue, async_queue_terminator);
+    g_async_queue_push (store->sqltonet_queue, async_queue_terminator);
     g_thread_join (sql_thread);
 
     mc_shelper_report_progress (self, true, "database: updated %d song's pos/id (took %2.3fs)",
@@ -168,7 +180,7 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
     /* BEGIN IMMEDIATE; */
     mc_stprv_begin (self);
 
-    while ( (gpointer) (song = g_async_queue_pop (self->listalltosql_queue) ) > async_queue_terminator) {
+    while ( (gpointer) (song = g_async_queue_pop (self->sqltonet_queue) ) > async_queue_terminator) {
         mc_store_stack_append (self->stack, (mpd_song *) song);
         mc_stprv_insert_song (self, (mpd_song *) song);
     }
@@ -178,6 +190,10 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
 
     return NULL;
 }
+
+#define LOCK_UPDATE_MTX(store)                 \
+    store->db_is_locked = TRUE;                \
+    g_rec_mutex_lock (&store->db_update_lock); \
 
 ///////////////
 /*
@@ -227,7 +243,7 @@ static gpointer mc_store_do_list_all_info (mc_StoreDB * store)
                     mc_shelper_report_progress (self, false, "database: retrieving songs from mpd ... [%d/%d]",
                     progress_counter, number_of_songs);
 
-                g_async_queue_push (store->listalltosql_queue,
+                g_async_queue_push (store->sqltonet_queue,
                 (gpointer) mpd_entity_get_song (ent) );
             } else {
                 mpd_entity_free (ent);
@@ -238,7 +254,7 @@ static gpointer mc_store_do_list_all_info (mc_StoreDB * store)
     END_COMMAND;
 
     /* tell SQL thread kindly to die, but wait for him to bleed */
-    g_async_queue_push (store->listalltosql_queue, async_queue_terminator);
+    g_async_queue_push (store->sqltonet_queue, async_queue_terminator);
     g_thread_join (sql_thread);
 
     mc_shelper_report_progress (self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
@@ -354,7 +370,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
     store->db_path = g_strjoin (G_DIR_SEPARATOR_S, directory, dbname, NULL);
 
     /* used to exchange songs between network <-> sql threads */
-    store->listalltosql_queue = g_async_queue_new ();
+    store->sqltonet_queue = g_async_queue_new ();
 
     int song_count = -1;
 
@@ -450,28 +466,17 @@ void mc_store_close (mc_StoreDB * self)
 
 ///////////////
 
-int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, mpd_song ** song_buffer, int buf_len)
+int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buf_len)
 {
     /* we should not operate on changing data */
     return_if_locked (self, -1);
 
-    return mc_stprv_select_out (self, match_clause, song_buffer, buf_len);
+    return mc_stprv_select_out (self, match_clause, queue_only, song_buffer, buf_len);
 }
 
 ///////////////
 
-/*
- * Try to acquire the mutex,
- * and release it short-after
- *
- * TODO: this is silly. Between function return and lock,
- *       lock might be acquired again.
- *
- *       Introduce a store_wait_mode API, so functions
- *       that need the lock either return immediately,
- *       or lock till death.
- */
-void mc_store_wait (mc_StoreDB * self, bool wait_for_db_finish)
+void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish)
 {
     g_assert (self);
     self->wait_for_db_finish = wait_for_db_finish;
