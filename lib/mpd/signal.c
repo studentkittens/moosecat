@@ -128,8 +128,8 @@ void mc_signal_rm (
             g_rec_mutex_lock (&list->dispatch_mutex);      \
              
 #define DISPATCH_END                                       \
-            g_rec_mutex_unlock (&list->dispatch_mutex);    \
-        }                                                  \
+    g_rec_mutex_unlock (&list->dispatch_mutex);    \
+    }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)

@@ -25,7 +25,7 @@ typedef struct {
      * one list for each type.
      */
     GList * signals[MC_SIGNAL_VALID_COUNT];
-    
+
     /* This is locked when a signal is dispatched.
      * We do not want to have to dispatch signals in parallel.
      */

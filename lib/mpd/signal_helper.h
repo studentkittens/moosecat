@@ -35,8 +35,8 @@ bool mc_shelper_report_error (
  * @param cconn libmpdclient's mpd_connection
  */
 bool mc_shelper_report_error_without_handling (
-        struct mc_Client * self,
-        mpd_connection * cconn);
+    struct mc_Client * self,
+    mpd_connection * cconn);
 
 /**
  * @brief Same as mc_shelper_report_error, but in a printf like fashion.

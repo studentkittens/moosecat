@@ -10,7 +10,7 @@
 static void compose_error_msg (const char * topic, char * dest, const char * src)
 {
     if (src && topic) {
-        g_snprintf(dest, _MC_PROTO_MAX_ERR_LEN, "%s: ,,%s''", topic, src);
+        g_snprintf (dest, _MC_PROTO_MAX_ERR_LEN, "%s: ,,%s''", topic, src);
     }
 }
 
@@ -21,7 +21,7 @@ static bool mc_shelper_report_error_impl (struct mc_Client * self, mpd_connectio
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
             mc_proto_signal_dispatch (self, "error", self, MPD_ERROR_CLOSED,
-                    "Not connected. (That is no real error)", true);
+                                      "Not connected. (That is no real error)", true);
         }
         return true;
     }
@@ -31,23 +31,23 @@ static bool mc_shelper_report_error_impl (struct mc_Client * self, mpd_connectio
     if (error != MPD_ERROR_SUCCESS) {
         if (MPD_ERROR_SYSTEM == error) {
             compose_error_msg ("System-Error", self->error_buffer,
-                    g_strerror (mpd_connection_get_system_error (cconn) ));
+                               g_strerror (mpd_connection_get_system_error (cconn) ) );
         } else if (MPD_ERROR_SERVER == error) {
             compose_error_msg ("Server-Error", self->error_buffer,
-                    mpd_connection_get_error_message (cconn));
+                               mpd_connection_get_error_message (cconn) );
         } else {
             compose_error_msg ("Client-Error", self->error_buffer,
-                    mpd_connection_get_error_message (cconn));
+                               mpd_connection_get_error_message (cconn) );
         }
 
 
         /* Try to clear the error */
-        bool is_fatal = !(mpd_connection_clear_error (cconn));
-        
+        bool is_fatal = ! (mpd_connection_clear_error (cconn) );
+
         /* On really fatal error we better disconnect,
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
-            g_print("Disconnecting finished\n");
+            g_print ("Disconnecting finished\n");
             mc_proto_disconnect (self);
         }
 

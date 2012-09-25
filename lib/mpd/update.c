@@ -30,7 +30,7 @@ void mc_proto_update_context_info_cb (
     enum mpd_idle events,
     mc_cc_unused void * user_data)
 {
-    if (self != NULL && events != 0 && mc_proto_is_connected(self)) {
+    if (self != NULL && events != 0 && mc_proto_is_connected (self) ) {
         mpd_connection * conn = mc_proto_get (self);
         if (conn != NULL) {
             const bool update_status = (events & on_status_update);

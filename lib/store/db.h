@@ -45,7 +45,7 @@ void mc_store_close ( mc_StoreDB * self);
  * @param self the store to operate on
  * @param match_clause search term
  * @param queue_only if true, only the queue contents is searched.
- * @param song_buffer a 
+ * @param song_buffer a
  * @param buf_len the length of the buffer you passed. Also used as LIMIT.
  *
  * @return the number of actually found songs, or -1 on failure.

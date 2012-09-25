@@ -83,7 +83,7 @@ typedef struct mc_Client {
      * and unlocked on do_put()
      */
     GRecMutex _getput_mutex;
-    
+
     /* Save last connected host / port */
     char * _host;
     int _port;
@@ -282,5 +282,18 @@ void mc_proto_signal_dispatch (
 int mc_proto_signal_length (
     mc_Client * self,
     const char * signal_name);
+
+/**
+ * @brief Forces the client to update all status/song/stats information.
+ *
+ * This is useful for testing purpose, where no mainloop is running,
+ * and therefore no events are updated.
+ *
+ * @param self the client to operate on.
+ * @param events an eventmask. Pass INT_MAX to update all.
+ */
+void mc_proto_force_sss_update (
+    mc_Client * self,
+    enum mpd_idle events);
 
 #endif /* end of include guard: PROTOCOL_H */

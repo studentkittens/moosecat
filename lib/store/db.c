@@ -4,8 +4,7 @@
 
 #include <glib.h>
 
-/* macro to exit early if db is currently locked */
-#define return_if_locked(store, return_code)             \
+#define _return_if_locked(store, return_code)            \
     if(store->db_is_locked) {                            \
         if (store->wait_for_db_finish == false) {        \
             return return_code;                          \
@@ -14,7 +13,14 @@
             g_rec_mutex_unlock (&store->db_update_lock); \
         }                                                \
     }                                                    \
+
+#define return_if_locked(store) \
+    _return_if_locked (store, ;)
+
+#define return_val_if_locked(store, val) \
+    _return_if_locked (store, val)
      
+
 /*
  * Will return true, if the database located on disk is still valid.
  * Checks include:
@@ -57,9 +63,10 @@ static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self)
                     song_count = mc_stprv_get_song_count (self);
                 }
             }
+            
+            mc_stprv_finalize_all_statements (self);
 
             int sqlite_err = 0;
-            mc_stprv_finalize_all_statements (self);
             if ( (sqlite_err = sqlite3_close (self->handle) ) != SQLITE_OK)
                 g_print ("Warning: Unable to close db connection: #%d: %s\n",
                          sqlite_err, sqlite3_errmsg (self->handle) );
@@ -75,13 +82,13 @@ static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self)
 ///////////////
 
 /* Perhaps a bit hacky, but NULL is not accepted by GAsyncQueue,
- * and 0x1 seemed much simpler than extra allocating 
+ * and 0x1 seemed much simpler than extra allocating
  * a new dummy mpd_song. */
 const gpointer async_queue_terminator = (gpointer) 0x1;
 
 ///////////////
 
-/* Hopefully we can exchange this by using 
+/* Hopefully we can exchange this by using
  * only filename/pos/id instead of getting a full featured song,
  * and throwing away most of it
  */
@@ -117,11 +124,14 @@ static gpointer mc_store_do_plchanges (mc_StoreDB * store)
     mc_Client * self = store->client;
     g_assert (self != NULL);
 
+    LOCK_UPDATE_MTX (store);
+
     /* get last version of the queue (which we're having already. */
     size_t last_pl_version = mc_stprv_get_pl_version (store);
 
     if (last_pl_version == mpd_status_get_queue_version (store->client->status) && store->need_full_queue == false) {
         mc_shelper_report_progress (self, true, "database: Will not update queue, version didn't change.");
+        UNLOCK_UPDATE_MTX (store);
         return NULL;
     }
 
@@ -155,7 +165,7 @@ static gpointer mc_store_do_plchanges (mc_StoreDB * store)
                 g_async_queue_push (store->sqltonet_queue, song);
                 if (progress_counter++ % 50 == 0)
                     mc_shelper_report_progress (self, false, "database: receiving queue contents ... [%d/%d]",
-                      progress_counter, mpd_status_get_queue_length (store->client->status) );
+                       progress_counter, mpd_status_get_queue_length (store->client->status) );
             }
         }
     }
@@ -163,6 +173,8 @@ static gpointer mc_store_do_plchanges (mc_StoreDB * store)
 
     g_async_queue_push (store->sqltonet_queue, async_queue_terminator);
     g_thread_join (sql_thread);
+
+    UNLOCK_UPDATE_MTX (store);
 
     mc_shelper_report_progress (self, true, "database: updated %d song's pos/id (took %2.3fs)",
                                 progress_counter, g_timer_elapsed (timer, NULL) );
@@ -191,10 +203,6 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
     return NULL;
 }
 
-#define LOCK_UPDATE_MTX(store)                 \
-    store->db_is_locked = TRUE;                \
-    g_rec_mutex_lock (&store->db_update_lock); \
-
 ///////////////
 /*
  * Query a 'listallinfo' from the MPD Server, and insert all returned
@@ -217,8 +225,7 @@ static gpointer mc_store_do_list_all_info (mc_StoreDB * store)
     mc_Client * self = store->client;
     g_assert (self != NULL);
 
-    store->db_is_locked = TRUE;
-    g_rec_mutex_lock (&store->db_update_lock);
+    LOCK_UPDATE_MTX (store);
 
     /* progress */
     int progress_counter = 0;
@@ -260,10 +267,7 @@ static gpointer mc_store_do_list_all_info (mc_StoreDB * store)
     mc_shelper_report_progress (self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
                                 number_of_songs, g_timer_elapsed (timer, NULL) );
 
-    mc_store_do_plchanges (store);
-
-    store->db_is_locked = FALSE;
-    g_rec_mutex_unlock (&store->db_update_lock);
+    UNLOCK_UPDATE_MTX (store);
 
     return NULL;
 }
@@ -284,6 +288,22 @@ static void mc_store_do_list_all_info_bkgd (mc_StoreDB * self)
 static void mc_store_do_plchanges_bkgd (mc_StoreDB * self)
 {
     g_thread_new ("db-queue-update-thread", (GThreadFunc) mc_store_do_plchanges, self);
+}
+
+///////////////
+
+static gpointer mc_store_do_listall_and_plchanges (mc_StoreDB * self)
+{
+    mc_store_do_list_all_info (self);
+    mc_store_do_plchanges (self);
+    return NULL;
+}
+
+///////////////
+
+static void mc_store_do_listall_and_plchanges_bkgd (mc_StoreDB * self)
+{
+    g_thread_new ("db-listall-and-plchanges", (GThreadFunc) mc_store_do_listall_and_plchanges, self);
 }
 
 ///////////////
@@ -388,14 +408,14 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
                            (GDestroyNotify) mpd_song_free
                        );
 
-        /* we need to query mpd */
-        mc_store_do_list_all_info_bkgd (store);
+        /* the database is new, so no pos/id information is there yet */
+        store->need_full_queue = TRUE;
 
         /* It's new, so replace the one on the disk, if it's there */
         store->write_to_disk = TRUE;
 
-        /* the database is new, so no pos/id information is there yet */
-        store->need_full_queue = TRUE;
+        /* we need to query mpd, update db && queue info */
+        mc_store_do_listall_and_plchanges_bkgd (store);
     } else {
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
@@ -418,8 +438,12 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
          */
         store->write_to_disk = FALSE;
 
-        /* the database is new, so no pos/id information is there yet */
+        /* the database is created from possibly valid data,
+         *  so we might only need update it a bit */
         store->need_full_queue = FALSE;
+
+        /* Update queue information in bkgd */
+        mc_store_do_plchanges_bkgd (store);
     }
 
     /* be ready for db updates */
@@ -447,6 +471,8 @@ void mc_store_close (mc_StoreDB * self)
     if (self == NULL)
         return;
 
+    return_if_locked (self);
+
     mc_proto_signal_rm (self->client, "client-event", mc_store_update_callback);
     mc_stprv_finalize_all_statements (self);
     mc_store_stack_free (self->stack);
@@ -456,6 +482,7 @@ void mc_store_close (mc_StoreDB * self)
 
     g_free (self->db_path);
 
+    // TODO, shouldn't this be rather in db_private?
     int sqlite_err = SQLITE_OK;
     if ( (sqlite_err = sqlite3_close (self->handle) ) != SQLITE_OK)
         g_print ("Warning: Unable to close db connection: #%d: %s\n",
@@ -469,7 +496,7 @@ void mc_store_close (mc_StoreDB * self)
 int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buf_len)
 {
     /* we should not operate on changing data */
-    return_if_locked (self, -1);
+    return_val_if_locked (self, -1);
 
     return mc_stprv_select_out (self, match_clause, queue_only, song_buffer, buf_len);
 }

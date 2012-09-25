@@ -1,6 +1,7 @@
 #include "idle_core.h"
 #include "common.h"
 #include "../../util/gasyncqueue-watch.h"
+#include "../../util/sleep_grained.h"
 #include "../../compiler.h"
 #include "../protocol.h"
 #include "../signal_helper.h"
@@ -9,10 +10,17 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <unistd.h>
+
 /* define to cast a parent connector to the
  * concrete idle connector
  */
 #define child(obj) ((mc_CmndClient *)obj)
+
+/* time to check between sleep if pinger thread
+ * needs to be closed down 
+ */
+#define PING_SLEEP_TIMEOUT 700 // ms
 
 ///////////////////////
 // Private Interface //
@@ -43,21 +51,21 @@ typedef struct {
      * terminate on next iteration */
     gboolean run_listener;
 
-    /* Indicates if the ping thread is supposed to run. 
+    /* Indicates if the ping thread is supposed to run.
      * We need to ping the server because of the connection-timeout ,,feature'',
      * Otherwise we'll get disconnected after (by default) ~60 seconds.
      * Setting this flag to false will stop running threads. */
     gboolean run_pinger;
 
     /* Actual thread for the pinger thread.
-     * It is started on first connect, 
+     * It is started on first connect,
      * and shut down once the Client is freed.
      * (not on disconnect!) */
     GThread * pinger_thread;
 
     /* Timeout in milliseconds, after which we'll get disconnected,
      * without sending a command. Note that this only affects the cmnd_con,
-     * since only here this span may be reached. The idle_con will wait 
+     * since only here this span may be reached. The idle_con will wait
      * for responses from the server, and has therefore this timeout disabled
      * on server-side.
      *
@@ -81,7 +89,7 @@ static mc_cc_hot gboolean cmnder_event_callback (
      */
     while ( (item = g_async_queue_try_pop (queue) ) )
         events |= GPOINTER_TO_INT (item);
-        
+
     if (events != 0)
         mc_shelper_report_client_event (self, events);
 
@@ -96,7 +104,7 @@ static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
     mc_CmndClient * self = child (data);
     enum mpd_idle events = 0;
 
-    /* 
+    /*
      * We may not use mc_shelper_report_error here.
      * Why? It may call disconnect on fatal errors.
      * This would lead to joining this thread with itself,
@@ -118,18 +126,18 @@ static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
 //////////////////////
 
 static void cmnder_create_glib_adapter (
-        mc_CmndClient * self,
-        GMainContext * context)
+    mc_CmndClient * self,
+    GMainContext * context)
 {
     if (self->watch_source_id == -1) {
         /* Start the listener thread and set the Queue Watcher on it */
         self->listener_thread = g_thread_new ("listener", cmnder_listener_thread, self);
         self->watch_source_id = mc_async_queue_watch_new (
-                self->event_queue,
-                -1,
-                cmnder_event_callback,
-                self,
-                context);
+                                    self->event_queue,
+                                    -1,
+                                    cmnder_event_callback,
+                                    self,
+                                    context);
     }
 }
 
@@ -137,8 +145,6 @@ static void cmnder_create_glib_adapter (
 
 static void cmnder_shutdown_listener (mc_CmndClient * self)
 {
-    g_print("Shutting down listener.\n");
-
     /* Interrupt the idling, and tell the idle thread to die. */
     self->run_listener = FALSE;
     mpd_send_noidle (self->idle_con);
@@ -147,9 +153,8 @@ static void cmnder_shutdown_listener (mc_CmndClient * self)
         g_source_remove (self->watch_source_id);
 
         /* join the idle thread.
-         * This is a very good argument, to not
-         * call disconnect (especially implicitely!)
-         * in the idle thread.
+         * This is a very good argument, to not call disconnect
+         * (especially implicitely!) in the idle thread.
          *
          * Ever seen a thread that joins itself?
          */
@@ -203,15 +208,16 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
     g_assert (self);
 
     while (self->run_pinger) {
-        g_usleep(MAX(self->connection_timeout_ms, 100) * 500);
+        mc_sleep_grained (MAX (self->connection_timeout_ms, 100) / 2,
+                PING_SLEEP_TIMEOUT, &self->run_pinger);
 
-        if (mc_proto_is_connected ((mc_Client *) self)) {
+        if (mc_proto_is_connected ( (mc_Client *) self) ) {
             mpd_connection * con = mc_proto_get ( (mc_Client *) self);
             if (con != NULL) {
                 if (mpd_send_command (con, "ping", NULL) == false)
                     mc_shelper_report_error ( (mc_Client *) self, con);
 
-                if (mpd_response_finish(con) == false)
+                if (mpd_response_finish (con) == false)
                     mc_shelper_report_error ( (mc_Client *) self, con);
             }
             mc_proto_put ( (mc_Client *) self);
@@ -219,7 +225,8 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
         }
 
         if (self->run_pinger) {
-            g_usleep(MAX(self->connection_timeout_ms, 100) * 500);
+            mc_sleep_grained (MAX (self->connection_timeout_ms, 100) / 2,
+                    PING_SLEEP_TIMEOUT, &self->run_pinger);
         }
     }
     return NULL;
@@ -227,7 +234,7 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
 
 //////////////////////////
 
-static void cmnder_shutdown_pinger(mc_CmndClient * self)
+static void cmnder_shutdown_pinger (mc_CmndClient * self)
 {
     g_assert (self);
     g_assert (self->pinger_thread);
@@ -241,11 +248,11 @@ static void cmnder_shutdown_pinger(mc_CmndClient * self)
 //////////////////////////
 
 static char * cmnder_do_connect (
-        mc_Client * parent,
-        GMainContext * context,
-        const char * host,
-        int port,
-        float timeout)
+    mc_Client * parent,
+    GMainContext * context,
+    const char * host,
+    int port,
+    float timeout)
 {
     char * error_message = NULL;
     mc_CmndClient * self = child (parent);
@@ -265,10 +272,10 @@ static char * cmnder_do_connect (
     cmnder_create_glib_adapter (self, context);
 
     /* ping thread */
-    if (self->pinger_thread == NULL){
+    if (self->pinger_thread == NULL) {
         self->run_pinger = TRUE;
-        self->pinger_thread = g_thread_new ("cmnd-core-pinger", 
-                (GThreadFunc)cmnder_ping_server, self);
+        self->pinger_thread = g_thread_new ("cmnd-core-pinger",
+                                            (GThreadFunc) cmnder_ping_server, self);
     }
 
     return error_message;

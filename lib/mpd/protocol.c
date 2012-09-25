@@ -57,8 +57,8 @@ mc_Client * mc_proto_create (mc_PmType pm)
     switch (pm) {
     case MC_PM_IDLE:
         client = mc_proto_create_idler();
-    case MC_PM_COMMAND: // TODO: 
-        client = mc_proto_create_cmnder(-1);
+    case MC_PM_COMMAND: // TODO:
+        client = mc_proto_create_cmnder (-1);
     }
 
     if (client != NULL) {
@@ -134,7 +134,7 @@ void mc_proto_put (mc_Client * self)
 mpd_connection * mc_proto_get (mc_Client * self)
 {
     g_assert (self);
-    
+
     /* lock the connection to make sure, only one thread
      * can use it. This prevents us from relying on
      * the user to lock himself. */
@@ -262,7 +262,6 @@ void mc_proto_signal_dispatch (
 }
 
 ///////////////////
-//
 
 int mc_proto_signal_length (
     mc_Client * self,
@@ -272,4 +271,14 @@ int mc_proto_signal_length (
         return mc_signal_length (&self->_signals, signal_name);
     else
         return -1;
+}
+
+///////////////////
+
+void mc_proto_force_sss_update (
+    mc_Client * self,
+    enum mpd_idle events)
+{
+    g_assert (self);
+    mc_proto_update_context_info_cb (self, events, NULL);
 }

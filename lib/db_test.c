@@ -18,7 +18,10 @@ static void print_progress (mc_Client * self, bool print_newline, const char * m
 
 static void print_error (mc_Client * self, enum mpd_error err,  const char * err_msg, bool is_fatal, void * userdata)
 {
-    (void) self; (void) userdata; (void) err; (void) is_fatal;
+    (void) self;
+    (void) userdata;
+    (void) err;
+    (void) is_fatal;
     g_print ("ERROR: %s\n", err_msg);
 }
 
@@ -36,7 +39,9 @@ int main (int argc, char * argv[])
     mc_proto_signal_add (client, "progress", print_progress, NULL);
     mc_proto_signal_add (client, "error", print_error, NULL);
     mc_misc_register_posix_signal (client);
+
     mc_StoreDB * db = mc_store_create (client, NULL, NULL);
+    mc_store_set_wait_mode (db, true);
 
     if (db != NULL) {
         if (g_strcmp0 (argv[1], "search") == 0) {
@@ -52,7 +57,7 @@ int main (int argc, char * argv[])
             memset (song_buf, 0, song_buf_size);
 
             for (;;) {
-                g_print ("> ");
+                g_print ("\n> ");
                 if (fgets (line_buf, line_buf_size, stdin) == NULL)
                     break;
 
@@ -63,20 +68,23 @@ int main (int argc, char * argv[])
                     break;
 
                 if (g_strcmp0 (line_buf, ":u") == 0) {
-                    mc_proto_signal_dispatch (client, "client-event", client, MPD_IDLE_DATABASE);
+                    mc_proto_force_sss_update (client, INT_MAX);
+                    mc_proto_signal_dispatch (client, "client-event", client,
+                                              MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
                     continue;
                 }
-                
-                if (g_strcmp0 (line_buf, ":o") == 0) {
+
+                if (g_strcmp0 (line_buf, ":queue") == 0) {
                     queue_only = !queue_only;
+                    g_print ("Searching only on Queue: %s\n", queue_only ? "Yes" : "No");
                     continue;
                 }
-                
+
                 if (g_strcmp0 (line_buf, ":disconnect") == 0) {
                     mc_proto_disconnect (client);
                     continue;
                 }
-                
+
                 if (g_strcmp0 (line_buf, ":connect") == 0) {
                     mc_proto_connect (client, NULL, "localhost", 6600, 10.0);
                     continue;

@@ -8,11 +8,28 @@
 
 /* DB Layout version. Older tables will not be loaded. */
 #define MC_DB_SCHEMA_VERSION 0
+     
+#define PRINT_LOCKS 0
+
+#define LOCK_UPDATE_MTX(store)                           \
+    store->db_is_locked = TRUE;                          \
+    g_rec_mutex_lock (&store->db_update_lock);           \
+    if(PRINT_LOCKS)                                      \
+      g_print ("LOCK (%s:%d)\n", __FILE__, __LINE__);
+
+#define UNLOCK_UPDATE_MTX(store)                         \
+    g_rec_mutex_unlock (&store->db_update_lock);         \
+    store->db_is_locked = FALSE;                         \
+    if(PRINT_LOCKS)                                      \
+      g_print ("UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
 
 /* this is used only internally, not useful for public users */
 enum {
     /* creation of the basic tables */
     _MC_SQL_CREATE = 0,
+    /* create the dummy meta table
+     * (just to let the statements compile) */
+    _MC_SQL_META_DUMMY,
     /* update info about the db */
     _MC_SQL_META,
     /* === border between non-prepared/prepared statements === */

@@ -20,10 +20,10 @@
  *
  * Please excuse any eye cancer while reading this. Thank you!
  */
-#define REPORT_SQL_ERROR(store, message) \
-    mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)", \
-                                    __FILE__, __LINE__, message,                                     \
-                                    sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle))   \
+#define REPORT_SQL_ERROR(store, message)                                                           \
+    mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
+                                    __FILE__, __LINE__, message,                                   \
+                                    sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
      
 ///////////////////
 
@@ -91,6 +91,8 @@ static const char * _sql_stmts[] = {
     ");                                                                                             \n"
     "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                     \n"
     "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                     \n",
+    [_MC_SQL_META_DUMMY] =
+    "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
     [_MC_SQL_META] =
     "-- Meta Table, containing information about the metadata itself.                \n"
     "BEGIN IMMEDIATE;                                                                \n"
@@ -171,7 +173,7 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
                                              );
 
     if (sqlite3_exec (self->handle, dyn_insert_meta, NULL, NULL, NULL) != SQLITE_OK)
-        g_print ("Cannot insert meta attributes.\n");
+        REPORT_SQL_ERROR (self, "Cannot INSERT META Atrributes.");
 
     g_free (dyn_insert_meta);
 }
@@ -187,7 +189,7 @@ bool mc_stprv_create_song_table (mc_StoreDB * self)
     char * sql_create = g_strdup_printf (SQL_CODE (CREATE), "porter");
 
     if (sqlite3_exec (self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
-        g_print ("Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
+        REPORT_SQL_ERROR (self, "Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
         return false;
     }
 
@@ -200,7 +202,12 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 {
     int prep_error = 0;
 
-    mc_stprv_insert_meta_attributes (self);
+    /*
+     * This is a bit hacky fix to let the 'select ... from meta' stmts compile.
+     * Just add an empy table. */
+    if (sqlite3_exec (self->handle, SQL_CODE (META_DUMMY), NULL, NULL, NULL) != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot create dummy meta table. Expect some warnings.");
+    }
 
     for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
         prep_error = sqlite3_prepare_v2 (
@@ -408,7 +415,7 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queu
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
          * Therefore we filter here the queue songs ourselves. */
-        if (queue_only == false || (queue_only && mpd_song_get_pos(selected) > 0))
+        if (queue_only == false || (queue_only && mpd_song_get_pos (selected) > 0) )
             song_buffer[buf_pos++] = selected;
     }
 
@@ -542,8 +549,7 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
     /* progress */
     int progress_counter = 0;
 
-    self->db_is_locked = TRUE;
-    g_rec_mutex_lock (&self->db_update_lock);
+    LOCK_UPDATE_MTX (self);
 
     /* loop over all rows in the songs table */
     while ( (error_id = sqlite3_step (stmt) ) == SQLITE_ROW) {
@@ -627,8 +633,7 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
         REPORT_SQL_ERROR (self, "ERROR: cannot load songs from database");
     }
 
-    self->db_is_locked = FALSE;
-    g_rec_mutex_unlock (&self->db_update_lock);
+    UNLOCK_UPDATE_MTX (self);
 
     return NULL;
 }
@@ -723,28 +728,29 @@ void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const cha
     sqlite3_clear_bindings (SQL_STMT (self, QUEUE_UPDATE_ROW) );
 }
 
-/////////////////// 
+///////////////////
 
 void mc_stprv_queue_update_stack_posid (mc_StoreDB * self)
 {
     int error_id = SQLITE_OK;
-    sqlite3_stmt * select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
+    sqlite3_stmt * select_stmt = SQL_STMT (self, SELECT_ALL_QUEUE);
 
     mc_stprv_begin (self);
-    while ((error_id = sqlite3_step (select_stmt)) == SQLITE_ROW) {
+    while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW) {
         int row_idx  = sqlite3_column_int (select_stmt, 0);
 
         if (row_idx > 0) {
             mpd_song * song = mc_store_stack_at (self->stack, row_idx - 1);
             if (song != NULL) {
+
                 /* Set the ID by parsing the ID */
                 struct mpd_pair parse_pair;
                 parse_pair.name = "Id";
-                parse_pair.value = (char *)sqlite3_column_text (select_stmt, 2);
+                parse_pair.value = (char *) sqlite3_column_text (select_stmt, 2);
                 mpd_song_feed (song, &parse_pair);
 
-                /* Luckily we have a setter here */
-                mpd_song_set_pos (song, sqlite3_column_int (select_stmt, 1));
+                /* Luckily we have a setter here, otherwise */
+                mpd_song_set_pos (song, sqlite3_column_int (select_stmt, 1) );
             }
         }
     }
