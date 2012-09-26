@@ -18,7 +18,7 @@
 #define child(obj) ((mc_CmndClient *)obj)
 
 /* time to check between sleep if pinger thread
- * needs to be closed down 
+ * needs to be closed down
  */
 #define PING_SLEEP_TIMEOUT 700 // ms
 
@@ -209,7 +209,7 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
 
     while (self->run_pinger) {
         mc_sleep_grained (MAX (self->connection_timeout_ms, 100) / 2,
-                PING_SLEEP_TIMEOUT, &self->run_pinger);
+                          PING_SLEEP_TIMEOUT, &self->run_pinger);
 
         if (mc_proto_is_connected ( (mc_Client *) self) ) {
             mpd_connection * con = mc_proto_get ( (mc_Client *) self);
@@ -226,7 +226,7 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
 
         if (self->run_pinger) {
             mc_sleep_grained (MAX (self->connection_timeout_ms, 100) / 2,
-                    PING_SLEEP_TIMEOUT, &self->run_pinger);
+                              PING_SLEEP_TIMEOUT, &self->run_pinger);
         }
     }
     return NULL;

@@ -84,8 +84,8 @@ static const char * _sql_stmts[] = {
     "musicbrainz_albumartist_id  TEXT,                                                              \n"
     "musicbrainz_track           TEXT,                                                              \n"
     "-- Queue Data:                                                                                 \n"
-    "queue_pos INTEGER NOT NULL,                                                                    \n"
-    "queue_idx INTEGER NOT NULL,                                                                    \n"
+    "queue_pos INTEGER NOT NULL UNIQUE,                                                                    \n"
+    "queue_idx INTEGER NOT NULL UNIQUE,                                                                    \n"
     "-- FTS options:                                                                                \n"
     "tokenize=%s                                                                                    \n"
     ");                                                                                             \n"
@@ -185,13 +185,14 @@ bool mc_stprv_create_song_table (mc_StoreDB * self)
     if (self == NULL)
         return false;
 
-    // TODO: parametrize
     char * sql_create = g_strdup_printf (SQL_CODE (CREATE), "porter");
 
     if (sqlite3_exec (self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
         REPORT_SQL_ERROR (self, "Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
         return false;
     }
+
+    g_free (sql_create);
 
     return true;
 }
@@ -226,20 +227,6 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 ////////////////////////////////
 
 /*
- * Go through all (prepared) statements, and finalize them.
- * sqlit3_close will refuse to do it's job otherwise.
- */
-void mc_stprv_finalize_all_statements (mc_StoreDB * self)
-{
-    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
-        if (sqlite3_finalize (self->sql_prep_stmts[i]) != SQLITE_OK)
-            REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
-    }
-}
-
-////////////////////////////////
-
-/*
  * Open a sqlite3 handle to the memory.
  *
  * Returns: true on success.
@@ -256,6 +243,21 @@ bool mc_strprv_open_memdb (mc_StoreDB * self)
         return false;
     else
         return true;
+}
+
+////////////////////////////////
+
+void mc_stprv_close_handle (mc_StoreDB * self)
+{
+    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
+        if (sqlite3_finalize (self->sql_prep_stmts[i]) != SQLITE_OK)
+            REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
+    }
+
+    int sqlite_err = 0;
+    if ( (sqlite_err = sqlite3_close (self->handle) ) != SQLITE_OK)
+        g_print ("Warning: Unable to close db connection: #%d: %s\n",
+                 sqlite_err, sqlite3_errmsg (self->handle) );
 }
 
 ////////////////////////////////
@@ -500,13 +502,6 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
 
 ////////////////////////////////
 
-void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self)
-{
-    g_thread_new ("db-deserialize-thread", (GThreadFunc) mc_stprv_deserialize_songs, self);
-}
-
-////////////////////////////////
-
 #define feed_tag(tag_enum, sql_col_pos, stmt, song, pair)         \
     pair.value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
     if (pair.value) {                                             \
@@ -524,7 +519,7 @@ void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self)
  *
  * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
  */
-gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
+gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
@@ -549,7 +544,9 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
     /* progress */
     int progress_counter = 0;
 
-    LOCK_UPDATE_MTX (self);
+    if (lock_self) {
+        LOCK_UPDATE_MTX (self);
+    }
 
     /* loop over all rows in the songs table */
     while ( (error_id = sqlite3_step (stmt) ) == SQLITE_ROW) {
@@ -633,7 +630,9 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self)
         REPORT_SQL_ERROR (self, "ERROR: cannot load songs from database");
     }
 
-    UNLOCK_UPDATE_MTX (self);
+    if (lock_self) {
+        UNLOCK_UPDATE_MTX (self);
+    }
 
     return NULL;
 }

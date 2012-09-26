@@ -50,6 +50,7 @@ void  mc_signal_list_init (mc_SignalList * list)
 void mc_signal_add_masked (
     mc_SignalList *  list,
     const char * signal_name,
+    bool call_first,
     void * callback_func,
     void * user_data,
     enum mpd_idle mask)
@@ -65,7 +66,10 @@ void mc_signal_add_masked (
     if (tag != NULL) {
         mc_SignalType type = mc_convert_name_to_signal (signal_name);
         if (type != MC_SIGNAL_UNKNOWN) {
-            list->signals[type] = g_list_prepend (list->signals[type], tag);
+            if (call_first)
+                list->signals[type] = g_list_prepend (list->signals[type], tag);
+            else
+                list->signals[type] = g_list_append (list->signals[type], tag);
         }
     }
 }
@@ -75,10 +79,11 @@ void mc_signal_add_masked (
 void mc_signal_add (
     mc_SignalList *  list,
     const char * signal_name,
+    bool call_first,
     void * callback_func,
     void * user_data)
 {
-    mc_signal_add_masked (list, signal_name, callback_func, user_data, INT_MAX);
+    mc_signal_add_masked (list, signal_name, call_first, callback_func, user_data, INT_MAX);
 }
 
 ///////////////////////////////
@@ -128,8 +133,8 @@ void mc_signal_rm (
             g_rec_mutex_lock (&list->dispatch_mutex);      \
              
 #define DISPATCH_END                                       \
-    g_rec_mutex_unlock (&list->dispatch_mutex);    \
-    }                                                  \
+    g_rec_mutex_unlock (&list->dispatch_mutex);            \
+        }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)

@@ -53,12 +53,14 @@ void  mc_signal_list_init (mc_SignalList * list);
 void mc_signal_add (
     mc_SignalList * list,
     const char * signal_name,
+    bool call_first,
     void * callback_func,
     void * user_data);
 
 void mc_signal_add_masked (
     mc_SignalList * list,
     const char * signal_name,
+    bool call_first,
     void * callback_func,
     void * user_data,
     enum mpd_idle mask);

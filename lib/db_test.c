@@ -27,6 +27,13 @@ static void print_error (mc_Client * self, enum mpd_error err,  const char * err
 
 ///////////////////////////////
 
+static void print_event (mc_Client * self, enum mpd_idle event, void * user_data)
+{
+    g_print("Usercallback: %p %d %p\n", self, event, user_data);
+}
+
+///////////////////////////////
+
 int main (int argc, char * argv[])
 {
     if (argc < 2) {
@@ -39,9 +46,11 @@ int main (int argc, char * argv[])
     mc_proto_signal_add (client, "progress", print_progress, NULL);
     mc_proto_signal_add (client, "error", print_error, NULL);
     mc_misc_register_posix_signal (client);
+    mc_proto_signal_add (client, "client-event", print_event, NULL);
 
     mc_StoreDB * db = mc_store_create (client, NULL, NULL);
     mc_store_set_wait_mode (db, true);
+    
 
     if (db != NULL) {
         if (g_strcmp0 (argv[1], "search") == 0) {
@@ -57,7 +66,7 @@ int main (int argc, char * argv[])
             memset (song_buf, 0, song_buf_size);
 
             for (;;) {
-                g_print ("\n> ");
+                g_print ("> ");
                 if (fgets (line_buf, line_buf_size, stdin) == NULL)
                     break;
 

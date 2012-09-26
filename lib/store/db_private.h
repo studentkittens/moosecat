@@ -8,21 +8,21 @@
 
 /* DB Layout version. Older tables will not be loaded. */
 #define MC_DB_SCHEMA_VERSION 0
-     
+
 #define PRINT_LOCKS 0
 
 #define LOCK_UPDATE_MTX(store)                           \
     store->db_is_locked = TRUE;                          \
     g_rec_mutex_lock (&store->db_update_lock);           \
     if(PRINT_LOCKS)                                      \
-      g_print ("LOCK (%s:%d)\n", __FILE__, __LINE__);
+        g_print ("LOCK (%s:%d)\n", __FILE__, __LINE__);
 
 #define UNLOCK_UPDATE_MTX(store)                         \
     g_rec_mutex_unlock (&store->db_update_lock);         \
     store->db_is_locked = FALSE;                         \
     if(PRINT_LOCKS)                                      \
-      g_print ("UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
-
+        g_print ("UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
+     
 /* this is used only internally, not useful for public users */
 enum {
     /* creation of the basic tables */
@@ -87,12 +87,15 @@ typedef struct mc_StoreDB {
     /* true when the full queue is needed, false to only list differences */
     bool need_full_queue;
 
+    /* this flag is only set to true on connection change (or on startup) */
+    bool need_full_db;
+
     /* locked whenever a background thread updates the db */
     GRecMutex db_update_lock;
 
     /* GMutex provides no is_locked function? */
     bool db_is_locked;
-
+    
     /* songs that are received on network,
      * are pushed to this queue,
      * and are processed by SQL */
@@ -110,15 +113,13 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self);
 
 void mc_stprv_prepare_all_statements (mc_StoreDB * self);
 bool mc_stprv_create_song_table (mc_StoreDB * self);
-void mc_stprv_finalize_all_statements (mc_StoreDB * self);
 void mc_stprv_commit (mc_StoreDB * self);
 void mc_stprv_begin (mc_StoreDB * self);
 void mc_stprv_delete_songs_table (mc_StoreDB * self);
 
 int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save);
 int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buffer_len);
-gpointer mc_stprv_deserialize_songs (mc_StoreDB * self);
-void mc_stprv_deserialize_songs_bkgd (mc_StoreDB * self);
+gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self);
 
 /* getting information about the db itself */
 int mc_stprv_get_db_version (mc_StoreDB * self);
@@ -131,5 +132,7 @@ char * mc_stprv_get_mpd_host (mc_StoreDB * self);
 
 void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file);
 void mc_stprv_queue_update_stack_posid (mc_StoreDB * self);
+
+void mc_stprv_close_handle (mc_StoreDB * self);
 
 #endif /* end of include guard: MC_DB_PRIVATE_H */

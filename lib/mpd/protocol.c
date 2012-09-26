@@ -214,7 +214,7 @@ void mc_proto_signal_add (
     if (self == NULL)
         return;
 
-    mc_signal_add (&self->_signals, signal_name, callback_func, user_data);
+    mc_signal_add (&self->_signals, signal_name, false, callback_func, user_data);
 }
 
 ///////////////////
@@ -229,7 +229,7 @@ void mc_proto_signal_add_masked (
     if (self == NULL)
         return;
 
-    mc_signal_add_masked (&self->_signals, signal_name, callback_func, user_data, mask);
+    mc_signal_add_masked (&self->_signals, signal_name, false, callback_func, user_data, mask);
 }
 
 ///////////////////
