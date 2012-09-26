@@ -29,7 +29,7 @@ static void print_error (mc_Client * self, enum mpd_error err,  const char * err
 
 static void print_event (mc_Client * self, enum mpd_idle event, void * user_data)
 {
-    g_print("Usercallback: %p %d %p\n", self, event, user_data);
+    g_print ("Usercallback: %p %d %p\n", self, event, user_data);
 }
 
 ///////////////////////////////
@@ -50,7 +50,7 @@ int main (int argc, char * argv[])
 
     mc_StoreDB * db = mc_store_create (client, NULL, NULL);
     mc_store_set_wait_mode (db, true);
-    
+
 
     if (db != NULL) {
         if (g_strcmp0 (argv[1], "search") == 0) {

@@ -169,8 +169,7 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
                              mpd_status_get_queue_version (self->client->status),
                              MC_DB_SCHEMA_VERSION,
                              self->client->_port,
-                             self->client->_host
-                                             );
+                             self->client->_host);
 
     if (sqlite3_exec (self->handle, dyn_insert_meta, NULL, NULL, NULL) != SQLITE_OK)
         REPORT_SQL_ERROR (self, "Cannot INSERT META Atrributes.");
@@ -182,18 +181,15 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
 
 bool mc_stprv_create_song_table (mc_StoreDB * self)
 {
-    if (self == NULL)
-        return false;
+    g_assert (self);
 
     char * sql_create = g_strdup_printf (SQL_CODE (CREATE), "porter");
-
     if (sqlite3_exec (self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
         REPORT_SQL_ERROR (self, "Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
         return false;
     }
 
     g_free (sql_create);
-
     return true;
 }
 
@@ -205,7 +201,10 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 
     /*
      * This is a bit hacky fix to let the 'select ... from meta' stmts compile.
-     * Just add an empy table. */
+     * Just add an empy table, so the selects compile.
+     * When they actually get executed, the table will be filled correctly.
+     *
+     * Even if it's not much would happen.  */
     if (sqlite3_exec (self->handle, SQL_CODE (META_DUMMY), NULL, NULL, NULL) != SQLITE_OK) {
         REPORT_SQL_ERROR (self, "Cannot create dummy meta table. Expect some warnings.");
     }
@@ -254,10 +253,9 @@ void mc_stprv_close_handle (mc_StoreDB * self)
             REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
     }
 
-    int sqlite_err = 0;
-    if ( (sqlite_err = sqlite3_close (self->handle) ) != SQLITE_OK)
-        g_print ("Warning: Unable to close db connection: #%d: %s\n",
-                 sqlite_err, sqlite3_errmsg (self->handle) );
+    if (sqlite3_close (self->handle) != SQLITE_OK)
+        REPORT_SQL_ERROR (self, "Warning: Unable to close db connection");
+
 }
 
 ////////////////////////////////
@@ -383,22 +381,16 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queu
         pos_id = 1,
         buf_pos = 0;
 
-    /*
-     * Sanitize buffer_len
-     */
+    /* Sanitize buffer_len */
     buffer_len = MAX (buffer_len, 0);
 
-    /*
-     * Duplicate this, in order to strip it.
-     * We do not want to modify caller's stuff. He would hate us.
-     */
+    /* Duplicate this, in order to strip it.
+     * We do not want to modify caller's stuff. He would hate us. */
     gchar * match_clause_dup = g_strstrip (g_strdup (match_clause) );
 
     sqlite3_stmt * select_stmt = NULL;
 
-    /*
-     * If the query is empty anyway, we just select eveything
-     */
+    /* If the query is empty anyway, we just select everything */
     if (match_clause_dup == NULL || *match_clause_dup == 0) {
         select_stmt = SQL_STMT (self, SELECT_MATCHED_ALL);
     } else {
@@ -541,6 +533,9 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
     /* range parsing */
     int start = 0, end = 0;
 
+    /* queue pos */
+    char * pos_text = NULL;
+
     /* progress */
     int progress_counter = 0;
 
@@ -594,7 +589,7 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
         mpd_song_feed (song, &pair);
 
         pair.name = "Pos";
-        char * pos_text = (char *) sqlite3_column_text (stmt, SQL_COL_QUEUE_POS);
+        pos_text = (char *) sqlite3_column_text (stmt, SQL_COL_QUEUE_POS);
         if (pos_text != NULL)
             mpd_song_set_pos (song, strtol (pos_text, NULL, 10) );
 
@@ -640,15 +635,15 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 ////////////////////////////////
 
 #define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)  \
-    {                                                                                           \
-        int error_id = SQLITE_OK;                                                               \
-        if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)                \
-            out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                     \
-        if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                                  \
-            REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                             \
-        out_var = (cast_type)copy_func((cast_type)out_var);                                     \
-        sqlite3_reset (SQL_STMT (self, meta_enum));                                             \
-    }                                                                                           \
+    {                                                                                       \
+        int error_id = SQLITE_OK;                                                           \
+        if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
+            out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
+        if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
+            REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
+        out_var = (cast_type)copy_func((cast_type)out_var);                                 \
+        sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
+    }                                                                                       \
      
 
 ////////////////////////////////

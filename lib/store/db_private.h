@@ -11,18 +11,20 @@
 
 #define PRINT_LOCKS 0
 
-#define LOCK_UPDATE_MTX(store)                           \
-    store->db_is_locked = TRUE;                          \
-    g_rec_mutex_lock (&store->db_update_lock);           \
-    if(PRINT_LOCKS)                                      \
-        g_print ("LOCK (%s:%d)\n", __FILE__, __LINE__);
+#define LOCK_UPDATE_MTX(store) {                           \
+        store->db_is_locked = TRUE;                            \
+        g_rec_mutex_lock (&store->db_update_lock);             \
+        if(PRINT_LOCKS)                                        \
+            g_print ("LOCK (%s:%d)\n", __FILE__, __LINE__);    \
+    }
 
-#define UNLOCK_UPDATE_MTX(store)                         \
-    g_rec_mutex_unlock (&store->db_update_lock);         \
-    store->db_is_locked = FALSE;                         \
-    if(PRINT_LOCKS)                                      \
-        g_print ("UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
-     
+#define UNLOCK_UPDATE_MTX(store) {                         \
+        g_rec_mutex_unlock (&store->db_update_lock);           \
+        store->db_is_locked = FALSE;                           \
+        if(PRINT_LOCKS)                                        \
+            g_print ("UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
+    }
+
 /* this is used only internally, not useful for public users */
 enum {
     /* creation of the basic tables */
@@ -95,7 +97,7 @@ typedef struct mc_StoreDB {
 
     /* GMutex provides no is_locked function? */
     bool db_is_locked;
-    
+
     /* songs that are received on network,
      * are pushed to this queue,
      * and are processed by SQL */
@@ -103,6 +105,9 @@ typedef struct mc_StoreDB {
 
     /* If db is locked, should we wait for it to finish? */
     bool wait_for_db_finish;
+
+    /* true, when the current listallinfo transaction should be stopped. */
+    bool stop_listallinfo;
 
 } mc_StoreDB;
 

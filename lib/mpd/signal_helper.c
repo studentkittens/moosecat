@@ -47,7 +47,6 @@ static bool mc_shelper_report_error_impl (struct mc_Client * self, mpd_connectio
         /* On really fatal error we better disconnect,
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
-            g_print ("Disconnecting finished\n");
             mc_proto_disconnect (self);
         }
 
