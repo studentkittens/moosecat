@@ -28,8 +28,6 @@ static const char * etable[] = {
 ////  PRIVATE /////
 ///////////////////
 
-///////////////////
-
 static void mc_proto_reset (mc_Client * self)
 {
     /* Free status/song/stats */
@@ -57,7 +55,7 @@ mc_Client * mc_proto_create (mc_PmType pm)
     switch (pm) {
     case MC_PM_IDLE:
         client = mc_proto_create_idler();
-    case MC_PM_COMMAND: // TODO:
+    case MC_PM_COMMAND: // TODO: pass arguments.
         client = mc_proto_create_cmnder (-1);
     }
 
@@ -195,6 +193,8 @@ void mc_proto_free (mc_Client * self)
 
     /* kill the mutex */
     g_rec_mutex_clear (&self->_getput_mutex);
+
+    mc_proto_reset (self);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)

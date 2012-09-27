@@ -22,9 +22,11 @@
  * insert the latest differences (which might be enourmous too,
  * since mpd returns all changes behind a certain ID)
  *
+ * The name of the db will me moosecat_$host:$port
+ *
  * @return a new mc_StoreDB , free with mc_store_close()
  */
-mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname);
+mc_StoreDB * mc_store_create (mc_Client * client, const char * directory);
 
 /**
  * @brief Close the mc_Store.

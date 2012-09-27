@@ -108,9 +108,6 @@ void mc_proto_update_context_info_cb (
                 }
             }
 
-            self->song = mpd_run_current_song (conn);
-            self->stats = mpd_run_stats (conn);
-
             mc_proto_put (self);
         }
     }

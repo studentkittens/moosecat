@@ -115,6 +115,7 @@ void mc_signal_rm (
             if (tag != NULL) {
                 if (tag->callback == callback_addr) {
                     list->signals[type] = g_list_delete_link (head, iter);
+                    g_free (tag);
                     return;
                 }
             }
@@ -134,7 +135,7 @@ void mc_signal_rm (
              
 #define DISPATCH_END                                       \
     g_rec_mutex_unlock (&list->dispatch_mutex);            \
-    }                                                  \
+        }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)
@@ -225,5 +226,7 @@ void mc_signal_list_destroy (mc_SignalList * list)
 
             g_list_free (list->signals[i]);
         }
+
+        g_rec_mutex_clear (&list->dispatch_mutex);
     }
 }

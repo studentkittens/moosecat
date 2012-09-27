@@ -56,9 +56,7 @@ void mc_store_stack_free (mc_StoreStack * self)
     if (self == NULL)
         return;
 
-    mc_store_stack_free_data (self);
-
-    g_ptr_array_free (self->stack, FALSE);
+    g_ptr_array_free (self->stack, TRUE);
     g_free (self);
 }
 

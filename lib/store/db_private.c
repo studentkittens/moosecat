@@ -375,14 +375,11 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
  *
  * Returns: number of actually found songs, or -1 on error.
  */
-int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buffer_len)
+static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_clause, bool queue_only, void * buf_or_stack, int buffer_len)
 {
     int error_id = SQLITE_OK,
         pos_id = 1,
         buf_pos = 0;
-
-    /* Sanitize buffer_len */
-    buffer_len = MAX (buffer_len, 0);
 
     /* Duplicate this, in order to strip it.
      * We do not want to modify caller's stuff. He would hate us. */
@@ -397,20 +394,28 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queu
         select_stmt = SQL_STMT (self, SELECT_MATCHED);
         bind_txt (self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
         bind_int (self, SELECT_MATCHED, pos_id, buffer_len, error_id);
-        if (error_id != SQLITE_OK)
+        if (error_id != SQLITE_OK) {
             REPORT_SQL_ERROR (self, "WARNING: Error while binding");
+            return -1;
+        }
     }
 
     while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW &&
-            buf_pos < buffer_len) {
+            (buffer_len == -1 || buf_pos < buffer_len)) {
+
         int song_idx = sqlite3_column_int (select_stmt, 0);
         mpd_song * selected = mc_store_stack_at (self->stack, song_idx - 1);
 
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
          * Therefore we filter here the queue songs ourselves. */
-        if (queue_only == false || (queue_only && mpd_song_get_pos (selected) > 0) )
-            song_buffer[buf_pos++] = selected;
+        if (queue_only == false || ((int)mpd_song_get_pos (selected) > 0) ) {
+            if (buffer_len == -1) {
+                mc_store_stack_append ((mc_StoreStack *) buf_or_stack, selected); 
+            } else {
+                ((mpd_song **)buf_or_stack)[buf_pos++] = selected;
+            }
+        }
     }
 
     if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)
@@ -423,6 +428,20 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queu
     return buf_pos;
 }
 
+////////////////////////////////
+
+int mc_stprv_select_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_StoreStack * stack)
+{
+    return mc_stprv_select_impl (self, match_clause, queue_only, stack, -1);
+}
+
+////////////////////////////////
+
+int mc_stprv_select_to_buf (mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buffer_len)
+{
+    return mc_stprv_select_impl (self, match_clause, queue_only, (void *)song_buffer, buffer_len);
+}
+    
 ////////////////////////////////
 
 /*
@@ -445,9 +464,8 @@ int mc_stprv_select_out (mc_StoreDB * self, const char * match_clause, bool queu
  ** If the operation is successful, SQLITE_OK is returned. Otherwise, if
  ** an error occurs, an SQLite error code is returned.
  */
-int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
+void mc_stprv_load_or_save (mc_StoreDB * self, bool is_save, const char * db_path)
 {
-    int rc;                   /* Function return code */
     sqlite3 *pFile;           /* Database connection opened on zFilename */
     sqlite3_backup *pBackup;  /* Backup object used to copy data */
     sqlite3 *pTo;             /* Database to copy to (pFile or pInMemory) */
@@ -455,8 +473,7 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
 
     /* Open the database file identified by zFilename. Exit early if this fails
      ** for any reason. */
-    rc = sqlite3_open (self->db_path, &pFile);
-    if (rc == SQLITE_OK) {
+    if (sqlite3_open (db_path, &pFile) == SQLITE_OK) {
 
         /* If this is a 'load' operation (isSave==0), then data is copied
          ** from the database file just opened to database pInMemory.
@@ -483,13 +500,18 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
             sqlite3_backup_step (pBackup, -1);
             sqlite3_backup_finish (pBackup);
         }
-        rc = sqlite3_errcode (pTo);
+
+        if (sqlite3_errcode (pTo) != SQLITE_OK)
+            REPORT_SQL_ERROR (self, "Something went wrong during backup");
+
+    } else {
+        REPORT_SQL_ERROR (self, "Cannot open disk-db");
     }
 
     /* Close the database connection opened on database file zFilename
      ** and return the result of this function. */
-    sqlite3_close (pFile);
-    return rc;
+    if (sqlite3_close (pFile) != SQLITE_OK)
+        REPORT_SQL_ERROR (self, "Cannot close db in load-or-save");
 }
 
 ////////////////////////////////
@@ -511,7 +533,7 @@ int mc_stprv_load_or_save (mc_StoreDB * self, bool is_save)
  *
  * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
  */
-gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
+void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
@@ -628,8 +650,6 @@ gpointer mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
     if (lock_self) {
         UNLOCK_UPDATE_MTX (self);
     }
-
-    return NULL;
 }
 
 ////////////////////////////////

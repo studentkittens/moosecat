@@ -36,15 +36,15 @@
  *
  * Returns: the number of songs in the songs table, or -1 on failure.
  */
-static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self)
+static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self, const char * db_path)
 {
     /* result */
     int song_count = -1;
 
     /* check #1 */
-    if (g_file_test (self->db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
+    if (g_file_test (db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
         /* check #2 */
-        if (sqlite3_open (self->db_path, &self->handle) == SQLITE_OK) {
+        if (sqlite3_open (db_path, &self->handle) == SQLITE_OK) {
             /* needed in order to select metadata */
             mc_stprv_create_song_table (self);
             mc_stprv_prepare_all_statements (self);
@@ -185,6 +185,8 @@ static void mc_store_do_plchanges (mc_StoreDB * store, bool lock_self)
     /* a bit of timing report */
     mc_shelper_report_progress (self, true, "database: updated %d song's pos/id (took %2.3fs)",
                                 progress_counter, g_timer_elapsed (timer, NULL) );
+
+    g_timer_destroy (timer);
 }
 
 ///////////////
@@ -290,8 +292,13 @@ static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
                     mc_shelper_report_progress (self, false, "database: retrieving songs from mpd ... [%d/%d]",
                     progress_counter, number_of_songs);
 
-                g_async_queue_push (store->sqltonet_queue,
-                (gpointer) mpd_entity_get_song (ent) );
+                g_async_queue_push (store->sqltonet_queue, (gpointer) mpd_entity_get_song (ent) );
+
+                /* Not sure if this is a nice way,
+                 * but for now it works. There might be a proper way:
+                 * duplicate the song with mpd_song_dup, and use mpd_entity_free,
+                 * but that adds extra memory usage, and costs about 0.2 seconds. */
+                g_free (ent);
 
             } else {
                 mpd_entity_free (ent);
@@ -313,6 +320,8 @@ static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
     mc_shelper_report_progress (self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
                                 number_of_songs, g_timer_elapsed (timer, NULL) );
 
+    g_timer_destroy (timer);
+
     if (lock_self) {
         UNLOCK_UPDATE_MTX (store);
     }
@@ -333,6 +342,8 @@ static gpointer mc_store_do_plchanges_wrapper (mc_StoreDB * self)
 {
     mc_store_do_plchanges (self, true);
     mc_stprv_insert_meta_attributes (self);
+
+    g_thread_unref (g_thread_self ());
     return NULL;
 }
 
@@ -356,6 +367,7 @@ static gpointer mc_store_do_listall_and_plchanges (mc_StoreDB * self)
     mc_store_do_plchanges (self, false);
     mc_stprv_insert_meta_attributes (self);
     UNLOCK_UPDATE_MTX (self);
+    g_thread_unref (g_thread_self ());
     return NULL;
 }
 
@@ -376,6 +388,7 @@ static gpointer mc_store_deserialize_songs_and_plchanges (mc_StoreDB * self)
     mc_store_do_plchanges (self, false);
     mc_stprv_insert_meta_attributes (self);
     UNLOCK_UPDATE_MTX (self);
+    g_thread_unref (g_thread_self ());
     return NULL;
 }
 
@@ -435,10 +448,20 @@ static void mc_store_connectivity_callback (
 }
 
 ///////////////
+
+static char * mc_store_construct_full_dbpath (mc_Client * client, const char * directory) 
+{
+    g_assert (client);
+
+    return g_strdup_printf("%s%cmoosecat_%s:%d", (directory) ? directory : ".",
+            G_DIR_SEPARATOR, client->_host, client->_port);
+}
+
+///////////////
 /// PUBLIC ////
 ///////////////
 
-mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const char * dbname)
+mc_StoreDB * mc_store_create (mc_Client * client, const char * directory)
 {
     g_assert (client);
 
@@ -448,6 +471,12 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
     /* either songs in 'songs' table or -1 on error */
     int song_count = -1;
 
+    /* we need to remember it for saving it later */
+    store->db_directory = g_strdup (directory);
+
+    /* create the full path to the db */
+    char * db_path = mc_store_construct_full_dbpath (client, directory);
+
     /* init the background mutex */
     g_rec_mutex_init (&store->db_update_lock);
     store->db_is_locked = FALSE;
@@ -455,23 +484,13 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
     /* client is used to keep the db content updated */
     store->client = client;
 
-    if (dbname == NULL)
-        dbname = "moosecat.db";
-
-    if (directory == NULL)
-        directory = ".";
-
     /* do not wait by default */
     store->wait_for_db_finish = false;
-
-    /* create the full path to the db */
-    store->db_path = g_strjoin (G_DIR_SEPARATOR_S, directory, dbname, NULL);
 
     /* used to exchange songs between network <-> sql threads */
     store->sqltonet_queue = g_async_queue_new ();
 
-
-    if ( (song_count = mc_store_check_if_db_is_still_valid (store) ) < 0) {
+    if ( (song_count = mc_store_check_if_db_is_still_valid (store, db_path) ) < 0) {
         mc_shelper_report_progress (store->client, true, "database: will fetch stuff from mpd.");
 
         /* open a sqlite handle, pointing to a database, either a new one will be created,
@@ -496,13 +515,13 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
          * or an backup will be loaded into memory */
         mc_strprv_open_memdb (store);
         mc_stprv_prepare_all_statements (store);
-        mc_shelper_report_progress (store->client, true, "database: %s exists already.", store->db_path);
+        mc_shelper_report_progress (store->client, true, "database: %s exists already.", db_path);
 
         /* stack is allocated to the old size */
         store->stack = mc_store_stack_create (song_count + 1, (GDestroyNotify) mpd_song_free);
 
         /* load the old database into memory */
-        mc_stprv_load_or_save (store, false);
+        mc_stprv_load_or_save (store, false, db_path);
 
         /* try to keep the old database,
          * saves write-time, and might reduce bugs,
@@ -530,6 +549,8 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, const 
         "connectivity", true, /* call first */
         (mc_ConnectivityCallback) mc_store_connectivity_callback, store);
 
+    g_free (db_path);
+
     return store;
 }
 
@@ -554,12 +575,16 @@ void mc_store_close (mc_StoreDB * self)
     mc_proto_signal_rm (self->client, "connectivity", mc_store_connectivity_callback);
     mc_store_stack_free (self->stack);
 
+    char * full_path = mc_store_construct_full_dbpath (self->client, self->db_directory);
     if (self->write_to_disk)
-        mc_stprv_load_or_save (self, true);
+        mc_stprv_load_or_save (self, true, full_path);
 
     mc_stprv_close_handle (self);
 
-    g_free (self->db_path);
+    g_rec_mutex_clear (&self->db_update_lock);
+    g_async_queue_unref (self->sqltonet_queue);
+    g_free (self->db_directory);
+    g_free (full_path);
     g_free (self);
 }
 
@@ -570,7 +595,9 @@ int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool que
     /* we should not operate on changing data */
     return_val_if_locked (self, -1);
 
-    return mc_stprv_select_out (self, match_clause, queue_only, song_buffer, buf_len);
+    int rc = mc_stprv_select_to_buf (self, match_clause, queue_only, song_buffer, buf_len);
+
+    return rc;
 }
 
 ///////////////

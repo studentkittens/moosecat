@@ -91,7 +91,7 @@ static EntryTag * setup_client (void)
         client_setup = g_timer_elapsed (setup_timer, NULL);
 
         g_timer_start (setup_timer);
-        mc_StoreDB * store = mc_store_create (client, NULL, NULL);
+        mc_StoreDB * store = mc_store_create (client, NULL);
         db_setup = g_timer_elapsed (setup_timer, NULL);
 
         if (store != NULL) {
