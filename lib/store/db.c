@@ -453,7 +453,7 @@ static char * mc_store_construct_full_dbpath (mc_Client * client, const char * d
 {
     g_assert (client);
 
-    return g_strdup_printf("%s%cmoosecat_%s:%d", (directory) ? directory : ".",
+    return g_strdup_printf("%s%cmoosecat_%s:%d.sqlite", (directory) ? directory : ".",
             G_DIR_SEPARATOR, client->_host, client->_port);
 }
 
