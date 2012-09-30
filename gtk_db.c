@@ -35,19 +35,15 @@ static GtkTreeModel * create_model (void)
                           );
 }
 
-static void on_entry_text_changed (GtkEditable * editable, gpointer user_data)
+static void update_view (EntryTag * tag, const char * search_text)
 {
-    EntryTag * tag = user_data;
     GtkListStore * list_store = GTK_LIST_STORE (tag->model);
     gdouble select_time, gui_time;
     GtkTreeIter iter;
-    gchar * entry_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (editable) ) );
 
     g_timer_start (tag->profile_timer);
-    int found = mc_store_search_out (tag->store, g_strstrip (entry_text), true, tag->song_buf, tag->song_buf_len);
+    int found = mc_store_search_out (tag->store, search_text, true, tag->song_buf, tag->song_buf_len);
     select_time = g_timer_elapsed (tag->profile_timer, NULL);
-
-    g_free (entry_text);
 
     if (found == 0)
         return;
@@ -68,6 +64,18 @@ static void on_entry_text_changed (GtkEditable * editable, gpointer user_data)
              select_time, gui_time, select_time + gui_time, found);
 }
 
+static void on_entry_text_changed (GtkEditable * editable, gpointer user_data)
+{
+    gchar * entry_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (editable) ) );
+
+    if (entry_text != NULL) 
+    {
+        g_strstrip (entry_text);
+        update_view ((EntryTag *)user_data, entry_text);
+        g_free (entry_text);
+    }
+}
+
 static gboolean window_closed (GtkWidget * widget, GdkEvent * event, gpointer user_data)
 {
     (void) widget;
@@ -75,6 +83,16 @@ static gboolean window_closed (GtkWidget * widget, GdkEvent * event, gpointer us
     (void) user_data;
     gtk_main_quit();
     return FALSE;
+}
+
+static void on_client_update (mc_Client * self, enum mpd_idle event, void * user_data)
+{
+    (void) self;
+    (void) event;
+
+    g_print("Updating due to Queue/DB Update\n");
+    EntryTag * tag = user_data;
+    update_view (tag, "");
 }
 
 static EntryTag * setup_client (void)
@@ -86,6 +104,7 @@ static EntryTag * setup_client (void)
 
     mc_Client * client = mc_proto_create (MC_PM_COMMAND);
     mc_proto_connect (client, NULL, "localhost", 6600, 2.0);
+
 
     if (client && mc_proto_is_connected (client) ) {
         client_setup = g_timer_elapsed (setup_timer, NULL);
@@ -102,9 +121,13 @@ static EntryTag * setup_client (void)
             rc->song_buf_len = mpd_stats_get_number_of_songs (client->stats) + 1;
             rc->song_buf = g_new0 (mpd_song *, rc->song_buf_len);
         }
+
+        mc_proto_signal_add_masked (client, "client-event", 
+                on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
     }
+
     g_print ("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",
-             client_setup, db_setup, client_setup + db_setup);
+            client_setup, db_setup, client_setup + db_setup);
     return rc;
 }
 

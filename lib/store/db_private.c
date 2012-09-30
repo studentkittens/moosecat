@@ -1,5 +1,6 @@
 #include "db_private.h"
 #include "../mpd/signal_helper.h"
+#include "../mpd/client_private.h"
 
 /* strlen() */
 #include <string.h>
@@ -10,6 +11,7 @@
 /* gmtime(), strftime() */
 #define _POSIX_SOURCE
 #include <time.h>
+
 
 /*
  * Note:
@@ -24,7 +26,14 @@
     mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
                                     __FILE__, __LINE__, message,                                   \
                                     sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
-     
+ 
+#define CLEAR_BINDS(stmt)          \
+    sqlite3_reset (stmt);          \
+    sqlite3_clear_bindings (stmt); \
+
+#define CLEAR_BINDS_BY_NAME(store, type) \
+    CLEAR_BINDS (SQL_STMT (store, type))
+
 ///////////////////
 
 /* this enum mirros the order in the CREATE statement */
@@ -51,46 +60,54 @@ enum {
     SQL_COL_MUSICBRAINZ_TRACK_ID,
     SQL_COL_QUEUE_POS,
     SQL_COL_QUEUE_IDX,
-    SQL_COL_QUEUE_URI_HASH
+    SQL_COL_SPL_INFO
 };
 
 ///////////////////
 
 static const char * _sql_stmts[] = {
     [_MC_SQL_CREATE] =
-    "PRAGMA journal_mode = MEMORY;                                                                  \n"
-    "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.    \n"
-    "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                           \n"
-    "uri            TEXT UNIQUE NOT NULL,     -- Path to file, or URL to webradio etc.              \n"
-    "start          INTEGER NOT NULL,         -- Start of the virtual song within the physical file \n"
-    "end            INTEGER NOT NULL,         -- End of the virtual song within the physical file   \n"
-    "duration       INTEGER NOT NULL,         -- Songudration in Seconds. (0 means unknown)         \n"
-    "last_modified  INTEGER NOT NULL,         -- Last modified as Posix UTC Timestamp               \n"
-    "-- Tags:                                                                                       \n"
-    "artist         TEXT,                                                                           \n"
-    "album          TEXT,                                                                           \n"
-    "title          TEXT,                                                                           \n"
-    "album_artist   TEXT,                                                                           \n"
-    "track          TEXT,                                                                           \n"
-    "name           TEXT,                                                                           \n"
-    "genre          TEXT,                                                                           \n"
-    "composer       TEXT,                                                                           \n"
-    "performer      TEXT,                                                                           \n"
-    "comment        TEXT,                                                                           \n"
-    "disc           TEXT,                                                                           \n"
-    "-- MB-Tags:                                                                                    \n"
-    "musicbrainz_artist_id       TEXT,                                                              \n"
-    "musicbrainz_album_id        TEXT,                                                              \n"
-    "musicbrainz_albumartist_id  TEXT,                                                              \n"
-    "musicbrainz_track           TEXT,                                                              \n"
-    "-- Queue Data:                                                                                 \n"
-    "queue_pos INTEGER NOT NULL UNIQUE,                                                                    \n"
-    "queue_idx INTEGER NOT NULL UNIQUE,                                                                    \n"
-    "-- FTS options:                                                                                \n"
-    "tokenize=%s                                                                                    \n"
-    ");                                                                                             \n"
-    "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                     \n"
-    "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                     \n",
+    "PRAGMA journal_mode = MEMORY;                                                                    \n"
+    "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.      \n"
+    "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                             \n"
+    "uri            TEXT UNIQUE NOT NULL,     -- Path to file, or URL to webradio etc.                \n"
+    "start          INTEGER NOT NULL,         -- Start of the virtual song within the physical file   \n"
+    "end            INTEGER NOT NULL,         -- End of the virtual song within the physical file     \n"
+    "duration       INTEGER NOT NULL,         -- Songudration in Seconds. (0 means unknown)           \n"
+    "last_modified  INTEGER NOT NULL,         -- Last modified as Posix UTC Timestamp                 \n"
+    "-- Tags:                                                                                         \n"
+    "artist         TEXT,                                                                             \n"
+    "album          TEXT,                                                                             \n"
+    "title          TEXT,                                                                             \n"
+    "album_artist   TEXT,                                                                             \n"
+    "track          TEXT,                                                                             \n"
+    "name           TEXT,                                                                             \n"
+    "genre          TEXT,                                                                             \n"
+    "composer       TEXT,                                                                             \n"
+    "performer      TEXT,                                                                             \n"
+    "comment        TEXT,                                                                             \n"
+    "disc           TEXT,                                                                             \n"
+    "-- MB-Tags:                                                                                      \n"
+    "musicbrainz_artist_id       TEXT,                                                                \n"
+    "musicbrainz_album_id        TEXT,                                                                \n"
+    "musicbrainz_albumartist_id  TEXT,                                                                \n"
+    "musicbrainz_track           TEXT,                                                                \n"
+    "-- Queue Data:                                                                                   \n"
+    "queue_pos INTEGER NOT NULL UNIQUE,                                                               \n"
+    "queue_idx INTEGER NOT NULL UNIQUE,                                                               \n"
+    "spl_info  TEXT NOT NULL,                                                                         \n"
+    "-- FTS options:                                                                                  \n"
+    "tokenize=%s                                                                                      \n"
+    ");                                                                                               \n"
+    "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                       \n"
+    "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                       \n"
+    "CREATE INDEX IF NOT EXISTS queue_pos_index ON songs_content(c20queue_pos);                \n"
+    "                                                                                                 \n"
+    "-- Playlist table only contains names of the playlist, and last modification date                \n"
+    "CREATE TABLE IF NOT EXISTS playlists(name TEXT UNIQUE NOT NULL, last_modified INTEGER NOT NULL); \n"
+    "                                                                                                 \n"
+    "-- Directory table only contains path of the directory and the path-depth (no '/' == 0)          \n"
+    "CREATE TABLE IF NOT EXISTS dirs(path TEXT NOT NULL, depth INTEGER NOT NULL);              \n",
     [_MC_SQL_META_DUMMY] =
     "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
     [_MC_SQL_META] =
@@ -104,7 +121,7 @@ static const char * _sql_stmts[] = {
     "      mpd_port      INTEGER,  -- analogous, the port.                           \n"
     "      mpd_host      TEXT      -- the hostname that this table was created from. \n"
     ");                                                                              \n"
-    "INSERT INTO meta VALUES(%d, %d, %d, %d, '%s');                                  \n"
+    "INSERT INTO meta VALUES(%d, %d, %d, %d, '%s');                                  \n" 
     "COMMIT;                                                                         \n",
     /* binding column names does not seem to work well.. */
     [_MC_SQL_SELECT_META_DB_VERSION] =
@@ -120,9 +137,13 @@ static const char * _sql_stmts[] = {
     [_MC_SQL_COUNT] =
     "SELECT count(*) FROM songs;",
     [_MC_SQL_INSERT] =
-    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [_MC_SQL_QUEUE_UPDATE_ROW] =
     "UPDATE songs_content SET c20queue_pos = ?, c21queue_idx = ? WHERE c0uri = ?;",
+    [_MC_SQL_QUEUE_CLEAR] =
+    "UPDATE songs_content SET c20queue_pos = -1, c21queue_idx = -1 WHERE c20queue_pos > ?;", // Needed?
+    [_MC_SQL_QUEUE_CLEAR_ROW] =
+        "UPDATE songs_content SET c20queue_pos = -1, c21queue_idx = -1 WHERE c20queue_pos = ?;",
     [_MC_SQL_SELECT_MATCHED] =
     "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
     [_MC_SQL_SELECT_MATCHED_ALL] =
@@ -130,13 +151,23 @@ static const char * _sql_stmts[] = {
     [_MC_SQL_SELECT_ALL] =
     "SELECT * FROM songs;",
     [_MC_SQL_SELECT_ALL_QUEUE] =
-    "SELECT rowid, queue_pos, queue_idx FROM songs WHERE queue_idx > 0;",
+    "SELECT rowid, queue_pos, queue_idx FROM songs;",
     [_MC_SQL_DELETE_ALL] =
     "DELETE FROM songs;",
     [_MC_SQL_BEGIN] =
     "BEGIN IMMEDIATE;",
     [_MC_SQL_COMMIT] =
     "COMMIT;",
+    [_MC_SQL_SPL_UPDATE_SONG] =
+        "UPDATE songs_content SET c22spl_info = c22spl_info || ? WHERE c0uri = ?;",
+    [_MC_SQL_SPL_SELECT_ALL_NAMES] =
+        "SELECT name FROM playlists;",
+    [_MC_SQL_DIR_INSERT] =
+        "INSERT INTO dirs VALUES(?, ?);",
+    [_MC_SQL_DIR_SELECT_DEPTH] =
+        "SELECT path FROM dirs WHERE depth = ? AND path LIKE ?;",
+    [_MC_SQL_DIR_DELETE_ALL] =
+        "DELETE FROM dirs;",
     [_MC_SQL_SOURCE_COUNT] =
     ""
 };
@@ -210,12 +241,8 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
     }
 
     for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
-        prep_error = sqlite3_prepare_v2 (
-                         self->handle,
-                         _sql_stmts[i],
-                         strlen (_sql_stmts[i]) + 1,
-                         &self->sql_prep_stmts[i],
-                         NULL);
+        prep_error = sqlite3_prepare_v2 (self->handle, _sql_stmts[i],
+                         strlen (_sql_stmts[i]) + 1, &self->sql_prep_stmts[i], NULL);
 
         /* Uh-Oh. Typo? */
         if (prep_error != SQLITE_OK)
@@ -341,6 +368,11 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
     bind_int (db, INSERT, pos_idx, -1, error_id);
     bind_int (db, INSERT, pos_idx, -1, error_id);
 
+    /* Stored playlists, not sure what to do here.
+     *  TODO
+     */
+    bind_txt (db, INSERT, pos_idx, "", error_id);
+
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
         REPORT_SQL_ERROR (db, "WARNING: Error while binding");
@@ -362,6 +394,28 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
 
 ////////////////////////////////
 
+static gint mc_stprv_select_impl_sort_func (gconstpointer a, gconstpointer b, gpointer ud) 
+{
+    (void) ud;
+
+    if (a && b) {
+         int pos_a = mpd_song_get_pos ( *((mpd_song **) a));
+         int pos_b = mpd_song_get_pos ( *((mpd_song **) b));
+
+         if (pos_a == pos_b) return +0;
+         if (pos_a <  pos_b) return -1;
+         /* pos_a > pos_b */ return +1;
+    }
+    else return 1 /* to sort NULL at the end */;
+}
+
+static inline gint mc_stprv_select_impl_sort_func_noud (gconstpointer a, gconstpointer b)
+{
+    return mc_stprv_select_impl_sort_func (a, b, NULL);
+}
+
+////////////////////////////////
+
 /*
  * Search stuff in the 'songs' table using a SELECT clause (also using MATCH).
  * Instead of selecting the actual songs, only the docid is selected, and used as
@@ -379,7 +433,8 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
 {
     int error_id = SQLITE_OK,
         pos_id = 1,
-        buf_pos = 0;
+        buf_pos = 0,
+        limit_len = (buffer_len < 0) ? INT_MAX : buffer_len;
 
     /* Duplicate this, in order to strip it.
      * We do not want to modify caller's stuff. He would hate us. */
@@ -393,11 +448,12 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
     } else {
         select_stmt = SQL_STMT (self, SELECT_MATCHED);
         bind_txt (self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
-        bind_int (self, SELECT_MATCHED, pos_id, buffer_len, error_id);
-        if (error_id != SQLITE_OK) {
-            REPORT_SQL_ERROR (self, "WARNING: Error while binding");
-            return -1;
-        }
+        bind_int (self, SELECT_MATCHED, pos_id, limit_len, error_id);
+    }
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "WARNING: Error while binding");
+        return -1;
     }
 
     while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW &&
@@ -409,7 +465,7 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
          * Therefore we filter here the queue songs ourselves. */
-        if (queue_only == false || ((int)mpd_song_get_pos (selected) > 0) ) {
+        if (queue_only == false || ((int)mpd_song_get_pos (selected) > -1) ) {
             if (buffer_len == -1) {
                 mc_store_stack_append ((mc_StoreStack *) buf_or_stack, selected); 
             } else {
@@ -425,6 +481,14 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
     sqlite3_clear_bindings (select_stmt);
     g_free (match_clause_dup);
 
+    /* sort by position in queue if queue_only is passed. */
+    if (queue_only) {
+        if (buffer_len == -1)
+           mc_store_stack_sort ((mc_StoreStack *) buf_or_stack, mc_stprv_select_impl_sort_func_noud);
+        else
+           g_qsort_with_data ((mpd_song **)buf_or_stack, buf_pos, sizeof(mpd_song *), mc_stprv_select_impl_sort_func, NULL);
+    }
+
     return buf_pos;
 }
 
@@ -439,9 +503,9 @@ int mc_stprv_select_to_stack (mc_StoreDB * self, const char * match_clause, bool
 
 int mc_stprv_select_to_buf (mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buffer_len)
 {
-    return mc_stprv_select_impl (self, match_clause, queue_only, (void *)song_buffer, buffer_len);
+    return mc_stprv_select_impl (self, match_clause, queue_only, (void *)song_buffer, MAX(0, buffer_len));
 }
-    
+
 ////////////////////////////////
 
 /*
@@ -518,11 +582,11 @@ void mc_stprv_load_or_save (mc_StoreDB * self, bool is_save, const char * db_pat
 
 #define feed_tag(tag_enum, sql_col_pos, stmt, song, pair)         \
     pair.value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
-    if (pair.value) {                                             \
-        pair.name  = mpd_tag_name(tag_enum);                      \
-        mpd_song_feed(song, &pair);                               \
-    }                                                             \
-     
+if (pair.value) {                                             \
+    pair.name  = mpd_tag_name(tag_enum);                      \
+    mpd_song_feed(song, &pair);                               \
+}                                                             \
+
 /*
  * Selects all rows from the 'songs' table and compose a mpd_song structure from it.
  * It does this by emulating the MPD protocol, and using mpd_song_begin/feed to set
@@ -639,7 +703,7 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 
         if (++progress_counter % 50 == 0) {
             mc_shelper_report_progress (self->client, false, "database: deserializing songs from db ... [%d/%d]",
-                                        progress_counter, mpd_stats_get_number_of_songs (self->client->stats) );
+                    progress_counter, mpd_stats_get_number_of_songs (self->client->stats) );
         }
     }
 
@@ -655,16 +719,16 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 ////////////////////////////////
 
 #define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)  \
-    {                                                                                       \
-        int error_id = SQLITE_OK;                                                           \
-        if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
-            out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
-        if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
-            REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
-        out_var = (cast_type)copy_func((cast_type)out_var);                                 \
-        sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
-    }                                                                                       \
-     
+{                                                                                       \
+    int error_id = SQLITE_OK;                                                           \
+    if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
+    out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
+    if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
+    REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
+    out_var = (cast_type)copy_func((cast_type)out_var);                                 \
+    sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
+}                                                                                       \
+
 
 ////////////////////////////////
 
@@ -722,55 +786,272 @@ char * mc_stprv_get_mpd_host (mc_StoreDB * self)
 
 /////////////////// QUEUE STUFF ////////////////////
 
+int mc_stprv_queue_clip (mc_StoreDB * self, int since_pos) 
+{
+    g_assert (self);
+
+    int pos_idx = 1;
+    int error_id = SQLITE_OK;
+
+    sqlite3_stmt * clear_stmt = SQL_STMT (self, QUEUE_CLEAR);
+
+    bind_int (self, QUEUE_CLEAR, pos_idx, MAX(0, since_pos - 1), error_id);
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot bind stuff to clear statement");
+        return;
+    }
+
+    if (sqlite3_step (clear_stmt) != SQLITE_DONE) {
+        REPORT_SQL_ERROR (self, "Cannot clear Queue contents");
+    }
+
+    /* Make sure bindings are ready for the next insert */
+    sqlite3_reset (clear_stmt);
+    sqlite3_clear_bindings (clear_stmt);
+
+    return sqlite3_changes (self->handle);
+}
+
+/////////////////// 
+
 void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file)
 {
     int pos_idx = 1, error_id = SQLITE_OK;
+
     bind_int (self, QUEUE_UPDATE_ROW, pos_idx, pos, error_id);
     bind_int (self, QUEUE_UPDATE_ROW, pos_idx, idx, error_id);
     bind_txt (self, QUEUE_UPDATE_ROW, pos_idx, file, error_id);
+    
+    pos_idx = 1;
+    bind_int (self, QUEUE_CLEAR_ROW, pos_idx, pos, error_id);
 
     if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR (self, "Cannot prepare UPDATE statment.");
+        REPORT_SQL_ERROR (self, "Cannot bind stuff to UPDATE statement");
         return;
     }
+   
+    /* First reset the song at that position to -1/-1 */ 
+    if (sqlite3_step (SQL_STMT (self, QUEUE_CLEAR_ROW) ) != SQLITE_DONE)
+        REPORT_SQL_ERROR (self, "Unable to clear song in playlist.");
 
     if (sqlite3_step (SQL_STMT (self, QUEUE_UPDATE_ROW) ) != SQLITE_DONE)
         REPORT_SQL_ERROR (self, "Unable to UPDATE song in playlist.");
 
-    /* Make sure bindings are ready for the next insert */
-    sqlite3_reset (SQL_STMT (self, QUEUE_UPDATE_ROW) );
-    sqlite3_clear_bindings (SQL_STMT (self, QUEUE_UPDATE_ROW) );
+    CLEAR_BINDS_BY_NAME (self, QUEUE_UPDATE_ROW);
+    CLEAR_BINDS_BY_NAME (self, QUEUE_CLEAR_ROW);
 }
 
 ///////////////////
 
 void mc_stprv_queue_update_stack_posid (mc_StoreDB * self)
 {
+    g_assert (self);
+
     int error_id = SQLITE_OK;
     sqlite3_stmt * select_stmt = SQL_STMT (self, SELECT_ALL_QUEUE);
+                
+    /* Set the ID by parsing the ID */
+    struct mpd_pair parse_pair;
+    parse_pair.name = "Id";
 
-    mc_stprv_begin (self);
     while ( (error_id = sqlite3_step (select_stmt) ) == SQLITE_ROW) {
         int row_idx  = sqlite3_column_int (select_stmt, 0);
 
         if (row_idx > 0) {
             mpd_song * song = mc_store_stack_at (self->stack, row_idx - 1);
             if (song != NULL) {
-
-                /* Set the ID by parsing the ID */
-                struct mpd_pair parse_pair;
-                parse_pair.name = "Id";
                 parse_pair.value = (char *) sqlite3_column_text (select_stmt, 2);
                 mpd_song_feed (song, &parse_pair);
 
-                /* Luckily we have a setter here, otherwise */
+                /* Luckily we have a setter here, otherwise I would feel a bit strange. */
                 mpd_song_set_pos (song, sqlite3_column_int (select_stmt, 1) );
             }
         }
     }
+}
 
-    if (error_id != SQLITE_DONE) {
-        REPORT_SQL_ERROR (self, "selecting all songs from queue failed");
+/////////////////// STORED PLAYLISTS STUFF ////////////////////
+
+void mc_stprv_spl_load_playlist (mc_StoreDB * store, const char * pl_name, bool lock_self, bool do_commit)
+{
+    if (lock_self) {
+        LOCK_UPDATE_MTX (store);
     }
-    mc_stprv_commit (self);
+
+    mc_Client * self = store->client;
+
+    BEGIN_COMMAND {
+
+        int pos_idx = 1;
+        int error_id = 0;
+
+        sqlite3_stmt * update_song_stmt = SQL_STMT (store, SPL_UPDATE_SONG);
+        g_assert (update_song_stmt);
+
+        if (do_commit) {
+            mc_stprv_begin (store);
+        }
+
+        mc_shelper_report_progress (self, true, "database: Loading stored playlist ,,%s'' from MPD", pl_name);
+        if (mpd_send_list_playlist (conn, pl_name) ) {
+            struct mpd_pair * file_pair = NULL;
+
+            while ( (file_pair = mpd_recv_pair_named (conn, "file")) != NULL) {
+                bind_txt (store, SPL_UPDATE_SONG, pos_idx, "1 2 3", error_id); // TODO: actual value?
+                bind_txt (store, SPL_UPDATE_SONG, pos_idx, file_pair->value, error_id);
+
+                if (sqlite3_step (update_song_stmt) != SQLITE_DONE) {
+                    REPORT_SQL_ERROR (store, "Cannot update spl_info of songs table");
+                }
+            }
+
+            if (mpd_response_finish (conn) == FALSE) {
+                mc_shelper_report_error (self, conn);
+            }
+        }
+
+        if (do_commit) {
+            mc_stprv_commit (store);
+        }
+    }
+    END_COMMAND
+
+        if (lock_self) {
+            UNLOCK_UPDATE_MTX (store);
+        }
+}
+
+///////////////////
+
+void mc_stprv_spl_update_playlists (mc_StoreDB * store)
+{
+    g_assert (store);
+
+    LOCK_UPDATE_MTX (store);
+
+    mc_stprv_begin (store);
+
+    sqlite3_stmt * select_all_stmt = SQL_STMT (store, SPL_SELECT_ALL_NAMES);
+    while (sqlite3_step (select_all_stmt) == SQLITE_ROW) {
+        char * pl_name = (char *) sqlite3_column_name (select_all_stmt, 0);
+        if (pl_name != NULL) {
+            mc_stprv_spl_load_playlist (store, pl_name, false, false);
+        }
+    }
+
+    int error = sqlite3_errcode(store->handle);
+    if (error != SQLITE_DONE && error != SQLITE_OK) {
+        REPORT_SQL_ERROR (store, "Some error while selecting all playlists");
+    } 
+
+    mc_stprv_commit (store);
+
+    UNLOCK_UPDATE_MTX (store);
+}
+
+/////////////////// DIRECTORY STUFF ////////////////////
+
+/* Count the 'depth' of a path. 
+ * Examples:
+ * 
+ *  Path:     Depth:
+ *  /         0
+ *  a/        0
+ *  a         0
+ *  a/b       1
+ *  a/b/      1
+ */
+static int mc_stprv_dir_path_get_depth (const char * dir_path) 
+{
+    int dir_depth = 0;
+    char * cursor = (char *) dir_path;
+
+    if (dir_path == NULL)
+        return -1;
+
+    for (;;) {
+        gunichar curr = g_utf8_get_char_validated (cursor, -1);
+        cursor = g_utf8_next_char (cursor);
+        if(*cursor != 0) {
+            if (curr == '/')
+                ++dir_depth;
+        } else {
+            break;
+        }
+    }
+
+    return dir_depth;
+}
+
+/////////////////// 
+
+void mc_stprv_dir_insert (mc_StoreDB * self, const char * path) 
+{
+    g_assert (self);
+    g_assert (path);
+
+    int pos_idx = 1;
+    int error_id = SQLITE_OK;
+
+    bind_txt (self, DIR_INSERT, pos_idx, path, error_id); 
+    bind_int (self, DIR_INSERT, pos_idx, mc_stprv_dir_path_get_depth(path), error_id); 
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot bind stuff to INSERT statement");
+        return;
+    }
+
+    if (sqlite3_step (SQL_STMT (self, DIR_INSERT)) != SQLITE_DONE) {
+        REPORT_SQL_ERROR (self, "cannot INSERT directory");
+    }
+
+    /* Make sure bindings are ready for the next insert */
+    sqlite3_reset (SQL_STMT (self, DIR_INSERT) );
+    sqlite3_clear_bindings (SQL_STMT (self, DIR_INSERT) );
+}
+
+//////////////////
+
+void mc_stprv_dir_delete (mc_StoreDB * self) 
+{
+    g_assert (self);
+
+    if (sqlite3_step (SQL_STMT (self, DIR_DELETE_ALL)) != SQLITE_DONE) {
+        REPORT_SQL_ERROR (self, "cannot DELETE * from dirs");
+    }
+}
+
+//////////////////
+
+int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * dir, int depth)
+{
+    g_assert (self);
+    g_assert (stack);
+
+    int rc = 0;
+    int pos_idx = 1;
+    int error_id = SQLITE_OK;
+
+    if (dir == NULL)
+        dir = "/";
+
+    bind_int (self, DIR_SELECT_DEPTH, pos_idx, depth, error_id); 
+    bind_txt (self, DIR_SELECT_DEPTH, pos_idx, dir, error_id); 
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot bind stuff to SELECT statement");
+        return - 1;
+    }
+
+    sqlite3_stmt * select_stmt = SQL_STMT (self, DIR_SELECT_DEPTH);
+    while (sqlite3_step (select_stmt) == SQLITE_ROW) {
+        char * path = (char *) sqlite3_column_text (select_stmt, 0);
+        if (path != NULL) {
+            mc_store_stack_append (stack, path);
+            ++rc;
+        }
+    }
+
+    return rc;
 }

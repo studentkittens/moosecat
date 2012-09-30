@@ -61,3 +61,21 @@ void mc_store_stack_free (mc_StoreStack * self)
 }
 
 ///////////////////////////////
+
+unsigned mc_store_stack_length (mc_StoreStack * self)
+{
+    if (self == NULL)
+        return 0;
+
+    return self->stack->len;
+}
+
+///////////////////////////////
+
+void mc_store_stack_sort (mc_StoreStack * self, GCompareFunc func)
+{
+    if (self == NULL || func == NULL)
+        return;
+
+    g_ptr_array_sort (self->stack, func);
+}

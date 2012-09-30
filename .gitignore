@@ -17,3 +17,6 @@ doc/build
 build/
 waf
 lib/config.h
+
+# db
+moosecat_*sqlite

@@ -39,6 +39,10 @@ enum {
     /* ======================================================= */
     /* update queue_pos / queue_idx */
     _MC_SQL_QUEUE_UPDATE_ROW,
+    /* clear the pos/id fields */
+    _MC_SQL_QUEUE_CLEAR,
+    /* clear the pos/id fields by filename */
+    _MC_SQL_QUEUE_CLEAR_ROW,
     /* select using match */
     _MC_SQL_SELECT_MATCHED,
     _MC_SQL_SELECT_MATCHED_ALL,
@@ -62,6 +66,13 @@ enum {
     _MC_SQL_BEGIN,
     /* commit statement */
     _MC_SQL_COMMIT,
+    /* Update stored playlist info of a single song */
+    _MC_SQL_SPL_UPDATE_SONG,
+    /* select all playlist names from playlists table */
+    _MC_SQL_SPL_SELECT_ALL_NAMES,
+    _MC_SQL_DIR_INSERT,
+    _MC_SQL_DIR_SELECT_DEPTH,
+    _MC_SQL_DIR_DELETE_ALL,
     /* === total number of defined sources === */
     _MC_SQL_SOURCE_COUNT
     /* ======================================= */
@@ -73,6 +84,9 @@ typedef struct mc_StoreDB {
 
     /* songstack - a place for mpd_songs to live in */
     mc_StoreStack * stack;
+
+    /* stored playlist stack - place for mpd_playlist */
+    mc_StoreStack * spl_stack;
 
     /* handle to sqlite */
     sqlite3 * handle;
@@ -239,6 +253,11 @@ int mc_stprv_get_song_count (mc_StoreDB * self);
 char * mc_stprv_get_mpd_host (mc_StoreDB * self);
 
 /**
+ * @brief Clear pos/id in the songs table (to -1)
+ */
+int mc_stprv_queue_clip (mc_StoreDB * self, int since_pos);
+
+/**
  * @brief Update a song, identified by file's pos/id to pos/idx
  */
 void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file);
@@ -252,5 +271,9 @@ void mc_stprv_queue_update_stack_posid (mc_StoreDB * self);
  * @brief Close the sqlite3 handle
  */
 void mc_stprv_close_handle (mc_StoreDB * self);
+
+void mc_stprv_dir_insert (mc_StoreDB * self, const char * path);
+void mc_stprv_dir_delete (mc_StoreDB * self);
+int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * dir, int depth);
 
 #endif /* end of include guard: MC_DB_PRIVATE_H */

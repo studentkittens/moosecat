@@ -103,10 +103,12 @@ int main (int argc, char * argv[])
                 int selected = mc_store_search_out (db, line_buf, queue_only, song_buf, song_buf_size);
 
                 if (selected > 0) {
-                    g_print ("%-35s | %-35s | %-35s\n", "Artist", "Album", "Title");
+                    g_print ("#%04d/%03d %-35s | %-35s | %-35s\n", 0, 0, "Artist", "Album", "Title");
                     g_print ("------------------------------------------------------------------------------------------------\n");
                     for (int i = 0; i < selected; i++) {
-                        g_print ("%-35s | %-35s | %-35s\n",
+                        g_print ("%04d/%04d %-35s | %-35s | %-35s\n",
+                                 mpd_song_get_pos (song_buf[i]),
+                                 mpd_song_get_id  (song_buf[i]),
                                  mpd_song_get_tag (song_buf[i], MPD_TAG_ARTIST, 0),
                                  mpd_song_get_tag (song_buf[i], MPD_TAG_ALBUM, 0),
                                  mpd_song_get_tag (song_buf[i], MPD_TAG_TITLE, 0) );

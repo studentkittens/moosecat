@@ -16,6 +16,10 @@ void mc_store_stack_free (mc_StoreStack * self);
 
 void mc_store_stack_clear (mc_StoreStack * self, int resize);
 
+unsigned mc_store_stack_length (mc_StoreStack * self);
+
+void mc_store_stack_sort (mc_StoreStack * self, GCompareFunc func);
+
 /* For peformance reason a define (vs. inline function) */
 #define mc_store_stack_at(self, at) g_ptr_array_index (self->stack, at)
 
