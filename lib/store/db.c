@@ -3,6 +3,8 @@
 #include "../mpd/signal_helper.h"
 #include "../mpd/signal.h"
 
+#include "../util/gzip.h"
+
 #include <glib.h>
 
 #define _return_if_locked(store, return_code)            \
@@ -36,17 +38,39 @@
  *
  * Returns: the number of songs in the songs table, or -1 on failure.
  */
-static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self, const char * db_path)
+static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self, const char * db_path, const char * tokenizer)
 {
     /* result */
     int song_count = -1;
 
+    /* result of check #1 */
+    bool exist_check = FALSE;
+
+    char * actual_db_path = (char *)db_path;
+
     /* check #1 */
     if (g_file_test (db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
+        exist_check = TRUE;
+    } else if (self->settings.use_compression) {
+        char * zip_path = g_strdup_printf ("%s%s", db_path, MC_GZIP_ENDING);
+        exist_check = g_file_test (zip_path, G_FILE_TEST_IS_REGULAR);
+
+        GTimer * zip_timer = g_timer_new();
+        if ( (exist_check = mc_gunzip (zip_path)) == false)
+            mc_shelper_report_progress (self->client, true, "database: Unzipping %s failed.", zip_path);
+        else 
+            mc_shelper_report_progress (self->client, true, "database: Unzipping %s done (took %2.3fs).",
+                    zip_path, g_timer_elapsed (zip_timer, NULL));
+
+        g_timer_destroy (zip_timer);
+        g_free (zip_path);
+    }
+
+    if (exist_check) {
         /* check #2 */
-        if (sqlite3_open (db_path, &self->handle) == SQLITE_OK) {
+        if (sqlite3_open (actual_db_path, &self->handle) == SQLITE_OK) {
             /* needed in order to select metadata */
-            mc_stprv_create_song_table (self);
+            mc_stprv_create_song_table (self, tokenizer);
             mc_stprv_prepare_all_statements (self);
 
             /* check #3 */
@@ -96,22 +120,40 @@ static gpointer mc_store_do_plchanges_sql_thread (mc_StoreDB * self)
     /* start a transaction */
     mc_stprv_begin (self);
 
+    GTimer * timer = g_timer_new ();
+    gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
+            
+    /* set the queue_update column all to 0 
+     * Other queue functions set it back to 1 */
+    //mc_stprv_queue_clear_update_flag (self);
+
     while ( (gpointer) (song = g_async_queue_pop (self->sqltonet_queue) ) != async_queue_terminator) {
         mc_stprv_queue_update_posid (self, mpd_song_get_pos (song), mpd_song_get_id (song), mpd_song_get_uri (song) );
         mpd_song_free (song);
-    } 
+    }
+    posid_time = g_timer_elapsed (timer, NULL);
 
+     
     /* Clip off songs that were deleted at the end of the queue */
+    g_timer_start (timer);
     int clipped = mc_stprv_queue_clip (self, mpd_status_get_queue_length (self->client->status));
     if (clipped > 0) {
         mc_shelper_report_progress (self->client, true, "database: Clipped %d songs at end of playlist.", clipped);
     }
+    clip_time = g_timer_elapsed (timer, NULL);
 
     /* Commit all those update statements */
     mc_stprv_commit (self);
 
     /* Update the pos/id data in the song stack (=> sync with db) */
+    g_timer_start (timer);
     mc_stprv_queue_update_stack_posid (self);
+    stack_time = g_timer_elapsed (timer, NULL);
+
+    g_timer_destroy (timer);
+
+    mc_shelper_report_progress (self->client, true, "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
+            clip_time, posid_time, stack_time);
 
     return NULL;
 }
@@ -213,13 +255,15 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
 
     mc_stprv_begin (self);
 
+    int dir_index = 0;
+
     while ( (gpointer) (ent = g_async_queue_pop (self->sqltonet_queue)) > async_queue_terminator) {
         switch (mpd_entity_get_type (ent)) {
             case MPD_ENTITY_TYPE_SONG:
                 {
                     struct mpd_song * song = (struct mpd_song *) mpd_entity_get_song (ent) ;
                     mc_store_stack_append (self->stack, (mpd_song *) song);
-                    mc_stprv_insert_song (self, (mpd_song *) song);
+                    mc_stprv_insert_song (self, (mpd_song *) song, dir_index);
 
                     /* Not sure if this is a nice way,
                      * but for now it works. There might be a proper way:
@@ -234,6 +278,8 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
                     if (dir != NULL) {
                         mc_stprv_dir_insert (self, g_strdup(mpd_directory_get_path (dir)));
                         mpd_entity_free (ent);
+
+                        ++dir_index;
                     }
                 }
                 break;
@@ -241,7 +287,7 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
                 {
                     const struct mpd_playlist * pl = mpd_entity_get_playlist (ent);
                     if (pl != NULL) {
-                        mc_store_stack_append (self->spl_stack, (struct mpd_playlist *) pl);
+                        mc_store_stack_append (self->spl.stack, (struct mpd_playlist *) pl);
                     }
                     g_free (ent);
                 }
@@ -511,12 +557,15 @@ static char * mc_store_construct_full_dbpath (mc_Client * client, const char * d
 /// PUBLIC ////
 ///////////////
 
-mc_StoreDB * mc_store_create (mc_Client * client, const char * directory)
+mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, bool use_compression, const char * tokenizer)
 {
     g_assert (client);
 
     /* allocated memory for the mc_StoreDB struct */
     mc_StoreDB * store = g_new0 (mc_StoreDB, 1);
+
+    /* Settings */
+    store->settings.use_compression = use_compression;
 
     /* either songs in 'songs' table or -1 on error */
     int song_count = -1;
@@ -541,14 +590,14 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory)
     store->sqltonet_queue = g_async_queue_new ();
 
     /* playlist stack, not much of intelligent pre allocation is done here */
-    store->spl_stack = mc_store_stack_create (10, (GDestroyNotify) mpd_playlist_free);
+    store->spl.stack = mc_store_stack_create (10, (GDestroyNotify) mpd_playlist_free);
 
-    if ( (song_count = mc_store_check_if_db_is_still_valid (store, db_path) ) < 0) {
+    if ( (song_count = mc_store_check_if_db_is_still_valid (store, db_path, tokenizer) ) < 0) {
         mc_shelper_report_progress (store->client, true, "database: will fetch stuff from mpd.");
 
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
-        mc_strprv_open_memdb (store);
+        mc_strprv_open_memdb (store, tokenizer);
         mc_stprv_prepare_all_statements (store);
 
         /* make sure we inserted the meta info at least once */
@@ -566,7 +615,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, const char * directory)
     } else {
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
-        mc_strprv_open_memdb (store);
+        mc_strprv_open_memdb (store, tokenizer);
         mc_stprv_prepare_all_statements (store);
         mc_shelper_report_progress (store->client, true, "database: %s exists already.", db_path);
 
@@ -632,9 +681,12 @@ void mc_store_close (mc_StoreDB * self)
     if (self->write_to_disk)
         mc_stprv_load_or_save (self, true, full_path);
 
+    if (self->settings.use_compression && mc_gzip (full_path) == false)
+        g_print("Note: Nothing to zip.\n");
+
     mc_stprv_close_handle (self);
 
-    mc_store_stack_free (self->spl_stack);
+    mc_store_stack_free (self->spl.stack);
 
     g_rec_mutex_clear (&self->db_update_lock);
     g_async_queue_unref (self->sqltonet_queue);

@@ -48,7 +48,7 @@ int main (int argc, char * argv[])
     mc_misc_register_posix_signal (client);
     mc_proto_signal_add (client, "client-event", print_event, NULL);
 
-    mc_StoreDB * db = mc_store_create (client, NULL);
+    mc_StoreDB * db = mc_store_create (client, NULL, true, NULL);
     mc_store_set_wait_mode (db, true);
 
 

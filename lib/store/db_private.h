@@ -9,6 +9,8 @@
 /* DB Layout version. Older tables will not be loaded. */
 #define MC_DB_SCHEMA_VERSION 0
 
+#define MC_STORE_SUPPORTED_TOKENIZERS {"simple", "porter", "unicode61", "icu", NULL}
+
 #define PRINT_LOCKS 0
 
 #define LOCK_UPDATE_MTX(store) {                               \
@@ -123,6 +125,20 @@ typedef struct mc_StoreDB {
     /* true, when the current listallinfo transaction should be stopped. */
     bool stop_listallinfo;
 
+    /* Various user defined settings go here */
+    struct {
+        bool use_compression;
+    } settings;
+
+    /* Support for stored playlists */
+    struct {
+        /* A stack of mpd_playlists (all of them) */
+        mc_StoreStack * stack;
+
+        /* actually loaded playlists */
+        GList * loaded;
+    } spl;
+
 } mc_StoreDB;
 
 
@@ -131,14 +147,14 @@ typedef struct mc_StoreDB {
  *
  * Returns true on success.
  */
-bool mc_strprv_open_memdb (mc_StoreDB * self);
+bool mc_strprv_open_memdb (mc_StoreDB * self, const char * tokenizer);
 
 /**
  * @brief Insert a single song to the db.
  *
  * You should call mc_stprv_begin/commit before and after.
  */
-bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song);
+bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song, int dir_index);
 
 /**
  * @brief Update the db's meta table.
@@ -154,8 +170,12 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self);
 
 /**
  * @brief Creates the (empty) song table. 
+ *
+ * @param tokenizer algorithm to use to split words. NULL == default == "porter"
+ *
+ * See: http://www.sqlite.org/fts3.html#tokenizer
  */
-bool mc_stprv_create_song_table (mc_StoreDB * self);
+bool mc_stprv_create_song_table (mc_StoreDB * self, const char * tokenizer);
 
 /**
  * @brief Execute COMMIT;
@@ -251,6 +271,11 @@ int mc_stprv_get_song_count (mc_StoreDB * self);
  * Free return value if no longer used.
  */
 char * mc_stprv_get_mpd_host (mc_StoreDB * self);
+
+/**
+ * @brief Clear the update flag in the whole table.
+ */
+void mc_stprv_queue_clear_update_flag (mc_StoreDB * self);
 
 /**
  * @brief Clear pos/id in the songs table (to -1)

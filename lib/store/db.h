@@ -1,18 +1,24 @@
 #ifndef DB_GUARD_H
 #define DB_GUARD_H
+/*
+ * This header is not for you
+ */
+#include "db_private.h"
 
 /*
  * API to serialize songs into
  * a persistent DB mc_Store
  */
-#include "db_private.h"
 
 /**
  * @brief Create a new mc_Store.
  *
  * @param directory the path to the containing dir
- * @param dbname the name of the db file
  * @param client a connection to operate on.
+ * @param use_compression zip/unzip database to/from disk?
+ * @param tokenizer algorithm to use to split words. NULL == default == "porter"
+ *                  See: http://www.sqlite.org/fts3.html#tokenizer
+ *                  Supported: see MC_STORE_SUPPORTED_TOKENIZERS
  *
  * If no db exist yet at this place (assuming it is a valid path),
  * then a new empy is created with a Query-Version of 0.
@@ -26,7 +32,7 @@
  *
  * @return a new mc_StoreDB , free with mc_store_close()
  */
-mc_StoreDB * mc_store_create (mc_Client * client, const char * directory);
+mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, bool use_compression, const char * tokenizer);
 
 /**
  * @brief Close the mc_Store.

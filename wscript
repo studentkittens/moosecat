@@ -80,6 +80,12 @@ def configure(conf):
             args='--libs --cflags'
     )
 
+    conf.check_cfg(
+            package='zlib',
+            uselib_store='ZLIB',
+            args='--libs --cflags'
+    )
+
     conf.path.make_node('lib/config.h').write(define_config_h(conf))
 
 
@@ -106,8 +112,8 @@ def _find_libmoosecat_src(ctx):
 
 
 def build(bld):
-    LIBS = ['mpdclient'] + ['curses'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3
-    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3
+    LIBS = ['mpdclient'] + ['curses'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3 + bld.env.LIB_ZLIB
+    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3 + bld.env.INCLUDES_ZLIB
 
     bld.stlib(
             source = _find_libmoosecat_src(bld),
