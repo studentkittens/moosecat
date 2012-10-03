@@ -27,6 +27,18 @@
             g_print ("UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
     }
 
+#define REPORT_SQL_ERROR(store, message)                                                           \
+    mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
+                                    __FILE__, __LINE__, message,                                   \
+                                    sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
+ 
+#define CLEAR_BINDS(stmt)          \
+    sqlite3_reset (stmt);          \
+    sqlite3_clear_bindings (stmt); \
+
+#define CLEAR_BINDS_BY_NAME(store, type) \
+    CLEAR_BINDS (SQL_STMT (store, type))
+
 /* this is used only internally, not useful for public users */
 enum {
     /* creation of the basic tables */
@@ -135,8 +147,7 @@ typedef struct mc_StoreDB {
         /* A stack of mpd_playlists (all of them) */
         mc_StoreStack * stack;
 
-        /* actually loaded playlists */
-        GList * loaded;
+        sqlite3_stmt * select_tables_stmt;
     } spl;
 
 } mc_StoreDB;

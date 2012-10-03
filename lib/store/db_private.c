@@ -22,17 +22,7 @@
  *
  * Please excuse any eye cancer while reading this. Thank you!
  */
-#define REPORT_SQL_ERROR(store, message)                                                           \
-    mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
-                                    __FILE__, __LINE__, message,                                   \
-                                    sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
- 
-#define CLEAR_BINDS(stmt)          \
-    sqlite3_reset (stmt);          \
-    sqlite3_clear_bindings (stmt); \
 
-#define CLEAR_BINDS_BY_NAME(store, type) \
-    CLEAR_BINDS (SQL_STMT (store, type))
 
 ///////////////////
 
@@ -59,8 +49,7 @@ enum {
     SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID,
     SQL_COL_MUSICBRAINZ_TRACK_ID,
     SQL_COL_QUEUE_POS,
-    SQL_COL_QUEUE_IDX,
-    SQL_COL_SPL_INFO
+    SQL_COL_QUEUE_IDX
 };
 
 ///////////////////
@@ -105,13 +94,6 @@ static const char * _sql_stmts[] = {
         "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                         \n"
         "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                         \n"
         "CREATE INDEX IF NOT EXISTS queue_pos_index ON songs_content(c20queue_pos);                         \n"
-        "                                                                                                   \n"
-        "-- Playlist table only contains names of the playlist, and last modification date                  \n"
-        "CREATE TABLE IF NOT EXISTS playlists(                                                              \n"
-        "    name TEXT UNIQUE NOT NULL,                                                                     \n"
-        "    last_modified INTEGER NOT NULL,                                                                \n"
-        "    loaded INTEGER                                                                                 \n"
-        ");                                                                                                 \n"
         "                                                                                                   \n"
         "-- Directory table only contains path of the directory and the path-depth (no '/' == 0)            \n"
         "CREATE TABLE IF NOT EXISTS dirs(path TEXT NOT NULL, depth INTEGER NOT NULL);                       \n" ,
@@ -165,10 +147,6 @@ static const char * _sql_stmts[] = {
         "BEGIN IMMEDIATE;",
     [_MC_SQL_COMMIT] =
         "COMMIT;",
-    [_MC_SQL_SPL_UPDATE_SONG] =
-        "UPDATE songs_content SET c22spl_info = c22spl_info || ? WHERE c0uri = ?;",
-    [_MC_SQL_SPL_SELECT_ALL_NAMES] =
-        "SELECT name FROM playlists;",
     [_MC_SQL_DIR_INSERT] =
         "INSERT INTO dirs VALUES(?, ?);",
     [_MC_SQL_DIR_SELECT_DEPTH] =
@@ -400,11 +378,8 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song, int dir_index)
     bind_int (db, INSERT, pos_idx, -1, error_id);
     bind_int (db, INSERT, pos_idx, -1, error_id);
 
-    /* Stored playlists, not sure what to do here.
-     *  TODO!
-     */
-    bind_txt (db, INSERT, pos_idx, "", error_id);
-
+    /* Directory index.
+     * i.e. the rowid of the corresponding directory in the dirs table */
     bind_int (db, INSERT, pos_idx, dir_index, error_id);
 
     /* this is one error check for all the blocks above */
@@ -757,15 +732,15 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
     }
 }
 
-////////////////////////////////
+/////////////////// META TABLE STUFF ////////////////////
 
 #define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)  \
 {                                                                                       \
     int error_id = SQLITE_OK;                                                           \
     if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
-    out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
+    out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                     \
     if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
-    REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
+    REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                             \
     out_var = (cast_type)copy_func((cast_type)out_var);                                 \
     sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
 }                                                                                       \
@@ -825,7 +800,7 @@ char * mc_stprv_get_mpd_host (mc_StoreDB * self)
     return mpd_host;
 }
 
-/////////////////// qUEUE STUFF ////////////////////
+/////////////////// QUEUE STUFF ////////////////////
 
 int mc_stprv_queue_clip (mc_StoreDB * self, int since_pos) 
 {
@@ -856,35 +831,6 @@ int mc_stprv_queue_clip (mc_StoreDB * self, int since_pos)
 
 /////////////////// 
 
-void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file)
-{
-    int pos_idx = 1, error_id = SQLITE_OK;
-
-    bind_int (self, QUEUE_UPDATE_ROW, pos_idx, pos, error_id);
-    bind_int (self, QUEUE_UPDATE_ROW, pos_idx, idx, error_id);
-    bind_txt (self, QUEUE_UPDATE_ROW, pos_idx, file, error_id);
-
-    pos_idx = 1;
-    bind_int (self, QUEUE_CLEAR_ROW, pos_idx, pos, error_id);
-
-    if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR (self, "Cannot bind stuff to UPDATE statement");
-        return;
-    }
-
-    /* First reset the song at that position to -1/-1 */ 
-    if (sqlite3_step (SQL_STMT (self, QUEUE_CLEAR_ROW) ) != SQLITE_DONE)
-        REPORT_SQL_ERROR (self, "Unable to clear song in playlist.");
-
-    if (sqlite3_step (SQL_STMT (self, QUEUE_UPDATE_ROW) ) != SQLITE_DONE)
-        REPORT_SQL_ERROR (self, "Unable to UPDATE song in playlist.");
-
-    CLEAR_BINDS_BY_NAME (self, QUEUE_UPDATE_ROW);
-    CLEAR_BINDS_BY_NAME (self, QUEUE_CLEAR_ROW);
-}
-
-///////////////////
-
 void mc_stprv_queue_update_stack_posid (mc_StoreDB * self)
 {
     g_assert (self);
@@ -912,83 +858,33 @@ void mc_stprv_queue_update_stack_posid (mc_StoreDB * self)
     }
 }
 
-/////////////////// STORED PLAYLISTS STUFF ////////////////////
+/////////////////// 
 
-void mc_stprv_spl_load_playlist (mc_StoreDB * store, const char * pl_name, bool lock_self, bool do_commit)
+void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const char * file)
 {
-    if (lock_self) {
-        LOCK_UPDATE_MTX (store);
+    int pos_idx = 1, error_id = SQLITE_OK;
+
+    bind_int (self, QUEUE_UPDATE_ROW, pos_idx, pos, error_id);
+    bind_int (self, QUEUE_UPDATE_ROW, pos_idx, idx, error_id);
+    bind_txt (self, QUEUE_UPDATE_ROW, pos_idx, file, error_id);
+
+    pos_idx = 1;
+    bind_int (self, QUEUE_CLEAR_ROW, pos_idx, pos, error_id);
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot bind stuff to UPDATE statement");
+        return;
     }
 
-    mc_Client * self = store->client;
+    /* First reset the song at that position to -1/-1 */ 
+    if (sqlite3_step (SQL_STMT (self, QUEUE_CLEAR_ROW) ) != SQLITE_DONE)
+        REPORT_SQL_ERROR (self, "Unable to clear song in playlist.");
 
-    BEGIN_COMMAND {
+    if (sqlite3_step (SQL_STMT (self, QUEUE_UPDATE_ROW) ) != SQLITE_DONE)
+        REPORT_SQL_ERROR (self, "Unable to UPDATE song in playlist.");
 
-        int pos_idx = 1;
-        int error_id = 0;
-
-        sqlite3_stmt * update_song_stmt = SQL_STMT (store, SPL_UPDATE_SONG);
-        g_assert (update_song_stmt);
-
-        if (do_commit) {
-            mc_stprv_begin (store);
-        }
-
-        mc_shelper_report_progress (self, true, "database: Loading stored playlist ,,%s'' from MPD", pl_name);
-        if (mpd_send_list_playlist (conn, pl_name) ) {
-            struct mpd_pair * file_pair = NULL;
-
-            while ( (file_pair = mpd_recv_pair_named (conn, "file")) != NULL) {
-                bind_txt (store, SPL_UPDATE_SONG, pos_idx, "1 2 3", error_id); // TODO: actual value?
-                bind_txt (store, SPL_UPDATE_SONG, pos_idx, file_pair->value, error_id);
-
-                if (sqlite3_step (update_song_stmt) != SQLITE_DONE) {
-                    REPORT_SQL_ERROR (store, "Cannot update spl_info of songs table");
-                }
-            }
-
-            if (mpd_response_finish (conn) == FALSE) {
-                mc_shelper_report_error (self, conn);
-            }
-        }
-
-        if (do_commit) {
-            mc_stprv_commit (store);
-        }
-    }
-    END_COMMAND;
-
-    if (lock_self) {
-        UNLOCK_UPDATE_MTX (store);
-    }
-}
-
-///////////////////
-
-void mc_stprv_spl_update_playlists (mc_StoreDB * store)
-{
-    g_assert (store);
-
-    LOCK_UPDATE_MTX (store);
-
-    mc_stprv_begin (store);
-
-    sqlite3_stmt * select_all_stmt = SQL_STMT (store, SPL_SELECT_ALL_NAMES);
-    while (sqlite3_step (select_all_stmt) == SQLITE_ROW) {
-        char * pl_name = (char *) sqlite3_column_name (select_all_stmt, 0);
-        if (pl_name != NULL) {
-            mc_stprv_spl_load_playlist (store, pl_name, false, false);
-        }
-    }
-
-    int error = sqlite3_errcode(store->handle);
-    if (error != SQLITE_DONE && error != SQLITE_OK) {
-        REPORT_SQL_ERROR (store, "Some error while selecting all playlists");
-    } 
-
-    mc_stprv_commit (store);
-
-    UNLOCK_UPDATE_MTX (store);
+    CLEAR_BINDS_BY_NAME (self, QUEUE_UPDATE_ROW);
+    CLEAR_BINDS_BY_NAME (self, QUEUE_CLEAR_ROW);
 }
 
 /////////////////// DIRECTORY STUFF ////////////////////
