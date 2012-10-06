@@ -1,6 +1,9 @@
 #ifndef MC_SIGNAL_HELPER_H
 #define MC_SIGNAL_HELPER_H
 
+#include <stdbool.h>
+#include <mpd/client.h>
+
 #include "../compiler.h"
 
 /* Only prototype needed */
@@ -26,7 +29,7 @@ struct mc_Client;
  */
 bool mc_shelper_report_error (
     struct mc_Client * self,
-    mpd_connection * cconn);
+    struct mpd_connection * cconn);
 
 /**
  * @brief Same as mc_shelper_report_error, but do no handle actual error (by disconnecting)
@@ -36,7 +39,7 @@ bool mc_shelper_report_error (
  */
 bool mc_shelper_report_error_without_handling (
     struct mc_Client * self,
-    mpd_connection * cconn);
+    struct mpd_connection * cconn);
 
 /**
  * @brief Same as mc_shelper_report_error, but in a printf like fashion.

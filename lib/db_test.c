@@ -48,7 +48,11 @@ int main (int argc, char * argv[])
     mc_misc_register_posix_signal (client);
     mc_proto_signal_add (client, "client-event", print_event, NULL);
 
-    mc_StoreDB * db = mc_store_create (client, NULL, true, NULL);
+    mc_StoreSettings * settings = mc_store_settings_new ();
+    settings->use_memory_db = FALSE;
+    settings->use_compression = FALSE;
+
+    mc_StoreDB * db = mc_store_create (client, settings);
     mc_store_set_wait_mode (db, true);
 
 
@@ -79,7 +83,13 @@ int main (int argc, char * argv[])
                 if (g_strcmp0 (line_buf, ":u") == 0) {
                     mc_proto_force_sss_update (client, INT_MAX);
                     mc_proto_signal_dispatch (client, "client-event", client,
-                                              MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
+                                              MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST);
+                    continue;
+                }
+
+                if (strncmp (line_buf, ":load", 5) == 0) {
+                    char * pl_name = g_strstrip (&line_buf[5]);
+                    mc_store_load_playlist (db, pl_name);
                     continue;
                 }
 

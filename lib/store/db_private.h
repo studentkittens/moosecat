@@ -2,15 +2,17 @@
 #define MC_DB_PRIVATE_H
 
 #include "stack.h"
-#include "query.h"
 #include "sqlite3.h"
+
 #include "../mpd/protocol.h"
+#include "db_settings.h"
 
 /* DB Layout version. Older tables will not be loaded. */
 #define MC_DB_SCHEMA_VERSION 0
 
-#define MC_STORE_SUPPORTED_TOKENIZERS {"simple", "porter", "unicode61", "icu", NULL}
+#define MC_STORE_TMP_DB_PATH "/tmp/.moosecat.tmp.db"
 
+/* Useful for debugging */
 #define PRINT_LOCKS 0
 
 #define LOCK_UPDATE_MTX(store) {                               \
@@ -31,11 +33,11 @@
     mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
                                     __FILE__, __LINE__, message,                                   \
                                     sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
- 
+     
 #define CLEAR_BINDS(stmt)          \
     sqlite3_reset (stmt);          \
     sqlite3_clear_bindings (stmt); \
-
+     
 #define CLEAR_BINDS_BY_NAME(store, type) \
     CLEAR_BINDS (SQL_STMT (store, type))
 
@@ -80,10 +82,7 @@ enum {
     _MC_SQL_BEGIN,
     /* commit statement */
     _MC_SQL_COMMIT,
-    /* Update stored playlist info of a single song */
-    _MC_SQL_SPL_UPDATE_SONG,
     /* select all playlist names from playlists table */
-    _MC_SQL_SPL_SELECT_ALL_NAMES,
     _MC_SQL_DIR_INSERT,
     _MC_SQL_DIR_SELECT_DEPTH,
     _MC_SQL_DIR_DELETE_ALL,
@@ -138,9 +137,7 @@ typedef struct mc_StoreDB {
     bool stop_listallinfo;
 
     /* Various user defined settings go here */
-    struct {
-        bool use_compression;
-    } settings;
+    mc_StoreSettings * settings;
 
     /* Support for stored playlists */
     struct {
@@ -158,7 +155,7 @@ typedef struct mc_StoreDB {
  *
  * Returns true on success.
  */
-bool mc_strprv_open_memdb (mc_StoreDB * self, const char * tokenizer);
+bool mc_strprv_open_memdb (mc_StoreDB * self);
 
 /**
  * @brief Insert a single song to the db.
@@ -173,20 +170,16 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song, int dir_index);
 void mc_stprv_insert_meta_attributes (mc_StoreDB * self);
 
 /**
- * @brief Compile all sqlite3_stmt objects. 
+ * @brief Compile all sqlite3_stmt objects.
  *
  * Needed before any calls after open_memdb
  */
 void mc_stprv_prepare_all_statements (mc_StoreDB * self);
 
 /**
- * @brief Creates the (empty) song table. 
- *
- * @param tokenizer algorithm to use to split words. NULL == default == "porter"
- *
- * See: http://www.sqlite.org/fts3.html#tokenizer
+ * @brief Creates the (empty) song table.
  */
-bool mc_stprv_create_song_table (mc_StoreDB * self, const char * tokenizer);
+bool mc_stprv_create_song_table (mc_StoreDB * self);
 
 /**
  * @brief Execute COMMIT;
@@ -208,7 +201,7 @@ void mc_stprv_delete_songs_table (mc_StoreDB * self);
  *
  * @param is_save true if db should be saved.
  *
- * @returns 0 on success, an SQLITE errcode otherwise. 
+ * @returns 0 on success, an SQLITE errcode otherwise.
  */
 void mc_stprv_load_or_save (mc_StoreDB * self, bool is_save, const char * db_path);
 
@@ -218,7 +211,7 @@ void mc_stprv_load_or_save (mc_StoreDB * self, bool is_save, const char * db_pat
 void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self);
 
 /**
- * @brief Search the songs table. 
+ * @brief Search the songs table.
  *
  * @param self store to operate on
  * @param match_clause an FTS match clause.
@@ -229,16 +222,16 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self);
  * @return the number of selected songs.
  */
 int mc_stprv_select_to_buf (
-        mc_StoreDB * self,
-        const char * match_clause,
-        bool queue_only,
-        mpd_song ** song_buffer,
-        int buffer_len);
+    mc_StoreDB * self,
+    const char * match_clause,
+    bool queue_only,
+    mpd_song ** song_buffer,
+    int buffer_len);
 
 /**
  * @brief Same as mc_stprv_select_to_buf, but use stack instead of buf.
  *
- * @param self store to operate on 
+ * @param self store to operate on
  * @param match_clause FTS match clause
  * @param queue_only limit search to queue?
  * @param stack an mc_StoreStack, ideally preallocated to the expected size.
@@ -246,10 +239,10 @@ int mc_stprv_select_to_buf (
  * @return the number of selected songs.
  */
 int mc_stprv_select_to_stack (
-        mc_StoreDB * self,
-        const char * match_clause,
-        bool queue_only,
-        mc_StoreStack * stack);
+    mc_StoreDB * self,
+    const char * match_clause,
+    bool queue_only,
+    mc_StoreStack * stack);
 
 /**
  * @brief get server db version

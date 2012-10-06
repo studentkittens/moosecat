@@ -15,10 +15,6 @@
  *
  * @param directory the path to the containing dir
  * @param client a connection to operate on.
- * @param use_compression zip/unzip database to/from disk?
- * @param tokenizer algorithm to use to split words. NULL == default == "porter"
- *                  See: http://www.sqlite.org/fts3.html#tokenizer
- *                  Supported: see MC_STORE_SUPPORTED_TOKENIZERS
  *
  * If no db exist yet at this place (assuming it is a valid path),
  * then a new empy is created with a Query-Version of 0.
@@ -32,7 +28,7 @@
  *
  * @return a new mc_StoreDB , free with mc_store_close()
  */
-mc_StoreDB * mc_store_create (mc_Client * client, const char * directory, bool use_compression, const char * tokenizer);
+mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings);
 
 /**
  * @brief Close the mc_Store.
@@ -69,5 +65,7 @@ int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool que
  * @param wait_for_db_finish if true, it waits for the lock.
  */
 void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish);
+
+void mc_store_load_playlist (mc_StoreDB * self, const char * playlist_name);
 
 #endif /* end of include guard: DB_GUARD_H */

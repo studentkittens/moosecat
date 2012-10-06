@@ -68,10 +68,9 @@ static void on_entry_text_changed (GtkEditable * editable, gpointer user_data)
 {
     gchar * entry_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (editable) ) );
 
-    if (entry_text != NULL) 
-    {
+    if (entry_text != NULL) {
         g_strstrip (entry_text);
-        update_view ((EntryTag *)user_data, entry_text);
+        update_view ( (EntryTag *) user_data, entry_text);
         g_free (entry_text);
     }
 }
@@ -90,7 +89,7 @@ static void on_client_update (mc_Client * self, enum mpd_idle event, void * user
     (void) self;
     (void) event;
 
-    g_print("Updating due to Queue/DB Update\n");
+    g_print ("Updating due to Queue/DB Update\n");
     EntryTag * tag = user_data;
     update_view (tag, "");
 }
@@ -110,7 +109,7 @@ static EntryTag * setup_client (void)
         client_setup = g_timer_elapsed (setup_timer, NULL);
 
         g_timer_start (setup_timer);
-        mc_StoreDB * store = mc_store_create (client, NULL, true, NULL);
+        mc_StoreDB * store = mc_store_create (client, NULL);
         db_setup = g_timer_elapsed (setup_timer, NULL);
 
         if (store != NULL) {
@@ -122,12 +121,12 @@ static EntryTag * setup_client (void)
             rc->song_buf = g_new0 (mpd_song *, rc->song_buf_len);
         }
 
-        mc_proto_signal_add_masked (client, "client-event", 
-                on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
+        mc_proto_signal_add_masked (client, "client-event",
+                                    on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
     }
 
     g_print ("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",
-            client_setup, db_setup, client_setup + db_setup);
+             client_setup, db_setup, client_setup + db_setup);
     return rc;
 }
 

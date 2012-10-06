@@ -5,12 +5,12 @@
     mpd_connection * conn = mc_proto_get(self); \
     if(conn != NULL)                            \
     {                                           \
-
+         
 
 #define END_COMMAND                             \
     }                                           \
     mc_proto_put(self);                         \
-
+     
 /* Template to define new commands */
 #define COMMAND(_code_)                         \
     BEGIN_COMMAND                               \

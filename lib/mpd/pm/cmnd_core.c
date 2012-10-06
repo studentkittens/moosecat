@@ -211,7 +211,7 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
         mc_sleep_grained (MAX (self->connection_timeout_ms, 100) / 2,
                           PING_SLEEP_TIMEOUT, &self->run_pinger);
 
-            
+
         if (mc_proto_is_connected ( (mc_Client *) self) ) {
             mpd_connection * con = mc_proto_get ( (mc_Client *) self);
             if (con != NULL) {
