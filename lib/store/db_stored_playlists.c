@@ -53,14 +53,16 @@ enum {
     STMT_SELECT_TABLES = 0,
     STMT_DROP_SPLTABLE,
     STMT_CREATE_SPLTABLE,
-    STMT_INSERT_SONG_IDX
+    STMT_INSERT_SONG_IDX,
+    STMT_PLAYLIST_SEARCH
 };
 
 const char * spl_sql_stmts[] = {
     [STMT_SELECT_TABLES] = "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;",
     [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
     [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
-    [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));"
+    [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
+    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE artist MATCH %q;"
 };
 
 void mc_stprv_spl_init (mc_StoreDB * self)
@@ -163,6 +165,22 @@ static void mc_stprv_spl_delete_content (mc_StoreDB * self, const char * table_n
 
     mc_stprv_spl_drop_table (self, table_name);
     mc_stprv_spl_create_table (self, table_name);
+}
+
+///////////////////
+
+static struct mpd_playlist * mc_stprv_spl_name_to_playlist (mc_StoreDB * store, const char * playlist_name)
+{
+    g_assert (store);
+
+    for (unsigned i = 0; i < mc_store_stack_length (store->spl.stack); ++i) {
+        struct mpd_playlist * playlist = mc_store_stack_at (store->spl.stack, i);
+        if (playlist && g_strcmp0 (playlist_name, mpd_playlist_get_path (playlist) ) == 0) {
+            return playlist;
+        }
+    }
+
+    return NULL;
 }
 
 ///////////////////
@@ -299,9 +317,7 @@ void mc_stprv_spl_update (mc_StoreDB * self)
     }
 
     /* table names were dyn. allocated. */
-    for (GList * iter = table_name_list; iter; iter = iter->next) {
-        g_free ( (char *) iter->data);
-    }
+    g_list_free_full (table_name_list, g_free);
 
     UNLOCK_UPDATE_MTX (self);
 }
@@ -376,13 +392,60 @@ void mc_stprv_spl_load_by_playlist_name (mc_StoreDB * store, const char * playli
     g_assert (store);
     g_assert (playlist_name);
 
-    for (unsigned i = 0; i < mc_store_stack_length (store->spl.stack); ++i) {
-        struct mpd_playlist * playlist = mc_store_stack_at (store->spl.stack, i);
-        if (playlist && g_strcmp0 (playlist_name, mpd_playlist_get_path (playlist) ) == 0) {
-            mc_stprv_spl_load (store, playlist);
-            return;
-        }
+    struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
+    if (playlist != NULL) {
+        mc_stprv_spl_load (store, playlist);
     }
 
     mc_shelper_report_error_printf (store->client, "Could not find stored playlist ,,%s''", playlist_name);
+}
+
+///////////////////
+
+int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_StoreStack * out_stack, const char * playlist_name, const char * match_clause)
+{
+    g_assert (store);
+    g_assert (playlist_name);
+    g_assert (out_stack);
+
+    int rc = 0;
+
+    if (match_clause == NULL)
+        match_clause = "";
+
+    struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
+    if (playlist != NULL) {
+        char * table_name = mc_stprv_spl_construct_table_name (playlist);
+        if (table_name != NULL) {
+            char * sql = sqlite3_mprintf (spl_sql_stmts[STMT_PLAYLIST_SEARCH], table_name, match_clause);
+            if (sql != NULL) {
+
+                sqlite3_stmt * pl_search_stmt = NULL;
+                if (sqlite3_prepare_v2 (store->handle, spl_sql_stmts[STMT_PLAYLIST_SEARCH], -1, &pl_search_stmt, NULL) != SQLITE_OK) {
+                    REPORT_SQL_ERROR (store, "Cannot prepare playlist search statement");
+                } else {
+
+                    while (sqlite3_step (pl_search_stmt) == SQLITE_ROW) {
+                        int rowid = sqlite3_column_int (pl_search_stmt, 0);
+                        mc_store_stack_append (out_stack, mc_store_stack_at (store->stack, rowid));
+
+                        ++rc;
+                    }
+
+                    if (sqlite3_errcode (store->handle) != SQLITE_DONE) {
+                        REPORT_SQL_ERROR (store, "Error while matching stuff in playlist");
+                    }
+
+                    if (sqlite3_finalize (pl_search_stmt) != SQLITE_OK) {
+                        REPORT_SQL_ERROR (store, "Error while finalizing match statement");
+                    }
+                }
+
+                sqlite3_free (sql);
+            }
+            g_free (table_name);
+        }
+    }
+
+    return rc;
 }

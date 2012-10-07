@@ -83,8 +83,6 @@ static const char * _sql_stmts[] = {
         "    -- Queue Data:                                                                                 \n"
         "    queue_pos INTEGER,             -- Position of the song in the Queue                            \n"
         "    queue_idx INTEGER,             -- Index of the song in the Queue, does not change on moves     \n"
-        "    -- Playlistsupport:                                                                            \n"
-        "    spl_info  TEXT NOT NULL,       -- Which stored playlists contain this song?                    \n"
         "    -- Link to dirs table:                                                                         \n"
         "    dirs_index INTEGER NOT NULL,   -- foreign key to dirs table                                    \n"
         "    -- FTS options:                                                                                \n"
@@ -125,7 +123,7 @@ static const char * _sql_stmts[] = {
     [_MC_SQL_COUNT] =
         "SELECT count(*) FROM songs;",
     [_MC_SQL_INSERT] =
-        "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [_MC_SQL_QUEUE_UPDATE_ROW] =
         "UPDATE songs_content SET c20queue_pos = ?, c21queue_idx = ? WHERE c0uri = ?;",
     [_MC_SQL_QUEUE_CLEAR] =
@@ -196,6 +194,30 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
 
 ////////////////////////////////
 
+static void mc_stprv_dir_sqlite_basename_func (sqlite3_context * ctx, int argc, sqlite3_value ** argv)
+{
+    g_assert (argc == 1);
+    g_assert (argv);
+    g_assert (argv[0]);
+
+    sqlite3_result_text(ctx,
+            g_filename_display_basename (
+                (const char *)sqlite3_value_text (argv[0])
+            ),
+            -1, g_free);
+}
+
+////////////////////////////////
+
+static void mc_stprv_register_custom_functions (mc_StoreDB * self)
+{
+    if (sqlite3_create_function_v2( self->handle, "basename", 1, SQLITE_UTF8, NULL,
+                mc_stprv_dir_sqlite_basename_func, NULL, NULL, NULL) != SQLITE_OK)
+        REPORT_SQL_ERROR (self, "Cannot register custom function ,,basename''");
+}
+
+////////////////////////////////
+
 bool mc_stprv_create_song_table (mc_StoreDB * self)
 {
     g_assert (self);
@@ -231,6 +253,7 @@ bool mc_stprv_create_song_table (mc_StoreDB * self)
     g_free (sql_create);
     return true;
 }
+
 
 ////////////////////////////////
 
@@ -280,6 +303,8 @@ bool mc_strprv_open_memdb (mc_StoreDB * self)
         self->handle = NULL;
         return false;
     }
+
+    mc_stprv_register_custom_functions (self);
 
     if (mc_stprv_create_song_table (self) == false)
         return false;
@@ -996,3 +1021,5 @@ int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, cons
 
     return rc;
 }
+
+//////////////////
