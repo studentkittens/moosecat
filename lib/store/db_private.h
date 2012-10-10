@@ -98,10 +98,10 @@ typedef struct mc_StoreDB {
     char * db_directory;
 
     /* songstack - a place for mpd_songs to live in */
-    mc_StoreStack * stack;
+    mc_Stack * stack;
 
     /* stored playlist stack - place for mpd_playlist */
-    mc_StoreStack * spl_stack;
+    mc_Stack * spl_stack;
 
     /* handle to sqlite */
     sqlite3 * handle;
@@ -144,7 +144,7 @@ typedef struct mc_StoreDB {
     /* Support for stored playlists */
     struct {
         /* A stack of mpd_playlists (all of them) */
-        mc_StoreStack * stack;
+        mc_Stack * stack;
 
         sqlite3_stmt * select_tables_stmt;
     } spl;
@@ -235,7 +235,7 @@ int mc_stprv_select_to_buf (
  * @param self store to operate on
  * @param match_clause FTS match clause
  * @param queue_only limit search to queue?
- * @param stack an mc_StoreStack, ideally preallocated to the expected size.
+ * @param stack an mc_Stack, ideally preallocated to the expected size.
  *
  * @return the number of selected songs.
  */
@@ -243,7 +243,7 @@ int mc_stprv_select_to_stack (
     mc_StoreDB * self,
     const char * match_clause,
     bool queue_only,
-    mc_StoreStack * stack);
+    mc_Stack * stack);
 
 /**
  * @brief get server db version
@@ -304,6 +304,6 @@ void mc_stprv_close_handle (mc_StoreDB * self);
 
 void mc_stprv_dir_insert (mc_StoreDB * self, const char * path);
 void mc_stprv_dir_delete (mc_StoreDB * self);
-int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * dir, int depth);
+int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * dir, int depth);
 
 #endif /* end of include guard: MC_DB_PRIVATE_H */

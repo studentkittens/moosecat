@@ -66,9 +66,76 @@ int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool que
  */
 void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish);
 
-void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name);
-int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * playlist_name, const char * match_clause);
+/**
+ * @brief Returns a
+ *
+ * This is effectively only useful on mc_store_dir_select_to_stack
+ * (which returns a list of files, prefixed with IDs or -1 in case of a directory)
+ *
+ * @param self the store to operate on.
+ * @param idx the index (0 - mc_store_total_songs())
+ *
+ * @return an mpd_song. DO NOT FREE!
+ */
+struct mpd_song * mc_store_song_at (mc_StoreDB * self, int idx);
 
-int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * directory, int depth);
+/**
+ * @brief Returns the total number of songs stored in the database.
+ *
+ * This is basically the same as 'select count(*) from songs;' just faster.
+ *
+ * @param self the store to operate on.
+ *
+ * @return a number between 0 and fucktuple.
+ */
+int mc_store_total_songs (mc_StoreDB * self);
+
+///// PLAYLIST HANDLING ////
+
+/**
+ * @brief Load the playlist from the MPD server and store it in the database.
+ *
+ * Note: For every song in a playlist only an ID is stored. Therefore, this is quite efficient.
+ *
+ * @param self the store to operate on.
+ * @param playlist_name a playlist name, as displayed by MPD.
+ */
+void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name);
+
+/**
+ * @brief Queries the contents of a playlist in a similar fashion as mc_store_search_out does.
+ *
+ * On succes, stack is filled with mpd_songs up to $return_value songs.
+ *
+ * @param self the store to operate on.
+ * @param stack a stack to fill.
+ * @param playlist_name a playlist name, as displayed by MPD.
+ * @param match_clause an fts match clause. Empty ("") or NULL returns *all* songs in the playlist.
+ *
+ * @return number of found songs, or negative number on failure.
+ */
+int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * playlist_name, const char * match_clause);
+
+/**
+ * @brief List a directory in MPD's database.
+ *
+ * @param self the store to operate on.
+ * @param stack a stack to fill.
+ * @param directory the directory to list. (NULL == '/')
+ * @param depth at wath depth to search (0 == '/', -1 to disable.)
+ *
+ * @return number of selected songs. 
+ */
+int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth);
+
+/**
+ * @brief return a stack of the loaded playlists. Not the actually ones there.
+ *
+ * @param self the store to operate on.
+ * @param stack a stack of mpd_playlists. DO NOT FREE CONTENT!
+ *
+ * @return number of loaded playlists.
+ */
+int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack);
 
 #endif /* end of include guard: DB_GUARD_H */

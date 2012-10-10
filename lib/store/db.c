@@ -262,7 +262,7 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
         switch (mpd_entity_get_type (ent) ) {
         case MPD_ENTITY_TYPE_SONG: {
             struct mpd_song * song = (struct mpd_song *) mpd_entity_get_song (ent) ;
-            mc_store_stack_append (self->stack, (mpd_song *) song);
+            mc_stack_append (self->stack, (mpd_song *) song);
             mc_stprv_insert_song (self, (mpd_song *) song);
 
             /* Not sure if this is a nice way,
@@ -283,7 +283,7 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
         case MPD_ENTITY_TYPE_PLAYLIST: {
             const struct mpd_playlist * pl = mpd_entity_get_playlist (ent);
             if (pl != NULL) {
-                mc_store_stack_append (self->spl.stack, (struct mpd_playlist *) pl);
+                mc_stack_append (self->spl.stack, (struct mpd_playlist *) pl);
             }
             g_free (ent);
         }
@@ -360,10 +360,10 @@ static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
      * Apparently GPtrArray does not support reallocating,
      * without adding NULL-cells to the array? */
     if (store->stack != NULL) {
-        mc_store_stack_free (store->stack);
+        mc_stack_free (store->stack);
     }
 
-    store->stack = mc_store_stack_create (
+    store->stack = mc_stack_create (
                        mpd_stats_get_number_of_songs (self->stats) + 1,
                        (GDestroyNotify) mpd_song_free);
 
@@ -631,7 +631,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
         mc_shelper_report_progress (store->client, true, "database: %s exists already.", db_path);
 
         /* stack is allocated to the old size */
-        store->stack = mc_store_stack_create (song_count + 1, (GDestroyNotify) mpd_song_free);
+        store->stack = mc_stack_create (song_count + 1, (GDestroyNotify) mpd_song_free);
 
         /* load the old database into memory */
         mc_stprv_load_or_save (store, false, db_path);
@@ -689,7 +689,7 @@ void mc_store_close (mc_StoreDB * self)
 
     mc_proto_signal_rm (self->client, "client-event", mc_store_update_callback);
     mc_proto_signal_rm (self->client, "connectivity", mc_store_connectivity_callback);
-    mc_store_stack_free (self->stack);
+    mc_stack_free (self->stack);
     mc_stprv_spl_destroy (self);
 
     char * full_path = mc_store_construct_full_dbpath (self->client, self->db_directory);
@@ -741,14 +741,40 @@ void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name)
 
 ///////////////
 
-int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * playlist_name, const char * match_clause) 
+int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * playlist_name, const char * match_clause) 
 {
     return mc_stprv_spl_select_playlist (self, stack, playlist_name, match_clause);
 }
 
 ///////////////
 
-int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * directory, int depth)
+int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack)
+{
+    return mc_stprv_spl_get_loaded_playlists (self, stack);
+}
+
+///////////////
+
+int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth)
 {
     return mc_stprv_dir_select_to_stack (self, stack, directory, depth);
+}
+
+///////////////
+
+struct mpd_song * mc_store_song_at (mc_StoreDB * self, int idx)
+{
+    g_assert (self);
+    g_assert (idx >= 0);
+
+    return (struct mpd_song *)mc_stack_at (self->stack, idx);
+}
+
+///////////////
+
+int mc_store_total_songs (mc_StoreDB * self)
+{
+    g_assert (self);
+
+    return mc_stack_length (self->stack);
 }

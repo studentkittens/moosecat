@@ -87,7 +87,7 @@ void mc_stprv_spl_destroy (mc_StoreDB * self)
         REPORT_SQL_ERROR (self, "Cannot finalize SELECT ALL TABLES statement.");
 
     if (self->spl.stack != NULL)
-        mc_store_stack_free (self->spl.stack);
+        mc_stack_free (self->spl.stack);
 }
 
 ///////////////////
@@ -175,8 +175,8 @@ static struct mpd_playlist * mc_stprv_spl_name_to_playlist (mc_StoreDB * store, 
 {
     g_assert (store);
 
-    for (unsigned i = 0; i < mc_store_stack_length (store->spl.stack); ++i) {
-        struct mpd_playlist * playlist = mc_store_stack_at (store->spl.stack, i);
+    for (unsigned i = 0; i < mc_stack_length (store->spl.stack); ++i) {
+        struct mpd_playlist * playlist = mc_stack_at (store->spl.stack, i);
         if (playlist && g_strcmp0 (playlist_name, mpd_playlist_get_path (playlist) ) == 0) {
             return playlist;
         }
@@ -197,21 +197,43 @@ static void mc_stprv_spl_listplaylists (mc_StoreDB * store)
     LOCK_UPDATE_MTX (store);
 
     if (store->spl_stack != NULL)
-        mc_store_stack_free (store->spl.stack);
+        mc_stack_free (store->spl.stack);
 
-    store->spl.stack = mc_store_stack_create (10, (GDestroyNotify) mpd_playlist_free);
+    store->spl.stack = mc_stack_create (10, (GDestroyNotify) mpd_playlist_free);
 
     BEGIN_COMMAND {
         struct mpd_playlist * playlist = NULL;
         mpd_send_list_playlists (conn);
 
         while ( (playlist = mpd_recv_playlist (conn) ) != NULL) {
-            mc_store_stack_append (store->spl.stack, playlist);
+            mc_stack_append (store->spl.stack, playlist);
         }
 
     } END_COMMAND;
 
     UNLOCK_UPDATE_MTX (store);
+}
+///////////////////
+
+static GList * mc_stprv_spl_get_loaded_list (mc_StoreDB * self)
+{
+    GList * table_name_list = NULL;
+
+    /* Select all table names from db that start with spl_ */
+    while (sqlite3_step (self->spl.select_tables_stmt) == SQLITE_ROW) {
+        table_name_list = g_list_prepend (table_name_list, g_strdup ( (char *)
+                    sqlite3_column_text (self->spl.select_tables_stmt, 0) ) );
+    }
+    
+    /* Be nice, and always check for errors */
+    int error = sqlite3_errcode (self->handle);
+    if (error != SQLITE_DONE && error != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Some error while selecting all playlists");
+    } else {
+        CLEAR_BINDS (self->spl.select_tables_stmt);
+    }
+
+    return table_name_list;
 }
 
 /////////////////// PUBLIC AREA ///////////////////
@@ -224,98 +246,83 @@ void mc_stprv_spl_update (mc_StoreDB * self)
 
     mc_stprv_spl_listplaylists (self);
 
-    GList * table_name_list = NULL;
+    GList * table_name_list = mc_stprv_spl_get_loaded_list (self);
 
-    /* Select all table names from db that start with spl_ */
-    while (sqlite3_step (self->spl.select_tables_stmt) == SQLITE_ROW) {
-        table_name_list = g_list_prepend (table_name_list,
-                                          g_strdup ( (char *) sqlite3_column_text (self->spl.select_tables_stmt, 0) ) );
-    }
+    /* Filter all Playlist Tables that do not exist anymore in the current playlist stack.
+     * I.e. those that were deleted, or accidentally created. */
+    for (GList * iter = table_name_list; iter;) {
+        char * drop_table_name = iter->data;
 
-    /* Be nice, and always check for errors */
-    int error = sqlite3_errcode (self->handle);
-    if (error != SQLITE_DONE && error != SQLITE_OK) {
-        REPORT_SQL_ERROR (self, "Some error while selecting all playlists");
-    } else {
-        CLEAR_BINDS (self->spl.select_tables_stmt);
+        if (drop_table_name != NULL) {
+            bool is_valid = false;
 
-        /* Filter all Playlist Tables that do not exist anymore in the current playlist stack.
-         * I.e. those that were deleted, or accidentally created. */
-        for (GList * iter = table_name_list; iter;) {
-            char * drop_table_name = iter->data;
+            for (unsigned i = 0; i < mc_stack_length (self->spl.stack); ++i) {
+                struct mpd_playlist * playlist = mc_stack_at (self->spl.stack, i);
 
-            if (drop_table_name != NULL) {
-                bool is_valid = false;
+                char * valid_table_name = mc_stprv_spl_construct_table_name (playlist);
 
-                for (unsigned i = 0; i < mc_store_stack_length (self->spl.stack); ++i) {
-                    struct mpd_playlist * playlist = mc_store_stack_at (self->spl.stack, i);
+                is_valid = (g_strcmp0 (valid_table_name, drop_table_name) == 0);
+                g_free (valid_table_name);
 
-                    char * valid_table_name = mc_stprv_spl_construct_table_name (playlist);
-
-                    is_valid = (g_strcmp0 (valid_table_name, drop_table_name) == 0);
-                    g_free (valid_table_name);
-
-                    if (is_valid) {
-                        break;
-                    }
-                }
-
-                if (is_valid == false) {
-                    /* drop invalid table */
-                    mc_shelper_report_progress (self->client, true, "database: Dropping orphaned playlist-table ,,%s''", drop_table_name);
-                    mc_stprv_spl_drop_table (self, drop_table_name);
-
-                    iter = iter->next;
-                    table_name_list = g_list_delete_link (table_name_list, iter);
-                    continue;
+                if (is_valid) {
+                    break;
                 }
             }
 
-            iter = iter->next;
+            if (is_valid == false) {
+                /* drop invalid table */
+                mc_shelper_report_progress (self->client, true, "database: Dropping orphaned playlist-table ,,%s''", drop_table_name);
+                mc_stprv_spl_drop_table (self, drop_table_name);
+
+                iter = iter->next;
+                table_name_list = g_list_delete_link (table_name_list, iter);
+                continue;
+            }
         }
 
-        /* Iterate over all loaded mpd_playlists,
-         * and find the corresponding table_name.
-         *
-         * If desired, also call load() on it.  */
-        for (unsigned i = 0; i < mc_store_stack_length (self->spl.stack); ++i) {
-            struct mpd_playlist * playlist = mc_store_stack_at (self->spl.stack, i);
+        iter = iter->next;
+    }
 
-            if (playlist != NULL) {
+    /* Iterate over all loaded mpd_playlists,
+     * and find the corresponding table_name.
+     *
+     * If desired, also call load() on it.  */
+    for (unsigned i = 0; i < mc_stack_length (self->spl.stack); ++i) {
+        struct mpd_playlist * playlist = mc_stack_at (self->spl.stack, i);
 
-                /* Find matching playlists by name.
-                 * If the playlist is too old:
-                 *    Re-Load it.
-                 * If the playlist does not exist in the stack anymore:
-                 *    Drop it.
-                 */
-                for (GList * iter = table_name_list; iter; iter = iter->next) {
-                    char * old_table_name = iter->data;
-                    time_t old_pl_time = 0;
-                    char * old_pl_name = mc_stprv_spl_parse_table_name (old_table_name, &old_pl_time);
+        if (playlist != NULL) {
 
-                    if (g_strcmp0 (old_pl_name, mpd_playlist_get_path (playlist) ) == 0) {
-                        time_t new_pl_time = mpd_playlist_get_last_modified (playlist);
+            /* Find matching playlists by name.
+             * If the playlist is too old:
+             *    Re-Load it.
+             * If the playlist does not exist in the stack anymore:
+             *    Drop it.
+             */
+            for (GList * iter = table_name_list; iter; iter = iter->next) {
+                char * old_table_name = iter->data;
+                time_t old_pl_time = 0;
+                char * old_pl_name = mc_stprv_spl_parse_table_name (old_table_name, &old_pl_time);
 
-                        if (new_pl_time == old_pl_time) {
-                            /* nothing has changed */
-                        } else if (new_pl_time > old_pl_time) {
-                            /* reload old_pl? */
-                            mc_stprv_spl_load (self, playlist);
-                        } else {
-                            /* This should not happen */
-                            g_assert_not_reached ();
-                        }
+                if (g_strcmp0 (old_pl_name, mpd_playlist_get_path (playlist) ) == 0) {
+                    time_t new_pl_time = mpd_playlist_get_last_modified (playlist);
 
-                        g_free (old_pl_name);
-                        break;
+                    if (new_pl_time == old_pl_time) {
+                        /* nothing has changed */
+                    } else if (new_pl_time > old_pl_time) {
+                        /* reload old_pl? */
+                        mc_stprv_spl_load (self, playlist);
+                    } else {
+                        /* This should not happen */
+                        g_assert_not_reached ();
                     }
 
                     g_free (old_pl_name);
+                    break;
                 }
+
+                g_free (old_pl_name);
             }
         }
-
     }
 
     /* table names were dyn. allocated. */
@@ -404,13 +411,16 @@ void mc_stprv_spl_load_by_playlist_name (mc_StoreDB * store, const char * playli
 
 ///////////////////
 
-int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_StoreStack * out_stack, const char * playlist_name, const char * match_clause)
+int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_Stack * out_stack, const char * playlist_name, const char * match_clause)
 {
     g_assert (store);
     g_assert (playlist_name);
     g_assert (out_stack);
 
     int rc = 0;
+
+    if (match_clause && *match_clause == 0)
+        match_clause = NULL;
 
     struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
     if (playlist != NULL) {
@@ -433,10 +443,10 @@ int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_StoreStack * out_stack,
 
                     while (sqlite3_step (pl_search_stmt) == SQLITE_ROW) {
                         int rowid = sqlite3_column_int (pl_search_stmt, 0);
-                        struct mpd_song * song = mc_store_stack_at (store->stack, rowid);
+                        struct mpd_song * song = mc_stack_at (store->stack, rowid);
 
                         if (song != NULL) {
-                            mc_store_stack_append (out_stack, song);
+                            mc_stack_append (out_stack, song);
                             ++rc;
                         }
                     }
@@ -457,4 +467,36 @@ int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_StoreStack * out_stack,
     }
 
     return rc;
+}
+
+///////////////////
+
+int mc_stprv_spl_get_loaded_playlists (mc_StoreDB * store, mc_Stack * stack) 
+{
+    g_assert (store);
+    g_assert (stack);
+
+    int rc = 0;
+    GList * table_name_list = mc_stprv_spl_get_loaded_list (store);
+
+    if (table_name_list != NULL) {
+        for (GList * iter = table_name_list; iter; iter = iter->next) {
+            char * table_name = iter->data;
+            if (table_name != NULL) {
+                char * playlist_name = mc_stprv_spl_parse_table_name (table_name, NULL);
+                if (playlist_name != NULL) {
+                    struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
+                    if (playlist != NULL) {
+                        mc_stack_append (stack, playlist);
+
+                        ++rc;
+                    }
+                    g_free (playlist_name);
+                }
+                g_free (table_name);
+            }
+        }
+    }
+
+    return rc; 
 }

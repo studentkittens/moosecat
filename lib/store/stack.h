@@ -6,22 +6,22 @@
 typedef struct {
     GPtrArray * stack;
     GDestroyNotify free_func;
-} mc_StoreStack;
+} mc_Stack;
 
-mc_StoreStack * mc_store_stack_create (long size_hint, GDestroyNotify free_func);
+mc_Stack * mc_stack_create (long size_hint, GDestroyNotify free_func);
 
-void mc_store_stack_append (mc_StoreStack * self, void * ptr);
+void mc_stack_append (mc_Stack * self, void * ptr);
 
-void mc_store_stack_free (mc_StoreStack * self);
+void mc_stack_free (mc_Stack * self);
 
-void mc_store_stack_clear (mc_StoreStack * self, int resize);
+void mc_stack_clear (mc_Stack * self, int resize);
 
-unsigned mc_store_stack_length (mc_StoreStack * self);
+unsigned mc_stack_length (mc_Stack * self);
 
-void mc_store_stack_sort (mc_StoreStack * self, GCompareFunc func);
+void mc_stack_sort (mc_Stack * self, GCompareFunc func);
 
 /* For peformance reason a define (vs. inline function) */
-#define mc_store_stack_at(self, at) g_ptr_array_index (self->stack, at)
+#define mc_stack_at(self, at) g_ptr_array_index (self->stack, at)
 
 #endif /* end of include guard: MC_STORE_STACK_H */
 

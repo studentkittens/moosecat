@@ -5,7 +5,7 @@
 
 ///////////////////////////////
 
-static void mc_store_stack_free_data (mc_StoreStack * self)
+static void mc_stack_free_data (mc_Stack * self)
 {
     for (gsize i = 0; i < self->stack->len; ++i) {
         gpointer data = g_ptr_array_index (self->stack, i);
@@ -18,9 +18,9 @@ static void mc_store_stack_free_data (mc_StoreStack * self)
 
 ///////////////////////////////
 
-mc_StoreStack * mc_store_stack_create (long size_hint, GDestroyNotify free_func)
+mc_Stack * mc_stack_create (long size_hint, GDestroyNotify free_func)
 {
-    mc_StoreStack * self = g_new0 (mc_StoreStack, 1);
+    mc_Stack * self = g_new0 (mc_Stack, 1);
     if (self != NULL) {
         self->free_func = free_func;
         self->stack = g_ptr_array_sized_new (size_hint);
@@ -33,16 +33,16 @@ mc_StoreStack * mc_store_stack_create (long size_hint, GDestroyNotify free_func)
 
 ///////////////////////////////
 
-void mc_store_stack_append (mc_StoreStack * self, void * ptr)
+void mc_stack_append (mc_Stack * self, void * ptr)
 {
     g_ptr_array_add (self->stack, ptr);
 }
 
 ///////////////////////////////
 
-void mc_store_stack_clear (mc_StoreStack * self, int resize)
+void mc_stack_clear (mc_Stack * self, int resize)
 {
-    mc_store_stack_free_data (self);
+    mc_stack_free_data (self);
 
     /* enlargen if needed (avoids expensive reallocation) */
     if (resize >= 0 && resize > (int) self->stack->len)
@@ -51,7 +51,7 @@ void mc_store_stack_clear (mc_StoreStack * self, int resize)
 
 ///////////////////////////////
 
-void mc_store_stack_free (mc_StoreStack * self)
+void mc_stack_free (mc_Stack * self)
 {
     if (self == NULL)
         return;
@@ -62,7 +62,7 @@ void mc_store_stack_free (mc_StoreStack * self)
 
 ///////////////////////////////
 
-unsigned mc_store_stack_length (mc_StoreStack * self)
+unsigned mc_stack_length (mc_Stack * self)
 {
     if (self == NULL)
         return 0;
@@ -72,7 +72,7 @@ unsigned mc_store_stack_length (mc_StoreStack * self)
 
 ///////////////////////////////
 
-void mc_store_stack_sort (mc_StoreStack * self, GCompareFunc func)
+void mc_stack_sort (mc_Stack * self, GCompareFunc func)
 {
     if (self == NULL || func == NULL)
         return;

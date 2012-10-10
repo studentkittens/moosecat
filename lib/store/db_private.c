@@ -507,14 +507,14 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
             (buffer_len == -1 || buf_pos < buffer_len) ) {
 
         int song_idx = sqlite3_column_int (select_stmt, 0);
-        mpd_song * selected = mc_store_stack_at (self->stack, song_idx - 1);
+        mpd_song * selected = mc_stack_at (self->stack, song_idx - 1);
 
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
          * Therefore we filter here the queue songs ourselves. */
         if (queue_only == false || ( (int) mpd_song_get_pos (selected) > -1) ) {
             if (buffer_len == -1) {
-                mc_store_stack_append ( (mc_StoreStack *) buf_or_stack, selected);
+                mc_stack_append ( (mc_Stack *) buf_or_stack, selected);
             } else {
                 ( (mpd_song **) buf_or_stack) [buf_pos++] = selected;
             }
@@ -530,7 +530,7 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
     /* sort by position in queue if queue_only is passed. */
     if (queue_only) {
         if (buffer_len == -1)
-            mc_store_stack_sort ( (mc_StoreStack *) buf_or_stack, mc_stprv_select_impl_sort_func_noud);
+            mc_stack_sort ( (mc_Stack *) buf_or_stack, mc_stprv_select_impl_sort_func_noud);
         else
             g_qsort_with_data ( (mpd_song **) buf_or_stack, buf_pos, sizeof (mpd_song *), mc_stprv_select_impl_sort_func, NULL);
     }
@@ -540,7 +540,7 @@ static inline int mc_stprv_select_impl (mc_StoreDB * self, const char * match_cl
 
 ////////////////////////////////
 
-int mc_stprv_select_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_StoreStack * stack)
+int mc_stprv_select_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_Stack * stack)
 {
     return mc_stprv_select_impl (self, match_clause, queue_only, stack, -1);
 }
@@ -747,7 +747,7 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
         feed_tag (MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID, stmt, song, pair);
         feed_tag (MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
 
-        mc_store_stack_append (self->stack, song);
+        mc_stack_append (self->stack, song);
 
         if (++progress_counter % 50 == 0) {
             mc_shelper_report_progress (self->client, false, "database: deserializing songs from db ... [%d/%d]",
@@ -882,7 +882,7 @@ void mc_stprv_queue_update_stack_posid (mc_StoreDB * self)
         int row_idx  = sqlite3_column_int (select_stmt, 0);
 
         if (row_idx > 0) {
-            mpd_song * song = mc_store_stack_at (self->stack, row_idx - 1);
+            mpd_song * song = mc_stack_at (self->stack, row_idx - 1);
             if (song != NULL) {
                 parse_pair.value = (char *) sqlite3_column_text (select_stmt, 2);
                 mpd_song_feed (song, &parse_pair);
@@ -996,7 +996,7 @@ void mc_stprv_dir_delete (mc_StoreDB * self)
 
 //////////////////
 
-int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * directory, int depth) 
+int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth) 
 {
     g_assert (self);
     g_assert (stack);
@@ -1038,7 +1038,7 @@ int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, cons
             const char * rowid = (const char *)sqlite3_column_text (select_stmt, 0);
             const char * path = (const char *)sqlite3_column_text (select_stmt, 1);
 
-            mc_store_stack_append (stack, g_strjoin("#", rowid, path, NULL));
+            mc_stack_append (stack, g_strjoin("#", rowid, path, NULL));
             ++returned;  
         }
 
