@@ -63,8 +63,8 @@ const char * spl_sql_stmts[] = {
     [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
     [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
     [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
-    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE artist MATCH %Q;",
-    [STMT_PLAYLIST_DUMPIT] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx;"
+    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs_content AS songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE artist MATCH %Q;",
+    [STMT_PLAYLIST_DUMPIT] = "SELECT songs.rowid FROM songs_content AS songs JOIN %q AS pl ON songs.rowid = pl.song_idx;"
 };
 
 void mc_stprv_spl_init (mc_StoreDB * self)
@@ -206,7 +206,6 @@ static void mc_stprv_spl_listplaylists (mc_StoreDB * store)
         mpd_send_list_playlists (conn);
 
         while ( (playlist = mpd_recv_playlist (conn) ) != NULL) {
-            g_print(" * Loading playlist metadata: %s\n", mpd_playlist_get_path (playlist));
             mc_store_stack_append (store->spl.stack, playlist);
         }
 
@@ -396,7 +395,6 @@ void mc_stprv_spl_load_by_playlist_name (mc_StoreDB * store, const char * playli
     g_assert (playlist_name);
 
     struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
-    g_print ("NAME: '%s'", playlist_name);
     if (playlist != NULL) {
         mc_stprv_spl_load (store, playlist);
     } else {

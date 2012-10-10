@@ -149,11 +149,17 @@ static const char * _sql_stmts[] = {
     [_MC_SQL_DIR_INSERT] =
         "INSERT INTO dirs VALUES(?, ?);",
     [_MC_SQL_DIR_SEARCH_PATH] =
-        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION SELECT rowid, uri FROM songs WHERE uri MATCH ? ORDER BY songs.rowid, songs.uri, dirs.path;",
+        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [_MC_SQL_DIR_SEARCH_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? UNION SELECT rowid, uri FROM songs WHERE uri_depth = ? ORDER BY songs.rowid, songs.uri, dirs.path;",
+        "SELECT -1, path FROM dirs WHERE depth = ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [_MC_SQL_DIR_SEARCH_PATH_AND_DEPTH] =
-         "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? ORDER BY songs.rowid, songs.uri, dirs.path;;",
+        "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [_MC_SQL_DIR_DELETE_ALL] =
         "DELETE FROM dirs;",
     [_MC_SQL_SOURCE_COUNT] =
