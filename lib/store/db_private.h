@@ -84,7 +84,9 @@ enum {
     _MC_SQL_COMMIT,
     /* select all playlist names from playlists table */
     _MC_SQL_DIR_INSERT,
-    _MC_SQL_DIR_SELECT_DEPTH,
+    _MC_SQL_DIR_SEARCH_PATH,
+    _MC_SQL_DIR_SEARCH_DEPTH,
+    _MC_SQL_DIR_SEARCH_PATH_AND_DEPTH,
     _MC_SQL_DIR_DELETE_ALL,
     /* === total number of defined sources === */
     _MC_SQL_SOURCE_COUNT
@@ -149,7 +151,6 @@ typedef struct mc_StoreDB {
 
 } mc_StoreDB;
 
-
 /**
  * @brief Open a :memory: db
  *
@@ -162,7 +163,7 @@ bool mc_strprv_open_memdb (mc_StoreDB * self);
  *
  * You should call mc_stprv_begin/commit before and after.
  */
-bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song, int dir_index);
+bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song);
 
 /**
  * @brief Update the db's meta table.

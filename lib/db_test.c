@@ -89,7 +89,7 @@ int main (int argc, char * argv[])
 
                 if (strncmp (line_buf, ":load", 5) == 0) {
                     char * pl_name = g_strstrip (&line_buf[5]);
-                    mc_store_load_playlist (db, pl_name);
+                    mc_store_playlist_load (db, pl_name);
                     continue;
                 }
 
@@ -106,6 +106,48 @@ int main (int argc, char * argv[])
 
                 if (g_strcmp0 (line_buf, ":connect") == 0) {
                     mc_proto_connect (client, NULL, "localhost", 6600, 10.0);
+                    continue;
+                }
+                
+                if (strncmp (line_buf, ":spl ", 5) == 0) {
+                    char ** args = g_strsplit (line_buf, " ", -1);
+                    if (args != NULL)  {
+                        mc_StoreStack * stack = mc_store_stack_create (1000, NULL);
+                        int found = mc_store_playlist_select_to_stack(db, stack, args[1], args[2]);
+
+                        g_print ("%s %s\n", args[1], args[2]);
+                        if (found == 0) {
+                            g_print ("Nothing found.\n");
+                        } else {
+                            for (int i = 0; i < found; ++i) {
+                                struct mpd_song * song = mc_store_stack_at (stack, i);
+                                g_print ("%s\n", mpd_song_get_uri (song));
+                            }
+                        }
+                        mc_store_stack_free (stack);
+                        g_strfreev (args);
+                    }
+                    continue;
+                }
+
+                if (strncmp (line_buf, ":ls ", 4) == 0) {
+                    char ** args = g_strsplit (line_buf, " ", -1);
+                    if (args != NULL) {
+                        char * query = (*args[1] == '_') ? NULL : args[1];
+                        mc_StoreStack * stack = mc_store_stack_create (100, g_free);
+                        int depth = (args[2]) ? g_ascii_strtoll (args[2], NULL, 10) : -1;
+                        int found = mc_store_dir_select_to_stack (db, stack, query, depth);
+
+                        if (found == 0) {
+                            g_print ("Nothing found.\n");
+                        } else {
+                            for (int i = 0; i < found; ++i) {
+                                g_print ("%s\n", (char *) mc_store_stack_at (stack, i));
+                            }
+                        }
+                        mc_store_stack_free (stack);
+                        g_strfreev (args);
+                    }
                     continue;
                 }
 

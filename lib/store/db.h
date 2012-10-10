@@ -66,6 +66,9 @@ int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool que
  */
 void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish);
 
-void mc_store_load_playlist (mc_StoreDB * self, const char * playlist_name);
+void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name);
+int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * playlist_name, const char * match_clause);
+
+int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * directory, int depth);
 
 #endif /* end of include guard: DB_GUARD_H */

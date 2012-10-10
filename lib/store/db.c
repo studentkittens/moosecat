@@ -258,14 +258,12 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
 
     mc_stprv_begin (self);
 
-    int dir_index = 0;
-
     while ( (gpointer) (ent = g_async_queue_pop (self->sqltonet_queue) ) > async_queue_terminator) {
         switch (mpd_entity_get_type (ent) ) {
         case MPD_ENTITY_TYPE_SONG: {
             struct mpd_song * song = (struct mpd_song *) mpd_entity_get_song (ent) ;
             mc_store_stack_append (self->stack, (mpd_song *) song);
-            mc_stprv_insert_song (self, (mpd_song *) song, dir_index);
+            mc_stprv_insert_song (self, (mpd_song *) song);
 
             /* Not sure if this is a nice way,
              * but for now it works. There might be a proper way:
@@ -279,8 +277,6 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
             if (dir != NULL) {
                 mc_stprv_dir_insert (self, g_strdup (mpd_directory_get_path (dir) ) );
                 mpd_entity_free (ent);
-
-                ++dir_index;
             }
         }
         break;
@@ -607,9 +603,6 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
     /* used to exchange songs between network <-> sql threads */
     store->sqltonet_queue = g_async_queue_new ();
 
-    /* playlist stack, not much of intelligent pre allocation is done here */
-    store->spl.stack = mc_store_stack_create (10, (GDestroyNotify) mpd_playlist_free);
-
     if ( (song_count = mc_store_check_if_db_is_still_valid (store, db_path) ) < 0) {
         mc_shelper_report_progress (store->client, true, "database: will fetch stuff from mpd.");
 
@@ -741,7 +734,21 @@ void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish)
 
 ///////////////
 
-void mc_store_load_playlist (mc_StoreDB * self, const char * playlist_name)
+void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name)
 {
     mc_stprv_spl_load_by_playlist_name (self, playlist_name);
+}
+
+///////////////
+
+int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * playlist_name, const char * match_clause) 
+{
+    return mc_stprv_spl_select_playlist (self, stack, playlist_name, match_clause);
+}
+
+///////////////
+
+int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * directory, int depth)
+{
+    return mc_stprv_dir_select_to_stack (self, stack, directory, depth);
 }

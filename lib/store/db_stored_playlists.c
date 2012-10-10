@@ -54,7 +54,8 @@ enum {
     STMT_DROP_SPLTABLE,
     STMT_CREATE_SPLTABLE,
     STMT_INSERT_SONG_IDX,
-    STMT_PLAYLIST_SEARCH
+    STMT_PLAYLIST_SEARCH,
+    STMT_PLAYLIST_DUMPIT
 };
 
 const char * spl_sql_stmts[] = {
@@ -62,7 +63,8 @@ const char * spl_sql_stmts[] = {
     [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
     [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
     [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
-    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE artist MATCH %q;"
+    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE artist MATCH %Q;",
+    [STMT_PLAYLIST_DUMPIT] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx;"
 };
 
 void mc_stprv_spl_init (mc_StoreDB * self)
@@ -204,6 +206,7 @@ static void mc_stprv_spl_listplaylists (mc_StoreDB * store)
         mpd_send_list_playlists (conn);
 
         while ( (playlist = mpd_recv_playlist (conn) ) != NULL) {
+            g_print(" * Loading playlist metadata: %s\n", mpd_playlist_get_path (playlist));
             mc_store_stack_append (store->spl.stack, playlist);
         }
 
@@ -393,11 +396,12 @@ void mc_stprv_spl_load_by_playlist_name (mc_StoreDB * store, const char * playli
     g_assert (playlist_name);
 
     struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
+    g_print ("NAME: '%s'", playlist_name);
     if (playlist != NULL) {
         mc_stprv_spl_load (store, playlist);
+    } else {
+        mc_shelper_report_error_printf (store->client, "Could not find stored playlist ,,%s''", playlist_name);
     }
-
-    mc_shelper_report_error_printf (store->client, "Could not find stored playlist ,,%s''", playlist_name);
 }
 
 ///////////////////
@@ -410,26 +414,33 @@ int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_StoreStack * out_stack,
 
     int rc = 0;
 
-    if (match_clause == NULL)
-        match_clause = "";
-
     struct mpd_playlist * playlist = mc_stprv_spl_name_to_playlist (store, playlist_name);
     if (playlist != NULL) {
         char * table_name = mc_stprv_spl_construct_table_name (playlist);
         if (table_name != NULL) {
-            char * sql = sqlite3_mprintf (spl_sql_stmts[STMT_PLAYLIST_SEARCH], table_name, match_clause);
+
+            char * sql = NULL;
+            if (match_clause == NULL) {
+                sql = sqlite3_mprintf (spl_sql_stmts[STMT_PLAYLIST_DUMPIT], table_name);
+            } else {
+                sql = sqlite3_mprintf (spl_sql_stmts[STMT_PLAYLIST_SEARCH], table_name, match_clause);
+            }
+
             if (sql != NULL) {
 
                 sqlite3_stmt * pl_search_stmt = NULL;
-                if (sqlite3_prepare_v2 (store->handle, spl_sql_stmts[STMT_PLAYLIST_SEARCH], -1, &pl_search_stmt, NULL) != SQLITE_OK) {
+                if (sqlite3_prepare_v2 (store->handle, sql, -1, &pl_search_stmt, NULL) != SQLITE_OK) {
                     REPORT_SQL_ERROR (store, "Cannot prepare playlist search statement");
                 } else {
 
                     while (sqlite3_step (pl_search_stmt) == SQLITE_ROW) {
                         int rowid = sqlite3_column_int (pl_search_stmt, 0);
-                        mc_store_stack_append (out_stack, mc_store_stack_at (store->stack, rowid));
+                        struct mpd_song * song = mc_store_stack_at (store->stack, rowid);
 
-                        ++rc;
+                        if (song != NULL) {
+                            mc_store_stack_append (out_stack, song);
+                            ++rc;
+                        }
                     }
 
                     if (sqlite3_errcode (store->handle) != SQLITE_DONE) {

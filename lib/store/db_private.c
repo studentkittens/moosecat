@@ -23,6 +23,8 @@
  * Please excuse any eye cancer while reading this. Thank you!
  */
 
+/* Prototypes (only if needed.) */
+static int mc_stprv_dir_path_get_depth (const char * dir_path);
 
 ///////////////////
 
@@ -83,17 +85,17 @@ static const char * _sql_stmts[] = {
         "    -- Queue Data:                                                                                 \n"
         "    queue_pos INTEGER,             -- Position of the song in the Queue                            \n"
         "    queue_idx INTEGER,             -- Index of the song in the Queue, does not change on moves     \n"
-        "    -- Link to dirs table:                                                                         \n"
-        "    dirs_index INTEGER NOT NULL,   -- foreign key to dirs table                                    \n"
+        "    -- Depth of uri:                                                                               \n"
+        "    uri_depth INTEGER NOT NULL,                                                                    \n"
         "    -- FTS options:                                                                                \n"
-        "    matchinfo=fts3, tokenize=%s                                                                   \n"
+        "    matchinfo=fts3, tokenize=%s                                                                    \n"
         ");                                                                                                 \n"
         "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                         \n"
         "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                         \n"
         "CREATE INDEX IF NOT EXISTS queue_pos_index ON songs_content(c20queue_pos);                         \n"
         "                                                                                                   \n"
         "-- Directory table only contains path of the directory and the path-depth (no '/' == 0)            \n"
-        "CREATE TABLE IF NOT EXISTS dirs(path TEXT NOT NULL, depth INTEGER NOT NULL);                       \n" ,
+        "CREATE VIRTUAL TABLE IF NOT EXISTS dirs USING fts4(path TEXT NOT NULL, depth INTEGER NOT NULL);    \n" ,
     [_MC_SQL_META_DUMMY] =
         "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
     [_MC_SQL_META] =
@@ -146,8 +148,12 @@ static const char * _sql_stmts[] = {
         "COMMIT;",
     [_MC_SQL_DIR_INSERT] =
         "INSERT INTO dirs VALUES(?, ?);",
-    [_MC_SQL_DIR_SELECT_DEPTH] =
-        "SELECT path FROM dirs WHERE depth = ? AND path LIKE ?;",
+    [_MC_SQL_DIR_SEARCH_PATH] =
+        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION SELECT rowid, uri FROM songs WHERE uri MATCH ? ORDER BY songs.rowid, songs.uri, dirs.path;",
+    [_MC_SQL_DIR_SEARCH_DEPTH] =
+        "SELECT -1, path FROM dirs WHERE depth = ? UNION SELECT rowid, uri FROM songs WHERE uri_depth = ? ORDER BY songs.rowid, songs.uri, dirs.path;",
+    [_MC_SQL_DIR_SEARCH_PATH_AND_DEPTH] =
+         "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? ORDER BY songs.rowid, songs.uri, dirs.path;;",
     [_MC_SQL_DIR_DELETE_ALL] =
         "DELETE FROM dirs;",
     [_MC_SQL_SOURCE_COUNT] =
@@ -276,7 +282,6 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
         if (sql != NULL) {
             prep_error = sqlite3_prepare_v2 (self->handle, sql,
                                              strlen (sql) + 1, &self->sql_prep_stmts[i], NULL);
-
             /* Uh-Oh. Typo? */
             if (prep_error != SQLITE_OK)
                 REPORT_SQL_ERROR (self, "WARNING: cannot prepare statement");
@@ -372,7 +377,7 @@ void mc_stprv_delete_songs_table (mc_StoreDB * self)
  *
  * A prepared statement is used for simplicity & speed reasons.
  */
-bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song, int dir_index)
+bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
 {
     int error_id = SQLITE_OK;
     int pos_idx = 1;
@@ -408,10 +413,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song, int dir_index)
      */
     bind_int (db, INSERT, pos_idx, -1, error_id);
     bind_int (db, INSERT, pos_idx, -1, error_id);
-
-    /* Directory index.
-     * i.e. the rowid of the corresponding directory in the dirs table */
-    bind_int (db, INSERT, pos_idx, dir_index, error_id);
+    bind_int (db, INSERT, pos_idx, mc_stprv_dir_path_get_depth (mpd_song_get_uri (song)), error_id);
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
@@ -988,38 +990,58 @@ void mc_stprv_dir_delete (mc_StoreDB * self)
 
 //////////////////
 
-int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * dir, int depth)
+int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_StoreStack * stack, const char * directory, int depth) 
 {
     g_assert (self);
     g_assert (stack);
 
-    int rc = 0;
+    int returned = 0;
     int pos_idx = 1;
     int error_id = SQLITE_OK;
 
-    if (dir == NULL)
-        dir = "/";
+    if (directory && *directory == '/')
+        directory = NULL;
 
-    depth = MAX (depth, 0);
-
-    bind_int (self, DIR_SELECT_DEPTH, pos_idx, depth, error_id);
-    bind_txt (self, DIR_SELECT_DEPTH, pos_idx, dir, error_id);
-
-    if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR (self, "Cannot bind stuff to SELECT statement");
-        return - 1;
-    }
-
-    sqlite3_stmt * select_stmt = SQL_STMT (self, DIR_SELECT_DEPTH);
-    while (sqlite3_step (select_stmt) == SQLITE_ROW) {
-        char * path = (char *) sqlite3_column_text (select_stmt, 0);
-        if (path != NULL) {
-            mc_store_stack_append (stack, path);
-            ++rc;
-        }
-    }
-
-    return rc;
+    sqlite3_stmt * select_stmt = NULL;
+    
+    if (directory != NULL && depth < 0) {
+        select_stmt = SQL_STMT (self, DIR_SEARCH_PATH);
+        bind_txt (self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
+        bind_txt (self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
+    } else if (directory == NULL && depth >= 0) {
+        select_stmt = SQL_STMT (self, DIR_SEARCH_DEPTH);
+        bind_int (self, DIR_SEARCH_DEPTH, pos_idx, depth, error_id);
+        bind_int (self, DIR_SEARCH_DEPTH, pos_idx, depth, error_id);
+    } else if (directory != NULL && depth >= 0) {
+        select_stmt = SQL_STMT (self, DIR_SEARCH_PATH_AND_DEPTH);
+        bind_int (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
+        bind_txt (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
+        bind_int (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
+        bind_txt (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
+    } else {
+        g_print ("Cannot select anything with empty directory and negative depth...\n");
+        return -1;
 }
 
-//////////////////
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR (self, "Cannot bind stuff to directory select");
+        return -2;
+    } else {
+
+        while (sqlite3_step (select_stmt) == SQLITE_ROW) {
+            const char * rowid = (const char *)sqlite3_column_text (select_stmt, 0);
+            const char * path = (const char *)sqlite3_column_text (select_stmt, 1);
+
+            mc_store_stack_append (stack, g_strjoin("#", rowid, path, NULL));
+            ++returned;  
+        }
+
+        if (sqlite3_errcode (self->handle) != SQLITE_DONE) {
+            REPORT_SQL_ERROR (self, "Some error occured during selecting directories");
+            return -3;
+        }
+        CLEAR_BINDS (select_stmt);
+    }
+
+    return returned;
+}
