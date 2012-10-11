@@ -63,7 +63,7 @@ const char * spl_sql_stmts[] = {
     [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
     [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
     [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
-    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs_content AS songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE artist MATCH %Q;",
+    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE songs.artist MATCH %Q;",
     [STMT_PLAYLIST_DUMPIT] = "SELECT songs.rowid FROM songs_content AS songs JOIN %q AS pl ON songs.rowid = pl.song_idx;"
 };
 
