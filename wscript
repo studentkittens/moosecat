@@ -14,6 +14,8 @@ CFLAGS = ['-std=c99', '-pipe']
 # Optional flags:
 CFLAGS += ['-ggdb3', '-Wall', '-W']
 
+# These files are not built into libmoosecat.so
+EXCLUDE_FILES = []
 
 def options(opt):
         opt.load('compiler_c')
@@ -99,14 +101,13 @@ def _find_libmoosecat_src(ctx):
     """
     c_files = ctx.path.ant_glob('lib/**/*.c')
 
-    exclude_files = ['lib/main.c', 'lib/db_test.c']
-    for exclude in exclude_files:
+    for exclude in EXCLUDE_FILES:
         exclude_node = ctx.path.make_node(exclude)
 
         try:
            c_files.remove(exclude_node)
         except ValueError:
-            print('- Excluded file not in list:', exclude)
+            pass
 
     return c_files
 
@@ -114,15 +115,6 @@ def _find_libmoosecat_src(ctx):
 def build(bld):
     LIBS = ['mpdclient'] + ['curses'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3 + bld.env.LIB_ZLIB
     INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3 + bld.env.INCLUDES_ZLIB
-
-    bld.stlib(
-            source = _find_libmoosecat_src(bld),
-            target = 'moosecat',
-            install_path = 'bin',
-            includes = INCLUDES,
-            lib = LIBS,
-            cflags = CFLAGS
-    )
 
     def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
         bld.program(
@@ -133,14 +125,27 @@ def build(bld):
                 lib = libraries,
                 use = 'moosecat',
                 cflags = CFLAGS
-    )
+        )
+
+        EXCLUDE_FILES.append(sources)
 
     build_test_program('lib/main.c', 'moosecat_runner')
     build_test_program('lib/db_test.c', 'db_test')
+    build_test_program('lib/event_test.c', 'event_test')
     build_test_program('gtk_db.c', 'gtk_db',
             libraries = LIBS + bld.env.LIB_GTK3,
             includes_h = INCLUDES + bld.env.INCLUDES_GTK3
     )
+
+    bld.stlib(
+            source = _find_libmoosecat_src(bld),
+            target = 'moosecat',
+            install_path = 'bin',
+            includes = INCLUDES,
+            lib = LIBS,
+            cflags = CFLAGS
+    )
+
 
     if bld.options.runtests:
         for path in bld.path.ant_glob('test/lib/**/*.c'):

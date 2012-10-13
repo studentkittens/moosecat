@@ -1,4 +1,4 @@
-#include "sleep_grained.h"
+#include "sleep-grained.h"
 
 void mc_sleep_grained (unsigned ms, unsigned interval_ms, gboolean * check)
 {

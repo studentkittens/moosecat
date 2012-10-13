@@ -54,9 +54,9 @@ mc_Client * mc_proto_create (mc_PmType pm)
     mc_Client * client = NULL;
     switch (pm) {
     case MC_PM_IDLE:
-        client = mc_proto_create_idler();
+        client = mc_proto_create_idler(); break;
     case MC_PM_COMMAND: // TODO: pass arguments.
-        client = mc_proto_create_cmnder (-1);
+        client = mc_proto_create_cmnder (-1); break;
     }
 
     if (client != NULL) {

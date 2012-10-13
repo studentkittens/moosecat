@@ -1,4 +1,4 @@
-#include "bug_report.h"
+#include "bug-report.h"
 
 /* version */
 #include "../config.h"

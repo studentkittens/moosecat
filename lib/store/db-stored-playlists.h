@@ -1,7 +1,7 @@
 #ifndef MC_DB_STORED_PLAYLIST_HH
 #define MC_DB_STORED_PLAYLIST_HH
 
-#include "db_private.h"
+#include "db-store.h"
 
 void mc_stprv_spl_init (mc_StoreDB * self);
 void mc_stprv_spl_destroy (mc_StoreDB * self);

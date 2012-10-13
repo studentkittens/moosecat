@@ -1,7 +1,7 @@
 #include "idle_core.h"
 #include "common.h"
 #include "../../util/gasyncqueue-watch.h"
-#include "../../util/sleep_grained.h"
+#include "../../util/sleep-grained.h"
 #include "../../compiler.h"
 #include "../protocol.h"
 #include "../signal_helper.h"
@@ -85,14 +85,11 @@ static mc_cc_hot gboolean cmnder_event_callback (
     gpointer item = NULL;
 
     /* Pop all items from the queue that are in,
-     * and b'or them into one single event.
-     */
+     * and b'or them into one single event. */
     while ( (item = g_async_queue_try_pop (queue) ) )
         events |= GPOINTER_TO_INT (item);
 
-    if (events != 0)
-        mc_shelper_report_client_event (self, events);
-
+    mc_shelper_report_client_event (self, events);
     return TRUE;
 
 }
@@ -106,7 +103,7 @@ static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
 
     /*
      * We may not use mc_shelper_report_error here.
-     * Why? It may call disconnect on fatal errors.
+     * Why? It may call disconnect() on fatal errors.
      * This would lead to joining this thread with itself,
      * which is deadly. */
     while (self->run_listener) {

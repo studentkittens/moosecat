@@ -2,7 +2,10 @@
 #include "../mpd/signal_helper.h"
 #include "../mpd/signal.h"
 
-#include "db_stored_playlists.h"
+#include "db-private.h"
+#include "db-stored-playlists.h"
+#include "db-dirs.h"
+#include "db-macros.h"
 #include "db.h"
 
 #include "../util/gzip.h"
@@ -610,6 +613,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
          * or an backup will be loaded into memory */
         mc_strprv_open_memdb (store);
         mc_stprv_prepare_all_statements (store);
+        mc_stprv_dir_prepare_statemtents (store);
 
         /* make sure we inserted the meta info at least once */
         mc_stprv_insert_meta_attributes (store);
@@ -628,6 +632,7 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
          * or an backup will be loaded into memory */
         mc_strprv_open_memdb (store);
         mc_stprv_prepare_all_statements (store);
+        mc_stprv_dir_prepare_statemtents (store);
         mc_shelper_report_progress (store->client, true, "database: %s exists already.", db_path);
 
         /* stack is allocated to the old size */
@@ -699,6 +704,7 @@ void mc_store_close (mc_StoreDB * self)
     if (self->settings->use_compression && mc_gzip (full_path) == false)
         g_print ("Note: Nothing to zip.\n");
 
+    mc_stprv_dir_finalize_statements (self);
     mc_stprv_close_handle (self);
 
     if (self->settings->use_memory_db == false)

@@ -1,6 +1,6 @@
 #include "mpd/protocol.h"
 #include "store/db.h"
-#include "misc/posix_signal.h"
+#include "misc/posix-signal.h"
 
 #include <string.h>
 #include <stdio.h>

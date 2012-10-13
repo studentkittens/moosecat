@@ -1,9 +1,7 @@
 #ifndef DB_GUARD_H
 #define DB_GUARD_H
-/*
- * This header is not for you
- */
-#include "db_private.h"
+
+#include "db-store.h"
 
 /*
  * API to serialize songs into

@@ -18,6 +18,9 @@
 // Private Interface //
 ///////////////////////
 
+
+// TODO: Finish this at some time.
+
 typedef struct {
     mc_Client logic;
     mpd_connection * con;
@@ -28,13 +31,16 @@ typedef struct {
     enum mpd_idle idle_events;
     GIOChannel * async_chan;
     guint async_chan_id;
-
     gboolean is_idling;
-    GMainContext * main_context;
 
 } mc_IdleClient;
 
-///////////////////
+/////////////////// PROTO /////////////////// 
+
+static gboolean idler_enter (mc_IdleClient * self);
+static void idler_create_socket_poll (mc_IdleClient * self, enum mpd_async_event events);
+
+/////////////////// 
 
 static gboolean idler_check_error (mc_IdleClient * self)
 {
@@ -47,6 +53,18 @@ static gboolean idler_check_error (mc_IdleClient * self)
     } else {
         return false;
     }
+}
+
+///////////////////
+
+static void idler_report_client_event (mc_IdleClient * self)
+{
+    g_assert (self);
+
+    mc_shelper_report_client_event ((mc_Client *)self, self->idle_events);
+    self->idle_events = 0;
+
+    idler_enter (self);
 }
 
 ///////////////////
@@ -84,6 +102,7 @@ static gboolean idler_parse_response (mc_IdleClient * self, char * netline)
         case MPD_PARSER_SUCCESS:
             {
                 self->io_eventmask = 0;
+                idler_report_client_event (self);
                 idler_check_error(self);
                 return true;
             }
@@ -115,7 +134,6 @@ static gboolean idler_recv_parseable(mc_IdleClient * self)
 
 ///////////////////
 
-static void idler_create_socket_poll (mc_IdleClient * self, enum mpd_async_event events);
 
 static gboolean idler_gio_socket_func (GIOChannel * source, GIOCondition condition, gpointer data)
 {
@@ -179,7 +197,7 @@ static void idler_create_socket_poll (mc_IdleClient * self, enum mpd_async_event
             self->async_chan,
             mpd_async_to_gio (events),
             idler_gio_socket_func,
-            NULL);
+            self);
 }
 
 ///////////////////
@@ -189,16 +207,12 @@ static gboolean idler_is_idling (mc_IdleClient * self)
     return self->is_idling;
 }
 
-
 ///////////////////
 
 static gboolean idler_enter (mc_IdleClient * self)
 {
     if(idler_is_idling(self) == false)
     {
-        //if(is_leaving || is_working)
-        //    return false;
-
         g_print("Putting connection into 'idle' state.");
         if(mpd_async_send_command(self->async, "idle", NULL) == false)
         {
@@ -206,10 +220,8 @@ static gboolean idler_enter (mc_IdleClient * self)
             return false;
         }
 
-        /* Indicate we get into idlemode */
         self->is_idling = true;
 
-        /* Add a watch on the socket */
         idler_create_socket_poll(self, mpd_async_events(self->async));
         return true;
     }
@@ -225,6 +237,7 @@ static gboolean idler_enter (mc_IdleClient * self)
 static gboolean idler_leave (mc_IdleClient * self)
 {
     if(idler_is_idling(self)) {
+        g_print("Making connection active..\n");
         self->is_idling = false;
         self->io_eventmask = 0;
 
@@ -238,8 +251,7 @@ static gboolean idler_leave (mc_IdleClient * self)
         if (mc_shelper_report_error ((mc_Client *)self, self->con) == false)
         {
             self->idle_events |= events;
-            //invoke_user_callback();
-
+            idler_report_client_event (self);
             idler_remove_socket_poll (self);
         }
     }
@@ -251,6 +263,7 @@ static gboolean idler_leave (mc_IdleClient * self)
 
 gboolean idler_enter_on_idle_wrapper (gpointer data)
 {
+    g_print("Entered Mainloop - Setting up listeners\n");
     idler_enter ((mc_IdleClient *) data);
     return false; /* execute only once */
 }
@@ -261,7 +274,7 @@ gboolean idler_enter_on_idle_wrapper (gpointer data)
 
 static char * idler_do_connect (mc_Client * parent, GMainContext * context, const char * host, int port, float timeout)
 {
-    g_assert (context);
+    (void) context;
     g_assert (parent);
 
     mc_IdleClient * self = child(parent);
@@ -279,16 +292,15 @@ static char * idler_do_connect (mc_Client * parent, GMainContext * context, cons
         return g_strdup("Unable to create an GIOChannel on the unix socket.");
     }
 
-    self->main_context = context;
     self->parser = mpd_parser_new ();
     self->io_eventmask = 0;
     self->idle_events = 0;
     self->async_chan_id = 0;
+    self->is_idling = false;
 
     /* This is called exactly once, 
      * when the mainloop starts working.
-     * Otherwise no work at all is done.
-     */
+     * Otherwise no work at all is done. */
     g_idle_add (idler_enter_on_idle_wrapper, self);
 
     return NULL;
@@ -298,6 +310,7 @@ static char * idler_do_connect (mc_Client * parent, GMainContext * context, cons
 
 static mpd_connection * idler_do_get (mc_Client * self)
 {
+    g_print ("Attempting get.\n");
     return (idler_leave (child(self))) ? child (self)->con : NULL;
 }
 
@@ -305,16 +318,15 @@ static mpd_connection * idler_do_get (mc_Client * self)
 
 static void idler_do_put (mc_Client * self)
 {
-    // enter event listening state
     g_print ("Putting %p back\n", child (self) );
+    idler_enter (child (self));
 }
 
 ///////////////////////
 
 static bool idler_do_disconnect (mc_Client * self)
 {
-    (void) self;
-    return true;
+    return idler_leave ( child(self));
 }
 
 //////////////////////
@@ -350,11 +362,8 @@ mc_Client * mc_proto_create_idler (void)
     self->logic.do_connect = idler_do_connect;
     self->logic.do_is_connected = idler_do_is_connected;
 
-    // ... for now just abort here.
-    g_print ("NOTE: MC_PM_IDLE pm is not yet implemented!\n");
-    g_print ("      Kittens didn't walk over the keybaord yet.\n");
-    g_print ("      => Aborting!\n\n");
-    raise (SIGTERM);
+    g_print("pm_idle is not yet fully implemented. It crashes frequently.\n");
+    raise(SIGTERM);
 
     return (mc_Client *) self;
 }

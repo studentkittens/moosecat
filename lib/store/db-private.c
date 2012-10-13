@@ -1,6 +1,9 @@
-#include "db_private.h"
+#include "db-private.h"
+#include "db-macros.h"
+
 #include "../mpd/signal_helper.h"
 #include "../mpd/client_private.h"
+#include "../util/paths.h"
 
 /* strlen() */
 #include <string.h>
@@ -12,6 +15,11 @@
 #define _POSIX_SOURCE
 #include <time.h>
 
+#define SQL_CODE(NAME) \
+    _sql_stmts[STMT_SQL_##NAME]
+
+#define SQL_STMT(STORE, NAME) \
+    STORE->sql_prep_stmts[STMT_SQL_##NAME]
 
 /*
  * Note:
@@ -23,8 +31,50 @@
  * Please excuse any eye cancer while reading this. Thank you!
  */
 
-/* Prototypes (only if needed.) */
-static int mc_stprv_dir_path_get_depth (const char * dir_path);
+enum {
+    /* creation of the basic tables */
+    STMT_SQL_CREATE = 0,
+    /* create the dummy meta table
+     * (just to let the statements compile) */
+    STMT_SQL_META_DUMMY,
+    /* update info about the db */
+    STMT_SQL_META,
+    /* === border between non-prepared/prepared statements === */
+    STMT_SQL_NEED_TO_PREPARE_COUNT,
+    /* ======================================================= */
+    /* update queue_pos / queue_idx */
+    STMT_SQL_QUEUE_UPDATE_ROW,
+    /* clear the pos/id fields */
+    STMT_SQL_QUEUE_CLEAR,
+    /* clear the pos/id fields by filename */
+    STMT_SQL_QUEUE_CLEAR_ROW,
+    /* select using match */
+    STMT_SQL_SELECT_MATCHED,
+    STMT_SQL_SELECT_MATCHED_ALL,
+    /* select all */
+    STMT_SQL_SELECT_ALL,
+    /* select all queue songs */
+    STMT_SQL_SELECT_ALL_QUEUE,
+    /* delete all content from 'songs' */
+    STMT_SQL_DELETE_ALL,
+    /* select meta attributes */
+    STMT_SQL_SELECT_META_DB_VERSION,
+    STMT_SQL_SELECT_META_PL_VERSION,
+    STMT_SQL_SELECT_META_SC_VERSION,
+    STMT_SQL_SELECT_META_MPD_PORT,
+    STMT_SQL_SELECT_META_MPD_HOST,
+    /* count songs in db */
+    STMT_SQL_COUNT,
+    /* insert one song */
+    STMT_SQL_INSERT,
+    /* begin statement */
+    STMT_SQL_BEGIN,
+    /* commit statement */
+    STMT_SQL_COMMIT,
+    /* === total number of defined sources === */
+    STMT_SQL_SOURCE_COUNT
+    /* ======================================= */
+};
 
 ///////////////////
 
@@ -56,7 +106,7 @@ enum {
 
 ///////////////////
 static const char * _sql_stmts[] = {
-    [_MC_SQL_CREATE] =
+    [STMT_SQL_CREATE] =
         "PRAGMA foreign_keys = ON;                                                                          \n"
         "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.        \n"
         "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                               \n"
@@ -96,9 +146,9 @@ static const char * _sql_stmts[] = {
         "                                                                                                   \n"
         "-- Directory table only contains path of the directory and the path-depth (no '/' == 0)            \n"
         "CREATE VIRTUAL TABLE IF NOT EXISTS dirs USING fts4(path TEXT NOT NULL, depth INTEGER NOT NULL);    \n" ,
-    [_MC_SQL_META_DUMMY] =
+    [STMT_SQL_META_DUMMY] =
         "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
-    [_MC_SQL_META] =
+    [STMT_SQL_META] =
         "-- Meta Table, containing information about the metadata itself.                \n"
         "BEGIN IMMEDIATE;                                                                \n"
         "DROP TABLE IF EXISTS meta;                                                      \n"
@@ -112,67 +162,43 @@ static const char * _sql_stmts[] = {
         "INSERT INTO meta VALUES(%d, %d, %d, %d, '%q');                                  \n"
         "COMMIT;                                                                         \n",
     /* binding column names does not seem to work well.. */
-    [_MC_SQL_SELECT_META_DB_VERSION] =
+    [STMT_SQL_SELECT_META_DB_VERSION] =
         "SELECT db_version FROM meta;",
-    [_MC_SQL_SELECT_META_PL_VERSION] =
+    [STMT_SQL_SELECT_META_PL_VERSION] =
         "SELECT pl_version FROM meta;",
-    [_MC_SQL_SELECT_META_SC_VERSION] =
+    [STMT_SQL_SELECT_META_SC_VERSION] =
         "SELECT sc_version FROM meta;",
-    [_MC_SQL_SELECT_META_MPD_PORT] =
+    [STMT_SQL_SELECT_META_MPD_PORT] =
         "SELECT mpd_port FROM meta;",
-    [_MC_SQL_SELECT_META_MPD_HOST] =
+    [STMT_SQL_SELECT_META_MPD_HOST] =
         "SELECT mpd_host FROM meta;",
-    [_MC_SQL_COUNT] =
+    [STMT_SQL_COUNT] =
         "SELECT count(*) FROM songs;",
-    [_MC_SQL_INSERT] =
+    [STMT_SQL_INSERT] =
         "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
-    [_MC_SQL_QUEUE_UPDATE_ROW] =
+    [STMT_SQL_QUEUE_UPDATE_ROW] =
         "UPDATE songs_content SET c20queue_pos = ?, c21queue_idx = ? WHERE c0uri = ?;",
-    [_MC_SQL_QUEUE_CLEAR] =
+    [STMT_SQL_QUEUE_CLEAR] =
         "UPDATE songs_content SET c20queue_pos = -1, c21queue_idx = -1 WHERE c20queue_pos > ?;",
-    [_MC_SQL_QUEUE_CLEAR_ROW] =
+    [STMT_SQL_QUEUE_CLEAR_ROW] =
         "UPDATE songs_content SET c20queue_pos = -1, c21queue_idx = -1 WHERE c20queue_pos = ?;",
-    [_MC_SQL_SELECT_MATCHED] =
+    [STMT_SQL_SELECT_MATCHED] =
         "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
-    [_MC_SQL_SELECT_MATCHED_ALL] =
+    [STMT_SQL_SELECT_MATCHED_ALL] =
         "SELECT rowid FROM songs;",
-    [_MC_SQL_SELECT_ALL] =
+    [STMT_SQL_SELECT_ALL] =
         "SELECT * FROM songs;",
-    [_MC_SQL_SELECT_ALL_QUEUE] =
+    [STMT_SQL_SELECT_ALL_QUEUE] =
         "SELECT rowid, queue_pos, queue_idx FROM songs;",
-    [_MC_SQL_DELETE_ALL] =
+    [STMT_SQL_DELETE_ALL] =
         "DELETE FROM songs;",
-    [_MC_SQL_BEGIN] =
+    [STMT_SQL_BEGIN] =
         "BEGIN IMMEDIATE;",
-    [_MC_SQL_COMMIT] =
+    [STMT_SQL_COMMIT] =
         "COMMIT;",
-    [_MC_SQL_DIR_INSERT] =
-        "INSERT INTO dirs VALUES(?, ?);",
-    [_MC_SQL_DIR_SEARCH_PATH] =
-        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
-    [_MC_SQL_DIR_SEARCH_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
-    [_MC_SQL_DIR_SEARCH_PATH_AND_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
-    [_MC_SQL_DIR_DELETE_ALL] =
-        "DELETE FROM dirs;",
-    [_MC_SQL_SOURCE_COUNT] =
+    [STMT_SQL_SOURCE_COUNT] =
         ""
 };
-
-///////////////////
-
-#define SQL_CODE(NAME) \
-    _sql_stmts[_MC_SQL_##NAME]
-
-#define SQL_STMT(STORE, NAME) \
-    STORE->sql_prep_stmts[_MC_SQL_##NAME]
 
 ////////////////////////////////
 
@@ -202,30 +228,6 @@ void mc_stprv_insert_meta_attributes (mc_StoreDB * self)
 
         sqlite3_free (zSql);
     }
-}
-
-////////////////////////////////
-
-static void mc_stprv_dir_sqlite_basename_func (sqlite3_context * ctx, int argc, sqlite3_value ** argv)
-{
-    g_assert (argc == 1);
-    g_assert (argv);
-    g_assert (argv[0]);
-
-    sqlite3_result_text(ctx,
-            g_filename_display_basename (
-                (const char *)sqlite3_value_text (argv[0])
-            ),
-            -1, g_free);
-}
-
-////////////////////////////////
-
-static void mc_stprv_register_custom_functions (mc_StoreDB * self)
-{
-    if (sqlite3_create_function_v2( self->handle, "basename", 1, SQLITE_UTF8, NULL,
-                mc_stprv_dir_sqlite_basename_func, NULL, NULL, NULL) != SQLITE_OK)
-        REPORT_SQL_ERROR (self, "Cannot register custom function ,,basename''");
 }
 
 ////////////////////////////////
@@ -271,8 +273,8 @@ bool mc_stprv_create_song_table (mc_StoreDB * self)
 
 void mc_stprv_prepare_all_statements (mc_StoreDB * self)
 {
-    int prep_error = 0;
-
+    g_assert (self);
+        
     /*
      * This is a bit hacky fix to let the 'select ... from meta' stmts compile.
      * Just add an empy table, so the selects compile.
@@ -283,17 +285,38 @@ void mc_stprv_prepare_all_statements (mc_StoreDB * self)
         REPORT_SQL_ERROR (self, "Cannot create dummy meta table. Expect some warnings.");
     }
 
-    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
-        const char * sql = _sql_stmts[i];
+    self->sql_prep_stmts = mc_stprv_prepare_all_statements_listed (
+            self,
+            _sql_stmts,
+            STMT_SQL_NEED_TO_PREPARE_COUNT + 1,
+            STMT_SQL_SOURCE_COUNT);
+}
+
+////////////////////////////////
+
+sqlite3_stmt ** mc_stprv_prepare_all_statements_listed (mc_StoreDB * self, const char ** sql_stmts, int offset, int n_stmts)
+{
+    g_assert (self);
+
+
+    sqlite3_stmt ** stmt_list = NULL;
+    stmt_list = g_malloc0 (sizeof(sqlite3_stmt *) * (n_stmts + 1));
+
+    int prep_error = 0;
+    for (int i = offset; i < n_stmts; i++) {
+        const char * sql = sql_stmts[i];
         if (sql != NULL) {
             prep_error = sqlite3_prepare_v2 (self->handle, sql,
-                                             strlen (sql) + 1, &self->sql_prep_stmts[i], NULL);
+                                             strlen (sql) + 1, &stmt_list[i], NULL);
+
             /* Uh-Oh. Typo? */
             if (prep_error != SQLITE_OK)
                 REPORT_SQL_ERROR (self, "WARNING: cannot prepare statement");
 
         }
     }
+
+    return stmt_list;
 }
 
 ////////////////////////////////
@@ -315,8 +338,6 @@ bool mc_strprv_open_memdb (mc_StoreDB * self)
         return false;
     }
 
-    mc_stprv_register_custom_functions (self);
-
     if (mc_stprv_create_song_table (self) == false)
         return false;
     else
@@ -325,12 +346,30 @@ bool mc_strprv_open_memdb (mc_StoreDB * self)
 
 ////////////////////////////////
 
+void mc_stprv_finalize_statements (mc_StoreDB * self, sqlite3_stmt ** stmts, int offset, int n_stmts)
+{
+    g_assert (self);
+    g_assert (stmts);
+
+    for (int i = offset; i < n_stmts; i++) {
+        if (stmts[i] != NULL) {
+            if (sqlite3_finalize (stmts[i]) != SQLITE_OK) {
+                REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
+            }
+            stmts[i] = NULL;
+        }
+    }
+
+    g_free (stmts);
+}
+
+
+////////////////////////////////
+
 void mc_stprv_close_handle (mc_StoreDB * self)
 {
-    for (int i = _MC_SQL_NEED_TO_PREPARE_COUNT + 1; i < _MC_SQL_SOURCE_COUNT; i++) {
-        if (sqlite3_finalize (self->sql_prep_stmts[i]) != SQLITE_OK)
-            REPORT_SQL_ERROR (self, "WARNING: Cannot finalize statement");
-    }
+    mc_stprv_finalize_statements (self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
+    self->sql_prep_stmts = NULL;
 
     if (sqlite3_close (self->handle) != SQLITE_OK)
         REPORT_SQL_ERROR (self, "Warning: Unable to close db connection");
@@ -362,16 +401,6 @@ void mc_stprv_delete_songs_table (mc_StoreDB * self)
 }
 
 ////////////////////////////////
-
-/* Make binding values to prepared statements less painful */
-#define bind_int(db, type, pos_idx, value, error_id) \
-    error_id |= sqlite3_bind_int (SQL_STMT(db, type), (pos_idx)++, value);
-
-#define bind_txt(db, type, pos_idx, value, error_id) \
-    error_id |= sqlite3_bind_text (SQL_STMT(db, type), (pos_idx)++, value, -1, NULL);
-
-#define bind_tag(db, type, pos_idx, song, tag_id, error_id) \
-    bind_txt (db, type, pos_idx, mpd_song_get_tag (song, tag_id, 0), error_id)
 
 /*
  * Insert a single song into the 'songs' table.
@@ -419,7 +448,7 @@ bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song)
      */
     bind_int (db, INSERT, pos_idx, -1, error_id);
     bind_int (db, INSERT, pos_idx, -1, error_id);
-    bind_int (db, INSERT, pos_idx, mc_stprv_dir_path_get_depth (mpd_song_get_uri (song)), error_id);
+    bind_int (db, INSERT, pos_idx, mc_path_get_depth (mpd_song_get_uri (song)), error_id);
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
@@ -456,7 +485,7 @@ static gint mc_stprv_select_impl_sort_func (gconstpointer a, gconstpointer b, gp
     } else return 1 /* to sort NULL at the end */;
 }
 
-static inline gint mc_stprv_select_impl_sort_func_noud (gconstpointer a, gconstpointer b)
+static gint mc_stprv_select_impl_sort_func_noud (gconstpointer a, gconstpointer b)
 {
     return mc_stprv_select_impl_sort_func (a, b, NULL);
 }
@@ -628,11 +657,11 @@ void mc_stprv_load_or_save (mc_StoreDB * self, bool is_save, const char * db_pat
 
 #define feed_tag(tag_enum, sql_col_pos, stmt, song, pair)         \
     pair.value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
-    if (pair.value) {                                             \
-        pair.name  = mpd_tag_name(tag_enum);                      \
-        mpd_song_feed(song, &pair);                               \
-    }                                                             \
-     
+if (pair.value) {                                             \
+    pair.name  = mpd_tag_name(tag_enum);                      \
+    mpd_song_feed(song, &pair);                               \
+}                                                             \
+
 /*
  * Selects all rows from the 'songs' table and compose a mpd_song structure from it.
  * It does this by emulating the MPD protocol, and using mpd_song_begin/feed to set
@@ -751,12 +780,12 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 
         if (++progress_counter % 50 == 0) {
             mc_shelper_report_progress (self->client, false, "database: deserializing songs from db ... [%d/%d]",
-                                        progress_counter, mpd_stats_get_number_of_songs (self->client->stats) );
+                    progress_counter, mpd_stats_get_number_of_songs (self->client->stats) );
         }
     }
 
     mc_shelper_report_progress (self->client, true, "database: deserialized %d songs from local db. (took %2.3f)",
-                                progress_counter, g_timer_elapsed (timer, NULL) );
+            progress_counter, g_timer_elapsed (timer, NULL) );
 
     g_timer_destroy (timer);
 
@@ -772,16 +801,16 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
 /////////////////// META TABLE STUFF ////////////////////
 
 #define select_meta_attribute(self, meta_enum, column_func, out_var, copy_func, cast_type)  \
-    {                                                                                       \
-        int error_id = SQLITE_OK;                                                           \
-        if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
-            out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                     \
-        if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
-            REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                             \
-        out_var = (cast_type)copy_func((cast_type)out_var);                                 \
-        sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
-    }                                                                                       \
-     
+{                                                                                       \
+    int error_id = SQLITE_OK;                                                           \
+    if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
+    out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
+    if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
+    REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
+    out_var = (cast_type)copy_func((cast_type)out_var);                                 \
+    sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
+}                                                                                       \
+
 
 ////////////////////////////////
 
@@ -921,133 +950,4 @@ void mc_stprv_queue_update_posid (mc_StoreDB * self, int pos, int idx, const cha
 
     CLEAR_BINDS_BY_NAME (self, QUEUE_UPDATE_ROW);
     CLEAR_BINDS_BY_NAME (self, QUEUE_CLEAR_ROW);
-}
-
-/////////////////// DIRECTORY STUFF ////////////////////
-
-/* Count the 'depth' of a path.
- * Examples:
- *
- *  Path:     Depth:
- *  /         0
- *  a/        0
- *  a         0
- *  a/b       1
- *  a/b/      1
- */
-static int mc_stprv_dir_path_get_depth (const char * dir_path)
-{
-    int dir_depth = 0;
-    char * cursor = (char *) dir_path;
-
-    if (dir_path == NULL)
-        return -1;
-
-    for (;;) {
-        gunichar curr = g_utf8_get_char_validated (cursor, -1);
-        cursor = g_utf8_next_char (cursor);
-        if (*cursor != 0) {
-            if (curr == '/')
-                ++dir_depth;
-        } else {
-            break;
-        }
-    }
-
-    return dir_depth;
-}
-
-///////////////////
-
-void mc_stprv_dir_insert (mc_StoreDB * self, const char * path)
-{
-    g_assert (self);
-    g_assert (path);
-
-    int pos_idx = 1;
-    int error_id = SQLITE_OK;
-
-    bind_txt (self, DIR_INSERT, pos_idx, path, error_id);
-    bind_int (self, DIR_INSERT, pos_idx, mc_stprv_dir_path_get_depth (path), error_id);
-
-    if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR (self, "Cannot bind stuff to INSERT statement");
-        return;
-    }
-
-    if (sqlite3_step (SQL_STMT (self, DIR_INSERT) ) != SQLITE_DONE) {
-        REPORT_SQL_ERROR (self, "cannot INSERT directory");
-    }
-
-    /* Make sure bindings are ready for the next insert */
-    CLEAR_BINDS_BY_NAME (self, DIR_INSERT);
-}
-
-//////////////////
-
-void mc_stprv_dir_delete (mc_StoreDB * self)
-{
-    g_assert (self);
-
-    if (sqlite3_step (SQL_STMT (self, DIR_DELETE_ALL) ) != SQLITE_DONE) {
-        REPORT_SQL_ERROR (self, "cannot DELETE * from dirs");
-    }
-}
-
-//////////////////
-
-int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth) 
-{
-    g_assert (self);
-    g_assert (stack);
-
-    int returned = 0;
-    int pos_idx = 1;
-    int error_id = SQLITE_OK;
-
-    if (directory && *directory == '/')
-        directory = NULL;
-
-    sqlite3_stmt * select_stmt = NULL;
-    
-    if (directory != NULL && depth < 0) {
-        select_stmt = SQL_STMT (self, DIR_SEARCH_PATH);
-        bind_txt (self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
-        bind_txt (self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
-    } else if (directory == NULL && depth >= 0) {
-        select_stmt = SQL_STMT (self, DIR_SEARCH_DEPTH);
-        bind_int (self, DIR_SEARCH_DEPTH, pos_idx, depth, error_id);
-        bind_int (self, DIR_SEARCH_DEPTH, pos_idx, depth, error_id);
-    } else if (directory != NULL && depth >= 0) {
-        select_stmt = SQL_STMT (self, DIR_SEARCH_PATH_AND_DEPTH);
-        bind_int (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
-        bind_txt (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
-        bind_int (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
-        bind_txt (self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
-    } else {
-        g_print ("Cannot select anything with empty directory and negative depth...\n");
-        return -1;
-}
-
-    if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR (self, "Cannot bind stuff to directory select");
-        return -2;
-    } else {
-
-        while (sqlite3_step (select_stmt) == SQLITE_ROW) {
-            const char * rowid = (const char *)sqlite3_column_text (select_stmt, 0);
-            const char * path = (const char *)sqlite3_column_text (select_stmt, 1);
-
-            mc_stack_append (stack, g_strjoin("#", rowid, path, NULL));
-            ++returned;  
-        }
-
-        if (sqlite3_errcode (self->handle) != SQLITE_DONE) {
-            REPORT_SQL_ERROR (self, "Some error occured during selecting directories");
-            return -3;
-        }
-        CLEAR_BINDS (select_stmt);
-    }
-
-    return returned;
 }

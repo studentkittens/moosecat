@@ -127,6 +127,8 @@ void mc_shelper_report_client_event (
     struct mc_Client * self,
     enum mpd_idle event)
 {
-    mc_proto_update_context_info_cb (self, event, NULL);
-    mc_proto_signal_dispatch (self, "client-event", self, event);
+    if (event != 0) {
+        mc_proto_update_context_info_cb (self, event, NULL);
+        mc_proto_signal_dispatch (self, "client-event", self, event);
+    }
 }

@@ -1,5 +1,5 @@
 #include <glib.h>
-#include "db_settings.h"
+#include "db-settings.h"
 
 mc_StoreSettings * mc_store_settings_new (void)
 {

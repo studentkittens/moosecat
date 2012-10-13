@@ -41,8 +41,10 @@
 
 ///////////////////
 
-#include "db_private.h"
-#include "db_stored_playlists.h"
+#include "db-private.h"
+#include "db-stored-playlists.h"
+#include "db-macros.h"
+
 #include "../mpd/client_private.h"
 #include "../mpd/signal_helper.h"
 
@@ -196,7 +198,7 @@ static void mc_stprv_spl_listplaylists (mc_StoreDB * store)
 
     LOCK_UPDATE_MTX (store);
 
-    if (store->spl_stack != NULL)
+    if (store->spl.stack != NULL)
         mc_stack_free (store->spl.stack);
 
     store->spl.stack = mc_stack_create (10, (GDestroyNotify) mpd_playlist_free);

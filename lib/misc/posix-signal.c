@@ -8,8 +8,8 @@
 #endif
 
 
-#include "posix_signal.h"
-#include "bug_report.h"
+#include "posix-signal.h"
+#include "bug-report.h"
 
 static volatile mc_Client * gl_client = NULL;
 
