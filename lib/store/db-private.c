@@ -1,7 +1,7 @@
 #include "db-private.h"
 #include "db-macros.h"
 
-#include "../mpd/signal_helper.h"
+#include "../mpd/signal-helper.h"
 #include "../mpd/client_private.h"
 #include "../util/paths.h"
 

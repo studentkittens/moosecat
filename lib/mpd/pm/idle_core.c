@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #include "common.h"
-#include "../signal_helper.h"
+#include "../signal-helper.h"
 
 #include <mpd/parser.h>
 

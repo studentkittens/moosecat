@@ -46,7 +46,7 @@
 #include "db-macros.h"
 
 #include "../mpd/client_private.h"
-#include "../mpd/signal_helper.h"
+#include "../mpd/signal-helper.h"
 
 #include <glib.h>
 #include <string.h>

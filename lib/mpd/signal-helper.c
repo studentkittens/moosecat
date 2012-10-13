@@ -1,5 +1,5 @@
 #include "protocol.h"
-#include "signal_helper.h"
+#include "signal-helper.h"
 #include "update.h"
 
 #include <glib/gprintf.h>

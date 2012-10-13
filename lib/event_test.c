@@ -1,5 +1,4 @@
-#include "mpd/protocol.h"
-#include "misc/posix-signal.h"
+#include "api.h"
 
 #include <string.h>
 #include <stdio.h>

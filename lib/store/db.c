@@ -1,6 +1,7 @@
 #include "../mpd/client_private.h"
-#include "../mpd/signal_helper.h"
+#include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
+#include "../util/gzip.h"
 
 #include "db-private.h"
 #include "db-stored-playlists.h"
@@ -8,9 +9,7 @@
 #include "db-macros.h"
 #include "db.h"
 
-#include "../util/gzip.h"
 
-#include <glib.h>
 #include <glib/gstdio.h>
 
 #define _return_if_locked(store, return_code)            \

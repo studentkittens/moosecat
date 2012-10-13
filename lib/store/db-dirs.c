@@ -2,7 +2,7 @@
 #include "db-dirs.h"
 #include "db-macros.h"
 
-#include "../mpd/signal_helper.h"
+#include "../mpd/signal-helper.h"
 #include "../util/paths.h"
 
 #include <glib.h>

@@ -1,6 +1,6 @@
 #include "update.h"
 #include "protocol.h"
-#include "signal_helper.h"
+#include "signal-helper.h"
 #include "../compiler.h"
 
 ////////////////////////

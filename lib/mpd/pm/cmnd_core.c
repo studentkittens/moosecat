@@ -4,7 +4,7 @@
 #include "../../util/sleep-grained.h"
 #include "../../compiler.h"
 #include "../protocol.h"
-#include "../signal_helper.h"
+#include "../signal-helper.h"
 
 #include <glib.h>
 #include <string.h>

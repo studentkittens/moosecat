@@ -1,8 +1,7 @@
 #include <gtk/gtk.h>
 #include <stdbool.h>
 
-#include "lib/mpd/protocol.h"
-#include "lib/store/db.h"
+#include "api.h"
 
 /*
  * Test applications to see if db search is fast enough.

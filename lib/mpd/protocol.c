@@ -4,7 +4,7 @@
 #include "pm/cmnd_core.h"
 #include "pm/idle_core.h"
 
-#include "signal_helper.h"
+#include "signal-helper.h"
 
 /* memset */
 #include <string.h>
