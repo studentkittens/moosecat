@@ -2,7 +2,7 @@
 #include "db-macros.h"
 
 #include "../mpd/signal-helper.h"
-#include "../mpd/client_private.h"
+#include "../mpd/client-private.h"
 #include "../util/paths.h"
 
 /* strlen() */

@@ -5,6 +5,8 @@
 #include "pm/idle_core.h"
 
 #include "signal-helper.h"
+#include "outputs.h"
+
 
 /* memset */
 #include <string.h>
@@ -65,6 +67,7 @@ mc_Client * mc_proto_create (mc_PmType pm)
         mc_signal_list_init (&client->_signals);
     }
 
+    mc_proto_outputs_init (client);
     return client;
 }
 
@@ -93,6 +96,7 @@ char * mc_proto_connect (
     if (err == NULL && mc_proto_is_connected (self) ) {
         /* Force updating of status/stats/song on connect */
         mc_proto_update_context_info_cb (self, INT_MAX, NULL);
+        mc_proto_outputs_update (self, INT_MAX, NULL);
 
         /* For bugreports only */
         self->_timeout = timeout;
@@ -281,4 +285,5 @@ void mc_proto_force_sss_update (
 {
     g_assert (self);
     mc_proto_update_context_info_cb (self, events, NULL);
+    mc_proto_outputs_update (self, events, NULL);
 }

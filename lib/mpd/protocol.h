@@ -100,6 +100,10 @@ typedef struct mc_Client {
     /* Buffer for the last happened error */
     char error_buffer[_MC_PROTO_MAX_ERR_LEN];
 
+    struct {
+        GList * list;
+    } outputs;
+
     /*
      * Up-to-date infos.
      * Can be accessed safely in public.

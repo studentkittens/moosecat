@@ -2,6 +2,7 @@
 #define MC_CLIENT_PRIVATE_HH
 
 #define BEGIN_COMMAND                           \
+    g_assert (self);                            \
     mpd_connection * conn = mc_proto_get(self); \
     if(conn != NULL)                            \
     {                                           \

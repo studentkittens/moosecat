@@ -1,4 +1,4 @@
-#include "../mpd/client_private.h"
+#include "../mpd/client-private.h"
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
 #include "../util/gzip.h"
