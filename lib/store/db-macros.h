@@ -10,7 +10,7 @@
 #define bind_tag(db, type, pos_idx, song, tag_id, error_id) \
     bind_txt (db, type, pos_idx, mpd_song_get_tag (song, tag_id, 0), error_id)
 
-/* 
+/*
  * DB Layout version.
  * Older tables will not be loaded.
  * */
@@ -39,7 +39,7 @@
     mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
                                     __FILE__, __LINE__, message,                                   \
                                     sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
-
+     
 #define CLEAR_BINDS(stmt)          \
     sqlite3_reset (stmt);          \
     sqlite3_clear_bindings (stmt); \
@@ -47,4 +47,4 @@
 #define CLEAR_BINDS_BY_NAME(store, type) \
     CLEAR_BINDS (SQL_STMT (store, type))
 
-#endif 
+#endif

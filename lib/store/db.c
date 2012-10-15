@@ -84,6 +84,7 @@ static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self, const char * 
 
             if (cached_port == self->client->_port &&
                 g_strcmp0 (cached_hostname, self->client->_host) == 0) {
+
                 /* check #4 */
                 size_t cached_db_version = mc_stprv_get_db_version (self);
                 size_t cached_sc_version = mc_stprv_get_sc_version (self);
@@ -120,7 +121,7 @@ static gpointer mc_store_do_plchanges_sql_thread (mc_StoreDB * self)
 {
     g_assert (self);
 
-    mpd_song * song = NULL;
+    struct mpd_song * song = NULL;
 
     /* start a transaction */
     mc_stprv_begin (self);
@@ -213,7 +214,7 @@ static void mc_store_do_plchanges (mc_StoreDB * store, bool lock_self)
 
         mc_shelper_report_progress (self, true, "database: Queue was updated. Will do ,,plchanges %d''", (int) last_pl_version);
         if (mpd_send_queue_changes_meta (conn, last_pl_version) ) {
-            mpd_song * song = NULL;
+            struct mpd_song * song = NULL;
             while ( (song = mpd_recv_song (conn) ) != NULL) {
                 g_async_queue_push (store->sqltonet_queue, song);
                 if (progress_counter++ % 50 == 0)
@@ -246,6 +247,8 @@ static void mc_store_do_plchanges (mc_StoreDB * store, bool lock_self)
     mc_shelper_report_progress (self, true, "database: updated %d song's pos/id (took %2.3fs)",
                                 progress_counter, g_timer_elapsed (timer, NULL) );
 
+    mc_shelper_report_operation_finished (self, MC_OP_QUEUE_UPDATED);
+
     g_timer_destroy (timer);
 }
 
@@ -264,8 +267,8 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
         switch (mpd_entity_get_type (ent) ) {
         case MPD_ENTITY_TYPE_SONG: {
             struct mpd_song * song = (struct mpd_song *) mpd_entity_get_song (ent) ;
-            mc_stack_append (self->stack, (mpd_song *) song);
-            mc_stprv_insert_song (self, (mpd_song *) song);
+            mc_stack_append (self->stack, (struct mpd_song *) song);
+            mc_stprv_insert_song (self, (struct mpd_song *) song);
 
             /* Not sure if this is a nice way,
              * but for now it works. There might be a proper way:
@@ -284,6 +287,7 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
         break;
         case MPD_ENTITY_TYPE_PLAYLIST: {
             const struct mpd_playlist * pl = mpd_entity_get_playlist (ent);
+            // TODO: Is this supposed to be here?
             if (pl != NULL) {
                 mc_stack_append (self->spl.stack, (struct mpd_playlist *) pl);
             }
@@ -404,6 +408,8 @@ static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
     mc_shelper_report_progress (self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
                                 number_of_songs, g_timer_elapsed (timer, NULL) );
 
+    mc_shelper_report_operation_finished (self, MC_OP_DB_UPDATED);
+
     g_timer_destroy (timer);
 
     if (lock_self) {
@@ -455,7 +461,9 @@ static gpointer mc_store_do_listall_and_plchanges (mc_StoreDB * self)
     mc_store_do_plchanges (self, false);
     mc_stprv_spl_update (self);
     mc_stprv_insert_meta_attributes (self);
+
     UNLOCK_UPDATE_MTX (self);
+    
     g_thread_unref (g_thread_self () );
     return NULL;
 }
@@ -482,6 +490,7 @@ static gpointer mc_store_deserialize_songs_and_plchanges (mc_StoreDB * self)
     mc_stprv_spl_update (self);
     mc_stprv_insert_meta_attributes (self);
     UNLOCK_UPDATE_MTX (self);
+    
     g_thread_unref (g_thread_self () );
     return NULL;
 }
@@ -507,8 +516,8 @@ static void mc_stprv_spl_update_bkgd (mc_StoreDB * self)
 {
     g_assert (self);
 
-    g_thread_new ("db-spl-update-bkgd", 
-            (GThreadFunc) mc_stprv_spl_update_wrapper, self);
+    g_thread_new ("db-spl-update-bkgd",
+                  (GThreadFunc) mc_stprv_spl_update_wrapper, self);
 }
 
 ///////////////
@@ -719,14 +728,11 @@ void mc_store_close (mc_StoreDB * self)
 
 ///////////////
 
-int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buf_len)
+int mc_store_search_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_Stack * stack, int limit_len)
 {
-    /* we should not operate on changing data */
     return_val_if_locked (self, -1);
 
-    int rc = mc_stprv_select_to_buf (self, match_clause, queue_only, song_buffer, buf_len);
-
-    return rc;
+    return mc_stprv_select_to_stack (self, match_clause, queue_only, stack, limit_len);
 }
 
 ///////////////
@@ -746,7 +752,7 @@ void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name)
 
 ///////////////
 
-int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * playlist_name, const char * match_clause) 
+int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * playlist_name, const char * match_clause)
 {
     return mc_stprv_spl_select_playlist (self, stack, playlist_name, match_clause);
 }
@@ -767,12 +773,11 @@ int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const cha
 
 ///////////////
 
-struct mpd_song * mc_store_song_at (mc_StoreDB * self, int idx)
-{
+struct mpd_song * mc_store_song_at (mc_StoreDB * self, int idx) {
     g_assert (self);
     g_assert (idx >= 0);
 
-    return (struct mpd_song *)mc_stack_at (self->stack, idx);
+    return (struct mpd_song *) mc_stack_at (self->stack, idx);
 }
 
 ///////////////

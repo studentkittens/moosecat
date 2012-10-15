@@ -15,6 +15,7 @@ typedef enum {
     MC_SIGNAL_ERROR,
     MC_SIGNAL_CONNECTIVITY,
     MC_SIGNAL_PROGRESS,
+    MC_SIGNAL_OP_FINISHED,
     /* -> Add new callbacks here <- */
     MC_SIGNAL_VALID_COUNT,
     MC_SIGNAL_UNKNOWN
@@ -34,6 +35,15 @@ typedef struct {
 
 ///////////////////////////////
 
+typedef enum mc_OpFinishedEnum {
+    MC_OP_DB_UPDATED,       
+    MC_OP_QUEUE_UPDATED,
+    MC_OP_SPL_UPDATED,   
+    MC_OP_SPL_LIST_UPDATED 
+} mc_OpFinishedEnum;
+
+///////////////////////////////
+
 /* Event callback */
 typedef void (* mc_ClientEventCallback) (struct mc_Client *, enum mpd_idle, void * user_data);
 
@@ -45,6 +55,9 @@ typedef void (* mc_ConnectivityCallback) (struct mc_Client *, bool server_change
 
 /* Progress callback (for display&debug) */
 typedef void (* mc_ProgressCallback) (struct mc_Client *, bool print_newline, const char * progress, void * user_data);
+
+/* Operation Finished callback */
+typedef void (* mc_OpFinishedCallback) (struct mc_Client *, mc_OpFinishedEnum operation, void * user_data);
 
 ///////////////////////////////
 

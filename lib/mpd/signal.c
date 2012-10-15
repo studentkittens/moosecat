@@ -18,6 +18,7 @@ static const char * signal_to_name_table[] = {
     [MC_SIGNAL_ERROR]        = "error",
     [MC_SIGNAL_CONNECTIVITY] = "connectivity",
     [MC_SIGNAL_PROGRESS]     = "progress",
+    [MC_SIGNAL_OP_FINISHED]  = "op-finished",
     [MC_SIGNAL_UNKNOWN]      = NULL
 };
 
@@ -135,7 +136,7 @@ void mc_signal_rm (
              
 #define DISPATCH_END                                       \
     g_rec_mutex_unlock (&list->dispatch_mutex);            \
-    }                                                  \
+        }                                                  \
     }                                                      \
      
 void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, va_list args)
@@ -195,6 +196,14 @@ void mc_signal_report_event_v (mc_SignalList *  list, const char * signal_name, 
         }
         DISPATCH_END
 
+        break;
+    }
+    case MC_SIGNAL_OP_FINISHED: {
+        mc_OpFinishedEnum op = va_arg (args, mc_OpFinishedEnum);
+
+        DISPATCH_START {
+            ( (mc_OpFinishedCallback) tag->callback) (client, op, tag->user_data);
+        } DISPATCH_END;
         break;
     }
     default:

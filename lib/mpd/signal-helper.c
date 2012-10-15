@@ -17,7 +17,7 @@ static void compose_error_msg (const char * topic, char * dest, const char * src
 
 ///////////////////////////////
 
-static bool mc_shelper_report_error_impl (struct mc_Client * self, mpd_connection * cconn, bool handle_fatal)
+static bool mc_shelper_report_error_impl (struct mc_Client * self, struct mpd_connection * cconn, bool handle_fatal)
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
@@ -61,14 +61,14 @@ static bool mc_shelper_report_error_impl (struct mc_Client * self, mpd_connectio
 
 ///////////////////////////////
 
-bool mc_shelper_report_error (struct mc_Client * self, mpd_connection * cconn)
+bool mc_shelper_report_error (struct mc_Client * self, struct mpd_connection * cconn)
 {
     return mc_shelper_report_error_impl (self, cconn, true);
 }
 
 ///////////////////////////////
 
-bool mc_shelper_report_error_without_handling (struct mc_Client * self, mpd_connection * cconn)
+bool mc_shelper_report_error_without_handling (struct mc_Client * self, struct mpd_connection * cconn)
 {
     return mc_shelper_report_error_impl (self, cconn, false);
 }
@@ -133,4 +133,15 @@ void mc_shelper_report_client_event (
         mc_proto_outputs_update (self, event, NULL);
         mc_proto_signal_dispatch (self, "client-event", self, event);
     }
+}
+
+///////////////////////////////
+
+void mc_shelper_report_operation_finished (
+        struct mc_Client * self,
+        mc_OpFinishedEnum op)
+{
+    g_assert (self);
+
+    mc_proto_signal_dispatch (self, "op-finished", self, op);
 }

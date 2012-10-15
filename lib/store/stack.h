@@ -14,7 +14,7 @@ void mc_stack_append (mc_Stack * self, void * ptr);
 
 void mc_stack_free (mc_Stack * self);
 
-void mc_stack_clear (mc_Stack * self, int resize);
+void mc_stack_clear (mc_Stack * self);
 
 unsigned mc_stack_length (mc_Stack * self);
 

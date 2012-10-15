@@ -31,7 +31,7 @@ void mc_proto_update_context_info_cb (
     mc_cc_unused void * user_data)
 {
     if (self != NULL && events != 0 && mc_proto_is_connected (self) ) {
-        mpd_connection * conn = mc_proto_get (self);
+        struct mpd_connection * conn = mc_proto_get (self);
         if (conn != NULL) {
             const bool update_status = (events & on_status_update);
             const bool update_stats = (events & on_stats_update);
@@ -57,7 +57,7 @@ void mc_proto_update_context_info_cb (
 
                 /* Try to receive status */
                 if (update_status) {
-                    mpd_status * tmp_status;
+                    struct mpd_status * tmp_status;
                     tmp_status = mpd_recv_status (conn);
 
                     /* Be error tolerant, and keep at least the last status */
@@ -72,7 +72,7 @@ void mc_proto_update_context_info_cb (
 
                 /* Try to receive statistics as last */
                 if (update_stats) {
-                    mpd_stats * tmp_stats;
+                    struct mpd_stats * tmp_stats;
                     tmp_stats = mpd_recv_stats (conn);
 
                     if (tmp_stats) {

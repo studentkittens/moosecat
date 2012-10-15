@@ -27,17 +27,17 @@ const char * dirs_sql_stmts[] = {
     [SQL_DIR_INSERT] = "INSERT INTO dirs VALUES(?, ?);",
     [SQL_DIR_DELETE_ALL] = "DELETE FROM dirs;",
     [SQL_DIR_SEARCH_PATH] =
-        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
+    "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
+    "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [SQL_DIR_SEARCH_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    "SELECT -1, path FROM dirs WHERE depth = ? UNION "
+    "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
+    "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [SQL_DIR_SEARCH_PATH_AND_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;"
+    "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
+    "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
+    "ORDER BY songs.rowid, songs.uri, dirs.path;"
 };
 
 
@@ -48,8 +48,8 @@ void mc_stprv_dir_prepare_statemtents (mc_StoreDB * self)
     g_assert (self);
 
     self->sql_dir_stmts = mc_stprv_prepare_all_statements_listed (
-            self, dirs_sql_stmts,
-            0, SQL_DIR_STMT_COUNT);
+                              self, dirs_sql_stmts,
+                              0, SQL_DIR_STMT_COUNT);
 }
 
 ///////////////////
@@ -99,7 +99,7 @@ void mc_stprv_dir_delete (mc_StoreDB * self)
 
 //////////////////
 
-int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth) 
+int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth)
 {
     g_assert (self);
     g_assert (stack);
@@ -112,7 +112,7 @@ int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const cha
         directory = NULL;
 
     sqlite3_stmt * select_stmt = NULL;
-    
+
     if (directory != NULL && depth < 0) {
         select_stmt = SQL_STMT (self, DIR_SEARCH_PATH);
         bind_txt (self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
@@ -130,7 +130,7 @@ int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const cha
     } else {
         g_print ("Cannot select anything with empty directory and negative depth...\n");
         return -1;
-}
+    }
 
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR (self, "Cannot bind stuff to directory select");
@@ -138,11 +138,11 @@ int mc_stprv_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const cha
     } else {
 
         while (sqlite3_step (select_stmt) == SQLITE_ROW) {
-            const char * rowid = (const char *)sqlite3_column_text (select_stmt, 0);
-            const char * path = (const char *)sqlite3_column_text (select_stmt, 1);
+            const char * rowid = (const char *) sqlite3_column_text (select_stmt, 0);
+            const char * path = (const char *) sqlite3_column_text (select_stmt, 1);
 
-            mc_stack_append (stack, g_strjoin("#", rowid, path, NULL));
-            ++returned;  
+            mc_stack_append (stack, g_strjoin ("#", rowid, path, NULL) );
+            ++returned;
         }
 
         if (sqlite3_errcode (self->handle) != SQLITE_DONE) {

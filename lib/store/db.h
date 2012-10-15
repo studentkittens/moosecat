@@ -39,22 +39,6 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings);
 void mc_store_close ( mc_StoreDB * self);
 
 /**
- * @brief Perform a song search on the database.
- *
- * Searches the songs table using the MATCH clause.
- * See http://www.sqlite.org/fts3.html#section_1_4 for the syntax
- *
- * @param self the store to operate on
- * @param match_clause search term
- * @param queue_only if true, only the queue contents is searched.
- * @param song_buffer a
- * @param buf_len the length of the buffer you passed. Also used as LIMIT.
- *
- * @return the number of actually found songs, or -1 on failure.
- */
-int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool queue_only, mpd_song ** song_buffer, int buf_len);
-
-/**
  * @brief Tell routines to wait for db updates or return immediately.
  *
  * By default method return immediately.
@@ -65,7 +49,7 @@ int mc_store_search_out ( mc_StoreDB * self, const char * match_clause, bool que
 void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish);
 
 /**
- * @brief Returns a
+ * @brief Returns a mpd_song at some index
  *
  * This is effectively only useful on mc_store_dir_select_to_stack
  * (which returns a list of files, prefixed with IDs or -1 in case of a directory)
@@ -122,7 +106,7 @@ int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_Stack * stack, cons
  * @param directory the directory to list. (NULL == '/')
  * @param depth at wath depth to search (0 == '/', -1 to disable.)
  *
- * @return number of selected songs. 
+ * @return number of selected songs.
  */
 int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth);
 
@@ -135,5 +119,17 @@ int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const cha
  * @return number of loaded playlists.
  */
 int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack);
+
+/**
+ * @brief 
+ *
+ * @param self
+ * @param match_clause
+ * @param queue_only
+ * @param stack
+ *
+ * @return 
+ */
+int mc_store_search_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_Stack * stack, int limit_len);
 
 #endif /* end of include guard: DB_GUARD_H */

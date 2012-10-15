@@ -56,9 +56,11 @@ mc_Client * mc_proto_create (mc_PmType pm)
     mc_Client * client = NULL;
     switch (pm) {
     case MC_PM_IDLE:
-        client = mc_proto_create_idler(); break;
+        client = mc_proto_create_idler();
+        break;
     case MC_PM_COMMAND: // TODO: pass arguments.
-        client = mc_proto_create_cmnder (-1); break;
+        client = mc_proto_create_cmnder (-1);
+        break;
     }
 
     if (client != NULL) {
@@ -133,7 +135,7 @@ void mc_proto_put (mc_Client * self)
 
 ///////////////////
 
-mpd_connection * mc_proto_get (mc_Client * self)
+struct mpd_connection * mc_proto_get (mc_Client * self)
 {
     g_assert (self);
 
@@ -145,7 +147,7 @@ mpd_connection * mc_proto_get (mc_Client * self)
     /*
      * Return the readily sendable connection
      */
-    mpd_connection * cconn = NULL;
+    struct mpd_connection * cconn = NULL;
     if (mc_proto_is_connected (self) ) {
         cconn = self->do_get (self);
         mc_shelper_report_error (self, cconn);
@@ -198,7 +200,11 @@ void mc_proto_free (mc_Client * self)
     /* kill the mutex */
     g_rec_mutex_clear (&self->_getput_mutex);
 
+    /* Free SSS data */
     mc_proto_reset (self);
+
+    /* Free output list */
+    mc_proto_outputs_free (self);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)

@@ -173,8 +173,7 @@ static void mc_stprv_spl_delete_content (mc_StoreDB * self, const char * table_n
 
 ///////////////////
 
-static struct mpd_playlist * mc_stprv_spl_name_to_playlist (mc_StoreDB * store, const char * playlist_name)
-{
+static struct mpd_playlist * mc_stprv_spl_name_to_playlist (mc_StoreDB * store, const char * playlist_name) {
     g_assert (store);
 
     for (unsigned i = 0; i < mc_stack_length (store->spl.stack); ++i) {
@@ -213,6 +212,7 @@ static void mc_stprv_spl_listplaylists (mc_StoreDB * store)
 
     } END_COMMAND;
 
+
     UNLOCK_UPDATE_MTX (store);
 }
 ///////////////////
@@ -224,9 +224,9 @@ static GList * mc_stprv_spl_get_loaded_list (mc_StoreDB * self)
     /* Select all table names from db that start with spl_ */
     while (sqlite3_step (self->spl.select_tables_stmt) == SQLITE_ROW) {
         table_name_list = g_list_prepend (table_name_list, g_strdup ( (char *)
-                    sqlite3_column_text (self->spl.select_tables_stmt, 0) ) );
+                                          sqlite3_column_text (self->spl.select_tables_stmt, 0) ) );
     }
-    
+
     /* Be nice, and always check for errors */
     int error = sqlite3_errcode (self->handle);
     if (error != SQLITE_DONE && error != SQLITE_OK) {
@@ -327,6 +327,8 @@ void mc_stprv_spl_update (mc_StoreDB * self)
         }
     }
 
+    mc_shelper_report_operation_finished (self->client, MC_OP_SPL_LIST_UPDATED);
+
     /* table names were dyn. allocated. */
     g_list_free_full (table_name_list, g_free);
 
@@ -382,6 +384,8 @@ void mc_stprv_spl_load (mc_StoreDB * store, struct mpd_playlist * playlist)
 
                     if (mpd_response_finish (conn) == FALSE) {
                         mc_shelper_report_error (self, conn);
+                    } else {
+                        mc_shelper_report_operation_finished (self, MC_OP_SPL_UPDATED);
                     }
                 }
 
@@ -473,7 +477,7 @@ int mc_stprv_spl_select_playlist (mc_StoreDB * store, mc_Stack * out_stack, cons
 
 ///////////////////
 
-int mc_stprv_spl_get_loaded_playlists (mc_StoreDB * store, mc_Stack * stack) 
+int mc_stprv_spl_get_loaded_playlists (mc_StoreDB * store, mc_Stack * stack)
 {
     g_assert (store);
     g_assert (stack);
@@ -500,5 +504,5 @@ int mc_stprv_spl_get_loaded_playlists (mc_StoreDB * store, mc_Stack * stack)
         }
     }
 
-    return rc; 
+    return rc;
 }

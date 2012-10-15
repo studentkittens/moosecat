@@ -19,8 +19,7 @@ typedef struct {
     mc_Client * client;
     mc_StoreDB * store;
     GtkTreeModel * model;
-    mpd_song ** song_buf;
-    int song_buf_len;
+    mc_Stack * song_buf;
     GTimer * profile_timer;
 } EntryTag;
 
@@ -41,7 +40,9 @@ static void update_view (EntryTag * tag, const char * search_text)
     GtkTreeIter iter;
 
     g_timer_start (tag->profile_timer);
-    int found = mc_store_search_out (tag->store, search_text, true, tag->song_buf, tag->song_buf_len);
+
+    mc_stack_clear (tag->song_buf);
+    int found = mc_store_search_to_stack (tag->store, search_text, true, tag->song_buf, -1);
     select_time = g_timer_elapsed (tag->profile_timer, NULL);
 
     if (found == 0)
@@ -50,11 +51,12 @@ static void update_view (EntryTag * tag, const char * search_text)
     g_timer_start (tag->profile_timer);
     gtk_list_store_clear (list_store);
     for (int i = 0; i < found; i++) {
+        struct mpd_song * song = mc_stack_at (tag->song_buf, i);
         gtk_list_store_append (list_store, &iter);
         gtk_list_store_set (list_store, &iter,
-                            COLUMN_ARTIST, mpd_song_get_tag (tag->song_buf[i], MPD_TAG_ARTIST, 0),
-                            COLUMN_ALBUM, mpd_song_get_tag (tag->song_buf[i], MPD_TAG_ALBUM, 0),
-                            COLUMN_TITLE, mpd_song_get_tag (tag->song_buf[i], MPD_TAG_TITLE, 0),
+                            COLUMN_ARTIST, mpd_song_get_tag (song, MPD_TAG_ARTIST, 0),
+                            COLUMN_ALBUM, mpd_song_get_tag (song, MPD_TAG_ALBUM, 0),
+                            COLUMN_TITLE, mpd_song_get_tag (song, MPD_TAG_TITLE, 0),
                             -1);
     }
     gui_time = g_timer_elapsed (tag->profile_timer, NULL);
@@ -116,8 +118,7 @@ static EntryTag * setup_client (void)
             rc->client = client;
             rc->store = store;
             rc->profile_timer = g_timer_new();
-            rc->song_buf_len = mpd_stats_get_number_of_songs (client->stats) + 1;
-            rc->song_buf = g_new0 (mpd_song *, rc->song_buf_len);
+            rc->song_buf = mc_stack_create (mpd_stats_get_number_of_songs (client->stats) + 1, NULL);
         }
 
         mc_proto_signal_add_masked (client, "client-event",
@@ -131,6 +132,7 @@ static EntryTag * setup_client (void)
 
 static void bringdown_client (EntryTag * tag)
 {
+    mc_stack_free (tag->song_buf);
     mc_store_close (tag->store);
 }
 

@@ -13,13 +13,6 @@
 
 #define _MC_PROTO_MAX_ERR_LEN 512
 
-/* lazy typedef */
-typedef struct mpd_connection mpd_connection;
-typedef struct mpd_async mpd_async;
-typedef struct mpd_song mpd_song;
-typedef struct mpd_status mpd_status;
-typedef struct mpd_stats mpd_stats;
-
 typedef enum {
     MC_PM_IDLE = 0,
     MC_PM_COMMAND
@@ -52,7 +45,7 @@ typedef struct mc_Client {
      * Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    mpd_connection * (* do_get) (struct mc_Client *);
+    struct mpd_connection * (* do_get) (struct mc_Client *);
 
     /*
      * Put the connection back to event listening.
@@ -108,9 +101,9 @@ typedef struct mc_Client {
      * Up-to-date infos.
      * Can be accessed safely in public.
      */
-    mpd_song * song;
-    mpd_stats * stats;
-    mpd_status * status;
+    struct mpd_song * song;
+    struct mpd_stats * stats;
+    struct mpd_status * status;
 
 } mc_Client;
 
@@ -166,7 +159,7 @@ char * mc_proto_connect (
  *
  * @return a working mpd_connection or NULL
  */
-mpd_connection * mc_proto_get (mc_Client * self);
+struct mpd_connection * mc_proto_get (mc_Client * self);
 
 /**
  * @brief Put conenction back to event listening

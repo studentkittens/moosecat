@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <mpd/client.h>
 
+#include "signal.h"
 #include "../compiler.h"
 
 /* Only prototype needed */
@@ -96,6 +97,17 @@ void mc_shelper_report_connectivity (
 void mc_shelper_report_client_event (
     struct mc_Client * self,
     enum mpd_idle event);
+
+/**
+ * @brief Dispatch the op-finished signal
+ *
+ * @param self the client to operate on.
+ * @param op a member of mc_OpFinishedEnum
+ *           to indicate what kind of thing finished.
+ */
+void mc_shelper_report_operation_finished (
+        struct mc_Client * self,
+        mc_OpFinishedEnum op);
 
 #endif /* end of include guard: MC_SIGNAL_HELPER_H */
 

@@ -5,19 +5,6 @@
 
 ///////////////////////////////
 
-static void mc_stack_free_data (mc_Stack * self)
-{
-    for (gsize i = 0; i < self->stack->len; ++i) {
-        gpointer data = g_ptr_array_index (self->stack, i);
-        if (data != NULL)
-            self->free_func (data);
-
-        g_ptr_array_index (self->stack, i) = NULL;
-    }
-}
-
-///////////////////////////////
-
 mc_Stack * mc_stack_create (long size_hint, GDestroyNotify free_func)
 {
     mc_Stack * self = g_new0 (mc_Stack, 1);
@@ -40,13 +27,9 @@ void mc_stack_append (mc_Stack * self, void * ptr)
 
 ///////////////////////////////
 
-void mc_stack_clear (mc_Stack * self, int resize)
+void mc_stack_clear (mc_Stack * self)
 {
-    mc_stack_free_data (self);
-
-    /* enlargen if needed (avoids expensive reallocation) */
-    if (resize >= 0 && resize > (int) self->stack->len)
-        g_ptr_array_set_size (self->stack, resize);
+    g_ptr_array_set_size (self->stack, 0);
 }
 
 ///////////////////////////////

@@ -16,7 +16,7 @@ char * mc_misc_bug_report (mc_Client * client)
     if (mc_proto_is_connected (client) ) {
         is_connected = true;
 
-        mpd_connection * connection = mc_proto_get (client);
+        struct mpd_connection * connection = mc_proto_get (client);
         if (connection != NULL) {
             server_version = mpd_connection_get_server_version (connection);
         }

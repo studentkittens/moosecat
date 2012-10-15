@@ -1,25 +1,3 @@
-#if 0
-Not supported:
-channels
-readmessages
-unsubscribe
-subscribe
-sendmessage
-
-Implemented, but not accessible:
-idle
-noidle
-ping
-
-Supported via Database:
-find
-findadd
-outputs
-
-Supported via Status/Stats/Song:
-all other (more or less)
-#endif
-
 #include "client.h"
 #include "client-private.h"
 #include "signal-helper.h"

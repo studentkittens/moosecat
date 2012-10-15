@@ -15,7 +15,7 @@ bool mc_strprv_open_memdb (mc_StoreDB * self);
  *
  * You should call mc_stprv_begin/commit before and after.
  */
-bool mc_stprv_insert_song (mc_StoreDB * db, mpd_song * song);
+bool mc_stprv_insert_song (mc_StoreDB * db, struct mpd_song * song);
 
 /**
  * @brief Update the db's meta table.
@@ -81,7 +81,7 @@ int mc_stprv_select_to_buf (
     mc_StoreDB * self,
     const char * match_clause,
     bool queue_only,
-    mpd_song ** song_buffer,
+    struct mpd_song ** song_buffer,
     int buffer_len);
 
 /**
@@ -91,6 +91,7 @@ int mc_stprv_select_to_buf (
  * @param match_clause FTS match clause
  * @param queue_only limit search to queue?
  * @param stack an mc_Stack, ideally preallocated to the expected size.
+ * @param limit_len Max songs to select, or -1 for no limit
  *
  * @return the number of selected songs.
  */
@@ -98,7 +99,8 @@ int mc_stprv_select_to_stack (
     mc_StoreDB * self,
     const char * match_clause,
     bool queue_only,
-    mc_Stack * stack);
+    mc_Stack * stack,
+    int limit_len);
 
 /**
  * @brief get server db version

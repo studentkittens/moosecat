@@ -25,7 +25,7 @@ void mc_proto_outputs_update (mc_Client * self, enum mpd_idle event, void * unun
  * @param self the client to operate on
  * @param output_name a user defined string of the output
  *
- * @return the id or -1 on resolve-error 
+ * @return the id or -1 on resolve-error
  */
 int mc_proto_outputs_id_to_name (mc_Client * self, const char * output_name);
 
