@@ -5,7 +5,6 @@
 
 bool mc_client_output_switch (mc_Client * self, const char * output_name, bool mode);
 bool mc_client_password (mc_Client * self, const char * pwd);
-
 void mc_client_consume (mc_Client * self, bool mode);
 void mc_client_crossfade (mc_Client * self, bool mode);
 void mc_client_database_rescan (mc_Client * self, const char * path);
