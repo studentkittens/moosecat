@@ -9,7 +9,7 @@ APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
 # Needed/Adviceable flags:
-CFLAGS = ['-std=c99', '-pipe']
+CFLAGS = ['-std=c99', '-pipe', '-fPIC']
 
 # Optional flags:
 CFLAGS += ['-ggdb3', '-Wall', '-W']
@@ -42,10 +42,10 @@ def define_config_h(conf):
 {content}
 
 /* Might come in useful */
-#define MC_CHECK_VERSION(X,Y,Z) (0
-    || X <= MC_VERSION_MAJOR
-    || Y <= MC_VERSION_MINOR
-    || Z <= MC_VERSION_MICRO)
+#define MC_CHECK_VERSION(X,Y,Z) (0  \\
+    || X <= MC_VERSION_MAJOR        \\
+    || Y <= MC_VERSION_MINOR        \\
+    || Z <= MC_VERSION_MICRO)       \\
 
 #endif
 """.format(content = conf.get_config_header())
@@ -137,7 +137,7 @@ def build(bld):
             includes_h = INCLUDES + bld.env.INCLUDES_GTK3
     )
 
-    bld.stlib(
+    bld.shlib(
             source = _find_libmoosecat_src(bld),
             target = 'moosecat',
             install_path = 'bin',

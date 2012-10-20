@@ -1,4 +1,20 @@
-from libcpp cimport bool
+from libc.stdint cimport uint32_t, uint8_t
+from cpython cimport bool
+
+# Too lazy to lookup how to import it properly.
+ctypedef long time_t
+
+###########################################################################
+#                               GLib Compat                               #
+###########################################################################
+
+cdef extern from "glib.h":
+    ctypedef struct GList:
+        pass
+
+    ctypedef struct GMainContext:
+        pass
+
 
 ###########################################################################
 #                              libmpdclient                               #
@@ -21,12 +37,108 @@ cdef extern from "mpd/client.h":
     cdef struct mpd_connection:
         pass
 
+    cdef struct mpd_audio_format:
+        uint32_t sample_rate
+        uint8_t bits
+        uint8_t channels
+
     ###########
     #  Enums  #
     ###########
 
     cdef enum mpd_idle:
-        pass # TODO: Define actual values.
+        MPD_IDLE_DATABASE
+        MPD_IDLE_STORED_PLAYLIST
+        MPD_IDLE_QUEUE
+        MPD_IDLE_PLAYLIST
+        MPD_IDLE_PLAYER
+        MPD_IDLE_MIXER
+        MPD_IDLE_OUTPUT
+        MPD_IDLE_OPTIONS
+        MPD_IDLE_UPDATE
+        MPD_IDLE_STICKER
+        MPD_IDLE_SUBSCRIPTION
+        MPD_IDLE_MESSAGE
+
+    cdef enum mpd_tag_type:
+        MPD_TAG_UNKNOWN
+        MPD_TAG_ARTIST
+        MPD_TAG_ALBUM
+        MPD_TAG_ALBUM_ARTIST
+        MPD_TAG_TITLE
+        MPD_TAG_TRACK
+        MPD_TAG_NAME
+        MPD_TAG_GENRE
+        MPD_TAG_DATE
+        MPD_TAG_COMPOSER
+        MPD_TAG_PERFORMER
+        MPD_TAG_COMMENT
+        MPD_TAG_DISC
+        MPD_TAG_MUSICBRAINZ_ARTISTID
+        MPD_TAG_MUSICBRAINZ_ALBUMID
+        MPD_TAG_MUSICBRAINZ_ALBUMARTISTID
+        MPD_TAG_MUSICBRAINZ_TRACKID
+        MPD_TAG_COUNT
+
+    cdef enum mpd_state:
+        MPD_STATE_UNKNOWN
+        MPD_STATE_STOP
+        MPD_STATE_PLAY
+        MPD_STATE_PAUSE
+
+
+    ######################
+    #  Status Functions  #
+    ######################
+
+    int mpd_status_get_volume(mpd_status *)
+    bool mpd_status_get_repeat(mpd_status *)
+    bool mpd_status_get_random(mpd_status *)
+    bool mpd_status_get_single(mpd_status *)
+    bool mpd_status_get_consume(mpd_status *)
+    unsigned mpd_status_get_queue_length(mpd_status *)
+    unsigned mpd_status_get_queue_version(mpd_status *)
+    mpd_state mpd_status_get_state(mpd_status *)
+    unsigned mpd_status_get_crossfade(mpd_status *)
+    float mpd_status_get_mixrampdb(mpd_status *)
+    float mpd_status_get_mixrampdelay(mpd_status *)
+    int mpd_status_get_song_pos(mpd_status *)
+    int mpd_status_get_song_id(mpd_status *)
+    int mpd_status_get_next_song_pos(mpd_status *)
+    int mpd_status_get_next_song_id(mpd_status *)
+    unsigned mpd_status_get_elapsed_time(mpd_status *)
+    unsigned mpd_status_get_elapsed_ms(mpd_status *)
+    unsigned mpd_status_get_total_time(mpd_status *)
+    unsigned mpd_status_get_kbit_rate(mpd_status *)
+    mpd_audio_format * mpd_status_get_audio_format(mpd_status *)
+    unsigned mpd_status_get_update_id(mpd_status *)
+    char * mpd_status_get_error(mpd_status *)
+
+    ##########################
+    #  Statistics Functions  #
+    ##########################
+
+    unsigned mpd_stats_get_number_of_artists(mpd_stats *)
+    unsigned mpd_stats_get_number_of_albums(mpd_stats *)
+    unsigned mpd_stats_get_number_of_songs(mpd_stats *)
+    unsigned long mpd_stats_get_uptime(mpd_stats *)
+    unsigned long mpd_stats_get_db_update_time(mpd_stats *)
+    unsigned long mpd_stats_get_play_time(mpd_stats *)
+    unsigned long mpd_stats_get_db_play_time(mpd_stats *)
+
+    #####################
+    #  Songs Functions  #
+    #####################
+
+    char * mpd_song_get_uri(mpd_song *)
+    char * mpd_song_get_tag(mpd_song *,  mpd_tag_type, unsigned)
+    unsigned mpd_song_get_duration(mpd_song *)
+    unsigned mpd_song_get_start(mpd_song *)
+    unsigned mpd_song_get_end(mpd_song *)
+    time_t mpd_song_get_last_modified(mpd_song *)
+    void mpd_song_set_pos(mpd_song *, unsigned)
+    unsigned mpd_song_get_pos(mpd_song *)
+    unsigned mpd_song_get_id(mpd_song *)
 
 ###########################################################################
 #                             Main Interface                              #
@@ -138,7 +250,7 @@ cdef extern from "../lib/store/stack.h":
     void mc_stack_sort (mc_Stack *, void *)
 
 
-cdef extern from "../lib/store/settings.h":
+cdef extern from "../lib/store/db-settings.h":
     ctypedef struct mc_StoreSettings:
         pass
 
@@ -170,3 +282,11 @@ cdef extern from "../lib/misc/bug-report.h":
 
 cdef extern from "../lib/misc/posix-signal.h":
     void mc_misc_register_posix_signal (mc_Client * client)
+
+cdef extern from "../lib/config.h":
+    enum:
+        MC_VERSION
+        MC_VERSION_MAJOR
+        MC_VERSION_MINOR
+        MC_VERSION_PATCH
+        MC_VERSION_GIT_REVISION
