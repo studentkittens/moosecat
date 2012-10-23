@@ -139,6 +139,7 @@ cdef extern from "mpd/client.h":
     void mpd_song_set_pos(mpd_song *, unsigned)
     unsigned mpd_song_get_pos(mpd_song *)
     unsigned mpd_song_get_id(mpd_song *)
+    void mpd_song_free(mpd_song*)
 
 ###########################################################################
 #                             Main Interface                              #

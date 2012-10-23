@@ -137,7 +137,7 @@ def build(bld):
             includes_h = INCLUDES + bld.env.INCLUDES_GTK3
     )
 
-    bld.shlib(
+    bld.stlib(
             source = _find_libmoosecat_src(bld),
             target = 'moosecat',
             install_path = 'bin',
