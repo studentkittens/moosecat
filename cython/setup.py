@@ -46,7 +46,7 @@ print(moose_conf)
 
 setup(
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("moose", ["song.pyx"], **moose_conf)],
+    ext_modules = [Extension("moose", ["statistics.pyx"], **moose_conf)],
     name='moose',
     version='0.0.1',
     author='Christopher Pahl',

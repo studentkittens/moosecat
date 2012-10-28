@@ -12,6 +12,7 @@ test/lib/.out
 
 doc/build
 
+*.swp
 .lock*
 .waf*
 build/
