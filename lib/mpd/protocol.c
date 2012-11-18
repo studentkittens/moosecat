@@ -293,3 +293,26 @@ void mc_proto_force_sss_update (
     mc_proto_update_context_info_cb (self, events, NULL);
     mc_proto_outputs_update (self, events, NULL);
 }
+
+///////////////////
+
+const char * mc_proto_get_host (mc_Client * self)
+{
+    g_assert (self);
+
+    return self->_host;
+} 
+
+///////////////////
+
+int mc_proto_get_port (mc_Client * self)
+{
+    return self->_port;
+}
+
+///////////////////
+
+int mc_proto_get_timeout (mc_Client * self)
+{
+    return self->_timeout;
+}

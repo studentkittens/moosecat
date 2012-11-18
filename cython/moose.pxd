@@ -145,7 +145,10 @@ cdef extern from "mpd/client.h":
 #                             Main Interface                              #
 ###########################################################################
 
-cdef extern from "../lib/mpd/protocol.h":
+# ../../ is relative to the cython'd file.
+# The file is written to build/cython/moose.h
+# So it needs to be two levels up.
+cdef extern from "../../lib/mpd/protocol.h":
 
     ctypedef enum mc_PmType:
         MC_PM_IDLE
@@ -189,7 +192,7 @@ cdef extern from "../lib/mpd/protocol.h":
 #                             Client Commands                             #
 ###########################################################################
 
-cdef extern from "../lib/mpd/client.h":
+cdef extern from "../../lib/mpd/client.h":
 
     bool mc_client_output_switch (mc_Client *,  char *, bool)
     bool mc_client_password (mc_Client *,  char *)
@@ -239,7 +242,7 @@ cdef extern from "../lib/mpd/client.h":
 #                                Database                                 #
 ###########################################################################
 
-cdef extern from "../lib/store/stack.h":
+cdef extern from "../../lib/store/stack.h":
     ctypedef struct mc_Stack:
         pass
 
@@ -251,7 +254,7 @@ cdef extern from "../lib/store/stack.h":
     void mc_stack_sort (mc_Stack *, void *)
 
 
-cdef extern from "../lib/store/db-settings.h":
+cdef extern from "../../lib/store/db-settings.h":
     ctypedef struct mc_StoreSettings:
         pass
 
@@ -259,7 +262,7 @@ cdef extern from "../lib/store/db-settings.h":
     void mc_store_settings_destroy (mc_StoreSettings *)
 
 
-cdef extern from "../lib/store/db.h":
+cdef extern from "../../lib/store/db.h":
     ctypedef struct mc_StoreDB:
         pass
 
@@ -278,13 +281,13 @@ cdef extern from "../lib/store/db.h":
 #                             Misc Interfaces                             #
 ###########################################################################
 
-cdef extern from "../lib/misc/bug-report.h":
+cdef extern from "../../lib/misc/bug-report.h":
     char * mc_misc_bug_report (mc_Client * client)
 
-cdef extern from "../lib/misc/posix-signal.h":
+cdef extern from "../../lib/misc/posix-signal.h":
     void mc_misc_register_posix_signal (mc_Client * client)
 
-cdef extern from "../lib/config.h":
+cdef extern from "../../lib/config.h":
     enum:
         MC_VERSION
         MC_VERSION_MAJOR

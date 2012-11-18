@@ -293,4 +293,33 @@ void mc_proto_force_sss_update (
     mc_Client * self,
     enum mpd_idle events);
 
+/**
+ * @brief Get the hostname being currently connected to.
+ *
+ * If not connected, NULL is returned.
+ *
+ * @param self the client to operate on.
+ *
+ * @return the hostname, do not free or change it!
+ */
+const char * mc_proto_get_host (mc_Client * self);
+
+/**
+ * @brief Get the Port being currently connected to.
+ *
+ * @param self the client to operate on.
+ *
+ * @return the port or -1 on error.
+ */
+int mc_proto_get_port (mc_Client * self);
+
+/**
+ * @brief Get the currently set timeout.
+ *
+ * @param self the client to operate on.
+ *
+ * @return the timeout in seconds, or -1 on error.
+ */
+int mc_proto_get_timeout (mc_Client * self);
+
 #endif /* end of include guard: PROTOCOL_H */

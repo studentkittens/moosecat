@@ -1,11 +1,11 @@
 #include "bug-report.h"
 
-/* version */
-#include "../config.h"
-
 /* g_strdup_printf */
 #include <glib.h>
 #include <sqlite3.h>
+
+/* version */
+#include "../config.h"
 
 char * mc_misc_bug_report (mc_Client * client)
 {
@@ -14,7 +14,7 @@ char * mc_misc_bug_report (mc_Client * client)
     const unsigned * server_version = disconnected_version;
 
     double timeout = -1.0; 
-    const char * host = "(g_assert(client) == NULL)";
+    const char * host = "<not connected>";
     int port = -1;
     mc_PmType pm = 0;
 

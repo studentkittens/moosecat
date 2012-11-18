@@ -1,6 +1,6 @@
 /*
  * Original source by:
- *    Copyright (C) 2007 Jonathan Matthew
+ *    Copyright (C) 2007 Jonathan Matthew (Rythmbox)
  *
  * Modified:
  *    Copyright (C) 2012 Christopher Pahl
@@ -8,7 +8,7 @@
  * Modifications:
  *    - rename to conventions / formatting
  *    - do not pop items from queue,
- *      just pass the queue as a whole
+ *      just pass the queue itself.
  *    - timeout-optimizations
  *    - misc changes on the API
  */

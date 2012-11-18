@@ -3,6 +3,14 @@
 
 #include "protocol.h"
 
+/**
+ * client.h implements the actual commands, which are
+ * sendable to the server. 
+ *
+ * This excludes database commands, which are only accessible
+ * via the store/ module. 
+ */
+
 bool mc_client_output_switch (mc_Client * self, const char * output_name, bool mode);
 bool mc_client_password (mc_Client * self, const char * pwd);
 void mc_client_consume (mc_Client * self, bool mode);

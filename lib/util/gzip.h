@@ -8,12 +8,16 @@
 /**
  * @brief Compresses file_path to file_path.gz
  *
+ * Uses zlib
+ *
  * @return true on success
  */
 bool mc_gzip (const char * file_path);
 
 /**
  * @brief Inflates file_path to file_path - gz
+ *
+ * Uses zlib
  *
  * @return  true on success
  */

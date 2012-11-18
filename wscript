@@ -3,13 +3,15 @@
 import os
 import subprocess
 
+from waflib import Logs
+
 # Global:
 
 APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
 # Needed/Adviceable flags:
-CFLAGS = ['-std=c99', '-pipe', '-fPIC']
+CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-O']
 
 # Optional flags:
 CFLAGS += ['-ggdb3', '-Wall', '-W']
@@ -17,12 +19,21 @@ CFLAGS += ['-ggdb3', '-Wall', '-W']
 # These files are not built into libmoosecat.so
 EXCLUDE_FILES = []
 
+
 def options(opt):
         opt.load('compiler_c')
+        opt.load('python')
+        opt.load('cython')
+        opt.load('cython_cache', tooldir='.')
         opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')
 
 
 def define_config_h(conf):
+
+    # non-optional dependencies
+    conf.define(conf.have_define('GLIB'), 1)
+    conf.define(conf.have_define('SQLITE3'), 1)
+
     version_numbers = [int(v) for v in VERSION.split('.')]
     conf.define('MC_VERSION', VERSION)
     conf.define('MC_VERSION_MAJOR', version_numbers[0])
@@ -33,13 +44,15 @@ def define_config_h(conf):
         current_rev = subprocess.check_output([conf.env.GIT, 'log', '--pretty=format:"%h"', '-n 1'])
         conf.define('MC_VERSION_GIT_REVISION', str(current_rev, 'UTF-8')[1:-1])
     else:
-        conf.define('MC_VERSION_GIT_REVISION', '[not set]')
+        conf.define('MC_VERSION_GIT_REVISION', '[unknown]')
 
+    # Template it!
     return """
 #ifdef MC_CONFIG_H
 #define MC_CONFIG_H
 
 {content}
+
 
 /* Might come in useful */
 #define MC_CHECK_VERSION(X,Y,Z) (0  \\
@@ -48,7 +61,7 @@ def define_config_h(conf):
     || Z <= MC_VERSION_MICRO)       \\
 
 #endif
-""".format(content = conf.get_config_header())
+""".format(content=conf.get_config_header())
 
 
 def configure(conf):
@@ -59,6 +72,12 @@ def configure(conf):
     conf.end_msg(conf.options.prefix)
 
     conf.load('compiler_c')
+    conf.load('python')
+    conf.check_python_headers()
+    try:
+        conf.load('cython')
+    except conf.errors.ConfigurationError:
+        Logs.warn('Cython was not found, using the cache')
 
     # Try to find git
     conf.find_program('git', mandatory=False)
@@ -88,6 +107,7 @@ def configure(conf):
             args='--libs --cflags'
     )
 
+    # Create lib/config.h. Includes basic Version/Feature Info.
     conf.path.make_node('lib/config.h').write(define_config_h(conf))
 
 
@@ -105,7 +125,7 @@ def _find_libmoosecat_src(ctx):
         exclude_node = ctx.path.make_node(exclude)
 
         try:
-           c_files.remove(exclude_node)
+            c_files.remove(exclude_node)
         except ValueError:
             pass
 
@@ -118,13 +138,13 @@ def build(bld):
 
     def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
         bld.program(
-                source = sources,
-                target = target_name,
-                libdir = ['build'],
-                includes = includes_h,
-                lib = libraries,
-                use = 'moosecat',
-                cflags = CFLAGS
+                source=sources,
+                target=target_name,
+                libdir=['build'],
+                includes=includes_h,
+                lib=libraries,
+                use='moosecat',
+                cflags=CFLAGS
         )
 
         EXCLUDE_FILES.append(sources)
@@ -133,31 +153,40 @@ def build(bld):
     build_test_program('lib/db_test.c', 'db_test')
     build_test_program('lib/event_test.c', 'event_test')
     build_test_program('lib/gtk_db.c', 'gtk_db',
-            libraries = LIBS + bld.env.LIB_GTK3,
-            includes_h = INCLUDES + bld.env.INCLUDES_GTK3
+            libraries=LIBS + bld.env.LIB_GTK3,
+            includes_h=INCLUDES + bld.env.INCLUDES_GTK3
     )
 
     bld.stlib(
-            source = _find_libmoosecat_src(bld),
-            target = 'moosecat',
-            install_path = 'bin',
-            includes = INCLUDES,
-            lib = LIBS,
-            cflags = CFLAGS
+            source=_find_libmoosecat_src(bld),
+            target='moosecat',
+            install_path='bin',
+            includes=INCLUDES,
+            lib=LIBS,
+            cflags=CFLAGS
     )
 
+    bld(
+        features='c cshlib pyext',
+        source='cython/moose.pyx',
+        target='moose',
+        includes=['moosecat'] + INCLUDES,
+        lib=LIBS,
+        use='moosecat',
+        cflags=CFLAGS
+    )
 
     if bld.options.runtests:
         for path in bld.path.ant_glob('test/lib/**/*.c'):
             bld.program(
-                    features = 'test',
-                    source = path.relpath(),
-                    target = 'test_' + os.path.basename(path.abspath()),
-                    includes = INCLUDES,
-                    lib = LIBS,
-                    install_path = 'bin',
-                    use = 'moosecat',
-                    cflags = CFLAGS
+                    features='test',
+                    source=path.relpath(),
+                    target='test_' + os.path.basename(path.abspath()),
+                    includes=INCLUDES,
+                    lib=LIBS,
+                    install_path='bin',
+                    use='moosecat',
+                    cflags=CFLAGS
             )
 
         from waflib.Tools import waf_unit_test
