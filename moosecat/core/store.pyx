@@ -1,4 +1,4 @@
-cimport moose as c
+cimport binds as c
 
 '''
     mc_StoreDB * mc_store_create (mc_Client *, mc_StoreSettings *)

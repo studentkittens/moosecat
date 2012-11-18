@@ -16,14 +16,14 @@ class cython(cython_base):
 		if ret != ASK_LATER:
 			# we can create Node objects since we are in the main thread
 			bld = self.generator.bld
-			cache = bld.srcnode.make_node('cython_cache')
+			cache = bld.srcnode.make_node('.cython_cache')
 			if self.env.CYTHON: # write to the cache directory
 				self.cython_cache_outputs = [cache.make_node(x.path_from(bld.bldnode)) for x in self.outputs]
 			else: # use the files in the cache directory
 				self.cython_cache_outputs = [cache.find_node(x.path_from(bld.bldnode)) for x in self.outputs]
 		return ret
 
-	def run(self):	
+	def run(self):
 		if self.env.CYTHON:
 			ret = cython_base.run(self)
 			if not ret:

@@ -12,6 +12,7 @@ test/lib/.out
 
 doc/build
 
+*.swp
 .lock*
 .waf*
 build/
@@ -20,3 +21,4 @@ lib/config.h
 
 # db
 moosecat_*sqlite
+.cython_cache/

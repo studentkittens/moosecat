@@ -93,9 +93,17 @@ typedef struct mc_Client {
     /* Buffer for the last happened error */
     char error_buffer[_MC_PROTO_MAX_ERR_LEN];
 
+    /* Outputs of MPD */
     struct {
         GList * list;
     } outputs;
+
+    /* Support for timed status retrieval */
+    struct {
+        int timeout_id;
+        int interval;
+        bool trigger_event;
+    } status_timer;
 
     /*
      * Up-to-date infos.
@@ -321,5 +329,40 @@ int mc_proto_get_port (mc_Client * self);
  * @return the timeout in seconds, or -1 on error.
  */
 int mc_proto_get_timeout (mc_Client * self);
+ 
+/**
+ * @brief Activate a status timer
+ *
+ * This will cause moosecat to schedule status update every repeat_ms ms.
+ * Call mc_proto_status_timer_unregister to deactivate it.
+ *
+ * This is useful for kbit rate changes which will only be update when
+ * an idle event requires it.
+ *
+ * @param self the client to operate on.
+ * @param repeat_ms repeat interval
+ * @param trigger_event
+ */
+void mc_proto_status_timer_register (
+        mc_Client * self,
+        int repeat_ms,
+        bool trigger_event);
+
+/**
+ * @brief Deactivate the status_timer
+ *
+ * @param self the client to operate on.
+ */
+void mc_proto_status_timer_unregister (
+        mc_Client * self);
+
+/**
+ * @brief Returns ttue if the status timer is ative
+ *
+ * @param self the client to operate on.
+ *
+ * @return false on inactive status timer
+ */
+bool mc_proto_status_timer_is_active (mc_Client * self);
 
 #endif /* end of include guard: PROTOCOL_H */

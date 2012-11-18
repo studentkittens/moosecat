@@ -312,7 +312,31 @@ int mc_proto_get_port (mc_Client * self)
 
 ///////////////////
 
+bool mc_proto_status_timer_is_active (mc_Client * self)
+{
+    return mc_proto_update_status_timer_is_active (self);
+}
+
+///////////////////
+
+void mc_proto_status_timer_unregister (mc_Client * self)
+{
+    mc_proto_update_unregister_status_timer (self);
+}
+
+///////////////////
+
 int mc_proto_get_timeout (mc_Client * self)
 {
     return self->_timeout;
+}
+
+///////////////////
+
+void mc_proto_status_timer_register (
+        mc_Client * self,
+        int repeat_ms,
+        bool trigger_event)
+{
+    mc_proto_update_register_status_timer (self, repeat_ms, trigger_event);
 }

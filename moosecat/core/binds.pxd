@@ -5,18 +5,6 @@ from cpython cimport bool
 ctypedef long time_t
 
 ###########################################################################
-#                               GLib Compat                               #
-###########################################################################
-
-cdef extern from "glib.h":
-    ctypedef struct GList:
-        pass
-
-    ctypedef struct GMainContext:
-        pass
-
-
-###########################################################################
 #                              libmpdclient                               #
 ###########################################################################
 
@@ -34,9 +22,11 @@ cdef extern from "mpd/client.h":
     cdef struct mpd_status:
         pass
 
-    cdef struct mpd_connection:
-        pass
+    # This is hidden to prevent misuse.
+    # cdef struct mpd_connection:
+    #    pass
 
+    # Wrapped as properties:
     cdef struct mpd_audio_format:
         uint32_t sample_rate
         uint8_t bits
@@ -60,6 +50,7 @@ cdef extern from "mpd/client.h":
         MPD_IDLE_SUBSCRIPTION
         MPD_IDLE_MESSAGE
 
+    # Wrapped as properties:
     cdef enum mpd_tag_type:
         MPD_TAG_UNKNOWN
         MPD_TAG_ARTIST
@@ -80,6 +71,7 @@ cdef extern from "mpd/client.h":
         MPD_TAG_MUSICBRAINZ_TRACKID
         MPD_TAG_COUNT
 
+    # Wrapped as class variables
     cdef enum mpd_state:
         MPD_STATE_UNKNOWN
         MPD_STATE_STOP
@@ -151,8 +143,8 @@ cdef extern from "mpd/client.h":
 cdef extern from "../../lib/mpd/protocol.h":
 
     ctypedef enum mc_PmType:
-        MC_PM_IDLE
-        MC_PM_COMMAND
+        PM_IDLE 'MC_PM_IDLE'
+        PM_COMMAND 'MC_PM_COMMAND'
 
     ################
     #  Structures  #
@@ -163,22 +155,21 @@ cdef extern from "../../lib/mpd/protocol.h":
         mpd_stats * stats
         mpd_song * song
 
-    ctypedef struct GMainContext:
-        pass
-
-
     #############
     #  Methods  #
     #############
 
+    # Hiden on purpose. Do not screw with
+    # the connetion on the python layer
+    # mpd_connection * mc_proto_get (mc_Client *)
+
     # Networking
     mc_Client * mc_proto_create (mc_PmType)
-    mpd_connection * mc_proto_get (mc_Client *)
     void mc_proto_put (mc_Client *)
     bool mc_proto_is_connected (mc_Client *)
     char * mc_proto_disconnect (mc_Client *)
     void mc_proto_free (mc_Client *)
-    char * mc_proto_connect (mc_Client *, GMainContext *, char *, int, float)
+    char * mc_proto_connect (mc_Client *, void *, char *, int, float)
 
     # Signals:
     void mc_proto_signal_add (mc_Client * , char *, void *, void *)
@@ -289,8 +280,8 @@ cdef extern from "../../lib/misc/posix-signal.h":
 
 cdef extern from "../../lib/config.h":
     enum:
-        MC_VERSION
-        MC_VERSION_MAJOR
-        MC_VERSION_MINOR
-        MC_VERSION_PATCH
-        MC_VERSION_GIT_REVISION
+        VERSION               'MC_VERSION'
+        VERSION_MAJOR         'MC_VERSION_MAJOR'
+        VERSION_MINOR         'MC_VERSION_MINOR'
+        VERSION_PATCH         'MC_VERSION_PATCH'
+        VERSION_GIT_REVISION  'MC_VERSION_GIT_REVISION'

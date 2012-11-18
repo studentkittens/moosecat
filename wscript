@@ -166,13 +166,14 @@ def build(bld):
             cflags=CFLAGS
     )
 
+    # Compile the cython code into build/moose.something.so
     bld(
         features='c cshlib pyext',
-        source='cython/moose.pyx',
-        target='moose',
-        includes=['moosecat'] + INCLUDES,
-        lib=LIBS,
+        source='moosecat/core/moose.pyx',
+        target='moosecat/core/moose',
         use='moosecat',
+        lib=LIBS,
+        includes=['moosecat'] + INCLUDES,
         cflags=CFLAGS
     )
 

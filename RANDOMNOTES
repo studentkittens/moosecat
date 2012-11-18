@@ -1,7 +1,10 @@
 Feature Requests:
 - persistent search (remember serach query)
 - autocomplete search (core task?)
+- implement mpd_command_list for API users.
 
 Random Notes:
-- Sqlite offers full text search
-- libgda seems to be nice
+- Make Status retrieval via timeout possible.
+- Write a mpc like client for the commandline (moocat)
+- Make Status retrieval via timeout possible. (Done.)
+- Write a mpc like client for the commandline (moocat)

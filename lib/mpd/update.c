@@ -21,6 +21,10 @@ const enum mpd_idle on_song_update = (0
 
 ////////////////////////
 
+#define ONLY_IN_MASK(a,b,c) (a & ~(b | c))
+
+////////////////////////
+
 #define free_if_not_null(var, func) if(var != NULL) func(var)
 
 ////////////////////////
@@ -114,3 +118,62 @@ void mc_proto_update_context_info_cb (
 }
 
 ////////////////////////
+
+static gboolean mc_proto_update_status_timer_cb (gpointer data)
+{
+    g_assert (data);
+
+    struct mc_Client * self = data;
+
+    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) {
+        enum mpd_idle on_status_only = 
+            ONLY_IN_MASK (
+                    on_status_update,
+                    on_song_update,
+                    on_stats_update);
+
+        mc_proto_update_context_info_cb (self, on_status_only, NULL);
+
+        if (self->status_timer.trigger_event) {
+            mc_shelper_report_client_event (self, on_status_only);
+        }
+    }
+
+    return mc_proto_update_status_timer_is_active (self);
+}
+
+////////////////////////
+
+void mc_proto_update_register_status_timer (
+        struct mc_Client * self,
+        int repeat_ms,
+        bool trigger_event)
+{
+    g_assert (self);
+
+    self->status_timer.trigger_event = trigger_event;
+    self->status_timer.timeout_id = 
+        g_timeout_add (repeat_ms, mc_proto_update_status_timer_cb, self);   
+}
+
+////////////////////////
+
+void mc_proto_update_unregister_status_timer (
+        struct mc_Client * self)
+{
+    g_assert (self);
+
+    if (mc_proto_update_status_timer_is_active(self)) {
+        g_source_remove(self->status_timer.timeout_id);
+        self->status_timer.timeout_id = -1;
+    }
+}
+
+////////////////////////
+
+bool mc_proto_update_status_timer_is_active (struct mc_Client * self)
+{
+    g_assert (self);
+
+    return (self->status_timer.timeout_id != -1);
+}

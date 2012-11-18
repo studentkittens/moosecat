@@ -1,14 +1,14 @@
-cimport moose as c
+cimport binds as c
 
 '''
 Song is a Python-Level Wrapper aroung libmpdclient's mpd_song.
 
 It has the same features, but is a lot nicer to use:
->>> s = song_from_ptr(some_mpd_song)
+>>> s = song_from_ptr(some_mpd_song_struct)
 >>> print(s.artist)
 
 Instead of:
->>> s = song_from_ptr(some_mpd_song)
+>>> s = song_from_ptr(some_mpd_song_struct)
 >>> c.mpd_song_get_tag(s, c.MPD_TAG_ARTIST, 0)
 
 Instanciation should always happen via song_from_ptr()!
