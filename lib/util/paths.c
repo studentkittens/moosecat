@@ -11,8 +11,8 @@ int mc_path_get_depth (const char * dir_path)
     for (;;) {
         gunichar curr = g_utf8_get_char_validated (cursor, -1);
         cursor = g_utf8_next_char (cursor);
-        if (*cursor != 0) {
-            if (curr == '/')
+        if (*cursor != (char)0) {
+            if (curr == (gunichar)'/')
                 ++dir_depth;
         } else {
             break;

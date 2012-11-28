@@ -16,25 +16,27 @@ cimport binds as c
 
 
 cdef class Store:
-    cdef c.mc_StoreDB * _db = NULL
-    cdef c.mc_StoreSettings *_settings = NULL
+    cdef c.mc_StoreDB * _db
+    cdef c.mc_StoreSettings *_settings
 
     def __cinit__(self, client, db_directory, use_memory_db=True, use_compression=True, tokenizer=None):
         self._settings = c.mc_store_settings_new ()
-        self._db = c.mc_store_create (client, self._settings)
+        #self._db = c.mc_store_create (client, self._settings)
+        self._db = NULL
         self._wait_mode = False
+
+    def __dealloc__(self):
+        c.mc_store_settings_destroy (self._settings)
+
+    def close(self):
+        c.mc_store_close(self._db)
 
     property wait_mode:
         def __set__(self, mode):
             self._wait_mode = mode
-            mc_store_set_wait_mode (self._db, mode)
+            c.mc_store_set_wait_mode (self._db, mode)
 
         def __get__(self):
             return self._wait_mode
 
 
-    def close(self):
-        mc_store_close(self._db)
-
-    def __dealloc__(self):
-        c.mc_store_settings_destroy (self._settings)

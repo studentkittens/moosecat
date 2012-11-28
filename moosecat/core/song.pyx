@@ -36,19 +36,46 @@ cdef class Song:
     def __cinit__(self):
         self._song = NULL
 
-    cdef c.mpd_song * _p(self):
-        return self._song
+    cdef c.mpd_song * _p(self) except NULL:
+        if self._song != NULL:
+            return self._song
+        else:
+            raise ValueError('mpd_song pointer is null for this instance!')
 
     cdef object _init(self, c.mpd_song * song):
         self._song = song
         return self
+
+    #############
+    #  Testing  #
+    #############
+
+    def test_begin(self, file_name='file://test_case_path'):
+        cdef c.mpd_pair pair
+        byte_file = bytify(file_name)
+        pair.name = 'file'
+        pair.value = byte_file
+        self._song = c.mpd_song_begin(&pair)
+
+    def test_feed(self, name, value):
+        cdef c.mpd_pair pair
+        b_name = bytify(name)
+        b_value = bytify(value)
+        pair.name = b_name
+        pair.value = b_value
+        c.mpd_song_feed(self._p(), &pair)
 
     ################
     #  Properties  #
     ################
 
     cdef _tag(self, c.mpd_tag_type tag):
-        return c.mpd_song_get_tag(self._p(), tag, 0)
+        cdef c.const_char_ptr p
+        p = c.mpd_song_get_tag(<c.const_mpd_song_ptr>self._p(), tag, 0)
+        if p == NULL:
+            return ''
+        else:
+            return stringify(<char*>p)
 
     property artist:
         'Retrieve the artist tag'
@@ -56,12 +83,12 @@ cdef class Song:
             return self._tag(c.MPD_TAG_ARTIST)
 
     property album:
-        'Retrieve the artist tag'
+        'Retrieve the album tag'
         def __get__(self):
             return self._tag(c.MPD_TAG_ALBUM)
 
     property album_artist:
-        'Retrieve the artist tag'
+        'Retrieve the title tag'
         def __get__(self):
             return self._tag(c.MPD_TAG_ALBUM_ARTIST)
 

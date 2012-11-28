@@ -4,6 +4,8 @@ import os
 import subprocess
 
 from waflib import Logs
+from waflib import Task
+from waflib.TaskGen import feature, after_method
 
 # Global:
 
@@ -19,12 +21,16 @@ CFLAGS += ['-ggdb3', '-Wall', '-W']
 # These files are not built into libmoosecat.so
 EXCLUDE_FILES = []
 
+# Use SPLINT to statically check libmoosecat? (this will fail currently)
+USE_SPLINT = False
 
 def options(opt):
         opt.load('compiler_c')
         opt.load('python')
         opt.load('cython')
-        opt.load('cython_cache', tooldir='.')
+        #opt.load('cython_cache', tooldir='.')
+
+        opt.add_option('--cython-dev', action='store', default=True, help='Compile all Cython Files')
         opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')
 
 
@@ -68,6 +74,7 @@ def configure(conf):
     conf.start_msg(' => configuring the project in ')
     conf.end_msg(conf.path.abspath())
 
+
     conf.start_msg(' => install prefix is ')
     conf.end_msg(conf.options.prefix)
 
@@ -107,6 +114,9 @@ def configure(conf):
             args='--libs --cflags'
     )
 
+    # Find the static C source checker
+    conf.find_program('splint', var='SPLINT', mandatory=False)
+
     # Create lib/config.h. Includes basic Version/Feature Info.
     conf.path.make_node('lib/config.h').write(define_config_h(conf))
 
@@ -130,6 +140,17 @@ def _find_libmoosecat_src(ctx):
             pass
 
     return c_files
+
+
+def _find_cython_src(ctx):
+    '''
+    Find all .pyx files in moosecat/core,
+    and return them.
+    '''
+    #if ctx.options.cython_dev:
+    #    return ctx.path.ant_glob('moosecat/core/*.pyx')
+    #else:
+    return 'moosecat/core/moose.pyx'
 
 
 def build(bld):
@@ -169,7 +190,8 @@ def build(bld):
     # Compile the cython code into build/moose.something.so
     bld(
         features='c cshlib pyext',
-        source='moosecat/core/moose.pyx',
+        source=_find_cython_src(bld),
+        #source=['moosecat/core/moose.pyx', 'moosecat/core/client.pyx'],
         target='moosecat/core/moose',
         use='moosecat',
         lib=LIBS,
@@ -192,3 +214,28 @@ def build(bld):
 
         from waflib.Tools import waf_unit_test
         bld.add_post_fun(waf_unit_test.summary)
+
+
+# I think this should be removed.
+
+@feature('c')
+@after_method('process_source')
+def add_files_to_lint(self):
+    if not USE_SPLINT:
+        return
+
+    for x in self.compiled_tasks:
+        c_file = repr(x.inputs[0])
+        # Only check files in lib/
+        if 'lib' in c_file.split(os.path.sep):
+            self.create_task('Lint', src=x.inputs[0])
+
+
+
+class Lint(Task.Task):
+    run_str = '${SPLINT} +charindex -nullpass ${CPPPATH_ST:INCPATHS} ${SRC[0].abspath()}'
+    ext_in = ['.h']  # guess why this line..
+    before = ['c']
+
+    def __init__(self, *args, **kwargs):
+        Task.Task.__init__(self, *args, **kwargs)

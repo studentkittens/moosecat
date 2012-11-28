@@ -32,12 +32,30 @@ cdef class Status:
     def __cinit__(self):
         self._status = NULL
 
-    cdef c.mpd_status * _p(self):
-        return self._status
+    cdef c.mpd_status * _p(self) except NULL:
+        if self._status != NULL:
+            return self._status
+        else:
+            raise ValueError('mpd_status pointer is null for this instance!')
 
     cdef object _init(self, c.mpd_status * status):
         self._status = status
         return self
+
+    #############
+    #  Testing  #
+    #############
+
+    def test_begin(self):
+        self._status = c.mpd_status_begin()
+
+    def test_feed(self, name, value):
+        cdef c.mpd_pair pair
+        b_name = bytify(name)
+        b_value = bytify(value)
+        pair.name = b_name
+        pair.value = b_value
+        c.mpd_status_feed(self._p(), &pair)
 
     ################
     #  Properties  #
@@ -82,54 +100,54 @@ cdef class Status:
 
     property mixrampdb:
         def __get__(self):
-            c.mpd_status_get_mixrampdb(self._p())
+            return c.mpd_status_get_mixrampdb(self._p())
 
     property mixrampdelay:
         def __get__(self):
-            c.mpd_status_get_mixrampdelay(self._p())
+            return c.mpd_status_get_mixrampdelay(self._p())
 
     property song_pos:
         def __get__(self):
-            c.mpd_status_get_song_pos(self._p())
+            return c.mpd_status_get_song_pos(self._p())
 
     property song_id:
         def __get__(self):
-            c.mpd_status_get_song_id(self._p())
+            return c.mpd_status_get_song_id(self._p())
 
     property next_song_id:
         def __get__(self):
-            c.mpd_status_get_next_song_id(self._p())
+            return c.mpd_status_get_next_song_id(self._p())
 
     property next_song_pos:
         def __get__(self):
-            c.mpd_status_get_next_song_pos(self._p())
+            return c.mpd_status_get_next_song_pos(self._p())
 
     property elapsed_seconds:
         def __get__(self):
-            c.mpd_status_get_elapsed_time(self._p())
+            return c.mpd_status_get_elapsed_time(self._p())
 
     property elapsed_ms:
         def __get__(self):
-            c.mpd_status_get_elapsed_ms(self._p())
+            return c.mpd_status_get_elapsed_ms(self._p())
 
     property total_time:
         def __get__(self):
-            c.mpd_status_get_total_time(self._p())
+            return c.mpd_status_get_total_time(self._p())
 
     property update_id:
         def __get__(self):
-            c.mpd_status_get_update_id(self._p())
+            return c.mpd_status_get_update_id(self._p())
 
     ######################
     #  Audio Properties  #
     ######################
 
-    cdef c.mpd_audio_format * _audio(self):
+    cdef c.mpd_audio_format * _audio(self) except NULL:
         return <c.mpd_audio_format*> c.mpd_status_get_audio_format(self._p())
 
     property kbit_rate:
         def __get__(self):
-            c.mpd_status_get_kbit_rate(self._p())
+            return c.mpd_status_get_kbit_rate(self._p())
 
     property audio_sample_rate:
         def __get__(self):

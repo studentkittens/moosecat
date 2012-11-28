@@ -1,5 +1,5 @@
 from libc.stdint cimport uint32_t, uint8_t
-from cpython cimport bool
+from libcpp cimport bool
 
 # Too lazy to lookup how to import it properly.
 ctypedef long time_t
@@ -16,6 +16,11 @@ cdef extern from "mpd/client.h":
     cdef struct mpd_song:
         pass
 
+    # Cython does not support const
+    # So, we just typedef const here
+    ctypedef mpd_song * const_mpd_song_ptr "const struct mpd_song *"
+    ctypedef char * const_char_ptr "const char *"
+
     cdef struct mpd_stats:
         pass
 
@@ -31,6 +36,10 @@ cdef extern from "mpd/client.h":
         uint32_t sample_rate
         uint8_t bits
         uint8_t channels
+
+    cdef struct mpd_pair:
+        char * name
+        char * value
 
     ###########
     #  Enums  #
@@ -78,6 +87,17 @@ cdef extern from "mpd/client.h":
         MPD_STATE_PLAY
         MPD_STATE_PAUSE
 
+    cdef enum mpd_error:
+        MPD_ERROR_SUCCESS
+        MPD_ERROR_OOM
+        MPD_ERROR_ARGUMENT
+        MPD_ERROR_STATE
+        MPD_ERROR_TIMEOUT
+        MPD_ERROR_SYSTEM
+        MPD_ERROR_RESOLVER
+        MPD_ERROR_MALFORMED
+        MPD_ERROR_CLOSED
+        MPD_ERROR_SERVER
 
     ######################
     #  Status Functions  #
@@ -106,6 +126,11 @@ cdef extern from "mpd/client.h":
     unsigned mpd_status_get_update_id(mpd_status *)
     char * mpd_status_get_error(mpd_status *)
 
+    # Useful for testing
+    mpd_status * mpd_status_begin()
+    void mpd_status_feed(mpd_status *status, mpd_pair *pair)
+    void mpd_status_free(mpd_status * status)
+
     ##########################
     #  Statistics Functions  #
     ##########################
@@ -117,6 +142,11 @@ cdef extern from "mpd/client.h":
     unsigned long mpd_stats_get_db_update_time(mpd_stats *)
     unsigned long mpd_stats_get_play_time(mpd_stats *)
     unsigned long mpd_stats_get_db_play_time(mpd_stats *)
+
+    # Useful for testing
+    mpd_stats * mpd_stats_begin()
+    void mpd_stats_feed(mpd_stats *status, mpd_pair *pair)
+    void mpd_stats_free(mpd_stats * stats)
 
     #####################
     #  Songs Functions  #
@@ -133,6 +163,10 @@ cdef extern from "mpd/client.h":
     unsigned mpd_song_get_id(mpd_song *)
     void mpd_song_free(mpd_song*)
 
+    # Useful for testing.
+    mpd_song * mpd_song_begin(mpd_pair *pair)
+    void mpd_song_feed(mpd_song *song, mpd_pair *pair)
+
 ###########################################################################
 #                             Main Interface                              #
 ###########################################################################
@@ -145,6 +179,14 @@ cdef extern from "../../lib/mpd/protocol.h":
     ctypedef enum mc_PmType:
         PM_IDLE 'MC_PM_IDLE'
         PM_COMMAND 'MC_PM_COMMAND'
+
+
+    ctypedef enum mc_OpFinishedEnum:
+        MC_OP_DB_UPDATED
+        MC_OP_QUEUE_UPDATED
+        MC_OP_SPL_UPDATED
+        MC_OP_SPL_LIST_UPDATED
+
 
     ################
     #  Structures  #

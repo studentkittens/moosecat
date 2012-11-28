@@ -15,12 +15,30 @@ cdef class Statistics:
     def __cinit__(self):
         self._stats = NULL
 
-    cdef c.mpd_stats * _p(self):
-        return self._stats
+    cdef c.mpd_stats * _p(self) except NULL:
+        if self._stats != NULL:
+            return self._stats
+        else:
+            raise ValueError('mpd_stats pointer is null for this instance!')
 
     cdef object _init(self, c.mpd_stats * stats):
         self._stats = stats
         return self
+
+    #############
+    #  Testing  #
+    #############
+
+    def test_begin(self):
+        self._stats = c.mpd_stats_begin()
+
+    def test_feed(self, name, value):
+        cdef c.mpd_pair pair
+        b_name = bytify(name)
+        b_value = bytify(value)
+        pair.name = b_name
+        pair.value = b_value
+        c.mpd_stats_feed(self._p(), &pair)
 
     ################
     #  Properties  #
@@ -46,10 +64,10 @@ cdef class Statistics:
         def __get__(self):
             return c.mpd_stats_get_db_update_time(self._p())
 
-    property play_time:
+    property playtime:
         def __get__(self):
             return c.mpd_stats_get_play_time(self._p())
 
-    property db_play_time:
+    property db_playtime:
         def __get__(self):
             return c.mpd_stats_get_db_play_time(self._p())
