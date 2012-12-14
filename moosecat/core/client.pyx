@@ -1,7 +1,7 @@
 cimport binds as c
 
 # bool type
-from cpython cimport bool
+from libcpp cimport bool
 
 # 'with' statement support
 from contextlib import contextmanager
@@ -81,37 +81,39 @@ cdef class Client:
         Create the initial mc_Client structure.
         This is not connected yet.
         '''
-        self._cl = c.mc_proto_create(c.MC_PM_IDLE)
+        self._cl = c.mc_proto_create(c.PM_COMMAND)
 
-    cdef c.mc_Client * _ptr(self):
+    cdef c.mc_Client * _p(self):
         return self._cl
 
     def __dealloc__(self):
         '''
-        Disconnect the Client, and free the mc_ptr()ient structure.
+        Disconnect the Client, and free the mc_p()ient structure.
         '''
-        c.mc_proto_free(self._ptr())
+        c.mc_proto_free(self._p())
 
     def connect(self, host='localhost', port=6600, timeout_sec=2.):
         cdef char * er = NULL
-        err = c.mc_proto_connect(self._ptr(), NULL, host, port, timeout_sec)
-        print('Connect: ', err)
+
+        # Convert input to bytes
+        b_host = bytify(host)
+
+        err = c.mc_proto_connect(self._p(), NULL, b_host, port, timeout_sec)
         return (err == NULL)
 
     def disconnect(self):
         cdef char * err = NULL
-        err = c.mc_proto_disconnect(self._ptr())
-        print('Disconnect: ', err)
+        err = c.mc_proto_disconnect(self._p())
         return (err == NULL)
 
-    def force_update_metadata(self, event_mask):
+    def force_update_metadata(self, event_mask=0xFFFFFFFFF):
         '''Force the Update of Status/Statistics/Current Song
 
         This is usually not needed, since it happens automatically.
         No callbacks are called.
         '''
         cdef c.mpd_idle event = event_mask
-        c.mc_proto_force_sss_update(self._ptr(), event)
+        c.mc_proto_force_sss_update(self._p(), event)
 
     #############
     #  Signals  #
@@ -160,19 +162,19 @@ cdef class Client:
                 print('Warning: Unknown signal passed. This should not happen.')
 
             if c_func != NULL:
-                c.mc_proto_signal_add_masked(self._ptr(), signal_name,
+                c.mc_proto_signal_add_masked(self._p(), signal_name,
                                         <void*> c_func,
                                         <void*> data, idle_event)
 
     def signal_rm(self, signal_name, func):
         'Remove a signal from the callable list'
         with self._valid_signal_name(signal_name):
-            c.mc_proto_signal_rm(self._ptr(), signal_name, <void*> func)
+            c.mc_proto_signal_rm(self._p(), signal_name, <void*> func)
 
     def signal_count(self, signal_name):
         'Return the number of registerd signals'
         with self._valid_signal_name(signal_name):
-            return c.mc_proto_signal_length(self._ptr(), signal_name)
+            return c.mc_proto_signal_length(self._p(), signal_name)
 
     def signal_dispatch(self, signal_name, *args):
         'Dispatch a signal manually'
@@ -192,22 +194,22 @@ cdef class Client:
             # Check the signal-name, and dispatch it differently.
             if signal_name == 'client-event':
                 event = int(args[0])
-                c.mc_proto_signal_dispatch(self._ptr(), signal_name, event)
+                c.mc_proto_signal_dispatch(self._p(), signal_name, event)
             elif signal_name == 'connectivity':
                 server_changed = int(args[0])
-                c.mc_proto_signal_dispatch(self._ptr(), signal_name, server_changed)
+                c.mc_proto_signal_dispatch(self._p(), signal_name, server_changed)
             elif signal_name == 'error':
                 error_id = int(args[0])
                 error_msg = args[1]
                 error_is_fatal = int(args[2])
-                c.mc_proto_signal_dispatch(self._ptr(), signal_name, error_id, error_msg, error_is_fatal)
+                c.mc_proto_signal_dispatch(self._p(), signal_name, error_id, error_msg, error_is_fatal)
             elif signal_name == 'progress':
                 progress_print_newline = int(args[0])
                 progress_msg = args[1]
-                c.mc_proto_signal_dispatch(self._ptr(), signal_name, progress_print_newline, progress_msg)
+                c.mc_proto_signal_dispatch(self._p(), signal_name, progress_print_newline, progress_msg)
             elif signal_name == 'op-finished':
                 op_finished = int(args[0])
-                c.mc_proto_signal_dispatch(self._ptr(), signal_name, op_finished)
+                c.mc_proto_signal_dispatch(self._p(), signal_name, op_finished)
 
     ################
     #  Properties  #
@@ -216,7 +218,7 @@ cdef class Client:
     property is_connected:
         'Check if this Client is still connected  to the server'
         def __get__(self):
-            return c.mc_proto_is_connected(self._ptr())
+            return c.mc_proto_is_connected(self._p())
 
     property signal_names:
         'A list of valid signal names. (May be used to verfiy.)'

@@ -1,91 +1,6 @@
 import moosecat.core.moose as m
 import unittest
-import time
 import math
-
-
-class TestSong(unittest.TestCase):
-    def setUp(self):
-        self.song = m.Song()
-        self.song.test_begin()
-
-    def tearDown(self):
-        self.song = None
-
-    def test_emptyAttrs(self):
-        with self.assertRaises(ValueError):
-            print(m.Song().artist)
-
-    def test_setEmptyAttr(self):
-        with self.assertRaises(ValueError):
-            m.Song().queue_pos = 42
-
-    def test_allProps(self):
-        empty_song = m.Song()
-        for attr in empty_song.__class__.__dict__.keys():
-            str_attr = str(attr)
-            if str_attr[0] != '_' and str_attr[:4] != 'test':
-                with self.assertRaises(ValueError):
-                    eval('empty_song.' + str_attr)
-
-    def test_BeginDummy(self):
-        self.song.test_feed('Artist', 'test')
-        self.assertTrue(self.song.artist == 'test')
-        self.assertTrue(self.song.album == '')
-
-    def test_nonTagProps(self):
-        # Is set to something by test_begin()
-        self.assertTrue(self.song.uri != '')
-
-        # See if we have an actual struct_time
-        self.assertTrue(self.song.last_modified, time.struct_time)
-
-        self.assertTrue(self.song.queue_pos == 0)
-        self.assertTrue(self.song.queue_id == 0)
-        self.assertTrue(self.song.duration == 0)
-
-        self.song.queue_pos = 42
-        self.assertTrue(self.song.queue_pos == 42)
-
-
-stats_response = '''artists: 644
-albums: 1326
-songs: 16760
-uptime: 407526
-playtime: 285000
-db_playtime: 4609008
-db_update: 134909661
-'''
-
-
-class TestStats(unittest.TestCase):
-    def setUp(self):
-        self.stats = m.Statistics()
-        self.stats.test_begin()
-        for line in stats_response.splitlines():
-            self.stats.test_feed(*line.split(':'))
-
-    def test_attributes(self):
-        self.assertTrue(self.stats.number_of_artists == 644)
-        self.assertTrue(self.stats.number_of_albums == 1326)
-        self.assertTrue(self.stats.number_of_songs == 16760)
-        self.assertTrue(self.stats.uptime == 407526)
-        self.assertTrue(self.stats.playtime == 285000)
-        self.assertTrue(self.stats.db_update_time == 134909661)
-        self.assertTrue(self.stats.db_playtime == 4609008)
-
-    def test_emptyAttributes(self):
-        empty = m.Statistics()
-        self.assertRaises(ValueError, lambda: empty.number_of_artists)
-        self.assertRaises(ValueError, lambda: empty.number_of_albums)
-        self.assertRaises(ValueError, lambda: empty.number_of_songs)
-        self.assertRaises(ValueError, lambda: empty.uptime)
-        self.assertRaises(ValueError, lambda: empty.playtime)
-        self.assertRaises(ValueError, lambda: empty.db_update_time)
-        self.assertRaises(ValueError, lambda: empty.db_playtime)
-
-    def tearDown(self):
-        self.stats = None
 
 
 status_response = '''volume: -1
@@ -170,7 +85,6 @@ class TestStatus(unittest.TestCase):
         self.assertRaises(ValueError, lambda: empty.audio_sample_rate)
         self.assertRaises(ValueError, lambda: empty.audio_bits)
         self.assertRaises(ValueError, lambda: empty.audio_channels)
-
 
     def tearDown(self):
         self.status = None

@@ -22,3 +22,6 @@ lib/config.h
 # db
 moosecat_*sqlite
 .cython_cache/
+
+# Coredumps
+core
