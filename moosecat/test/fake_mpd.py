@@ -1,6 +1,10 @@
 import socketserver as serv
 import socket
 import json
+import os
+import traceback
+
+from select import select
 
 MPD_VERSION = b'0.17.0'
 
@@ -10,32 +14,32 @@ MPD_VERSION = b'0.17.0'
 ###########################################################################
 
 
-def respond_status(state):
-    return state.status
+def respond_status(gstate, lstate):
+    return gstate.status
 
 
-def respond_stats(state):
-    return state.stats
+def respond_stats(gstate, lstate):
+    return gstate.stats
 
 
-def respond_currentsong(state):
-    return state.currentsong
+def respond_currentsong(gstate, lstate):
+    return gstate.currentsong
 
 
-def respond_clear(state):
-    state.queue = Playlist()
+def respond_clear(gstate, lstate):
+    gstate.queue = Playlist()
 
 
-def respond_add(state):
-    state.queue.append(state.args[0])
+def respond_add(gstate, lstate):
+    gstate.queue.append(gstate.args[0])
 
 
-def respond_consume(state):
-    state.status.consume = state.args[0]
+def respond_consume(gstate, lstate):
+    gstate.status.consume = gstate.args[0]
 
 
-def respond_crossfade(state):
-    state.status.crossfade = state.args[0]
+def respond_crossfade(gstate, lstate):
+    gstate.status.crossfade = lstate.args[0]
 
 
 def respond_delete(state):
@@ -68,7 +72,7 @@ NOT_IMPLEMENTED = ['channels', 'clearerror', 'commands', 'config',
 
 # Commands that need to implemented at Socket level,
 # i.e. no request_handler is called.
-SOCKET_LEVEL = ['close', 'kill', 'idle', 'noidle']
+SOCKET_LEVEL_COMMANDS = ['close', 'kill', 'idle', 'noidle']
 
 
 # TODO
@@ -83,7 +87,8 @@ PROTOCOL = {
     'clear': [0, 0, respond_clear],
     'consume': [1, 1, respond_consume],
     'crossfade': [1, 1, respond_crossfade],
-    'count': lambda state: 0, 'delete': [1, 1, respond_delete]
+    'count': lambda gstate, lstate: 0,
+    'delete': [1, 1, respond_delete]
 }
 
 
@@ -135,15 +140,19 @@ class ProtocolError(Exception):
         self._state = state
         self._cause = cause
         self._errid = errid
-        Exception.__init__(str(self))
+        Exception.__init__(self)
 
     def __str__(self):
-        return 'ACK [{error_id}@{cmnd_list_num}] {{{current_cmd}}} {cause}'.format(
-            error_id=self.errid,
+        return 'ACK [{error_id}@{cmnd_list_num}] {{{current_cmd}}} {cause}\n'.format(
+            error_id=self._errid,
             cmnd_list_num=self._state.command_list_idx,
             current_cmd=self._state.current_command,
             cause=self._cause
         )
+
+
+class CloseConnection(Exception):
+    pass
 
 
 ###########################################################################
@@ -151,7 +160,7 @@ class ProtocolError(Exception):
 ###########################################################################
 
 
-class ProtocolState:
+class LocalState:
     '''
     All State Objects are bundled here.
     '''
@@ -169,6 +178,38 @@ class ProtocolState:
         # An Error happened?
         self.error = False
 
+        # This is based on: http://tinyurl.com/d63z7nt
+        self.rpipe, self.wpipe = os.pipe()
+
+        # the writable file of this connection
+        self._event_set = set()
+
+    def write_event(self, event):
+        allowed = [b'database', b'stored_playlist', b'queue', b'player', b'mixer',
+                   b'output', b'options', b'update', b'sticker', b'subscription'
+                   b'sticker']
+
+        if event in allowed:
+            self._event_set.add(event)
+        else:
+            print('Warning:', event, 'is not a valid event!')
+
+    def finish_events(self):
+        # It's unimportant what we send, just needs to be a single char
+        os.write(self.wpipe, b'!')
+
+    def get_events(self):
+        rc = list(self._event_set)
+        self._event_set.clear()
+        return rc
+
+
+class GlobalState:
+    '''
+    State representing the state of the server. I.e. things that
+    are the same for all connections.
+    '''
+    def __init__(self):
         # State Data (Default)
         self.status = Status()
         self.currentsong = Song()
@@ -177,6 +218,38 @@ class ProtocolState:
         # Playlists / Database
         self.queue = Playlist()
         self.db = Playlist.from_json('./urlaub.db')
+
+        # Audio Output (fake one HTTP and one ALSA output)
+        self.outputs = ['AlsaOutput', 'HTTPOutput']
+
+        # A list of local states around.
+        # This is necessary for sharing events on all connections.
+        self._local_states = []
+
+    def append_state(self, lstate):
+        self._local_states.append(lstate)
+
+    def remove_state(self, lstate):
+        try:
+            self._local_states.remove(lstate)
+        except ValueError:
+            pass
+
+    def share_event(self, *args):
+        '''
+        Goes through all local states of the server and distributes the passed events.
+        '''
+        for lstate in self._local_states:
+            for event in args:
+                byte_event = event
+                if not isinstance(event, bytes):
+                    byte_event = event.encode('utf-8')
+                lstate.write_event(byte_event)
+            lstate.finish_events()
+
+###########################################################################
+#                                Substates                                #
+###########################################################################
 
 
 class Song(AttributesToStringMixin):
@@ -273,7 +346,17 @@ class Playlist:
 
 
 class FakeMPDHandler(serv.StreamRequestHandler):
-    def respond(self, message):
+    '''
+    Object that is instanciated once for each connection.
+    It does the IO and servers as main-logic for pretty much everything.
+
+    It gets implicitly created by FakeMPDServer.
+    '''
+
+    def _respond(self, message):
+        '''
+        Do the writeback to the client in a way conforming to MPD.
+        '''
         # Convert the incoming object to a string,
         # and then encode it as UTF-8 bytestring (needed for sockets)
         # Also checks if it alreay is a bytestring.
@@ -281,7 +364,6 @@ class FakeMPDHandler(serv.StreamRequestHandler):
             b_message = str(message).encode('utf-8')
         else:
             b_message = message
-
 
         # Check if an Error happened.
         if isinstance(message, ProtocolError):
@@ -297,8 +379,7 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                 self.wfile.write(b'\n')
                 self.wfile.write(b'OK\n')
 
-
-    def lookup(self, cmnd):
+    def _lookup(self, cmnd):
         '''
         Looks up the command in the PROTOCOL dictionary.
 
@@ -313,6 +394,9 @@ class FakeMPDHandler(serv.StreamRequestHandler):
         '''
         # We get the full command; e.g. 'plchanges 0 1 2 3'
         split = cmnd.split()
+        if len(split) < 1:
+            return ProtocolError(self.lstate, 'No command given', Error.ARGUMENT)
+
         cmnd_name = str(split[0], 'ascii')
 
         # See if we have a handler for this command
@@ -321,21 +405,23 @@ class FakeMPDHandler(serv.StreamRequestHandler):
 
             # Remember the current command for the duration
             # of a request. It's undefined afterwards.
-            self.state.current_command = cmnd_name
+            self.lstate.current_command = cmnd_name
 
             # See if the command has additional arguments.
             # If so we try to convert them to integers, or leave them as it is.
             # (Just makes stuff easier)
             if len(split) > 1:
-                self.state.args = list(map(keep_or_convert_to_int, split[1:]))
+                self.lstate.args = list(map(keep_or_convert_to_int, split[1:]))
             else:
-                self.state.args = []
+                self.lstate.args = []
 
             # See if the number of arguments fits.
             # If so we *return* an Exception. Might be a weird, but this
             # special Exception can be converted easily to a 'ACK ...' string.
-            if not (min_args <= len(split) <= max_args):
-                return ProtocolError()
+            if not (min_args <= len(self.lstate.args) <= max_args):
+                return ProtocolError(self.lstate,
+                                     'wrong number of arguments for "{}"'.format(cmnd_name),
+                                     Error.ARGUMENT)
 
             # Try to run the Respond Func.
             # If it fails it might throw a ProcotolError with the reason.
@@ -343,30 +429,81 @@ class FakeMPDHandler(serv.StreamRequestHandler):
             # describing the error on a Protocol level.
             try:
                 # Can return arbitary python objects
-                return respond_func(self.state)
+                return respond_func(self.server.gstate, self.lstate)
             except ProtocolError as err:
                 # Gets converted to a str later
                 return err
         else:
-            # Just assume the Command is not implemented on the serverside, and
-            # therefore we silently OK it. A List of commands not being
-            # implemented can be found in NOT_IMPLEMENTED.
-            return ''
+            # We do not have a handler for this one.
+            # Therefore we lookup if we actually implemented it:
+            if cmnd_name in NOT_IMPLEMENTED:
+                # Just silently OK it and hope it doesn't do any harm.
+                return ''
+            else:
+                return ProtocolError(self.lstate, 'unknowm command "{}"'.format(cmnd_name),
+                                     Error.ARGUMENT)
 
-    def __init(self):
-        '''
-        Initialize the Handler object.
-        It is only called once per calling handle()
-        '''
-        # There is one State per Handler
-        self.state = ProtocolState()
+    def _handle_close(self):
+        raise CloseConnection("FakeMPD: You issued ,,close''")
+
+    def _handle_noidle(self):
+        pass
+
+    def _handle_kill(self):
+        raise CloseConnection("FakeMPD: I survive ,,kill''!")
+
+    def _handle_idle(self):
+        'Called if the command was "idle"'
+
+        # Two things might happen here:
+        #   1) Client sends 'noidle' -> Stop reading, don't idle.
+        #   2) Client sends other stuff -> Die.
+        #   3) Some request handler in another connection might
+        #      report an event, in that case, we'll stop handling idle.
+        try:
+            readable, _, _ = select([self.rfile, self.lstate.rpipe], [], [])
+
+            # If events happened we need to unread everything from the pipe
+            if self.lsate.rpipe in readable:
+                os.read(self.lstate.wpipe, 1024)
+
+                # Now get the happened events and write them out to the client
+                for event in self.lstate.get_events():
+                    self.wfile.write(b'changed: ' + event.encode('utf-8') + b'\n')
+
+            # Client sended something to us.
+            if self.rfile in readable:
+                resp = self.rfile.readline().strip()
+                if resp != b'noidle\n':
+                    raise CloseConnection("FakeMPD: Only ,,noidle'' allowed here")
+
+            # OK the event list
+            self.wfile.write(b'OK\n')
+        except socket.error as e:
+            print('FakeMPD: Some Connection Error while idle mode:', e)
+
+    def _init(self):
+        # Every connection has a "local state"
+        self.lstate = LocalState()
+
+        # ... and each server a "global state",
+        # that needs to know about local states.
+        self.server.gstate.append_state(self.lstate)
+
+    def _die(self):
+        self.server.gstate.remove_state(self.lstate)
+
+    #############################
+    #  RequestHandler Function  #
+    #############################
 
     def handle(self):
         '''
         handle() is called once a connection is established on the Server.
         Once handle returns the connection is closed
         '''
-        self.__init()
+        # get a state!
+        self._init()
 
         # Send the greeting message as demanded
         self.wfile.write(b'OK MPD ' + MPD_VERSION + b'\n')
@@ -377,25 +514,44 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                 # Read a single line
                 cmnd = self.rfile.readline().strip()
                 print('CMND: ', str(cmnd))
+ 
+                if cmnd.split()[0] in SOCKET_LEVEL_COMMANDS:
+                    d = {
+                        b'idle': FakeMPDHandler._handle_idle,
+                        b'noidle': FakeMPDHandler._handle_noidle,
+                        b'close': FakeMPDHandler._handle_close,
+                        b'kill': FakeMPDHandler._handle_kill
+                    }
 
-                # Lookup a response function (,,process that shit!'')
-                resp = self.lookup(cmnd)
+                    d[cmnd](self)
+                else:
+                    # Lookup a response function (,,process that shit!'')
+                    resp = self._lookup(cmnd)
 
                 # Write it back to the client
-                self.respond(resp)
+                self._respond(resp)
             except socket.error as e:
-                print('Connection closed (%s)' % e)
+                print('Connection Error: (%s)' % e)
                 break
+            except CloseConnection as c:
+                # Close the connection due to a fatal
+                self.wfile.write(c.args[0].encode('utf-8'))
+            except:
+                traceback.print_exc()
+                # No break for debugging purpose.
+
+        self.die()
 
 
 class FakeMPDServer(serv.ThreadingMixIn, serv.TCPServer):
     'Default Implementation of the socketserver'
-    pass
+    allow_reuse_address = True
 
 
 if __name__ == '__main__':
     try:
         server = serv.ThreadingTCPServer(('localhost', 6666), FakeMPDHandler)
+        server.gstate = GlobalState()
         print('-- Server running on localhost:6666')
         server.serve_forever()
     except OSError as e:
