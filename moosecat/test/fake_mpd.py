@@ -1,6 +1,7 @@
 import os
 import json
 import traceback
+import random
 from functools import partial
 
 from select import select
@@ -46,18 +47,79 @@ def respond_currentsong(gstate, lstate):
     return gstate.currentsong
 
 
-def respond_consume(gstate, lstate):
-    gstate.status.consume = boolbyt2int(lstate.args[0])
-
-
 ####################
 #  Option Handler  #
 ####################
 
+def _option_converter(lstate, string):
+    try:
+        num = int(string)
+        return min(0, max(1, num))
+    except ValueError:
+        raise ProtocolError(lstate, 'Boolean (0/1) expected: {}'.format(string))
 
+
+@sideeffect('options')
+def respond_consume(gstate, lstate):
+    gstate.status.consume = _option_converter(lstate.args[0])
+
+
+@sideeffect('options')
 def respond_crossfade(gstate, lstate):
-    gstate.status.crossfade = lstate.args[0]
+    gstate.status.crossfade = _option_converter(lstate.args[0])
 
+
+@sideeffect('options')
+def respond_random(gstate, lstate):
+    gstate.status.random = _option_converter(lstate.args[0])
+
+
+@sideeffect('options')
+def respond_single(gstate, lstate):
+    gstate.status.single = _option_converter(lstate.args[0])
+
+
+@sideeffect('options')
+def respond_repeat(gstate, lstate):
+    gstate.status.repeat = _option_converter(lstate.args[0])
+
+
+@sideeffect('options')
+def respond_mixrampdb(gstate, lstate):
+    try:
+        gstate.status.mixrampdb = float(lstate.args[0])
+    except ValueError:
+        raise ProtocolError(lstate, 'Float expected', Error.ARGUMENT)
+
+
+@sideeffect('options')
+def respond_mixrampdelay(gstate, lstate):
+    try:
+        gstate.status.mixrampdelay = float(lstate.args[0])
+    except ValueError:
+        raise ProtocolError(lstate, 'Float expected', Error.ARGUMENT)
+
+
+@sideeffect('options')
+def respond_replay_gain_mode(gstate, lstate):
+    arg = lstate.args[0]
+    if isinstance(arg, bytes) and arg.decode('utf-8') in ['album', 'track', 'off', 'auto']:
+        gstate.replay_gain_status = arg
+    else:
+        raise ProtocolError(lstate, 'Unrecognized replay gain mode', Error.ARGUMENT)
+
+
+def respond_replay_gain_status(gstate, lstate):
+    return gstate.replay_gain_status
+
+
+###################
+#  Mixer Handler  #
+###################
+
+@sideeffect('mixer')
+def respond_setvol(gstate, lstate):
+    gstate.status.volume = lstate.args[0]
 
 ###################
 #  Queue Handler  #
@@ -126,13 +188,62 @@ def respond_enableoutput(gstate, lstate, state=1):
 def respond_disableoutput(gstate, lstate):
     return _changeoutput(gstate, lstate, state=0)
 
+######################
+#  Playback Handler  #
+######################
+
+
+@sideeffect('player')
+def respond_next(gstate, lstate):
+    # Totally faked
+    next_pos = random.randrange(1, gstate.status.playlistlength)
+    gstate.status.song = next_pos
+    gstate.status.song = gstate.status.playlistlength - next_pos
+
+
+def _state_helper(gstate, lstate, new_state):
+    if gstate.status.state == new_state:
+        lstate.skip_sideeffect()
+    else:
+        gstate.status.state = new_state
+
+
+@sideeffect('pause')
+def respond_pause(gstate, lstate):
+    if len(lstate.args) is 0:
+        if gstate.status.state == Status.STATE_PLAY:
+            new_state = Status.STATE_PAUSE
+        else:
+            new_state = Status.STATE_PLAY
+    else:
+        if lstate.args[0] == '0':
+            new_state = Status.STATE_PLAY
+        else:
+            new_state = Status.STATE_PAUSE
+
+    _state_helper(gstate, lstate, new_state)
+
+
+@sideeffect('play')
+def respond_play(gstate, lstate):
+    _state_helper(gstate, lstate, Status.STATE_PLAY)
+    if len(lstate.args) is 0:
+        # Fake skipping to some song
+        respond_next(gstate, lstate)
+
+
+@sideeffect('stop')
+def respond_stop(gstate, lstate):
+    _state_helper(gstate, lstate, Status.STATE_STOP)
+
+
 ####################
 #  Debug Responds  #
 ####################
 
-
 def _respond_trigger_idle(gstate, lstate):
     gstate.share_event('options', 'mixer')
+
 
 ###########################################################################
 #                          Protocol Description                           #
@@ -169,8 +280,6 @@ PROTOCOL = {
     # Queue
     'add': [1, 1, respond_add],
     'clear': [0, 0, respond_clear],
-    'consume': [1, 1, respond_consume],
-    'crossfade': [1, 1, respond_crossfade],
     'count': lambda gstate, lstate: 0,
     'delete': [1, 1, respond_delete],
     # Database
@@ -180,7 +289,22 @@ PROTOCOL = {
     'outputs': [0, 0, respond_outputs],
     'enableoutput': [1, 1, respond_enableoutput],
     'disableoutput': [1, 1, respond_disableoutput],
-
+    # Options
+    'consume': [1, 1, respond_crossfade],
+    'random': [1, 1, respond_random],
+    'repeat': [1, 1, respond_repeat],
+    'single': [1, 1, respond_single],
+    'crossfade': [1, 1, respond_crossfade],
+    'replay_gain_mode': [1, 1, respond_replay_gain_mode],
+    'replay_gain_status': [0, 0, respond_replay_gain_mode],
+    'mixrampdb': [1, 1, respond_mixrampdb],
+    'mixrampdelay': [1, 1, respond_mixrampdelay],
+    # Playback
+    'next': [0, 0, respond_next],
+    'previous': [0, 0, respond_next],
+    'pause': [0, 1, respond_pause],
+    'play': [0, 1, respond_play],
+    'playid': [0, 1, respond_play],
 
     # DEBUG
     '_trigger_idle': [0, 0, _respond_trigger_idle]
@@ -191,13 +315,6 @@ PROTOCOL = {
 ###########################################################################
 #                              Utils                                      #
 ###########################################################################
-
-
-def boolbyt2int(string):
-    if string.lower() in [b'on', b'true', b'enabled']:
-        return 1
-    else:
-        return 0
 
 
 def keep_or_convert_to_int(string):
@@ -326,6 +443,9 @@ class GlobalState:
         self.status = Status()
         self.currentsong = Song()
         self.stats = Stats()
+
+        # Replay Gain.. this is for some reason not in Status?
+        self.replay_gain_status = 'off'
 
         # Playlists / Database
         self.queue = Playlist()
@@ -482,6 +602,10 @@ class FakeMPDHandler(serv.StreamRequestHandler):
     It gets implicitly created by FakeMPDServer.
     '''
 
+    def _write(self, b_message):
+        self._server_message('Writing:', b_message.splitlines()[0], out=True)
+        self.wfile.write(b_message)
+
     def _respond(self, message, ack_with_ok=True):
         '''
         Do the writeback to the client in a way conforming to MPD.
@@ -496,19 +620,19 @@ class FakeMPDHandler(serv.StreamRequestHandler):
 
         # Check if an Error happened.
         if isinstance(message, ProtocolError):
-            self.wfile.write(b_message)
+            self._write(b_message)
         else:
             # Okay the message. If no output was written,
             # we just write the OK.
             if len(b_message) is not 0:
                 # Write it back to the client
-                self.wfile.write(b_message)
+                self._write(b_message)
 
                 # New line for OK...
-                self.wfile.write(b'\n')
+                self._write(b'\n')
 
             if ack_with_ok is True:
-                self.wfile.write(b'OK\n')
+                self._write(b'OK\n')
 
     def _lookup(self, cmnd):
         '''
@@ -579,9 +703,10 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                                      'unknown command "{}"'.format(cmnd_name),
                                      Error.ARGUMENT)
 
-    def _server_message(self, *args):
+    def _server_message(self, *args, **kwargs):
         client_name = ':'.join([str(e) for e in self.client_address])
-        print('--', client_name, '=>', ' '.join([keep_or_encode_to_str(i) for i in args]))
+        direction = '=>' if kwargs['out'] is False else '<='
+        print('--', client_name, direction, ' '.join([keep_or_encode_to_str(i) for i in args]))
 
     def _process_line(self, line):
         # Commands that need to implemented at Socket level,
@@ -662,9 +787,9 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                 for resp in responses:
                     self._respond(resp, ack_with_ok=False)
                     if ack_with_list_ok:
-                        self.wfile.write(b'list_OK\n')
+                        self._write(b'list_OK\n')
                 if success is True:
-                    self.wfile.write(b'OK\n')
+                    self._write(b'OK\n')
                 break
             elif success is True:
                 try:
@@ -699,16 +824,18 @@ class FakeMPDHandler(serv.StreamRequestHandler):
 
                 # Now get the happened events and write them out to the client
                 for event in self.lstate.get_events():
-                    self.wfile.write(b'changed: ' + event + b'\n')
+                    self._write(b'changed: ' + event + b'\n')
 
             # Client sended something to us.
             if self.rfile in readable:
                 resp = self.rfile.readline().strip()
                 if resp != b'noidle':
                     raise CloseConnection("FakeMPD: Only ,,noidle'' allowed here\n")
+                else:
+                    self._server_message('got "noidle"')
 
             # OK the event list
-            self.wfile.write(b'OK\n')
+            self._write(b'OK\n')
         except socket.error as e:
             self._server_message('FakeMPD:Connection-Error (idle mode):', e)
             traceback.print_exc()
@@ -737,7 +864,7 @@ class FakeMPDHandler(serv.StreamRequestHandler):
         self._init()
 
         # Send the greeting message as demanded
-        self.wfile.write(b'OK MPD ' + MPD_VERSION + b'\n')
+        self._write(b'OK MPD ' + MPD_VERSION + b'\n')
         self._server_message('Greeting: OK MPD', MPD_VERSION)
 
         # While the client does not quit, we try to read input from them.
@@ -747,7 +874,7 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                 cmnd = self.rfile.readline().strip()
 
                 # Some useful debugging
-                self._server_message(str(cmnd))
+                self._server_message('Receiving', str(cmnd))
 
                 # Decide what to do with the line
                 resp = self._process_line(cmnd)
@@ -762,7 +889,7 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                 break
             except CloseConnection as c:
                 # Close the connection due to a fatal error.
-                self.wfile.write(c.args[0].encode('utf-8'))
+                self._write(c.args[0].encode('utf-8'))
                 self._server_message('!! Closing (%s)' % c.args[0])
                 break
             except:
