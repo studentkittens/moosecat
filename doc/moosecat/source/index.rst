@@ -18,6 +18,7 @@ Contents:
    plugin_design
    store.rst
    plchanges.rst
+   misc.rst
 
 
 

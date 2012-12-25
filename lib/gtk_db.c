@@ -103,7 +103,7 @@ static EntryTag * setup_client (void)
 
 
     mc_Client * client = mc_proto_create (MC_PM_COMMAND);
-    mc_proto_connect (client, NULL, "localhost", 6600, 2.0);
+    mc_proto_connect (client, NULL, "localhost", 6666, 2.0);
 
 
     if (client && mc_proto_is_connected (client) ) {

@@ -59,10 +59,6 @@ Accessing methods from other Catellites
    md.find_my_metadata(...)
    md.make_me_pretty(...)
 
-* Possible thought: A plugin that does not respond anymore to a 'does-still-work' anymore call,
-  will be replaced by a dummy object that implementes the specified tags and returns only None.
-  But: Hard to implement, will be broken till restart.
-
 
 * Catellite ran register own tags to the core. Possible usecase would be the GTK-UI,
   that can intoduce custom tags like ``gtk_browser``, that extend itself.
@@ -75,12 +71,13 @@ Catellite API Proposal
 
 .. py:module :: catellite
 
-.. py:function:: register(name, tags, version, priority, description='')
+.. py:function:: register(name, version, priority, description='')
 
     Register a plugin in the core.
+    The system will check what tags the plugin fulfills, and set the fitting
+    tags accordingly.
 
     :param name: The name of the plugins for displaying purpose.
-    :param tags: A list of tags that this plugin implements.
     :param version: A version string. Should be consist of "Major.Minor.Micro"
     :param priority: A number between 0-100, 100 is the hightest priority.
     :param description: An optional description for displaying purpose.
