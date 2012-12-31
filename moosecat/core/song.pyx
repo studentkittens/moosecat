@@ -18,7 +18,7 @@ Instanciation should always happen via song_from_ptr()!
 # Last Modified Date
 import time
 
-cdef song_from_ptr(c.mpd_song * ptr):
+cdef object song_from_ptr(c.mpd_song * ptr):
     'Instance a new Song() with a the underlying mpd_song ptr'
     if ptr != NULL:
         return Song()._init(ptr)

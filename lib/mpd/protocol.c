@@ -197,9 +197,6 @@ void mc_proto_free (mc_Client * self)
     /* Forget any signals */
     mc_signal_list_destroy (&self->_signals);
 
-    /* kill the mutex */
-    g_rec_mutex_clear (&self->_getput_mutex);
-
     /* Free SSS data */
     mc_proto_reset (self);
 

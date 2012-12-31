@@ -16,6 +16,8 @@ In case you're wondering:
 import telnetlib
 import unittest
 
+from .fakempd import ShadowServer
+
 
 HOST = 'localhost'
 PORT = 6666
@@ -23,6 +25,9 @@ PORT = 6666
 
 class UtilMixin:
     def connect(self):
+        self._server = ShadowServer()
+        self._server.start()
+
         self.client = telnetlib.Telnet(host=HOST, port=PORT)
         self.readline()
 
@@ -35,6 +40,7 @@ class UtilMixin:
     def close(self):
         self.talk('close')
         self.client.close()
+        self._server.stop()
 
     def sendline(self, line):
         self.client.write(line.encode('utf-8') + b'\n')
@@ -82,10 +88,10 @@ class TestFakeMPDBasics(unittest.TestCase, UtilMixin):
         self.connect()
 
     def test_consume(self):
-        self.talk_ok('consume on')
+        self.talk_ok('consume 1')
         self.sendline('status')
         self.assertEqual(self.lookup_field('consume'), '1')
-        self.talk_ok('consume off')
+        self.talk_ok('consume 0')
         self.sendline('status')
         self.assertEqual(self.lookup_field('consume'), '0')
 
@@ -118,8 +124,8 @@ class TestFakeMPDCommandList(unittest.TestCase, UtilMixin):
 
     def test_simple_list(self):
         self.sendline('command_list_begin')
-        self.sendline('consume on')
-        self.sendline('consume off')
+        self.sendline('consume 1')
+        self.sendline('consume 0')
         self.sendline('status')
         self.sendline('command_list_end')
         self.assertEqual(self.lookup_field('consume'), '0')

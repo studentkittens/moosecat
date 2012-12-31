@@ -1,4 +1,4 @@
-import moosecat.core.moose as m
+import moosecat.core as m
 import unittest
 import time
 

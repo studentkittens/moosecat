@@ -41,12 +41,22 @@ void mc_store_close ( mc_StoreDB * self);
 /**
  * @brief Tell routines to wait for db updates or return immediately.
  *
- * By default method return immediately.
+ * By default method return immediately, with no result (usually NULL).
+ * Otherwise routines will try to lock an interal mutex and wait till everything
+ * is finished.
  *
  * @param self the store to operate on
  * @param wait_for_db_finish if true, it waits for the lock.
  */
 void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish);
+
+/**
+ * @brief Pendant to mc_store_set_wait_mode. Get the current status.
+ *
+ * @param self the store to operate on
+ * @return true if store is told to wait.
+ */
+bool mc_store_get_wait_mode (mc_StoreDB * self);
 
 /**
  * @brief Returns a mpd_song at some index

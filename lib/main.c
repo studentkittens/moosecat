@@ -6,9 +6,9 @@
 static mc_Client * conn = NULL;
 
 static void signal_event (
-    mc_Client * u_conn,
-    enum mpd_idle event,
-    void * user_data)
+        mc_Client * u_conn,
+        enum mpd_idle event,
+        void * user_data)
 {
     (void) u_conn;
     (void) user_data;
@@ -26,11 +26,11 @@ static void signal_event (
 /////////////////////////////
 
 static void signal_error (
-    mc_Client * u_conn,
-    enum mpd_error error,
-    const char * err_msg,
-    bool is_fatal,
-    void * user_data)
+        mc_Client * u_conn,
+        enum mpd_error error,
+        const char * err_msg,
+        bool is_fatal,
+        void * user_data)
 {
     (void) u_conn;
     (void) is_fatal;
@@ -41,11 +41,11 @@ static void signal_error (
 /////////////////////////////
 
 static void signal_progress (
-    mc_Client * client,
-    bool print_newline,
-    const char * progress,
-    void * user_data
-)
+        mc_Client * client,
+        bool print_newline,
+        const char * progress,
+        void * user_data
+        )
 {
     (void) user_data;
     (void) client;
@@ -55,16 +55,16 @@ static void signal_progress (
 /////////////////////////////
 
 static void signal_connectivity (
-    mc_Client * client,
-    bool server_changed,
-    void * user_data
-)
+        mc_Client * client,
+        bool server_changed,
+        void * user_data
+        )
 {
     (void) user_data;
 
     g_print ("CONNECTION: is %s and server %s.\n",
-             mc_proto_is_connected (client) ? "connected" : "disconnected",
-             server_changed ? "changed" : "is still the same");
+            mc_proto_is_connected (client) ? "connected" : "disconnected",
+            server_changed ? "changed" : "is still the same");
 }
 
 /////////////////////////////
@@ -81,25 +81,24 @@ gboolean next_song (gpointer user_data)
 
     mc_misc_register_posix_signal (conn);
 
-    for (int i = 0; i < 10000; i++) {
-        char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
+    const int N = 100;
+    for (int i = 0; i < N; i++) {
+        char * err = mc_proto_connect (conn, NULL, "localhost", 6666, 2);
         if ( err != NULL ) {
             g_print ("Err: %s\n", err);
             g_free (err);
             break;
         }
 
-        for (int i = 0; i < 10; i++)
-            mc_client_setvol (conn, 100);
-
-        while (g_main_context_pending (NULL) )
-            g_main_context_iteration (NULL, FALSE);
-
+        for (int v = 0; v < 101; v++) {
+            g_print("setvol %d\n", v);
+            mc_client_setvol (conn, v);
+            while (g_main_context_iteration (NULL, FALSE));
+        }
         mc_proto_disconnect (conn);
     }
 
     mc_proto_free (conn);
-
     g_main_loop_quit (loop);
     return FALSE;
 }

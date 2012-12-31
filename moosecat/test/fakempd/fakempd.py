@@ -1,48 +1,163 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+'''
+###########################################################################
+#                FakeMPD - A silly idea brought to an end                 #
+###########################################################################
+
+This is a SocketServer that acts like MPD. It only impl
+I'm aware that there is a Ruby Version of this at librmpd.
+It seems to implement an old version of MPD and I don't know much Ruby,
+so
+
+Advantages:
+
+    * Makes testing a lot easier/possible.
+    * Can act as dummy server when no real server is there.
+    * It only depend on Standard Python.
+    * Later version might even announce via Avahi.
+
+Disadvantages:
+
+    * I spent way too much time on this.
+    * This is a dependency of a test, which has it's own set of tests.
+      Im fucking crazy.
+
+Test it like this:
+
+    $ python fake_mpd.py
+    $ telnet localhost 6666
+    status
+    ...
+    OK
+    ^]
+    telnet>^D
+    $
+
+Start it from
+
+Author:
+
+    Christopher Pahl 2012-2013
+'''
+
 import os
+import time
 import json
+import errno
 import traceback
 import random
-from functools import partial
+import threading
+import signal
 
-from select import select
 import socketserver as serv
 import socket
 
+from select import select
+from itertools import chain
+from functools import partial
+
+
+###########################################################################
+#                          Globals                                        #
+###########################################################################
+'''
+add addid clear clearerror
+consume count crossfade currentsong delete deleteid disableoutput
+enableoutput find findadd list listall listallinfo
+listplaylist listplaylistinfo listplaylists load lsinfo mixrampdb mixrampdelay move
+moveid next outputs pause play
+playid playlist playlistadd playlistclear playlistdelete playlistfind playlistid playlistinfo
+playlistmove playlistsearch plchanges plchangesposid previous prio prioid random
+rename repeat replay_gain_mode replay_gain_status rescan rm save
+search searchadd searchaddpl seek seekcur seekid setvol
+shuffle single stats status stop swap swapid
+update
+'''
+
 MPD_VERSION = b'0.17.0'
 
+REQUST_HANDLER_LOCK = threading.Lock()
 
-def sideeffect(*events):
-    def _dec(function):
-        def __dec(gstate, lstate):
-            try:
-                res = function(gstate, lstate)
+IDLE_ALLOWED_EVENTS = ['database', 'stored_playlist', 'queue', 'player', 'mixer',
+                       'output', 'options', 'update', 'sticker', 'subscription'
+                       'sticker']
 
-                if 'queue' in events:
-                    gstate.status.playlist += 1
+# Commands that are not implemented and just get ACK'd
+NOT_IMPLEMENTED = ['channels', 'config',
+                   'decoders', 'notcommands', 'password', 'ping',
+                   'readmessages', 'sendmessage', 'subscribe', 'tagtypes',
+                   'unsubscripe', 'urlhandlers']
 
-                if lstate._skip_idle:
-                    lstate._skip_idle = False
-                else:
+# The Protocol Spec is stored in here.
+# It is defined automatically by the requst_handler decorator.
+PROTOCOL = {}
+
+###########################################################################
+#                               Decorators                                #
+###########################################################################
+
+
+def request_handler(min_args=0, max_args=0, aliases=[], events=[]):
+    def _request_handler(function):
+        # Let's check if needed conventions are fulfilled
+        assert function.__name__[:8] == 'respond_', 'Function does not look like respond_<name>'
+
+        def __request_handler(gstate, lstate):
+            res = function(gstate, lstate)
+            if 'queue' in events:
+                gstate.status.playlist += 1
+
+            if lstate._skip_idle:
+                lstate._skip_idle = False
+            else:
+                if len(events) is not 0:
                     gstate.share_event(*events)
-            except ProtocolError:
-                raise
             return res
-        return __dec
-    return _dec
+
+        for func_name in chain([function.__name__[8:]], aliases):
+            PROTOCOL[func_name] = (min_args, max_args, __request_handler)
+        return function
+    return _request_handler
 
 ###########################################################################
 #                           Response Functions                            #
 ###########################################################################
 
+########################
+#  Reflection Handler  #
+########################
 
+
+@request_handler()
+def respond_commands(gstate, lstate):
+    cmnd_list = []
+    for key in PROTOCOL.keys():
+        cmnd_list.append('command: ' + key)
+    return '\n'.join(cmnd_list)
+
+
+####################
+#  Status Handler  #
+####################
+
+@request_handler()
+def respond_clearerror(gstate, lstate):
+    gstate.status.error = False
+
+
+@request_handler()
 def respond_status(gstate, lstate):
     return gstate.status
 
 
+@request_handler()
 def respond_stats(gstate, lstate):
     return gstate.stats
 
 
+@request_handler()
 def respond_currentsong(gstate, lstate):
     return gstate.currentsong
 
@@ -51,40 +166,45 @@ def respond_currentsong(gstate, lstate):
 #  Option Handler  #
 ####################
 
-def _option_converter(lstate, string):
+def _option_converter(old, lstate, string):
     try:
-        num = int(string)
-        return min(0, max(1, num))
+        num = min(1, max(0, int(string)))
+        if num == old:
+            lstate.skip_sideeffect()
+        return num
     except ValueError:
         raise ProtocolError(lstate, 'Boolean (0/1) expected: {}'.format(string))
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_consume(gstate, lstate):
-    gstate.status.consume = _option_converter(lstate.args[0])
+    gstate.status.consume = _option_converter(gstate.status.consume, lstate, lstate.args[0])
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_crossfade(gstate, lstate):
-    gstate.status.crossfade = _option_converter(lstate.args[0])
+    try:
+        gstate.status.crossfade = int(lstate.args[0])
+    except ValueError:
+        raise ProtocolError(lstate, 'Integer expected: ' + lstate.args[0], Error.ARGUMENT)
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_random(gstate, lstate):
-    gstate.status.random = _option_converter(lstate.args[0])
+    gstate.status.random = _option_converter(gstate.status.random, lstate, lstate.args[0])
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_single(gstate, lstate):
-    gstate.status.single = _option_converter(lstate.args[0])
+    gstate.status.single = _option_converter(gstate.status.single, lstate, lstate.args[0])
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_repeat(gstate, lstate):
-    gstate.status.repeat = _option_converter(lstate.args[0])
+    gstate.status.repeat = _option_converter(gstate.status.repeat, lstate, lstate.args[0])
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_mixrampdb(gstate, lstate):
     try:
         gstate.status.mixrampdb = float(lstate.args[0])
@@ -92,7 +212,7 @@ def respond_mixrampdb(gstate, lstate):
         raise ProtocolError(lstate, 'Float expected', Error.ARGUMENT)
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_mixrampdelay(gstate, lstate):
     try:
         gstate.status.mixrampdelay = float(lstate.args[0])
@@ -100,7 +220,7 @@ def respond_mixrampdelay(gstate, lstate):
         raise ProtocolError(lstate, 'Float expected', Error.ARGUMENT)
 
 
-@sideeffect('options')
+@request_handler(min_args=1, max_args=1, events=['options'])
 def respond_replay_gain_mode(gstate, lstate):
     arg = lstate.args[0]
     if isinstance(arg, bytes) and arg.decode('utf-8') in ['album', 'track', 'off', 'auto']:
@@ -109,15 +229,16 @@ def respond_replay_gain_mode(gstate, lstate):
         raise ProtocolError(lstate, 'Unrecognized replay gain mode', Error.ARGUMENT)
 
 
+@request_handler()
 def respond_replay_gain_status(gstate, lstate):
-    return gstate.replay_gain_status
+    return 'replay_gain_mode: {}'.format(gstate.replay_gain_status)
 
 
 ###################
 #  Mixer Handler  #
 ###################
 
-@sideeffect('mixer')
+@request_handler(min_args=1, max_args=1, events=['mixer'])
 def respond_setvol(gstate, lstate):
     gstate.status.volume = lstate.args[0]
 
@@ -126,23 +247,19 @@ def respond_setvol(gstate, lstate):
 ###################
 
 
-@sideeffect('queue')
+@request_handler(min_args=1, max_args=1, events=['queue'])
 def respond_delete(gstate, lstate):
     del gstate.queue[lstate.args[0]]
 
 
-@sideeffect('queue')
+@request_handler(events=['queue'])
 def respond_clear(gstate, lstate):
     gstate.queue = Playlist()
 
 
-@sideeffect('queue')
+@request_handler(min_args=1, max_args=1, events=['queue'])
 def respond_add(gstate, lstate):
     gstate.queue.append(lstate.args[0])
-
-
-def respond_playlistinfo(gstate, lstate):
-    pass
 
 
 ######################
@@ -150,6 +267,7 @@ def respond_playlistinfo(gstate, lstate):
 ######################
 
 
+@request_handler(min_args=0, max_args=1)
 def respond_listall(gstate, lstate):
     return '\n'.join([str(song) for song in gstate.queue])
 
@@ -158,6 +276,7 @@ def respond_listall(gstate, lstate):
 ####################
 
 
+@request_handler()
 def respond_outputs(gstate, lstate):
     outputs = []
     for idx, output in enumerate(gstate.outputs):
@@ -179,12 +298,12 @@ def _changeoutput(gstate, lstate, state=1):
         raise ProtocolError(lstate, 'No such audio output', Error.SERVER)
 
 
-@sideeffect('output')
+@request_handler(min_args=1, max_args=1, events=['output'])
 def respond_enableoutput(gstate, lstate, state=1):
     return _changeoutput(gstate, lstate, state=1)
 
 
-@sideeffect('output')
+@request_handler(min_args=1, max_args=1, events=['output'])
 def respond_disableoutput(gstate, lstate):
     return _changeoutput(gstate, lstate, state=0)
 
@@ -193,7 +312,7 @@ def respond_disableoutput(gstate, lstate):
 ######################
 
 
-@sideeffect('player')
+@request_handler(aliases=['previous'], events=['player'])
 def respond_next(gstate, lstate):
     # Totally faked
     next_pos = random.randrange(1, gstate.status.playlistlength)
@@ -208,7 +327,7 @@ def _state_helper(gstate, lstate, new_state):
         gstate.status.state = new_state
 
 
-@sideeffect('pause')
+@request_handler(min_args=0, max_args=1, events=['player'])
 def respond_pause(gstate, lstate):
     if len(lstate.args) is 0:
         if gstate.status.state == Status.STATE_PLAY:
@@ -224,97 +343,66 @@ def respond_pause(gstate, lstate):
     _state_helper(gstate, lstate, new_state)
 
 
-@sideeffect('play')
+@request_handler(min_args=0, max_args=1, aliases=['playid'], events=['player'])
 def respond_play(gstate, lstate):
     _state_helper(gstate, lstate, Status.STATE_PLAY)
-    if len(lstate.args) is 0:
+    if len(lstate.args) > 0:
         # Fake skipping to some song
         respond_next(gstate, lstate)
 
 
-@sideeffect('stop')
+@request_handler(events=['player'])
 def respond_stop(gstate, lstate):
     _state_helper(gstate, lstate, Status.STATE_STOP)
+
+
+@request_handler(min_args=2, max_args=2, aliases=['seekid'], events=['player'])
+def respond_seek(gstate, lstate):
+    # Fake switching to a new pos/id
+    respond_next(gstate, lstate)
+
+    gstate.status.time = lstate.args[1]
+    gstate.status_elapsed = lstate.args[1]
+
+
+@request_handler(min_args=1, max_args=1, events=['player'])
+def respond_seekcur(gstate, lstate):
+    gstate.status.time = lstate.args[1]
+    gstate.status_elapsed = lstate.args[1]
 
 
 ####################
 #  Debug Responds  #
 ####################
 
-def _respond_trigger_idle(gstate, lstate):
+@request_handler()
+def respond__trigger_idle(gstate, lstate):
     gstate.share_event('options', 'mixer')
 
 
-###########################################################################
-#                          Protocol Description                           #
-###########################################################################
-'''
-add addid clear clearerror
-consume count crossfade currentsong delete deleteid disableoutput
-enableoutput find findadd list listall listallinfo
-listplaylist listplaylistinfo listplaylists load lsinfo mixrampdb mixrampdelay move
-moveid next outputs pause play
-playid playlist playlistadd playlistclear playlistdelete playlistfind playlistid playlistinfo
-playlistmove playlistsearch plchanges plchangesposid previous prio prioid random
-rename repeat replay_gain_mode replay_gain_status rescan rm save
-search searchadd searchaddpl seek seekcur seekid setvol
-shuffle single stats status stop swap swapid
-update
-'''
+#############################
+#  Stored Playlist Handler  #
+#############################
 
-IDLE_ALLOWED_EVENTS = [b'database', b'stored_playlist', b'queue', b'player', b'mixer',
-                       b'output', b'options', b'update', b'sticker', b'subscription'
-                       b'sticker']
+@request_handler()
+def respond_listplaylists(gstate, lstate):
+    resp = []
+    for playlist in gstate.playlists:
+        resp.append('playlist: {name}\nLast-Modified: {lm}'.format(
+            name=playlist.name,
+            lm=playlist.last_modified
+        ))
 
-# Commands that are not implemented and just get ACK'd
-NOT_IMPLEMENTED = ['channels', 'clearerror', 'commands', 'config',
-                   'decoders', 'notcommands', 'password', 'ping',
-                   'readmessages', 'sendmessage', 'subscribe', 'tagtypes',
-                   'unsubscripe', 'urlhandlers']
-
-
-PROTOCOL = {
-    'status': [0, 0, respond_status],
-    'currentsong': [0, 0, respond_currentsong],
-    'stats': [0, 0, respond_stats],
-    # Queue
-    'add': [1, 1, respond_add],
-    'clear': [0, 0, respond_clear],
-    'count': lambda gstate, lstate: 0,
-    'delete': [1, 1, respond_delete],
-    # Database
-    'listall': [0, 1, respond_listall],
-    'playlistinfo': [0, 1, respond_listall],
-    # Outputs:
-    'outputs': [0, 0, respond_outputs],
-    'enableoutput': [1, 1, respond_enableoutput],
-    'disableoutput': [1, 1, respond_disableoutput],
-    # Options
-    'consume': [1, 1, respond_crossfade],
-    'random': [1, 1, respond_random],
-    'repeat': [1, 1, respond_repeat],
-    'single': [1, 1, respond_single],
-    'crossfade': [1, 1, respond_crossfade],
-    'replay_gain_mode': [1, 1, respond_replay_gain_mode],
-    'replay_gain_status': [0, 0, respond_replay_gain_mode],
-    'mixrampdb': [1, 1, respond_mixrampdb],
-    'mixrampdelay': [1, 1, respond_mixrampdelay],
-    # Playback
-    'next': [0, 0, respond_next],
-    'previous': [0, 0, respond_next],
-    'pause': [0, 1, respond_pause],
-    'play': [0, 1, respond_play],
-    'playid': [0, 1, respond_play],
-
-    # DEBUG
-    '_trigger_idle': [0, 0, _respond_trigger_idle]
-
-}
+    return '\n'.join(resp)
 
 
 ###########################################################################
 #                              Utils                                      #
 ###########################################################################
+
+
+def format_mpd_time(seconds):
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(seconds))
 
 
 def keep_or_convert_to_int(string):
@@ -344,12 +432,17 @@ def keep_or_encode_to_str(string):
         return string
 
 
+def get_local_file_path(filename):
+    return os.path.join(os.path.dirname(__file__), filename)
+
+
 ###########################################################################
 #                                 Errors                                  #
 ###########################################################################
 
 
 class Error:
+    'Error Enum from libmpdclient/errors.h'
     SUCCESS = 0
     OOM = 1
     ARGUMENT = 2
@@ -363,6 +456,15 @@ class Error:
 
 
 class ProtocolError(Exception):
+    '''
+    An Exception that can be thrown inside a request_handler.
+    It can be converted to a string, that is suitable for writing it
+    back to the client (e.g. ACK [5@0] {status} Im dumb\n)
+
+    Just use this:
+
+        raise ProtocolError(local_state, 'Im dumb', Error.SERVER)
+    '''
     def __init__(self, state, cause, errid=Error.SERVER):
         self._state = state
         self._cause = cause
@@ -379,6 +481,10 @@ class ProtocolError(Exception):
 
 
 class CloseConnection(Exception):
+    '''
+    Exceptions thrown on close/kill/fatal errors.
+    It causes the Handler Loop to break out.
+    '''
     pass
 
 
@@ -418,7 +524,7 @@ class LocalState:
         self._skip_idle = True
 
     def write_event(self, event):
-        if event in IDLE_ALLOWED_EVENTS:
+        if event.decode('utf-8') in IDLE_ALLOWED_EVENTS:
             self._event_set.add(event)
         else:
             print('Warning:', event, 'is not a valid event!')
@@ -449,10 +555,13 @@ class GlobalState:
 
         # Playlists / Database
         self.queue = Playlist()
-        self.db = Playlist.from_json('./urlaub.db')
+        self.db = Playlist.from_json(get_local_file_path('urlaub.db'))
 
         # Audio Output (fake one HTTP and one ALSA output)
         self.outputs = [['AlsaOutput', 1], ['HTTPOutput', 0]]
+
+        # A list of stored playlists
+        self.playlists = [Playlist(name='Favourites'), Playlist(name='oldstuff')]
 
         # A list of local states around.
         # This is necessary for sharing events on all connections.
@@ -565,8 +674,10 @@ class Stats(AttributesToStringMixin):
 
 
 class Playlist:
-    def __init__(self, songs=[]):
+    def __init__(self, name=None, songs=[]):
         self._songs = songs
+        self._name = name
+        self._last_modified = time.time()
 
     def append(self, song):
         self._songs.append(song)
@@ -579,6 +690,14 @@ class Playlist:
 
     def __delitem__(self, idx):
         del self._songs[idx]
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def last_modified(self):
+        return format_mpd_time(self._last_modified)
 
     @classmethod
     def from_json(cls, path):
@@ -684,7 +803,9 @@ class FakeMPDHandler(serv.StreamRequestHandler):
             # describing the error on a Protocol level.
             try:
                 # Can return arbitary python objects
-                r = respond_func(self.server.gstate, self.lstate)
+                with REQUST_HANDLER_LOCK:
+                    r = respond_func(self.server.gstate, self.lstate)
+
                 if r is None:
                     return ''
                 else:
@@ -704,9 +825,20 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                                      Error.ARGUMENT)
 
     def _server_message(self, *args, **kwargs):
+        arg_str = ' '.join([keep_or_encode_to_str(i) for i in args]).strip()
+
+        if len(arg_str) is 0:
+            return
+
+        ellipsis = '...' if len(args) > 2 else ''
         client_name = ':'.join([str(e) for e in self.client_address])
-        direction = '=>' if kwargs['out'] is False else '<='
-        print('--', client_name, direction, ' '.join([keep_or_encode_to_str(i) for i in args]))
+
+        if 'out' in kwargs:
+            direction = '<='
+        else:
+            direction = '=>'
+
+        print('--', client_name, direction, arg_str, ellipsis)
 
     def _process_line(self, line):
         # Commands that need to implemented at Socket level,
@@ -746,7 +878,7 @@ class FakeMPDHandler(serv.StreamRequestHandler):
 
     def _handle_close(self):
         # This will cause the handler loop to break out.
-        raise CloseConnection("FakeMPD: You issued ,,close'' - Goodbye, good Sir.\n")
+        raise CloseConnection("FakeMPD: You issued ,,close'' - Goodbye, good Sir.")
 
     def _handle_noidle(self):
         # This is a bit strange. ''noidle'' alone, does not respond with a OK
@@ -846,10 +978,15 @@ class FakeMPDHandler(serv.StreamRequestHandler):
 
         # ... and each server a "global state",
         # that needs to know about local states.
-        self.server.gstate.append_state(self.lstate)
+        with REQUST_HANDLER_LOCK:
+            self.server.gstate.append_state(self.lstate)
 
     def _die(self):
-        self.server.gstate.remove_state(self.lstate)
+        with REQUST_HANDLER_LOCK:
+            self.server.gstate.remove_state(self.lstate)
+
+        os.close(self.lstate.rpipe)
+        os.close(self.lstate.wpipe)
 
     #############################
     #  RequestHandler Function  #
@@ -867,7 +1004,7 @@ class FakeMPDHandler(serv.StreamRequestHandler):
         self._write(b'OK MPD ' + MPD_VERSION + b'\n')
         self._server_message('Greeting: OK MPD', MPD_VERSION)
 
-        # While the client does not quit, we try to read input from them.
+        # While the client does not quit, we try to read input from it.
         while True:
             try:
                 # Read a single line
@@ -885,7 +1022,11 @@ class FakeMPDHandler(serv.StreamRequestHandler):
                 # Write resp back to the client
                 self._respond(resp)
             except socket.error as e:
-                self._server_message('Connection Error: (%s)' % e)
+                if e.errno == errno.EPIPE:
+                    self._server_message('Client closed the connection.')
+                else:
+                    self._server_message('Connection Error: (%s)' % e)
+                    traceback.print_exc()
                 break
             except CloseConnection as c:
                 # Close the connection due to a fatal error.
@@ -905,37 +1046,67 @@ class FakeMPDServer(serv.ThreadingMixIn, serv.TCPServer):
     allow_reuse_address = True
 
 
-def start_server():
-    def runner(server):
-        print('-- Server running on localhost:6666')
-        server.serve_forever()
-        print('-- Server shutdown')
+class ShadowServer:
+    'Only visible in the API'
+    def __init__(self, host='localhost', port=6666):
+        self._host = host
+        self._port = port
+        self._th = None
 
-    serv.TCPServer.allow_reuse_address = True
-    serv.ThreadingTCPServer.allow_reuse_address = True
-    server = serv.ThreadingTCPServer(('localhost', 6666), FakeMPDHandler)
-    server.gstate = GlobalState()
+    def _loop(self, ready_queue):
+        try:
+            serv.TCPServer.allow_reuse_address = True
+            serv.ThreadingTCPServer.allow_reuse_address = True
+            server = serv.ThreadingTCPServer((self._host, self._port), FakeMPDHandler)
+            server.gstate = GlobalState()
+            print('-- Server running on localhost:6666')
+            ready_queue.put(True)
+            server.serve_forever()
+        except KeyboardInterrupt:
+            try:
+                server.shutdown()
+                print('-- Server shutdown')
+            except KeyboardInterrupt:
+                print('double tap')
 
-    import threading
-    threading.Thread(target=runner, args=(server,))
+    def _sigint_handler(self, signal, frame):
+        print('-- Sending Interrupt to FakeMPD...')
+        self.stop()
 
-    return server
+    def start(self):
+        # Make it run in the background.
+        import multiprocessing
 
+        # Only used to indicate that the server is actually running
+        ready_queue = multiprocessing.Queue()
+        self._th = multiprocessing.Process(target=self._loop,
+                                           args=(ready_queue, ),
+                                           name='FakeMPDWorker')
+        self._th.start()
 
-def close_server(server):
-    server.shutdown()
+        print('before ')
+        # Wait till server is up. (or at least very close to)
+        ready_queue.get()
+        print('after ')
+
+        # Register signal handler *after* fork()
+        signal.signal(signal.SIGINT, self._sigint_handler)
+
+    def stop(self):
+        if self._th is not None:
+            os.kill(self._th.pid, signal.SIGINT)
+            # Seems to send a KeyboardInterrupt to _loop. Good to know.
+            self._th.join()
+        else:
+            raise ValueError('Server has not been started yet!')
 
 
 if __name__ == '__main__':
     try:
-        serv.TCPServer.allow_reuse_address = True
-        serv.ThreadingTCPServer.allow_reuse_address = True
-        server = serv.ThreadingTCPServer(('localhost', 6666), FakeMPDHandler)
-        server.gstate = GlobalState()
-        print('-- Server running on localhost:6666')
-        server.serve_forever()
+        shad = ShadowServer()
+        shad.start()
     except OSError as e:
         print('Cannot create Server (%s). Maybe wait 30 seconds?' % e)
     except KeyboardInterrupt:
-        server.shutdown()
+        shad.stop()
         print(' Coitus Interruptus.')

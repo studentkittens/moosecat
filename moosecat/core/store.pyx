@@ -25,18 +25,32 @@ cdef class Store:
         self._db = NULL
         self._wait_mode = False
 
+    cdef c.mc_StoreDB * _p(self) except NULL:
+        if self._db != NULL:
+            return self._db
+        else:
+            raise ValueError('pointer instance is empty - this should not happen')
+
     def __dealloc__(self):
         c.mc_store_settings_destroy (self._settings)
 
     def close(self):
         c.mc_store_close(self._db)
 
+
+    def playlist_load(self, name):
+        b_name = bytify(name)
+        c.mc_store_playlist_load(b_name)
+
+    ################
+    #  Properties  #
+    ################
+
     property wait_mode:
         def __set__(self, mode):
-            self._wait_mode = mode
             c.mc_store_set_wait_mode (self._db, mode)
 
         def __get__(self):
-            return self._wait_mode
+            return c.mc_store_get_wait_mode (self._db)
 
 

@@ -204,6 +204,7 @@ cdef extern from "../../lib/mpd/protocol.h":
     # Hiden on purpose. Do not screw with
     # the connetion on the python layer
     # mpd_connection * mc_proto_get (mc_Client *)
+    mpd_status * mc_proto_get_status(mc_Client *)
 
     # Networking
     mc_Client * mc_proto_create (mc_PmType)
@@ -309,6 +310,7 @@ cdef extern from "../../lib/store/db.h":
     int mc_store_dir_select_to_stack (mc_StoreDB *, mc_Stack *,char *, int)
     int mc_store_playlist_get_all_loaded (mc_StoreDB *, mc_Stack *)
     int mc_store_search_to_stack (mc_StoreDB *, char *, bool, mc_Stack *, int)
+    bool mc_store_get_wait_mode (mc_StoreDB *)
 
 ###########################################################################
 #                             Misc Interfaces                             #

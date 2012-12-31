@@ -84,11 +84,14 @@ static mc_cc_hot gboolean cmnder_event_callback (
     enum mpd_idle events = 0;
     gpointer item = NULL;
 
+    g_print("CALLBACK\n");
+
     /* Pop all items from the queue that are in,
      * and b'or them into one single event. */
     while ( (item = g_async_queue_try_pop (queue) ) )
         events |= GPOINTER_TO_INT (item);
 
+        g_print("Event: %d\n", events);
     mc_shelper_report_client_event (self, events);
     return TRUE;
 
@@ -235,10 +238,10 @@ static gpointer cmnder_ping_server (mc_CmndClient * self)
 static void cmnder_shutdown_pinger (mc_CmndClient * self)
 {
     g_assert (self);
-    g_assert (self->pinger_thread);
-
-    self->run_pinger = FALSE;
-    g_thread_join (self->pinger_thread);
+    if (self->pinger_thread != NULL) {
+        self->run_pinger = FALSE;
+        g_thread_join (self->pinger_thread);
+    }
 }
 
 //////////////////////////
@@ -256,12 +259,18 @@ static char * cmnder_do_connect (
     mc_CmndClient * self = child (parent);
 
     self->cmnd_con = mpd_connect ( (mc_Client *) self, host, port, timeout, &error_message);
-    if (error_message != NULL)
-        return error_message;
+    if (error_message != NULL) {
+        goto failure;
+    }
 
     self->idle_con = mpd_connect ( (mc_Client *) self, host, port, timeout, &error_message);
-    if (error_message != NULL)
-        return error_message;
+    if (error_message != NULL) {
+        if (self->cmnd_con) {
+            mpd_connection_free (self->cmnd_con);
+            self->cmnd_con = NULL;
+        }
+        goto failure;
+    }
 
     /* listener */
     self->run_listener = TRUE;
@@ -276,15 +285,10 @@ static char * cmnder_do_connect (
                                             (GThreadFunc) cmnder_ping_server, self);
     }
 
+    
+failure:
+
     return error_message;
-}
-
-///////////////////////
-
-static bool cmnder_do_disconnect (mc_Client * self)
-{
-    cmnder_reset (child (self) );
-    return true;
 }
 
 //////////////////////
@@ -293,6 +297,18 @@ static bool cmnder_do_is_connected (mc_Client * parent)
 {
     mc_CmndClient * self = child (parent);
     return (self->idle_con && self->cmnd_con);
+}
+
+///////////////////////
+
+static bool cmnder_do_disconnect (mc_Client * self)
+{
+    if (cmnder_do_is_connected(self)) {
+        cmnder_reset (child (self) );
+        return true;
+    } else {
+        return false;
+    }
 }
 
 ///////////////////////
@@ -307,6 +323,8 @@ static mpd_connection * cmnder_do_get (mc_Client * self)
 static void cmnder_do_free (mc_Client * parent)
 {
     g_assert (parent);
+
+    cmnder_do_disconnect (parent);
 
     mc_CmndClient * self = child (parent);
     cmnder_shutdown_pinger (self);
