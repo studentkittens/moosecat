@@ -40,7 +40,7 @@ cdef class Store:
 
     def playlist_load(self, name):
         b_name = bytify(name)
-        c.mc_store_playlist_load(b_name)
+        c.mc_store_playlist_load(self._p(), b_name)
 
     ################
     #  Properties  #

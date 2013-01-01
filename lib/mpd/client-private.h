@@ -1,6 +1,11 @@
 #ifndef MC_CLIENT_PRIVATE_HH
 #define MC_CLIENT_PRIVATE_HH
 
+/**
+ * @brief Macros to easily implement certain client commands.
+ */
+
+
 #define BEGIN_COMMAND                                  \
     g_assert (self);                                   \
     struct mpd_connection * conn = mc_proto_get(self); \

@@ -58,7 +58,7 @@ bool mc_client_output_switch (mc_Client * self, const char * output_name, bool m
 {
     g_assert (self);
 
-    int output_id = mc_proto_outputs_id_to_name (self, output_name);
+    int output_id = mc_proto_outputs_name_to_id (self, output_name);
     if (output_id != -1) {
         if (mode == TRUE) {
             COMMAND ( mpd_run_enable_output (conn, output_id) );

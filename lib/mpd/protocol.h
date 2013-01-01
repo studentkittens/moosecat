@@ -365,4 +365,41 @@ void mc_proto_status_timer_unregister (
  */
 bool mc_proto_status_timer_is_active (mc_Client * self);
 
+
+/**
+ * @brief Retrieve the current Status object
+ *
+ * @param self the client to operate on
+ *
+ * @return a mpd_status object which can be read with mpd_status_*
+ */
+inline struct mpd_status * mc_proto_get_status(mc_Client * self) {
+    g_assert(self);
+    return self->status;
+}
+
+/**
+ * @brief Retrieve currently Played Song Object
+ *
+ * @param self the client to operate on
+ *
+ * @return a mpd_song object which can be read with mpd_song_*
+ */
+inline struct mpd_song * mc_proto_get_current_song(mc_Client * self) {
+    g_assert(self);
+    return self->song;
+}
+
+/**
+ * @brief Retrieve current Statistics object
+ *
+ * @param self the client to operate on
+ *
+ * @return a mpd_stats object which can be read with mpd_stats_*
+ */
+inline struct mpd_stats * mc_proto_get_statistics(mc_Client * self) {
+    g_assert(self);
+    return self->stats;
+}
+
 #endif /* end of include guard: PROTOCOL_H */

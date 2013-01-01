@@ -167,6 +167,7 @@ cdef extern from "mpd/client.h":
     mpd_song * mpd_song_begin(mpd_pair *pair)
     void mpd_song_feed(mpd_song *song, mpd_pair *pair)
 
+
 ###########################################################################
 #                             Main Interface                              #
 ###########################################################################
@@ -221,6 +222,29 @@ cdef extern from "../../lib/mpd/protocol.h":
     void mc_proto_signal_dispatch (mc_Client * , char *, ...)
     int mc_proto_signal_length (mc_Client * , char *)
     void mc_proto_force_sss_update (mc_Client * , mpd_idle)
+
+    # Status Timers:
+    void mc_proto_status_timer_register (mc_Client *, int, bool)
+    void mc_proto_status_timer_unregister (mc_Client *)
+    bool mc_proto_status_timer_is_active (mc_Client *)
+
+    # Meta:
+    char * mc_proto_get_host (mc_Client *)
+    int mc_proto_get_port (mc_Client *)
+    int mc_proto_get_timeout (mc_Client *)
+
+    # Getters:
+    mpd_status * mc_proto_get_status(mc_Client *)
+    mpd_song * mc_proto_get_current_song(mc_Client *)
+    mpd_stats * mc_proto_get_statistics(mc_Client *)
+
+
+# Basically belongs to protocol.h
+cdef extern from "../../lib/mpd/outputs.h":
+    # Outputs:
+    int mc_proto_outputs_name_to_id (mc_Client *, char *)
+    int mc_proto_outputs_is_enabled (mc_Client *, char *)
+
 
 ###########################################################################
 #                             Client Commands                             #
