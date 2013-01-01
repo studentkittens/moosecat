@@ -745,6 +745,13 @@ void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish)
 
 ///////////////
 
+bool mc_store_get_wait_mode (mc_StoreDB * self)
+{
+    return self->wait_for_db_finish;
+}
+
+///////////////
+
 void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name)
 {
     mc_stprv_spl_load_by_playlist_name (self, playlist_name);

@@ -134,7 +134,8 @@ cdef class Client:
         signal_name included in the error message.
         '''
         if signal_name in self.signal_names:
-            yield
+            b_name = bytify(signal_name)
+            yield b_name
         else:
             raise UnknownSignalName(',,' + signal_name + "'' unknown.")
 
@@ -151,7 +152,7 @@ cdef class Client:
         'Add a masked signal (only with "client-event")'
         cdef void * c_func = NULL
 
-        with self._valid_signal_name(signal_name):
+        with self._valid_signal_name(signal_name) as b_name:
             data = [func, self]
 
             if signal_name == 'client-event':
@@ -168,19 +169,19 @@ cdef class Client:
                 print('Warning: Unknown signal passed. This should not happen.')
 
             if c_func != NULL:
-                c.mc_proto_signal_add_masked(self._p(), signal_name,
+                c.mc_proto_signal_add_masked(self._p(), b_name,
                                         <void*> c_func,
                                         <void*> data, idle_event)
 
     def signal_rm(self, signal_name, func):
         'Remove a signal from the callable list'
-        with self._valid_signal_name(signal_name):
-            c.mc_proto_signal_rm(self._p(), signal_name, <void*> func)
+        with self._valid_signal_name(signal_name) as b_name:
+            c.mc_proto_signal_rm(self._p(), b_name, <void*> func)
 
     def signal_count(self, signal_name):
         'Return the number of registerd signals'
-        with self._valid_signal_name(signal_name):
-            return c.mc_proto_signal_length(self._p(), signal_name)
+        with self._valid_signal_name(signal_name) as b_name:
+            return c.mc_proto_signal_length(self._p(), b_name)
 
     def signal_dispatch(self, signal_name, *args):
         'Dispatch a signal manually'
