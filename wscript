@@ -172,6 +172,7 @@ def build(bld):
 
     build_test_program('lib/main.c', 'moosecat_runner')
     build_test_program('lib/db_test.c', 'db_test')
+    build_test_program('lib/test_outputs.c', 'test_outputs')
     build_test_program('lib/event_test.c', 'event_test')
     build_test_program('lib/gtk_db.c', 'gtk_db',
             libraries=LIBS + bld.env.LIB_GTK3,

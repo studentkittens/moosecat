@@ -27,6 +27,9 @@ cdef extern from "mpd/client.h":
     cdef struct mpd_status:
         pass
 
+    cdef struct mpd_output:
+        pass
+
     # This is hidden to prevent misuse.
     # cdef struct mpd_connection:
     #    pass
@@ -167,6 +170,13 @@ cdef extern from "mpd/client.h":
     mpd_song * mpd_song_begin(mpd_pair *pair)
     void mpd_song_feed(mpd_song *song, mpd_pair *pair)
 
+    ######################
+    #  Output Functions  #
+    ######################
+
+    bool mpd_output_get_enabled(mpd_output *)
+    int mpd_output_get_id(mpd_output *)
+    char * mpd_output_get_name(mpd_output *)
 
 ###########################################################################
 #                             Main Interface                              #
@@ -238,12 +248,8 @@ cdef extern from "../../lib/mpd/protocol.h":
     mpd_song * mc_proto_get_current_song(mc_Client *)
     mpd_stats * mc_proto_get_statistics(mc_Client *)
 
-
-# Basically belongs to protocol.h
-cdef extern from "../../lib/mpd/outputs.h":
     # Outputs:
-    int mc_proto_outputs_name_to_id (mc_Client *, char *)
-    int mc_proto_outputs_is_enabled (mc_Client *, char *)
+    mpd_output ** mc_proto_get_outputs(mc_Client *, int *)
 
 
 ###########################################################################

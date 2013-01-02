@@ -7,6 +7,7 @@ include "util.pyx"
 include "song.pyx"
 include "status.pyx"
 include "statistics.pyx"
+include "output.pyx"
 
 # Actual libmoosecat functionality
 include "client.pyx"

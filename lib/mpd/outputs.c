@@ -6,6 +6,7 @@ void mc_proto_outputs_init (mc_Client * self)
 {
     g_assert (self);
 
+    self->outputs.size = 0;
     self->outputs.list = NULL;
 }
 
@@ -25,7 +26,13 @@ void mc_proto_outputs_update (mc_Client * self, enum mpd_idle event, void * unus
         } else {
             struct mpd_output * output = NULL;
             while ( (output = mpd_recv_output (conn) ) != NULL) {
-                self->outputs.list = g_list_prepend (self->outputs.list, output);
+                self->outputs.size += 1;
+                self->outputs.list = g_realloc_n(
+                        self->outputs.list,
+                        self->outputs.size,
+                        sizeof(struct mpd_output *));
+
+                self->outputs.list[self->outputs.size - 1] = output;
             }
         }
 
@@ -38,10 +45,12 @@ static struct mpd_output * mc_proto_outputs_find (mc_Client * self, const char *
 {
     g_assert (self);
 
-    for (GList * iter = self->outputs.list; iter; iter = iter->next) {
-        struct mpd_output * output = iter->data;
-        if (g_strcmp0 (mpd_output_get_name (output), output_name) == 0) {
-            return output;
+    if (self->outputs.list != NULL) {
+        for (int i = 0; i< self->outputs.size; ++i) {
+            struct mpd_output * output = self->outputs.list[i];
+            if (g_strcmp0 (mpd_output_get_name (output), output_name) == 0) {
+                return output;
+            }
         }
     }
     return NULL;
@@ -82,6 +91,9 @@ void mc_proto_outputs_free (mc_Client * self)
     g_assert (self);
 
     if (self->outputs.list != NULL) {
-        g_list_free_full (self->outputs.list, (GDestroyNotify) mpd_output_free);
+        for (int i = 0; i< self->outputs.size; ++i) {
+            mpd_output_free(self->outputs.list[i]);
+        }
+        g_free(self->outputs.list);
     }
 }

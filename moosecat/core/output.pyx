@@ -28,10 +28,12 @@ cimport binds as c
 
 cdef class AudioOutput:
     cdef c.mpd_output * _output
+    cdef c.mc_Client * _client
 
     def __cinit__(self):
         'You should not instance this yourself'
         self._output = NULL
+        self._client = NULL
 
     cdef c.mpd_output * _p(self) except NULL:
         if self._output != NULL:
@@ -39,17 +41,24 @@ cdef class AudioOutput:
         else:
             raise ValueError('mpd_output pointer is null for this instance!')
 
+    cdef _init(self, c.mpd_output * output, c.mc_Client * client):
+        'Meant for the Cython side'
+        self._output = output
+        self._client = client
+        return self
+
     property enabled:
         'Getter/Setter: Check if the output is enabled, or make it active.'
         def __get__(self):
             return c.mpd_output_get_enabled(self._p())
         def __set__(self, state):
-            c.mc_client_output_switch(self._p(), state)
+            c.mc_client_output_switch(self._client, c.mpd_output_get_name(self._p()), state)
 
     property name:
         'Getter: Get the name of the output like in the mpd.conf'
         def __get__(self):
-            byte_opname = c.mpd_output_get_name(self._p())
+            # byte_opname gets not changed here. Promised.
+            byte_opname = <char*>c.mpd_output_get_name(self._p())
             return stringify(byte_opname)
 
     property oid:

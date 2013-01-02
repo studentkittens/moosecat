@@ -95,7 +95,8 @@ typedef struct mc_Client {
 
     /* Outputs of MPD */
     struct {
-        GList * list;
+        struct mpd_output ** list;
+        int size;
     } outputs;
 
     /* Support for timed status retrieval */
@@ -400,6 +401,22 @@ inline struct mpd_song * mc_proto_get_current_song(mc_Client * self) {
 inline struct mpd_stats * mc_proto_get_statistics(mc_Client * self) {
     g_assert(self);
     return self->stats;
+}
+
+
+/**
+ * @brief Retrieve a list of AudioOutputs (enabled or disabled)
+ *
+ * @param self the client to operate on
+ * @param size OUT param. the size of the output list (not NULL terminated)
+ *
+ * @return a list of outputs.
+ */
+inline struct mpd_output ** mc_proto_get_outputs(mc_Client * self, /* OUT */ int * size) {
+    if (size != NULL) {
+        *size = self->outputs.size;
+    }
+    return self->outputs.list;
 }
 
 #endif /* end of include guard: PROTOCOL_H */

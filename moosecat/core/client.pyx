@@ -273,6 +273,24 @@ cdef class Client:
         def __get__(self):
             return statistics_from_ptr(c.mc_proto_get_statistics(self._p()))
 
+    property outputs:
+        def __get__(self):
+            # This is very C-ish. Sorry.
+            cdef int size = 0
+            cdef c.mpd_output ** op_list = c.mc_proto_get_outputs(self._p(), &size)
+
+            print(size)
+
+            # Iterate over all outputs, and wrap them into a AudioOutput
+            return_list = []
+            if op_list != NULL:
+                i = 0
+                while i < size:
+                    return_list.append(AudioOutput()._init(op_list[i], self._p()))
+                    i += 1
+
+            return return_list
+
     #####################
     #  Client Commands  #
     #####################
@@ -302,14 +320,6 @@ cdef class Client:
     def db_update(self, path='/'):
         b_path = bytify(path)
         c.mc_client_database_update(self._p(), b_path)
-
-    def output_is_enabled(self, output_name):
-        b_op_name = bytify(output_name)
-        return c.mc_proto_outputs_is_enabled(self._p(), b_op_name)
-
-    def output_switch(self, output_name, state):
-        b_op_name = bytify(output_name)
-        return c.mc_client_output_switch(self._p(), b_op_name, state)
 
     def authenticate(self, password):
         b_password = bytify(password)
