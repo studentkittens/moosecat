@@ -1,0 +1,8 @@
+foo:
+  bar: foobar
+is: easy
+list:
+- 1
+- 2
+- 3
+- 4
