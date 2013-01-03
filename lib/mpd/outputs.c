@@ -24,6 +24,11 @@ void mc_proto_outputs_update (mc_Client * self, enum mpd_idle event, void * unus
         if (mpd_send_outputs (conn) == false) {
             mc_shelper_report_error (self, conn);
         } else {
+            if (self->outputs.list != NULL) {
+                g_free (self->outputs.list);
+                self->outputs.list = NULL;
+                self->outputs.size = 0;
+            }
             struct mpd_output * output = NULL;
             while ( (output = mpd_recv_output (conn) ) != NULL) {
                 self->outputs.size += 1;

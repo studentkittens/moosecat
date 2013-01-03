@@ -15,10 +15,6 @@ class TestClient(unittest.TestCase):
     def test_outputs(self):
         outputs = self.client.outputs
 
-        # print('Le Outputs', outputs)
-        # for output in outputs:
-        #    print(output.oid, output.enabled, output.name, sep='\t')
-
         self.assertEqual(outputs[0].name, 'AlsaOutput')
         self.assertEqual(outputs[0].oid, 0)
         self.assertEqual(outputs[0].enabled, True)
@@ -26,6 +22,14 @@ class TestClient(unittest.TestCase):
         self.assertEqual(outputs[1].name, 'HTTPOutput')
         self.assertEqual(outputs[1].oid, 1)
         self.assertEqual(outputs[1].enabled, False)
+
+        outputs[1].enabled = True
+
+        # this is needed in order to
+        self.client.force_update_metadata(m.Client.IDLE_OUTPUT)
+        outputs = self.client.outputs
+
+        self.assertEqual(outputs[1].enabled, True)
 
     def test_connect(self):
         self.assertTrue(self.client.is_connected)

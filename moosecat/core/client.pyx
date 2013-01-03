@@ -74,7 +74,44 @@ class UnknownSignalName(Exception):
     pass
 
 
+# Idle-Enum
+class Idle:
+    '''
+    Numerical constants for Idle Events.
+    This is the same enum as in mpd/idle.h.
+
+    You can pass it to client.force_update_metadata(),
+    or get it when writing a idle-event handler.
+    '''
+    DATABASE = c.MPD_IDLE_DATABASE
+    STORED_PLAYLIST = c.MPD_IDLE_STORED_PLAYLIST
+    QUEUE = c.MPD_IDLE_QUEUE
+    PLAYLIST = c.MPD_IDLE_QUEUE
+    PLAYER = c.MPD_IDLE_PLAYER
+    MIXER = c.MPD_IDLE_MIXER
+    OUTPUT = c.MPD_IDLE_OUTPUT
+    OPTIONS = c.MPD_IDLE_OPTIONS
+    UPDATE = c.MPD_IDLE_UPDATE
+    STICKER = c.MPD_IDLE_STICKER
+    SUBSCRIPTION = c.MPD_IDLE_SUBSCRIPTION
+    MESSAGE = c.MPD_IDLE_MESSAGE
+
+
 cdef class Client:
+    # idle Events. (can be overlayed with |)
+    #IDLE_DATABASE = c.MPD_IDLE_DATABASE
+    #IDLE_STORED_PLAYLIST = c.MPD_IDLE_STORED_PLAYLIST
+    #IDLE_QUEUE = c.MPD_IDLE_QUEUE
+    #IDLE_PLAYLIST = c.MPD__IDLE_QUEUEIDLE_PLAYLIST
+    #IDLE_PLAYER = c.MPD_IDLE_PLAYER
+    #IDLE_MIXER = c.MPD_IDLE_MIXER
+    #IDLE_OUTPUT = c.MPD_IDLE_OUTPUT
+    #IDLE_OPTIONS = c.MPD_IDLE_OPTIONS
+    #IDLE_UPDATE = c.MPD_IDLE_UPDATE
+    #IDLE_STICKER = c.MPD_IDLE_STICKER
+    #IDLE_SUBSCRIPTION = c.MPD_IDLE_SUBSCRIPTION
+    #IDLE_MESSAGE = c.MPD_IDLE_MESSAGE
+
     cdef c.mc_Client * _cl
 
     def __cinit__(self):
@@ -261,7 +298,7 @@ cdef class Client:
     property status:
         'Get the current Status object'
         def __get__(self):
-            return status_from_ptr(c.mc_proto_get_status(self._p()))
+            return status_from_ptr(c.mc_proto_get_status(self._p()), self._p())
 
     property currentsong:
         'Get the current Currentsong object'
@@ -340,108 +377,9 @@ cdef class Client:
             raise ValueError('queue_start_id is >= queue_end_id')
 
 
-    ###########################################################################
-    #                       Settable Status Properties                        #
-    ###########################################################################
-
-    property volume:
-        def __get__(self):
-            return self.status.volume
-        def __set__(self, vol):
-            c.mc_client_setvol(self._p(), vol)
-
-    property random:
-        def __get__(self):
-            return self.status.random
-        def __set__(self, state):
-            c.mc_client_random(self._p(), state)
-
-    property repeat:
-        def __get__(self):
-            return self.status.random
-        def __set__(self, state):
-            c.mc_client_random(self._p(), state)
-
-    property single:
-        def __get__(self):
-            return self.status.single
-        def __set__(self, state):
-            c.mc_client_single(self._p(), state)
-
-    property consume:
-        def __get__(self):
-            return self.status.consume
-        def __set__(self, state):
-            c.mc_client_consume(self._p(), state)
-
-    property mixramdb:
-        def __get__(self):
-            return self.status.mixramdb
-        def __set__(self, decibel):
-            c.mc_client_mixramdb(self._p(), decibel)
-
-    property mixramdelay:
-        def __get__(self):
-            return self.status.mixramdelay
-        def __set__(self, seconds):
-            c.mc_client_mixramdelay(self._p(), seconds)
-
-    property crossfade:
-        def __get__(self):
-            return self.status.crossfade
-        def __set__(self, seconds):
-            c.mc_client_crossfade(self._p(), seconds)
-
-    property replay_gain_mode:
-        def __get__(self):
-            return self.status.replay_gain_mode
-        def __set__(self, mode):
-            if mode in ['off', 'album', 'track', 'auto']:
-                b_mode = bytify(mode)
-                c.mc_client_replay_gain_mode(self._p(), b_mode)
-            else:
-                raise ValueError('mode must be one of off, track, album, auto')
 
 '''
-
-void mc_client_consume (mc_Client * self, bool mode);
-void mc_client_crossfade (mc_Client * self, bool mode);
-void mc_client_mixramdb (mc_Client * self, int decibel);
-void mc_client_mixramdelay (mc_Client * self, int seconds);
-
-void mc_client_random (mc_Client * self, bool mode);
-void mc_client_repeat (mc_Client * self, bool mode);
-void mc_client_replay_gain_mode (mc_Client * self, const char * replay_gain_mode);
-void mc_client_setvol (mc_Client * self, int volume);
-void mc_client_single (mc_Client * self, bool mode);
-
-'''
-'''
-void mc_client_next (mc_Client * self);
-void mc_client_pause (mc_Client * self);
-void mc_client_play (mc_Client * self);
-void mc_client_stop (mc_Client * self);
-void mc_client_previous (mc_Client * self);
-void mc_client_play_id (mc_Client * self, unsigned id);
-
-void mc_client_database_rescan (mc_Client * self, const char * path);
-void mc_client_database_update (mc_Client * self, const char * path);
-
-output_is_enabled
-bool mc_client_output_switch (mc_Client * self, const char * output_name, bool mode);
-
-bool mc_client_password (mc_Client * self, const char * pwd);
-
-void mc_client_seekcur (mc_Client * self, int seconds);
-void mc_client_seekid (mc_Client * self, int id, int seconds);
-void mc_client_seek (mc_Client * self, int pos, int seconds);
-
-void mc_client_prio_id (mc_Client * self, unsigned prio, unsigned id);
-void mc_client_prio (mc_Client * self, unsigned prio, unsigned position);
-void mc_client_prio_range (mc_Client * self, unsigned prio, unsigned start_pos, unsigned end_pos);
-
 ### TODO ###
-
 
 void mc_client_playlist_add (mc_Client * self, const char * name, const char * file);
 void mc_client_playlist_clear (mc_Client * self, const char * name);
@@ -466,16 +404,4 @@ void mc_client_queue_swap (mc_Client * self, int pos_a, int pos_b);
 ### ???? ###
 
 command_lists?
-
-void mc_client_consume (mc_Client * self, bool mode);
-void mc_client_crossfade (mc_Client * self, bool mode);
-void mc_client_mixramdb (mc_Client * self, int decibel);
-void mc_client_mixramdelay (mc_Client * self, int seconds);
-
-void mc_client_random (mc_Client * self, bool mode);
-void mc_client_repeat (mc_Client * self, bool mode);
-void mc_client_replay_gain_mode (mc_Client * self, const char * replay_gain_mode);
-void mc_client_setvol (mc_Client * self, int volume);
-void mc_client_single (mc_Client * self, bool mode);
-
 '''

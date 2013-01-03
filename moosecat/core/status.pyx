@@ -1,9 +1,43 @@
+'''
+Status is a wrapper around MPD's 'status' command.
+
+It will easily let you access attributes like the volume, the player state
+and some more things. Also some properties are **settable**, so you can
+change these attributes actually!
+
+Usage Example:
+
+    >>> if client.status.volume > 100:
+    ...     client.status.volume = 100
+
+**IMPORTANT NOTE:** Do not save references to client.status, a change to the Status
+                    might cause to allocate a new Status object and transparently
+                    subsitute the current one. The old one will contain old, incorrect
+                    values!
+
+Don't do this: ::
+
+    >>> my_status = client.status
+    >>> my_status.volume
+    50
+    >>> my_status.volume = 100
+    >>> # After some iterations of the mainloop
+    >>> my_status.volume # Uh-oh!
+    50
+    >>> client.status.volume
+    100
+
+
+You will use most likely by accessing 'client.status'.
+'''
+
 cimport binds as c
 
-cdef status_from_ptr(c.mpd_status * ptr):
+
+cdef status_from_ptr(c.mpd_status * ptr, c.mc_Client * client):
     'Instance a new Status() with the underlying mpd_status ptr'
     if ptr != NULL:
-        return Status()._init(ptr)
+        return Status()._init(ptr, client)
     else:
         return None
 
@@ -24,6 +58,7 @@ cdef class Status:
 
     # Actual c-level struct
     cdef c.mpd_status * _status
+    cdef c.mc_Client * _client
 
     ################
     #  Allocation  #
@@ -38,8 +73,15 @@ cdef class Status:
         else:
             raise ValueError('mpd_status pointer is null for this instance!')
 
-    cdef object _init(self, c.mpd_status * status):
+    cdef c.mc_Client * _c(self) except NULL:
+        if self._client!= NULL:
+            return self._client
+        else:
+            raise ValueError('_client pointer is null for this instance!')
+
+    cdef object _init(self, c.mpd_status * status, c.mc_Client * client):
         self._status = status
+        self._client = client
         return self
 
     #############
@@ -64,22 +106,32 @@ cdef class Status:
     property volume:
         def __get__(self):
             return c.mpd_status_get_volume(self._p())
+        def __set__(self, vol):
+            c.mc_client_setvol(self._c(), vol)
 
     property repeat:
         def __get__(self):
             return c.mpd_status_get_repeat(self._p())
+        def __set__(self, state):
+            c.mc_client_repeat(self._c(), state)
 
     property random:
         def __get__(self):
             return c.mpd_status_get_random(self._p())
+        def __set__(self, state):
+            c.mc_client_random(self._c(), state)
 
     property single:
         def __get__(self):
             return c.mpd_status_get_single(self._p())
+        def __set__(self, state):
+            c.mc_client_single(self._c(), state)
 
     property consume:
         def __get__(self):
             return c.mpd_status_get_consume(self._p())
+        def __set__(self, state):
+            c.mc_client_consume(self._c(), state)
 
     property queue_length:
         def __get__(self):
@@ -101,10 +153,14 @@ cdef class Status:
     property mixrampdb:
         def __get__(self):
             return c.mpd_status_get_mixrampdb(self._p())
+        def __set__(self, decibel):
+            c.mc_client_mixramdb(self._c(), decibel)
 
     property mixrampdelay:
         def __get__(self):
             return c.mpd_status_get_mixrampdelay(self._p())
+        def __set__(self, seconds):
+            c.mc_client_mixramdelay(self._c(), seconds)
 
     property song_pos:
         def __get__(self):
@@ -160,3 +216,17 @@ cdef class Status:
     property audio_channels:
         def __get__(self):
             return self._audio().channels
+
+    ######################
+    #  Replay Gain Prop  #
+    ######################
+
+    property replay_gain_mode:
+        def __get__(self):
+            return self.status.replay_gain_mode
+        def __set__(self, mode):
+            if mode in ['off', 'album', 'track', 'auto']:
+                b_mode = bytify(mode)
+                c.mc_client_replay_gain_mode(self._c(), b_mode)
+            else:
+                raise ValueError('mode must be one of off, track, album, auto')

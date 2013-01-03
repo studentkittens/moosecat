@@ -4,6 +4,7 @@ from libcpp cimport bool
 # Too lazy to lookup how to import it properly.
 ctypedef long time_t
 
+
 ###########################################################################
 #                              libmpdclient                               #
 ###########################################################################
@@ -101,6 +102,21 @@ cdef extern from "mpd/client.h":
         MPD_ERROR_MALFORMED
         MPD_ERROR_CLOSED
         MPD_ERROR_SERVER
+
+    cdef enum mpd_idle:
+        MPD_IDLE_DATABASE
+        MPD_IDLE_STORED_PLAYLIST
+        MPD_IDLE_QUEUE
+        MPD_IDLE_PLAYLIST
+        MPD_IDLE_PLAYER
+        MPD_IDLE_MIXER
+        MPD_IDLE_OUTPUT
+        MPD_IDLE_OPTIONS
+        MPD_IDLE_UPDATE
+        MPD_IDLE_STICKER
+        MPD_IDLE_SUBSCRIPTION
+        MPD_IDLE_MESSAGE
+
 
     ######################
     #  Status Functions  #
@@ -257,7 +273,6 @@ cdef extern from "../../lib/mpd/protocol.h":
 ###########################################################################
 
 cdef extern from "../../lib/mpd/client.h":
-
     bool mc_client_output_switch (mc_Client *,  char *, bool)
     bool mc_client_password (mc_Client *,  char *)
     void mc_client_consume (mc_Client *, bool)
@@ -359,3 +374,9 @@ cdef extern from "../../lib/config.h":
         VERSION_MINOR         'MC_VERSION_MINOR'
         VERSION_PATCH         'MC_VERSION_PATCH'
         VERSION_GIT_REVISION  'MC_VERSION_GIT_REVISION'
+ 
+ 
+ 
+ 
+ 
+ 

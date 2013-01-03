@@ -290,10 +290,17 @@ def respond_outputs(gstate, lstate):
 
 def _changeoutput(gstate, lstate, state=1):
     try:
-        if gstate.outputs[lstate.args[0]][1] == state:
+        op_idx = lstate.args[0]
+        if isinstance(op_idx, bytes):
+            if op_idx.startswith(b'"'):
+                op_idx = int(op_idx[1:-1])
+            else:
+                op_idx = int(op_idx)
+
+        if gstate.outputs[op_idx][1] == state:
             lstate.skip_sideeffect()
         else:
-            gstate.outputs[lstate.args[0]][1] = state
+            gstate.outputs[op_idx][1] = state
     except IndexError:
         raise ProtocolError(lstate, 'No such audio output', Error.SERVER)
 
