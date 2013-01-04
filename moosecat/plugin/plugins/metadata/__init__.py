@@ -1,5 +1,7 @@
 from moosecat.plugin.plugin_sys import psys
 
+print('INIT.PY CALLED')
+
 metadata_description = {'name': 'metadata',
                         'description': 'Retrieve some fucking coverart and stuff',
                         'functions': ['get_metadata', 'close_all'],

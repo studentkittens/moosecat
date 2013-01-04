@@ -8,9 +8,36 @@ Tool(s) to manage plugins
 .. moduleauthor:: serztle <serztle@googlemail.com>
 """
 
+# Sehr sehr schön schon. Es fehlen noch ein paar weitere docstring und ein paar
+# examples :-)
+
+__author__ = 'serztle'
+
 
 import sys
-from itertools import chain
+import types
+
+
+def reload_package(root_module):
+    package_name = root_module.__name__
+
+    # get a reference to each loaded module
+    loaded_package_modules = dict([
+        (key, value) for key, value in sys.modules.items()
+        if key.startswith(package_name) and isinstance(value, types.ModuleType)])
+
+    # delete references to these loaded modules from sys.modules
+    for key in loaded_package_modules:
+        del sys.modules[key]
+
+    # load each of the modules again;
+    # make old modules share state with new modules
+    for key in loaded_package_modules:
+        print('loading %s' % key)
+        newmodule = __import__(key)
+        oldmodule = loaded_package_modules[key]
+        oldmodule.__dict__.clear()
+        oldmodule.__dict__.update(newmodule.__dict__)
 
 
 class RegisterError(Exception):
@@ -55,10 +82,17 @@ class PluginSystem:
         self._tags = {}
         self._loaded_plugins = {}
         self._loaded_plugins_by_tag = {}
+        self._pdir_module = None
 
     def scan(self):
         """Load all plugins from the subfolder **plugins** """
-        __import__('moosecat.plugin.plugins')
+        print('SCAN')
+        imp_path = 'moosecat.plugin.plugins'
+        if imp_path in sys.modules:
+            print('RELOAD')
+            reload_package(sys.modules[imp_path])
+        else:
+            __import__('moosecat.plugin.plugins')
 
     def register_tag(self, tag_description):
         """Register by description
@@ -92,18 +126,18 @@ class PluginSystem:
         name: plugin name
         import_path: python import-path of the module that contains the implemented functions
         version: version of the plugin
-        priority: if more than one plugin is registered for one tag. they get called in decandent order of priority.
+        priority: if more than one plugin is registered for one tag. they get called in descendant order of priority.
         on_load_func: when plugin gets loaded, the given function get called
         on_unload_func: when plugin gets unloaded, the given function get called
         """
         if name in self._plugins:
-            raise RegisterError("Error while register plugin (name already exists)")
+            raise RegisterError("Error while registering plugin (name already exists)")
 
         try:
             __import__(import_path)
             module = sys.modules[import_path]
         except(ImportError):
-            raise RegisterError("Error while register plugin (import)")
+            raise RegisterError("Error while register plugin (Cannot import it)")
 
         # match all proper tags for this plugin
         matched_tags = []
@@ -116,7 +150,7 @@ class PluginSystem:
                 matched_tags.append(tag)
 
         if len(matched_tags) == 0:
-            raise RegisterError("Error while register plugin (tag can't be guessed)")
+            raise RegisterError("Error while registering plugin (No Tag could be guessed)")
 
         plugin = Plugin()
         plugin.name = name
@@ -142,6 +176,7 @@ class PluginSystem:
                 self._loaded_plugins[name] = plugin
                 for tag in plugin.tags:
                     self._loaded_plugins_by_tag[tag].append(plugin)
+                    # Ich versteh noch nicht ganz warum du es hier sortierst.
                     self._loaded_plugins_by_tag[tag] = sorted(self._loaded_plugins_by_tag[tag],
                                                               key=lambda plugin: plugin.priority,
                                                               reverse=True)
@@ -175,11 +210,9 @@ class PluginSystem:
         self._load_unload_by_tag(tag_name, self.unload)
 
     def __call__(self, tag_name):
-        if tag_name in self._loaded_plugins_by_tag:
-            return self._loaded_plugins_by_tag[tag_name]
+        return self._loaded_plugins_by_tag.get(tag_name)
 
     def __getitem__(self, tag_name):
-        if tag_name in self._loaded_plugins_by_tag:
-            return self._loaded_plugins_by_tag[tag_name][0]
+        return self._loaded_plugins_by_tag.get(tag_name, [None])[0]
 
 psys = PluginSystem()

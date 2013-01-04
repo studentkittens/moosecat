@@ -8,16 +8,8 @@ A Simple Test for the plugin system
 
 import unittest
 import pprint
-from moosecat.plugin.plugin_sys import psys, PluginSystem
-
-pp = pprint.PrettyPrinter(indent=4)
-
-psys.scan()
-psys.load('glyr')
-psys.load('lastfm')
-psys.unload('glyr')
-psys.unload('lastfm')
-pp.pprint(psys.__dict__)
+from pprint import pprint as print
+from moosecat.plugin.plugin_sys import PluginSystem
 
 
 class TestPluginSystem(unittest.TestCase):
@@ -25,11 +17,13 @@ class TestPluginSystem(unittest.TestCase):
         print("setUp")
         self.psys = PluginSystem()
         self.psys.scan()
+        #self.psys.load('glyr')
+        #self.psys.load('lastfm')
         print(self.psys.__dict__)
 
     def test_load_by_name(self):
         print("test_load_by_name")
-        print(self.psys._module_list)
+        #print(self.psys._module_list)
 
         self.psys.load('glyr')
         self.psys.load('lastfm')
