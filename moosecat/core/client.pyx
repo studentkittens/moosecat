@@ -98,20 +98,6 @@ class Idle:
 
 
 cdef class Client:
-    # idle Events. (can be overlayed with |)
-    #IDLE_DATABASE = c.MPD_IDLE_DATABASE
-    #IDLE_STORED_PLAYLIST = c.MPD_IDLE_STORED_PLAYLIST
-    #IDLE_QUEUE = c.MPD_IDLE_QUEUE
-    #IDLE_PLAYLIST = c.MPD__IDLE_QUEUEIDLE_PLAYLIST
-    #IDLE_PLAYER = c.MPD_IDLE_PLAYER
-    #IDLE_MIXER = c.MPD_IDLE_MIXER
-    #IDLE_OUTPUT = c.MPD_IDLE_OUTPUT
-    #IDLE_OPTIONS = c.MPD_IDLE_OPTIONS
-    #IDLE_UPDATE = c.MPD_IDLE_UPDATE
-    #IDLE_STICKER = c.MPD_IDLE_STICKER
-    #IDLE_SUBSCRIPTION = c.MPD_IDLE_SUBSCRIPTION
-    #IDLE_MESSAGE = c.MPD_IDLE_MESSAGE
-
     cdef c.mc_Client * _cl
 
     def __cinit__(self):
@@ -176,17 +162,14 @@ cdef class Client:
         else:
             raise UnknownSignalName(',,' + signal_name + "'' unknown.")
 
-    def signal_add(self, signal_name, func):
+    def signal_add(self, signal_name, func, idle_event, mask=0xFFFFFFFF):
         '''
         Add a func to be called on certain events.
 
         :signal_name: A string describing a signal. See signal_names.
         :func: A callable that is executed upon a event.
+        :mask:
         '''
-        self.signal_add_masked(signal_name, func, 0xFFFFFFFF)
-
-    def signal_add_masked(self, signal_name, func, idle_event):
-        'Add a masked signal (only with "client-event")'
         cdef void * c_func = NULL
 
         with self._valid_signal_name(signal_name) as b_name:
@@ -255,6 +238,21 @@ cdef class Client:
                 op_finished = int(args[0])
                 c.mc_proto_signal_dispatch(self._p(), signal_name, op_finished)
 
+    def signal(self, signal_name, mask=None):
+        '''
+        For use as a decorator.
+
+            >>> client.signal('idle', mask=Idle.MIXER)
+            >>> def volume_button_handler(client, event):
+            ...     volume_button.set(client.status.volume)
+
+        '''
+        def _signal(function):
+            # Register the function
+            self.signal_add(signal_name, function)
+        return _signal
+
+
     def status_timer_activate(self, repeat_ms, trigger_idle):
         c.mc_proto_status_timer_register(self._p(), repeat_ms, trigger_idle)
 
@@ -315,8 +313,6 @@ cdef class Client:
             # This is very C-ish. Sorry.
             cdef int size = 0
             cdef c.mpd_output ** op_list = c.mc_proto_get_outputs(self._p(), &size)
-
-            print(size)
 
             # Iterate over all outputs, and wrap them into a AudioOutput
             return_list = []
