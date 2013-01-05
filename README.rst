@@ -87,10 +87,10 @@ Contributing
 1. Fork it.
 2. Create a branch. (``git checkout -b my_markup``)
 3. Commit your changes. (``git commit -am "Fixed it all."``)
-4. Check if your commit message is good. (If not ``git commit --amend``)
-4. Push to the branch (``git push origin my_markup``)
-5. Open a `Pull Request`.
-6. Enjoy a refreshing Earl Grey Tea and wait.
+4. Check if your commit message is good. (If not: ``git commit --amend``)
+5. Push to the branch (``git push origin my_markup``)
+6. Open a `Pull Request`.
+7. Enjoy a refreshing Earl Grey Tea and wait.
 
 
 ~~~~~~~
