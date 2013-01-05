@@ -8,24 +8,12 @@ It's moosetastic_!
 AUTHORS
 ~~~~~~~
 
-===================================  ========================
-                                                            
-===================================  ========================
-*Christopher* **<sahib>** *Pahl*     https://github.com/sahib
-*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle
-*Christoph* **<kitteh>** *Piechula*  https://github.com/qitta
-===================================  ========================
+Here's a list of people to blame:
 
-
-=====  =====  ====== 
-   Inputs     Output 
-------------  ------ 
-  A      B    A or B 
-=====  =====  ====== 
-False  False  False 
-True   False  True 
-False  True   True 
-True   True   True 
-=====  =====  ======
+===================================  ==========================  ====================================
+*Christopher* **<sahib>** *Pahl*     https://github.com/sahib    He started it all.
+*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Pluginsystem.
+*Christoph* **<kitteh>** *Piechula*  https://github.com/qitta    Moral boosts, Idead for Pluginsystem 
+===================================  ==========================  ====================================
 
 .. _moosetastic: http://www.urbandictionary.com/define.php?term=moosetastic
