@@ -48,7 +48,8 @@ that only a few other clients have.
 
   All MPD related code and all plugins are located in the core. 
   The core itself is partly written in C (*libmoosecat*) and partly
-  in Cython.
+  in Cython. A PyGtk-GUI or an Ncurses-UI might be written relatively
+  easy and share a lot code with each else.
 
 
 
