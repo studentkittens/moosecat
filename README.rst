@@ -1,5 +1,4 @@
 ========
-========
 MOOSECAT
 ========
 
@@ -12,7 +11,7 @@ Oh wow, *another* MPD Client?
 
 Yep!
 
-There are only 240 (`Ì counted them`_) client out there
+There are only 240 (`I counted them`_) client out there
 So here's our little contribution to get up to 256 clients.
 
 Features/Goals
@@ -59,6 +58,7 @@ The source is well annotated, but there's no user documentation yet.
 Come back when it's done.
 
 
+~~~~~~~
 AUTHORS
 ~~~~~~~
 
