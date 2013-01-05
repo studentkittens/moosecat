@@ -1,16 +1,32 @@
 ========
+========
 MOOSECAT
 ========
 
 It's moosetastic_!
 
 
-Oh cool, **another** MPD Client?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Oh wow, *another* MPD Client?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yep!
 
-There are only 240 (`Ì counted them`_) client out there.
+There are only 240 (`Ì counted them`_) client out there
+So here's our little contribution to get up to 256 clients.
+
+Features/Goals
+~~~~~~~~~~~~~~
+
+Since moosecat is a full featured client, we only list the special features, 
+that only a few other clients have. 
+
+    * Database Caching: **Fast** and intellgigent searching.
+    * Playlist Manipulation in the style of `mpdc`_
+    * Good on Ressouces: Performance-critical stuff is written in C.
+
+.. note:: Quite some features need to be implemented still.
+
 
 
 Documentation
@@ -33,3 +49,4 @@ Here's a list of people to blame:
 
 .. _moosetastic: http://www.urbandictionary.com/define.php?term=moosetastic
 .. _`I counted them`: http://mpd.wikia.com/wiki/Clients
+.. _mpdc: http://nhrx.org/mpdc/
