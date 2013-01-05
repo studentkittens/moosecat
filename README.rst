@@ -30,7 +30,9 @@ that only a few other clients have.
 
     A SQLite cache is built on startup, and is used instead of MPD's internal
     search commands. On the next startup it is loaded from disk which is a lot
-    faster. 
+    faster if the server is on a remote machine. \*
+
+    \* A Raspberry Pi in our case.
 
 * **Playlist Manipulation in the style of `mpdc`_.**
 
