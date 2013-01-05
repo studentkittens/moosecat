@@ -5,7 +5,7 @@ MOOSECAT
 It's moosetastic_!
 
 
-.. image:: http://www.houseofblack.org/wp-content/uploads/2011/11/moosecat-tilt-small-781x1024.jpg
+.. image:: http://ompldr.org/vZ3l5aQ
    :scale: 25
    :align: center
 
@@ -81,7 +81,7 @@ The source is well annotated, but there's no user documentation yet.
 Come back when it's done.
 
 ~~~~~~~~~~~~
-Contributing
+CONTRIBUTING
 ~~~~~~~~~~~~
 
 1. Fork it.
