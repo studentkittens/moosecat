@@ -44,10 +44,15 @@ that only a few other clients have.
     in memory or on disk - as the user likes. When moosecat shuts down, 
     it is also able to compress the database to ~2MB.
 
+    Since a database is used the amount of network traffic is also significantly 
+    lowered in normal usage. (On startup is a lot more of course ☻)
+
 * **Plugins!**
 
     Moosecat sports an awesome Tag-based Plugin System, that is easy to use and understand.
-    Every extended feature can be enabled or disabled as the user likes. 
+    Every extended feature can be enabled or disabled as the user likes.
+
+    External Plugins are possible via Python Eggs.
 
 * **GUI-Agnostic.**
 
