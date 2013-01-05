@@ -5,19 +5,19 @@ MOOSECAT
 It's moosetastic_!
 
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#############################
 Oh wow, *another* MPD Client?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#############################
 
 Yep!
 
-There are only 240 (`I counted them`_) client out there
+There are only 240 (`I counted them`_) client out there.
 So here's our little contribution to get up to 256 clients.
 
 Features/Goals
 ~~~~~~~~~~~~~~
 
-Since moosecat is a full featured client, we only list the special features, 
+Since moosecat is a full featured clients, we only list the special features, 
 that only a few other clients have. 
 
 * Database Caching: **Fast** and intellgigent searching.
