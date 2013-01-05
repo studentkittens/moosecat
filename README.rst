@@ -21,9 +21,36 @@ Features/Goals
 Since moosecat is a full featured client, we only list the special features, 
 that only a few other clients have. 
 
-    * Database Caching: **Fast** and intellgigent searching.
-    * Playlist Manipulation in the style of `mpdc`_
-    * Good on Ressouces: Performance-critical stuff is written in C.
+* Database Caching: **Fast** and intellgigent searching.
+
+  A SQLite cache is built on startup, and is used instead of MPD's internal
+  search commands. On the next startup it is loaded from disk which is a lot
+  faster. 
+
+* Playlist Manipulation in the style of `mpdc`_.
+
+  It is not exactly sure yet how this will be implemented, but 
+  it should not be a large problem 
+
+* Good on Ressouces: Performance-critical stuff is written in C.
+
+  Even while the database sounds like poor memory usage, it is quite
+  efficient! Only ~11MB is used for the database, which can be stored
+  in memory or on disk - as the user likes. When moosecat shuts down, 
+  it is also able to compress the database to ~2MB.
+
+* Plugins!
+
+  Moosecat sports an awesome Plugin System, that is easy to use and understand.
+  Every extended feature can be enabled or disabled as the user likes. 
+
+* GUI-Agnostic.
+
+  All MPD related code and all plugins are located in the core. 
+  The core itself is partly written in C (*libmoosecat*) and partly
+  in Cython.
+
+
 
 .. note:: Quite some features need to be implemented still.
 
