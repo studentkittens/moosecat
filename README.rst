@@ -30,6 +30,9 @@ that only a few other clients have.
     search commands. On the next startup it is loaded from disk which is a lot
     faster if the server is on a remote machine. \*
 
+    To get most out of SQLite the built-in `FullTextSearch` Extension is used,
+    which does quite some indexing, but delivers awesome performance.
+
     \* A Raspberry Pi in our case.
 
 * **Playlist Manipulation in the style of `mpdc`_.**
@@ -93,3 +96,4 @@ Here's a list of people to blame:
 .. _moosetastic: http://www.urbandictionary.com/define.php?term=moosetastic
 .. _`I counted them`: http://mpd.wikia.com/wiki/Clients
 .. _mpdc: http://nhrx.org/mpdc/
+.. _FullTextSearch: http://www.sqlite.org/fts3.html
