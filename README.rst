@@ -5,8 +5,12 @@ MOOSECAT
 It's moosetastic_!
 
 
+.. image:: http://www.houseofblack.org/wp-content/uploads/2011/11/moosecat-tilt-small-781x1024.jpg
+   :width: 300
+   :align: center
+
 #############################
-Oh wow, *another* MPD Client?
+OH WOW, *ANOTHER* MPD CLIENT?
 #############################
 
 Yep!
@@ -14,7 +18,7 @@ Yep!
 There are only 240 (`I counted them`_) client out there.
 So here's our little contribution to get up to 256 clients.
 
-Features/Goals
+FEATURES/GOALS
 ~~~~~~~~~~~~~~
 
 Since moosecat is a full featured clients, we only list the special features, 
@@ -61,7 +65,8 @@ that only a few other clients have.
 
     The fact that it's mostly written in Python is a feature itself. ☻
 
-Documentation
+~~~~~~~~~~~~~~
+DOCUMENTATION
 ~~~~~~~~~~~~~~
 
 The source is well annotated, but there's no user documentation yet.
