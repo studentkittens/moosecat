@@ -73,6 +73,15 @@ that only a few other clients have.
 
     The fact that it's mostly written in Python is a feature itself. ☻
 
+* **Strong Metadata Support**
+
+    We do not mean Tagging here.
+
+    We mean: Coverart, Lyrics, Artistbiographies, Related Links, Album reviews,
+    Artistphotos and other stuff. 
+
+    All served by `liblgyr` (via `plyr`)
+
 ~~~~~~~~~~~~~~
 DOCUMENTATION
 ~~~~~~~~~~~~~~
@@ -110,3 +119,5 @@ Here's a list of people to blame:
 .. _mpdc: http://nhrx.org/mpdc/
 .. _FullTextSearch: http://www.sqlite.org/fts3.html
 .. _`Pull Request`: http://github.com/studentkittens/moosecat/pulls
+.. _libglyr: http://github.com/sahib/glyr
+.. _plyr: http://github.com/sahib/python-glyr
