@@ -86,12 +86,17 @@ that only a few other clients have.
 
     All served by `liblgyr`. (via `plyr`)
 
+
+-------
+
 ~~~~~~~~~~~~~~
 DOCUMENTATION
 ~~~~~~~~~~~~~~
 
 The source is well annotated, but there's no user documentation yet.
 Come back when it's done.
+
+-------
 
 ~~~~~~~~~~~~
 CONTRIBUTING
@@ -105,6 +110,7 @@ CONTRIBUTING
 6. Open a `Pull Request`.
 7. Enjoy a refreshing Earl Grey Tea and wait.
 
+-------
 
 ~~~~~~~
 AUTHORS
