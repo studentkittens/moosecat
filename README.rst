@@ -35,7 +35,7 @@ that only a few other clients have.
 
     \* A Raspberry Pi in our case.
 
-* **Playlist Manipulation in the style of `mpdc`_.**
+* **Playlist Manipulation in the style of** `mpdc`_.
 
     It is not exactly sure yet how this will be implemented, but 
     it should not be a large problem 
