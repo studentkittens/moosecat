@@ -80,7 +80,7 @@ that only a few other clients have.
     We mean: Coverart, Lyrics, Artistbiographies, Related Links, Album reviews,
     Artistphotos and other stuff. 
 
-    All served by `liblgyr` (via `plyr`)
+    All served by `liblgyr`. (via `plyr`)
 
 ~~~~~~~~~~~~~~
 DOCUMENTATION
@@ -93,13 +93,13 @@ Come back when it's done.
 CONTRIBUTING
 ~~~~~~~~~~~~
 
-1. Fork it.
-2. Create a branch. (``git checkout -b my_markup``)
-3. Commit your changes. (``git commit -am "Fixed it all."``)
-4. Check if your commit message is good. (If not: ``git commit --amend``)
-5. Push to the branch (``git push origin my_markup``)
-6. Open a `Pull Request`.
-7. Enjoy a refreshing Earl Grey Tea and wait.
+**1.** Fork it.
+**2.** Create a branch. (``git checkout -b my_markup``)
+**3.** Commit your changes. (``git commit -am "Fixed it all."``)
+**4.** Check if your commit message is good. (If not: ``git commit --amend``)
+**5.** Push to the branch (``git push origin my_markup``)
+**6.** Open a `Pull Request`.
+**7.** Enjoy a refreshing Earl Grey Tea and wait.
 
 
 ~~~~~~~
