@@ -13,8 +13,6 @@ It's moosetastic_!
 OH WOW, *ANOTHER* MPD CLIENT?
 #############################
 
-Yep!
-
 There are only 240 (`I counted them`_) client out there.
 So here's our little contribution to get up to 256 clients.
 
