@@ -69,6 +69,10 @@ that only a few other clients have.
     The current goal is to develop a *mpc* client as first milestone, which
     is very well tested by automated unittests. 
 
+    We even have a FakeMPD Server that is used to provide a clean counterpart
+    for the client. It can also be used to startup moosecat without a proper server 
+    anywhere.
+
 * **Python**
 
     The fact that it's mostly written in Python is a feature itself. ☻
@@ -80,7 +84,7 @@ that only a few other clients have.
     We mean: Coverart, Lyrics, Artistbiographies, Related Links, Album reviews,
     Artistphotos and other stuff. 
 
-    All served by **`liblgyr`.** (via `plyr`)
+    All served by `liblgyr`. (via `plyr`)
 
 ~~~~~~~~~~~~~~
 DOCUMENTATION
