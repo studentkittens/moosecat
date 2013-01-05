@@ -6,7 +6,7 @@ It's moosetastic_!
 
 
 .. image:: http://www.houseofblack.org/wp-content/uploads/2011/11/moosecat-tilt-small-781x1024.jpg
-   :width: 300
+   :scale: 50%
    :align: center
 
 #############################
