@@ -19,6 +19,7 @@ def _check_path(path):
 
 def _check_or_mkdir(path):
     if not os.path.exists(path):
+        LOGGER.info('Creating directory: ' + path)
         os.mkdir(path)
         _check_path(path)
 

@@ -7,6 +7,7 @@ import logging
 # Filesystem Paths
 import moosecat.boot.fs as fs
 import moosecat.config as config
+import moosecat.core as core
 
 
 def create_logger(name):
@@ -57,7 +58,7 @@ def boot_moosecat():
     create_logger(None)
 
     # Get a custom logger for bootup.
-    logger = logging.getLogger('moosecatboot')
+    logger = logging.getLogger('boot')
 
     logger.debug('a debug message')
     logger.info('an info message')
@@ -70,6 +71,14 @@ def boot_moosecat():
     cfg.load()
     cfg.set('lala', [1,22,3])
     cfg.save()
+
+
+    client = core.Client()
+    client.connect()
+    if client.is_connected:
+        logger.info('Connected')
+    else:
+        logger.warn('Not connected.')
 
 if __name__ == '__main__':
     boot_moosecat()
