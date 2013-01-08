@@ -117,7 +117,6 @@ cdef extern from "mpd/client.h":
         MPD_IDLE_SUBSCRIPTION
         MPD_IDLE_MESSAGE
 
-
     ######################
     #  Status Functions  #
     ######################
@@ -374,6 +373,52 @@ cdef extern from "../../lib/config.h":
         VERSION_MINOR         'MC_VERSION_MINOR'
         VERSION_PATCH         'MC_VERSION_PATCH'
         VERSION_GIT_REVISION  'MC_VERSION_GIT_REVISION'
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
  
  

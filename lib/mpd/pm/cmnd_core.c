@@ -84,14 +84,12 @@ static mc_cc_hot gboolean cmnder_event_callback (
     enum mpd_idle events = 0;
     gpointer item = NULL;
 
-    g_print("CALLBACK\n");
 
     /* Pop all items from the queue that are in,
      * and b'or them into one single event. */
     while ( (item = g_async_queue_try_pop (queue) ) )
         events |= GPOINTER_TO_INT (item);
 
-        g_print("Event: %d\n", events);
     mc_shelper_report_client_event (self, events);
     return TRUE;
 

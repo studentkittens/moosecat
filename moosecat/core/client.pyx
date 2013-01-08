@@ -3,8 +3,14 @@ cimport binds as c
 # bool type
 from libcpp cimport bool
 
+# Exception logging
+from cpython cimport PyErr_Print, PyErr_Occurred
+
 # 'with' statement support
 from contextlib import contextmanager
+
+# For signal handler that do not work well.
+import logging
 
 '''
 moosecat.core.Client implements the Client.
@@ -36,29 +42,74 @@ Used headers:
 ###########################################################################
 
 
+def log_exception(func):
+    logging.exception('Unhandled Exception in SignalHandler <{mod}.{func}>'.format(
+        mod=func.__module__,
+        func=func.__name__))
+
 # These callbacks are needed in order to make native Python callbacks possible.
 # They are usually called directly from libmoosecat, and do nothing but
 # executing the corresponding python function (and passing the Cython-Client
 # instance with them)
+#
+# This is repeated code since it is hard to make it generalized.
+# Also it would add stuff to the callstack.
 
-cdef void _wrap_ClientEventCallback(c.mc_Client * client, c.mpd_idle event, data) with gil:
-    data[0](data[1], event)
-
-
-cdef void _wrap_ErrorCallback(c.mc_Client * client, c.mpd_error error, char * msg, bool is_fatal, data) with gil:
-    data[0](data[1], error, msg, is_fatal)
-
-
-cdef void _wrap_ConnectivityCallback(c.mc_Client * client, bool server_changed, data) with gil:
-    data[0](data[1], server_changed)
-
-
-cdef void _wrap_ProgressCallback(c.mc_Client * client, bool print_newline, char * progress, data) with gil:
-    data[0](data[1], print_newline, progress)
+cdef void _wrap_ClientEventCallback(
+    c.mc_Client * client,
+    c.mpd_idle event,
+    object data
+) with gil:
+    try:
+        data[0](data[1], event)
+    except:
+        log_exception(data[0])
 
 
-cdef void _wrap_OpFinishedCallback(c.mc_Client * client, c.mc_OpFinishedEnum operation, data) with gil:
-    data[0](data[1], operation)
+cdef void _wrap_ErrorCallback(
+    c.mc_Client * client,
+    c.mpd_error error,
+    char * msg,
+    bool is_fatal,
+    object data
+) with gil:
+    try:
+        data[0](data[1], error, msg, is_fatal)
+    except:
+        log_exception(data[0])
+
+
+cdef void _wrap_ConnectivityCallback(
+    c.mc_Client * client,
+    bool server_changed,
+    object data
+) with gil:
+    try:
+        data[0](data[1], server_changed)
+    except:
+        log_exception(data[0])
+
+cdef void _wrap_ProgressCallback(
+    c.mc_Client * client,
+    bool print_newline,
+    char * progress,
+    object data
+) with gil:
+    try:
+        data[0](data[1], print_newline, progress)
+    except:
+        log_exception(data[0])
+
+
+cdef void _wrap_OpFinishedCallback(
+    c.mc_Client * client,
+    c.mc_OpFinishedEnum operation,
+    object data
+) with gil:
+    try:
+        data[0](data[1], operation)
+    except:
+        log_exception(data[0])
 
 
 ###########################################################################
@@ -99,6 +150,7 @@ class Idle:
 
 cdef class Client:
     cdef c.mc_Client * _cl
+    cdef object _signal_data_map
 
     def __cinit__(self):
         '''
@@ -106,6 +158,9 @@ cdef class Client:
         This is not connected yet.
         '''
         self._cl = c.mc_proto_create(c.PM_COMMAND)
+
+    def __init__(self):
+        self._signal_data_map = {}
 
     cdef c.mc_Client * _p(self):
         return self._cl
@@ -162,7 +217,7 @@ cdef class Client:
         else:
             raise UnknownSignalName(',,' + signal_name + "'' unknown.")
 
-    def signal_add(self, signal_name, func, idle_event, mask=0xFFFFFFFF):
+    def signal_add(self, signal_name, func, mask=0xFFFFFFFF):
         '''
         Add a func to be called on certain events.
 
@@ -173,7 +228,15 @@ cdef class Client:
         cdef void * c_func = NULL
 
         with self._valid_signal_name(signal_name) as b_name:
+            # This data is passed to the callback.
+            # The callback is actually called on the C-side, and
+            # just forwards a Py_Object object.
             data = [func, self]
+
+            # Since signal_add() returns immediately, we have to make sure
+            # the local "data" survives the return. Since callbacks might
+            # be called several times we cannot use Py_INCREF here.
+            self._signal_data_map[func] = data
 
             if signal_name == 'client-event':
                 c_func = <void*>_wrap_ClientEventCallback
@@ -191,12 +254,16 @@ cdef class Client:
             if c_func != NULL:
                 c.mc_proto_signal_add_masked(self._p(), b_name,
                                         <void*> c_func,
-                                        <void*> data, idle_event)
+                                        <void*> data, mask)
 
     def signal_rm(self, signal_name, func):
         'Remove a signal from the callable list'
         with self._valid_signal_name(signal_name) as b_name:
             c.mc_proto_signal_rm(self._p(), b_name, <void*> func)
+
+            # Remove the ref to the internally hold callback data,
+            # so this can get garbage collected, properly counted.
+            del self._signal_data_map[func]
 
     def signal_count(self, signal_name):
         'Return the number of registerd signals'
@@ -217,26 +284,26 @@ cdef class Client:
         cdef char * error_msg
         cdef int error_is_fatal
 
-        with self._valid_signal_name(signal_name):
+        with self._valid_signal_name(signal_name) as b_name:
             # Check the signal-name, and dispatch it differently.
             if signal_name == 'client-event':
                 event = int(args[0])
-                c.mc_proto_signal_dispatch(self._p(), signal_name, event)
+                c.mc_proto_signal_dispatch(self._p(), b_name, self._p(), event)
             elif signal_name == 'connectivity':
                 server_changed = int(args[0])
-                c.mc_proto_signal_dispatch(self._p(), signal_name, server_changed)
+                c.mc_proto_signal_dispatch(self._p(), b_name,self._p(), server_changed)
             elif signal_name == 'error':
                 error_id = int(args[0])
                 error_msg = args[1]
                 error_is_fatal = int(args[2])
-                c.mc_proto_signal_dispatch(self._p(), signal_name, error_id, error_msg, error_is_fatal)
+                c.mc_proto_signal_dispatch(self._p(), b_name, self._p(), error_id, error_msg, error_is_fatal)
             elif signal_name == 'progress':
                 progress_print_newline = int(args[0])
                 progress_msg = args[1]
-                c.mc_proto_signal_dispatch(self._p(), signal_name, progress_print_newline, progress_msg)
+                c.mc_proto_signal_dispatch(self._p(), b_name, self._p(), progress_print_newline, progress_msg)
             elif signal_name == 'op-finished':
                 op_finished = int(args[0])
-                c.mc_proto_signal_dispatch(self._p(), signal_name, op_finished)
+                c.mc_proto_signal_dispatch(self._p(), b_name, self._p(), op_finished)
 
     def signal(self, signal_name, mask=None):
         '''

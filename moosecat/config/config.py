@@ -16,7 +16,7 @@ class Config:
     Loads and saves config params in a .yaml file
 
     """
-    def __init__(self, filename='app.yaml'):
+    def __init__(self, filename='config.yaml'):
         """Constructor
 
         filename: name where the config is located
@@ -48,7 +48,7 @@ class Config:
             with open(self._filename, 'r') as f:
                 self._data = yaml.load(f.read())
             self._loaded = True
-        except (IOError):
+        except IOError:
             self._data = {}
             self._loaded = False
 
