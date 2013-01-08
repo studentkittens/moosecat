@@ -8,8 +8,6 @@ Tool(s) to manage plugins
 .. moduleauthor:: serztle <serztle@googlemail.com>
 """
 
-# Sehr sehr schön schon. Es fehlen noch ein paar weitere docstring und ein paar
-# examples :-)
 
 __author__ = 'serztle'
 
@@ -104,6 +102,16 @@ class PluginSystem:
              'classes': [],
              'globals': []
              }
+
+
+        Example:
+        >>> metadata_description = {'name': 'metadata',
+        ...                         'description': 'Retrieve some fucking coverart and stuff',
+        ...                         'functions': ['get_metadata', 'close_all'],
+        ...                         'classes': [],
+        ...                         'globals': []
+        ...                         }
+        >>> psys.register_tag(metadata_description)
         """
         tag_name = tag_description['name']
         if tag_name not in self._tags:
@@ -129,6 +137,9 @@ class PluginSystem:
         priority: if more than one plugin is registered for one tag. they get called in descendant order of priority.
         on_load_func: when plugin gets loaded, the given function get called
         on_unload_func: when plugin gets unloaded, the given function get called
+
+        Example:
+        >>> psys.register_plugin('glyr', 'moosecat.plugin.plugins.metadata.glyr', 1.0)
         """
         if name in self._plugins:
             raise RegisterError("Error while registering plugin (name already exists)")
@@ -168,6 +179,15 @@ class PluginSystem:
             self._tags[tag].plugins.append(plugin)
 
     def load(self, name):
+        """Load a plugin by name
+
+        Loading means adding the plugin to `self._loaded_plugins`
+
+        name: plugin name (see register_plugin)
+
+        Example:
+        >>> psys.load('glyr')
+        """
         if name not in self._loaded_plugins:
             if name in self._plugins:
                 plugin = self._plugins[name]
@@ -176,7 +196,6 @@ class PluginSystem:
                 self._loaded_plugins[name] = plugin
                 for tag in plugin.tags:
                     self._loaded_plugins_by_tag[tag].append(plugin)
-                    # Ich versteh noch nicht ganz warum du es hier sortierst.
                     self._loaded_plugins_by_tag[tag] = sorted(self._loaded_plugins_by_tag[tag],
                                                               key=lambda plugin: plugin.priority,
                                                               reverse=True)
@@ -184,6 +203,15 @@ class PluginSystem:
                 raise LookupError("Plugin " + name + " doesn't exists")
 
     def unload(self, name):
+        """Unload a plugin by name
+
+        Unloading means deleting the plugin from `self._loaded_plugins`
+
+        name: plugin name (see register_plugin
+
+        Example:
+        >>> psys.unload('glyr')
+        """
         if name in self._loaded_plugins:
             plugin = self._plugins[name]
             if plugin.on_unload_func:
@@ -197,6 +225,11 @@ class PluginSystem:
                     index = index + 1
 
     def _load_unload_by_tag(self, tag_name, func):
+        """Helper method to load/unload a plugin depending on the given 'function'
+
+        tag_name: tag name (see register_tag)
+        func: load or unload function (self.load, self.unload)
+        """
         if tag_name in self._tags:
             for plugin in self._tags[tag_name].plugins:
                 func(plugin.name)
@@ -204,15 +237,43 @@ class PluginSystem:
             raise LookupError("Tag " + tag_name + " doesn`t exists")
 
     def load_by_tag(self, tag_name):
+        """Load plugins by tag name
+
+        tag_name: tag name (see register_tag)
+
+        Example:
+        >>> psys.load_by_tag('metadata')
+        """
         self._load_unload_by_tag(tag_name, self.load)
 
     def unload_by_tag(self, tag_name):
+        """Unload plugins by tag name
+
+        tag_name: tag name (see register_tag)
+
+        Example:
+        >>> psys.unload_by_tag('metadata')
+        """
         self._load_unload_by_tag(tag_name, self.unload)
 
     def __call__(self, tag_name):
+        """Returns all loaded plugins for the given tag name
+
+        tag_name: tag name (see register_tag)
+
+        Example:
+        >>> psys('metadata')
+        """
         return self._loaded_plugins_by_tag.get(tag_name)
 
     def __getitem__(self, tag_name):
+        """Returns the first plugin (highest priority) for the given tag name
+
+        tag_name: tag name (see register_tag)
+
+        Example:
+        >>> psys['metadata']
+        """
         return self._loaded_plugins_by_tag.get(tag_name, [None])[0]
 
 psys = PluginSystem()
