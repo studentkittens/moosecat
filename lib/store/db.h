@@ -131,6 +131,20 @@ int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const cha
 int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack);
 
 /**
+ * @brief Get a list (i.e. mc_Stack) of available playlist names on server-side.
+ *
+ * This is updated internally, and will change when the user changes it.
+ * You will be notified with a stored-playlist signal. 
+ *
+ * Do not modify the returned value.
+ *
+ * @param self the store to operate on.
+ *
+ * @return A mc_Stack. DO NOT MODIFY IT!
+ */
+const mc_Stack * mc_store_playlist_get_all_names (mc_StoreDB * self);
+
+/**
  * @brief 
  *
  * @param self
@@ -141,5 +155,14 @@ int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack);
  * @return 
  */
 int mc_store_search_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_Stack * stack, int limit_len);
+
+/**
+ * @brief Wait for the store to finish it's current operation.
+ *
+ * This is useful to wait for it to finish before shutdown.
+ *
+ * @param self the store to operate on.
+ */
+void mc_store_wait (mc_StoreDB * self);
 
 #endif /* end of include guard: DB_GUARD_H */

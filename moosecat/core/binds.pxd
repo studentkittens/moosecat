@@ -31,6 +31,9 @@ cdef extern from "mpd/client.h":
     cdef struct mpd_output:
         pass
 
+    cdef struct mpd_playlist:
+        pass
+
     # This is hidden to prevent misuse.
     # cdef struct mpd_connection:
     #    pass
@@ -193,6 +196,15 @@ cdef extern from "mpd/client.h":
     int mpd_output_get_id(mpd_output *)
     char * mpd_output_get_name(mpd_output *)
 
+    #######################
+    #  Playlist Function  #
+    #######################
+
+    char * mpd_playlist_get_path(mpd_playlist *)
+    time_t mpd_playlist_get_last_modified(mpd_playlist *)
+    mpd_playlist * mpd_playlist_begin(mpd_pair *)
+
+
 ###########################################################################
 #                             Main Interface                              #
 ###########################################################################
@@ -330,6 +342,7 @@ cdef extern from "../../lib/store/stack.h":
     void mc_stack_clear (mc_Stack *)
     unsigned mc_stack_length (mc_Stack *)
     void mc_stack_sort (mc_Stack *, void *)
+    void * mc_stack_at(mc_Stack *, unsigned)
 
 
 cdef extern from "../../lib/store/db-settings.h":
@@ -353,8 +366,10 @@ cdef extern from "../../lib/store/db.h":
     int mc_store_playlist_select_to_stack (mc_StoreDB *, mc_Stack *, char *, char *)
     int mc_store_dir_select_to_stack (mc_StoreDB *, mc_Stack *,char *, int)
     int mc_store_playlist_get_all_loaded (mc_StoreDB *, mc_Stack *)
+    mc_Stack * mc_store_playlist_get_all_names (mc_StoreDB *)
     int mc_store_search_to_stack (mc_StoreDB *, char *, bool, mc_Stack *, int)
     bool mc_store_get_wait_mode (mc_StoreDB *)
+    void mc_store_wait (mc_StoreDB *) nogil
 
 ###########################################################################
 #                             Misc Interfaces                             #
@@ -379,30 +394,108 @@ cdef extern from "../../lib/config.h":
 
 
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
  
  

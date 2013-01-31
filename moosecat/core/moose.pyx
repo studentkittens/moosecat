@@ -10,8 +10,9 @@ include "statistics.pyx"
 include "output.pyx"
 
 # Actual libmoosecat functionality
-include "client.pyx"
+include "playlist.pyx"
 include "store.pyx"
+include "client.pyx"
 
 
 # Try to register SIGSEGV catching.

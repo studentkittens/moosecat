@@ -81,7 +81,9 @@ void mc_stack_sort (mc_Stack * self, GCompareFunc func);
  *
  * @return a void* being at that place.
  */
-#define mc_stack_at(self, at) g_ptr_array_index (self->stack, at)
+inline void * mc_stack_at(mc_Stack * self, unsigned at) {
+    return g_ptr_array_index (self->stack, at);
+}
 
 #endif /* end of include guard: MC_STORE_STACK_H */
 

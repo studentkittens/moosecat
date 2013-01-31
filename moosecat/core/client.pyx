@@ -74,7 +74,8 @@ cdef void _wrap_ErrorCallback(
     object data
 ) with gil:
     try:
-        data[0](data[1], error, msg, is_fatal)
+        s_msg= stringify(msg)
+        data[0](data[1], error, s_msg, is_fatal)
     except:
         log_exception(data[0])
 
@@ -96,7 +97,8 @@ cdef void _wrap_ProgressCallback(
     object data
 ) with gil:
     try:
-        data[0](data[1], print_newline, progress)
+        s_progress = stringify(progress)
+        data[0](data[1], print_newline, s_progress)
     except:
         log_exception(data[0])
 
@@ -150,6 +152,8 @@ class Idle:
 
 cdef class Client:
     cdef c.mc_Client * _cl
+    cdef c.mc_StoreDB * _store
+    cdef object _store_wrapper
     cdef object _signal_data_map
 
     def __cinit__(self):
@@ -158,6 +162,8 @@ cdef class Client:
         This is not connected yet.
         '''
         self._cl = c.mc_proto_create(c.PM_COMMAND)
+        self._store = NULL
+        self._store_wrapper = None
 
     def __init__(self):
         self._signal_data_map = {}
@@ -348,7 +354,8 @@ cdef class Client:
     property host:
         'Get the host this client is currently connected to'
         def __get__(self):
-            return c.mc_proto_get_host(self._p())
+            b_host = <char*>c.mc_proto_get_host(self._p())
+            return stringify(b_host)
 
     property port:
         'Get the port this client is currently connected to'
@@ -390,6 +397,18 @@ cdef class Client:
                     i += 1
 
             return return_list
+
+    property store:
+        def __get__(self):
+            return self._store_wrapper
+
+    ####################
+    #  Store commands  #
+    ####################
+
+    def store_initialize(self, db_directory, use_memory_db=True, use_compression=True, tokenizer=None):
+        self._store_wrapper = Store()._init(self._p(), db_directory, use_memory_db, use_compression, tokenizer)
+        self._store_wrapper.load()
 
     #####################
     #  Client Commands  #

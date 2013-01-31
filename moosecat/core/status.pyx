@@ -223,10 +223,22 @@ cdef class Status:
 
     property replay_gain_mode:
         def __get__(self):
-            return self.status.replay_gain_mode
+            #mc_client_replay_gain_mode(self._c(), )
+            #return self.replay_gain_mode
+            # TODO
+            return 'off'
         def __set__(self, mode):
             if mode in ['off', 'album', 'track', 'auto']:
                 b_mode = bytify(mode)
                 c.mc_client_replay_gain_mode(self._c(), b_mode)
             else:
                 raise ValueError('mode must be one of off, track, album, auto')
+
+    def __str__(self):
+        # Quite a hack, but only used for debugging.
+        attrs = {k: v.__get__(self)
+                 for k, v in self.__class__.__dict__.items()
+                 if type(v) == type(Status.volume)}
+        return '\n'.join(['{k}: {v}'.format(k=k,v=v) for k,v in attrs.items()])
+
+

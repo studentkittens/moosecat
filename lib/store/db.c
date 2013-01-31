@@ -461,8 +461,12 @@ static gpointer mc_store_do_listall_and_plchanges (mc_StoreDB * self)
     mc_store_do_plchanges (self, false);
     mc_stprv_spl_update (self);
     mc_stprv_insert_meta_attributes (self);
-
     UNLOCK_UPDATE_MTX (self);
+
+    if (self->create.double_unlock) {
+        g_mutex_unlock(&self->create.mutex);
+        self->create.double_unlock = FALSE;
+    }
     
     g_thread_unref (g_thread_self () );
     return NULL;
@@ -491,6 +495,11 @@ static gpointer mc_store_deserialize_songs_and_plchanges (mc_StoreDB * self)
     mc_stprv_insert_meta_attributes (self);
     UNLOCK_UPDATE_MTX (self);
     
+    if (self->create.double_unlock) {
+        g_mutex_unlock(&self->create.mutex);
+        self->create.double_unlock = FALSE;
+    }
+
     g_thread_unref (g_thread_self () );
     return NULL;
 }
@@ -614,6 +623,13 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
     /* used to exchange songs between network <-> sql threads */
     store->sqltonet_queue = g_async_queue_new ();
 
+    /* This mutex survives the return of mc_store_create.
+     * It will be unlocked when done by mc_store_create_background
+     */
+    store->create.double_unlock = TRUE;
+    g_mutex_init(&store->create.mutex);
+    g_mutex_lock(&store->create.mutex);
+
     if ( (song_count = mc_store_check_if_db_is_still_valid (store, db_path) ) < 0) {
         mc_shelper_report_progress (store->client, true, "database: will fetch stuff from mpd.");
 
@@ -659,9 +675,10 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
          *  so we might only need update it a bit */
         store->need_full_queue = FALSE;
         store->need_full_db = FALSE;
-
+        
         /* Update queue information in bkgd */
         mc_store_deserialize_songs_and_plchanges_bkgd (store);
+
     }
 
     mc_signal_add_masked (
@@ -718,9 +735,16 @@ void mc_store_close (mc_StoreDB * self)
     if (self->settings->use_memory_db == false)
         g_unlink (MC_STORE_TMP_DB_PATH);
 
-    mc_store_settings_destroy (self->settings);
+
+    /* NOTE: Settings should be destroyed by caller,
+     *       Since it should be valid to call close()
+     *       several times.
+     */
+    //mc_store_settings_destroy (self->settings);
+    
     g_rec_mutex_clear (&self->db_update_lock);
     g_async_queue_unref (self->sqltonet_queue);
+    g_mutex_clear(&self->create.mutex);
     g_free (self->db_directory);
     g_free (full_path);
     g_free (self);
@@ -773,6 +797,13 @@ int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack)
 
 ///////////////
 
+const mc_Stack * mc_store_playlist_get_all_names (mc_StoreDB * self)
+{
+    return self->spl.stack;
+}
+
+///////////////
+
 int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth)
 {
     return mc_stprv_dir_select_to_stack (self, stack, directory, depth);
@@ -794,4 +825,17 @@ int mc_store_total_songs (mc_StoreDB * self)
     g_assert (self);
 
     return mc_stack_length (self->stack);
+}
+
+///////////////
+
+void mc_store_wait (mc_StoreDB * self)
+{
+    if (self->create.double_unlock == FALSE) {
+        LOCK_UPDATE_MTX(self);
+        UNLOCK_UPDATE_MTX(self);
+    } else {
+        g_mutex_lock(&self->create.mutex);
+        g_mutex_unlock(&self->create.mutex);
+    }
 }

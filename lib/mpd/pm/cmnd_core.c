@@ -117,7 +117,6 @@ static mc_cc_hot gpointer cmnder_listener_thread (gpointer data)
         mc_shelper_report_error_without_handling ( (mc_Client *) self, self->idle_con);
     }
 
-    mc_shelper_report_progress ( (mc_Client *) self, true, "cmnd-core: Listener Thread exited.");
     return NULL;
 }
 
@@ -283,9 +282,7 @@ static char * cmnder_do_connect (
                                             (GThreadFunc) cmnder_ping_server, self);
     }
 
-    
 failure:
-
     return error_message;
 }
 

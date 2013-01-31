@@ -64,6 +64,12 @@ typedef struct mc_StoreDB {
         sqlite3_stmt * select_tables_stmt;
     } spl;
 
+    /* Things that only are important for creating */
+    struct {
+        bool double_unlock;
+        GMutex mutex;
+    } create;
+
 } mc_StoreDB;
 
 #endif /* end of include guard: MC_DB_STORE_HH */

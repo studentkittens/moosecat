@@ -83,7 +83,7 @@ void mc_shelper_report_error_printf (
     va_list list_ptr;
     va_start (list_ptr, format);
     if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch (self, "error", self, -1, full_string, false);
+        mc_proto_signal_dispatch (self, "error", self, 0, full_string, false);
     }
     va_end (list_ptr);
 }
@@ -113,13 +113,15 @@ void mc_shelper_report_connectivity (
     int new_port)
 {
     bool server_changed = (g_strcmp0 (new_host, self->_host) != 0) || (new_port != self->_port);
-    mc_proto_signal_dispatch (self, "connectivity", self, server_changed);
 
     if (self->_host != NULL)
         g_free (self->_host);
 
     self->_host = g_strdup (new_host);
     self->_port = new_port;
+    
+    /* Dispatch *after* host being set */
+    mc_proto_signal_dispatch (self, "connectivity", self, server_changed);
 }
 
 ///////////////////////////////

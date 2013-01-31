@@ -28,6 +28,9 @@ Examples:
 '''
 
 import sys
+import logging
+import moosecat.boot.boot as boot
+
 
 try:
     import docopt
@@ -37,15 +40,26 @@ except ImportError:
     sys.exit(-1)
 
 
-import moosecat.core as m
-
-
 if __name__ == '__main__':
     args = docopt.docopt(__doc__, version='moocat 0.1')
+    logger = logging.getLogger('moocat')
 
-    if args['<command>'] is None:
-        client = m.Client()
+    boot.boot_moosecat()
 
-        client.connect(host=args['--host'], port=int(args['--port']))
-        print(client.status, client.currentsong, client.statistics)
-        client.disconnect()
+    command = args['<command>']
+    if command == 'next':
+        boot.client.player_next()
+    elif command == 'prev':
+        boot.client.player_previous()
+    elif command == 'status':
+        print(boot.client.status)
+    elif command == 'outputs':
+        for output in boot.client.outputs:
+            print('#{oid}\t{name}\t{on}'.format(oid=output.oid, name=output.name, on=output.enabled))
+    elif command == 'view':
+        boot.client.store_initialize('/tmp')
+        boot.client.store.wait_mode = True
+        boot.client.store.wait()
+        boot.client.store.load_stored_playlist('test')
+
+    boot.shutdown_moosecat()

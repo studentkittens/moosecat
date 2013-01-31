@@ -176,7 +176,8 @@ static void mc_stprv_spl_delete_content (mc_StoreDB * self, const char * table_n
 static struct mpd_playlist * mc_stprv_spl_name_to_playlist (mc_StoreDB * store, const char * playlist_name) {
     g_assert (store);
 
-    for (unsigned i = 0; i < mc_stack_length (store->spl.stack); ++i) {
+    unsigned length = mc_stack_length (store->spl.stack);
+    for (unsigned i = 0; i < length; ++i) {
         struct mpd_playlist * playlist = mc_stack_at (store->spl.stack, i);
         if (playlist && g_strcmp0 (playlist_name, mpd_playlist_get_path (playlist) ) == 0) {
             return playlist;
@@ -273,7 +274,9 @@ void mc_stprv_spl_update (mc_StoreDB * self)
 
             if (is_valid == false) {
                 /* drop invalid table */
-                mc_shelper_report_progress (self->client, true, "database: Dropping orphaned playlist-table ,,%s''", drop_table_name);
+                mc_shelper_report_progress (self->client, true,
+                        "database: Dropping orphaned playlist-table ,,%s''",
+                        drop_table_name);
                 mc_stprv_spl_drop_table (self, drop_table_name);
 
                 iter = iter->next;
