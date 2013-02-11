@@ -89,6 +89,19 @@ that only a few other clients have.
 
 -------
 
+~~~~~~~~~~~~~~~~
+NOTES FOR MYSELF
+~~~~~~~~~~~~~~~~
+
+C-Side-Stuff::
+
+    sudo pacman -S libmpdclient glib
+
+Python-Stuff::
+
+    sudo pacman -S python-yaml cython
+    sudo pip install
+
 ~~~~~~~~~~~~~~
 DOCUMENTATION
 ~~~~~~~~~~~~~~

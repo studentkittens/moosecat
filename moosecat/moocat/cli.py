@@ -58,8 +58,14 @@ if __name__ == '__main__':
             print('#{oid}\t{name}\t{on}'.format(oid=output.oid, name=output.name, on=output.enabled))
     elif command == 'view':
         boot.client.store_initialize('/tmp')
-        boot.client.store.wait_mode = True
-        boot.client.store.wait()
-        boot.client.store.load_stored_playlist('test')
+        store = boot.client.store
+        store.wait_mode = True
+        store.wait()
+
+        for name in store.stored_playlist_names:
+            store.stored_playlist_load(name)
+
+        for song in store.stored_playlist_search('test', 'e*'):
+            print(song.title)
 
     boot.shutdown_moosecat()

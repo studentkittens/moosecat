@@ -749,8 +749,12 @@ void mc_stprv_deserialize_songs (mc_StoreDB * self, bool lock_self)
         mc_stack_append (self->stack, song);
 
         if (++progress_counter % 50 == 0) {
-            mc_shelper_report_progress (self->client, false, "database: deserializing songs from db ... [%d/%d]",
-                    progress_counter, mpd_stats_get_number_of_songs (self->client->stats) );
+            int total_count = (self->client->stats != NULL) ? 
+                (int)mpd_stats_get_number_of_songs (self->client->stats) : -666;
+
+            mc_shelper_report_progress (self->client, false,
+                    "database: deserializing songs from db ... [%d/%d]",
+                    progress_counter, total_count);
         }
     }
 

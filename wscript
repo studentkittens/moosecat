@@ -16,7 +16,7 @@ VERSION = '0.0.1'
 CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-O']
 
 # Optional flags:
-CFLAGS += ['-ggdb3', '-Wall', '-W']
+CFLAGS += ['-ggdb3', '-Wall', '-W', '-Wno-unused-parameter']
 
 # These files are not built into libmoosecat.so
 EXCLUDE_FILES = []
@@ -171,6 +171,8 @@ def build(bld):
         EXCLUDE_FILES.append(sources)
 
     build_test_program('lib/main.c', 'moosecat_runner')
+    build_test_program('lib/test_idle.c', 'test_idle')
+    build_test_program('lib/time_playlist.c', 'time_playlist')
     build_test_program('lib/db_test.c', 'db_test')
     build_test_program('lib/test_outputs.c', 'test_outputs')
     build_test_program('lib/event_test.c', 'event_test')

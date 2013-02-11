@@ -1,7 +1,5 @@
 #include "api.h"
-
 #include <stdlib.h>
-#include <stdio.h>
 
 static mc_Client * conn = NULL;
 
@@ -69,11 +67,11 @@ static void signal_connectivity (
 
 /////////////////////////////
 
-gboolean next_song (gpointer user_data)
+static gboolean register_all_the_things(gpointer user_data)
 {
-    GMainLoop * loop = (GMainLoop *) user_data;
+    //GMainLoop * loop = (GMainLoop *) user_data;
 
-    conn = mc_proto_create (MC_PM_COMMAND);
+    conn = mc_proto_create (MC_PM_IDLE);
     mc_proto_signal_add (conn, "client-event", signal_event, NULL);
     mc_proto_signal_add (conn, "error", signal_error, NULL);
     mc_proto_signal_add (conn, "progress", signal_progress, NULL);
@@ -81,25 +79,26 @@ gboolean next_song (gpointer user_data)
 
     mc_misc_register_posix_signal (conn);
 
-    const int N = 100;
-    for (int i = 0; i < N; i++) {
-        char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
-        if ( err != NULL ) {
-            g_print ("Err: %s\n", err);
-            g_free (err);
-            break;
-        }
-
-        for (int v = 0; v < 101; v++) {
-            g_print("setvol %d\n", v);
-            mc_client_setvol (conn, v);
-            while (g_main_context_iteration (NULL, FALSE));
-        }
-        mc_proto_disconnect (conn);
+    char * err = mc_proto_connect (conn, NULL, "localhost", 6600, 2);
+    if ( err != NULL ) {
+        g_print ("Error: %s\n", err);
+        g_free (err);
+        return EXIT_FAILURE;
     }
 
-    mc_proto_free (conn);
-    g_main_loop_quit (loop);
+    g_print("Main loop running\n");
+    return FALSE;
+}
+
+/////////////////////////////
+
+static gboolean unregister_all_the_things(gpointer user_data)
+{
+    GMainLoop * loop = (GMainLoop *) user_data;
+    g_print("Making the disconnect thing.\n");
+    g_main_loop_quit(loop);
+    mc_proto_disconnect (conn);
+
     return FALSE;
 }
 
@@ -108,9 +107,13 @@ gboolean next_song (gpointer user_data)
 int main (void)
 {
     GMainLoop * loop = g_main_loop_new (NULL, FALSE);
-    g_timeout_add (0, next_song, loop);
+
+    /* Init with already running mainloop */
+    g_timeout_add (0, register_all_the_things, loop);
+
+    /* disconnect after 5 seconds */
+    g_timeout_add (5 * 1000, unregister_all_the_things, loop);
     g_main_loop_run (loop);
     g_main_loop_unref (loop);
-
     return EXIT_SUCCESS;
 }

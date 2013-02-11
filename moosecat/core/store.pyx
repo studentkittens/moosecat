@@ -87,7 +87,7 @@ cdef class Store:
         with nogil:
             c.mc_store_wait(p)
 
-    def load_stored_playlist(self, name):
+    def stored_playlist_load(self, name):
         '''
         Load a stored playlist by it's name, and return a Playlist object.
         If the playlist is already loaded, the existing one is returned.
@@ -97,6 +97,15 @@ cdef class Store:
         '''
         b_name = bytify(name)
         c.mc_store_playlist_load(self._p(), b_name)
+
+    def stored_playlist_search(self, name, match_clause):
+        cdef c.mc_Stack * stack = c.mc_stack_create(0, NULL)
+
+        if stack != NULL:
+            b_name = bytify(name)
+            b_match_clause = bytify(match_clause)
+            c.mc_store_playlist_select_to_stack (self._p(), stack,  b_name, b_match_clause)
+            return Playlist(name=name)._init(stack)
 
     ################
     #  Properties  #
