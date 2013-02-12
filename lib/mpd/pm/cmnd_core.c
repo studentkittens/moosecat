@@ -49,13 +49,13 @@ typedef struct {
     /* Indicates that the listener runs,
      * if false it may still run, but will
      * terminate on next iteration */
-    gboolean run_listener;
+    volatile gboolean run_listener;
 
     /* Indicates if the ping thread is supposed to run.
      * We need to ping the server because of the connection-timeout ,,feature'',
      * Otherwise we'll get disconnected after (by default) ~60 seconds.
      * Setting this flag to false will stop running threads. */
-    gboolean run_pinger;
+    volatile gboolean run_pinger;
 
     /* Actual thread for the pinger thread.
      * It is started on first connect,
@@ -205,6 +205,10 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
         mc_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
                          PING_SLEEP_TIMEOUT, &self->run_pinger);
 
+        if (self->run_pinger == false) {
+            break;
+        }
+
         if (mc_proto_is_connected((mc_Client *) self)) {
             mpd_connection *con = mc_proto_get((mc_Client *) self);
 
@@ -225,6 +229,7 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
         }
     }
 
+
     return NULL;
 }
 
@@ -237,6 +242,7 @@ static void cmnder_shutdown_pinger(mc_CmndClient *self)
     if (self->pinger_thread != NULL) {
         self->run_pinger = FALSE;
         g_thread_join(self->pinger_thread);
+        self->pinger_thread = NULL;
     }
 }
 
@@ -276,7 +282,7 @@ static char *cmnder_do_connect(
     self->event_queue = g_async_queue_new();
     cmnder_create_glib_adapter(self, context);
 
-    /* ping thread */
+    /* start ping thread */
     if (self->pinger_thread == NULL) {
         self->run_pinger = TRUE;
         self->pinger_thread = g_thread_new("cmnd-core-pinger",
@@ -297,10 +303,12 @@ static bool cmnder_do_is_connected(mc_Client *parent)
 
 ///////////////////////
 
-static bool cmnder_do_disconnect(mc_Client *self)
+static bool cmnder_do_disconnect(mc_Client *parent)
 {
-    if (cmnder_do_is_connected(self)) {
-        cmnder_reset(child(self));
+    if (cmnder_do_is_connected(parent)) {
+        mc_CmndClient *self = child(parent);
+        cmnder_shutdown_pinger(self);
+        cmnder_reset(self);
         return true;
     } else {
         return false;
@@ -314,14 +322,21 @@ static mpd_connection *cmnder_do_get(mc_Client *self)
     return child(self)->cmnd_con;
 }
 
+///////////////////////
+
+static void cmnder_do_put(mc_Client *self)
+{
+    /* NOOP */
+    (void) self;
+}
+
 //////////////////////
 
 static void cmnder_do_free(mc_Client *parent)
 {
     g_assert(parent);
-    cmnder_do_disconnect(parent);
     mc_CmndClient *self = child(parent);
-    cmnder_shutdown_pinger(self);
+    cmnder_do_disconnect(parent);
     memset(self, 0, sizeof(mc_CmndClient));
     g_free(self);
 }
@@ -339,7 +354,7 @@ mc_Client *mc_proto_create_cmnder(long connection_timeout_ms)
     mc_CmndClient *self = g_new0(mc_CmndClient, 1);
     self->logic.do_disconnect = cmnder_do_disconnect;
     self->logic.do_get = cmnder_do_get;
-    self->logic.do_put = NULL;
+    self->logic.do_put = cmnder_do_put;
     self->logic.do_free = cmnder_do_free;
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;

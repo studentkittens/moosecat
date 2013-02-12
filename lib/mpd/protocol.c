@@ -93,7 +93,7 @@ char *mc_proto_connect(
     mc_shelper_report_progress(self, true, "Attempting to connect…");
 
     /* init the getput mutex */
-    g_mutex_init(&self->_getput_mutex);
+    g_rec_mutex_init(&self->_getput_mutex);
 
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup(self->do_connect(self, context, host, port, ABS(timeout)));
@@ -134,9 +134,9 @@ void mc_proto_put(mc_Client *self)
         self->do_put(self);
 
         /* Make the connection accesible to other threads */
-        g_mutex_unlock(&self->_getput_mutex);
-    }
+        g_rec_mutex_unlock(&self->_getput_mutex);
 
+    }
 }
 
 ///////////////////
@@ -147,11 +147,12 @@ struct mpd_connection *mc_proto_get(mc_Client *self) {
     /* Return the readily sendable connection */
     struct mpd_connection *cconn = NULL;
 
+
     if (mc_proto_is_connected(self)) {
         /* lock the connection to make sure, only one thread
         * can use it. This prevents us from relying on
         * the user to lock himself. */
-        g_mutex_lock(&self->_getput_mutex);
+        g_rec_mutex_lock(&self->_getput_mutex);
 
         cconn = self->do_get(self);
         mc_shelper_report_error(self, cconn);
@@ -178,7 +179,7 @@ char *mc_proto_disconnect(
         /* Free output list */
         mc_proto_outputs_free(self);
 
-        g_mutex_clear(&self->_getput_mutex);
+        g_rec_mutex_clear(&self->_getput_mutex);
 
         if (error_happenend)
             return g_strdup(etable[ERR_UNKNOWN]);

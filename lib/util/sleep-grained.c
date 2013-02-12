@@ -1,6 +1,6 @@
 #include "sleep-grained.h"
 
-void mc_sleep_grained(unsigned ms, unsigned interval_ms, gboolean *check)
+void mc_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *check)
 {
     g_assert(check);
 

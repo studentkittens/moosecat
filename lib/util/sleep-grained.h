@@ -19,6 +19,6 @@
  * @param interval_ms interval to check in ms
  * @param check a pointer to a condition
  */
-void mc_sleep_grained(unsigned ms, unsigned interval_ms, gboolean *check);
+void mc_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *check);
 
 #endif /* end of include guard: MC_SLEEP_GRAINED_H */
