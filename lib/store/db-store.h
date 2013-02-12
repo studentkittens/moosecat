@@ -12,20 +12,20 @@
 
 typedef struct mc_StoreDB {
     /* directory db lies in */
-    char * db_directory;
+    char *db_directory;
 
     /* songstack - a place for mpd_songs to live in */
-    mc_Stack * stack;
+    mc_Stack *stack;
 
     /* handle to sqlite */
-    sqlite3 * handle;
+    sqlite3 *handle;
 
     /* prepared statements */
-    sqlite3_stmt ** sql_prep_stmts;
-    sqlite3_stmt ** sql_dir_stmts;
+    sqlite3_stmt **sql_prep_stmts;
+    sqlite3_stmt **sql_dir_stmts;
 
     /* client associated with this store */
-    mc_Client * client;
+    mc_Client *client;
 
     /* if true, we need to write the db to disk on termination */
     bool write_to_disk;
@@ -45,7 +45,7 @@ typedef struct mc_StoreDB {
     /* songs that are received on network,
      * are pushed to this queue,
      * and are processed by SQL */
-    GAsyncQueue * sqltonet_queue;
+    GAsyncQueue *sqltonet_queue;
 
     /* If db is locked, should we wait for it to finish? */
     bool wait_for_db_finish;
@@ -54,14 +54,14 @@ typedef struct mc_StoreDB {
     bool stop_listallinfo;
 
     /* Various user defined settings go here */
-    mc_StoreSettings * settings;
+    mc_StoreSettings *settings;
 
     /* Support for stored playlists */
     struct {
         /* A stack of mpd_playlists (all of them) */
-        mc_Stack * stack;
+        mc_Stack *stack;
 
-        sqlite3_stmt * select_tables_stmt;
+        sqlite3_stmt *select_tables_stmt;
     } spl;
 
     /* Things that only are important for creating */

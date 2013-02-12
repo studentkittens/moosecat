@@ -28,7 +28,7 @@ typedef struct {
      *
      * Default: NULL, which is equal to "./"
      */
-    const char * db_directory;
+    const char *db_directory;
 
     /* Tokenizer algorithm to use to split words. NULL == default == "porter"
      * See: http://www.sqlite.org/fts3.html#tokenizer
@@ -36,7 +36,7 @@ typedef struct {
      *
      * Default: "porter", which is able to match "Smile" with "Smiling"
      */
-    const char * tokenizer;
+    const char *tokenizer;
 
 } mc_StoreSettings;
 
@@ -46,14 +46,14 @@ typedef struct {
  *        mc_store_settings_destroy will only free
  *        memomry that was allocated by mc_store_settings_new.
  */
-mc_StoreSettings * mc_store_settings_new (void);
+mc_StoreSettings *mc_store_settings_new(void);
 
 /* Free a mc_StoreSettings.
  * You do not have to call this yourself normally.
  * If a settings object is attached to a Store,
  * it will be closed on closedown of the store.
  */
-void mc_store_settings_destroy (mc_StoreSettings * settings);
+void mc_store_settings_destroy(mc_StoreSettings *settings);
 
 
 #endif /* end of include guard: MC_DB_SETTINGS_HH */

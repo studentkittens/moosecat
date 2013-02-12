@@ -11,7 +11,7 @@
  * access the members...
  */
 typedef struct {
-    GPtrArray * stack;
+    GPtrArray *stack;
     GDestroyNotify free_func;
 } mc_Stack;
 
@@ -23,27 +23,27 @@ typedef struct {
  *
  * @return a newly allocated stack
  */
-mc_Stack * mc_stack_create (long size_hint, GDestroyNotify free_func);
+mc_Stack *mc_stack_create(long size_hint, GDestroyNotify free_func);
 
 /**
  * @brief Append a new element to the stack.
  *
  * Allocates memory in case.
  *
- * @param self the stack to operate on 
+ * @param self the stack to operate on
  * @param ptr the addr to add
  */
-void mc_stack_append (mc_Stack * self, void * ptr);
+void mc_stack_append(mc_Stack *self, void *ptr);
 
 /**
  * @brief Free the stack
  *
- * If you passed a free_func, it will 
+ * If you passed a free_func, it will
  * called on each element now.
  *
  * @param self the stack to operate on
  */
-void mc_stack_free (mc_Stack * self);
+void mc_stack_free(mc_Stack *self);
 
 /**
  * @brief Clear contents of stack totally.
@@ -52,7 +52,7 @@ void mc_stack_free (mc_Stack * self);
  *
  * @param self the stack to operate on
  */
-void mc_stack_clear (mc_Stack * self);
+void mc_stack_clear(mc_Stack *self);
 
 /**
  * @brief Calculates the length of the stack
@@ -61,7 +61,7 @@ void mc_stack_clear (mc_Stack * self);
  *
  * @return the length from 0 - UINT_MAX
  */
-unsigned mc_stack_length (mc_Stack * self);
+unsigned mc_stack_length(mc_Stack *self);
 
 /**
  * @brief Sort the stack.
@@ -69,7 +69,7 @@ unsigned mc_stack_length (mc_Stack * self);
  * @param self the stack to operate on.
  * @param func a GCompareFunc.
  */
-void mc_stack_sort (mc_Stack * self, GCompareFunc func);
+void mc_stack_sort(mc_Stack *self, GCompareFunc func);
 
 /**
  * @brief Access elememts indexed.
@@ -81,8 +81,9 @@ void mc_stack_sort (mc_Stack * self, GCompareFunc func);
  *
  * @return a void* being at that place.
  */
-inline void * mc_stack_at(mc_Stack * self, unsigned at) {
-    return g_ptr_array_index (self->stack, at);
+inline void *mc_stack_at(mc_Stack *self, unsigned at)
+{
+    return g_ptr_array_index(self->stack, at);
 }
 
 #endif /* end of include guard: MC_STORE_STACK_H */

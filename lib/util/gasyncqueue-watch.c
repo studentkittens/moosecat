@@ -22,14 +22,14 @@ typedef struct {
     GSource source;
     GAsyncQueue *queue;
     gint iteration_timeout;
-    GTimer * iteration_timer;
+    GTimer *iteration_timer;
     guint timeout_min;
     guint timeout_max;
 } MCAsyncQueueWatch;
 
 //////////////////////
 
-static gint mc_async_queue_watch_calc_next_timeout (
+static gint mc_async_queue_watch_calc_next_timeout(
     gint prev_timeout,
     gdouble x,
     guint min,
@@ -49,67 +49,64 @@ static gint mc_async_queue_watch_calc_next_timeout (
         gdouble a = (-9. * min + 9.  * max) / 40.;
         gdouble b = (49. * min - 49. * max) / 40.;
         gdouble c = max;
-
-        result = (prev_timeout + 2 * (a * (x * x) + b * x + c) ) / 3.;
+        result = (prev_timeout + 2 * (a * (x * x) + b * x + c)) / 3.;
     } else {
         result = 30;
     }
 
-    return CLAMP (result, min, max);
+    return CLAMP(result, min, max);
 }
 
 //////////////////////
 
-static gboolean mc_async_queue_watch_check (GSource *source)
+static gboolean mc_async_queue_watch_check(GSource *source)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
-    return (g_async_queue_length (watch->queue) > 0);
+    return (g_async_queue_length(watch->queue) > 0);
 }
 
 //////////////////////
 
-static gboolean mc_async_queue_watch_prepare (GSource *source, gint *timeout)
+static gboolean mc_async_queue_watch_prepare(GSource *source, gint *timeout)
 {
-    MCAsyncQueueWatch * watch = (MCAsyncQueueWatch *) source;
+    MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     *timeout = watch->iteration_timeout;
-    return mc_async_queue_watch_check (source);
+    return mc_async_queue_watch_check(source);
 }
 
 //////////////////////
 
-static gboolean mc_async_queue_watch_dispatch (GSource *source, GSourceFunc callback, gpointer user_data)
+static gboolean mc_async_queue_watch_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     MCAsyncQueueWatchFunc cb = (MCAsyncQueueWatchFunc) callback;
-
     /* Calculate next timeout */
-    watch->iteration_timeout = mc_async_queue_watch_calc_next_timeout (
+    watch->iteration_timeout = mc_async_queue_watch_calc_next_timeout(
                                    watch->iteration_timeout,
-                                   g_timer_elapsed (watch->iteration_timer, NULL),
+                                   g_timer_elapsed(watch->iteration_timer, NULL),
                                    watch->timeout_min,
                                    watch->timeout_max
                                );
-
     /* Reset the timeout */
-    g_timer_start (watch->iteration_timer);
+    g_timer_start(watch->iteration_timer);
 
     /* Call the callback, or shutdown yourself,
      * since life without a callback is pointless */
     if (cb == NULL)
         return FALSE;
     else
-        return cb (watch->queue, user_data);
+        return cb(watch->queue, user_data);
 }
 
 //////////////////////
 
-static void mc_async_queue_watch_finalize (GSource *source)
+static void mc_async_queue_watch_finalize(GSource *source)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
 
     if (watch->queue != NULL) {
-        g_async_queue_unref (watch->queue);
-        g_timer_destroy (watch->iteration_timer);
+        g_async_queue_unref(watch->queue);
+        g_timer_destroy(watch->iteration_timer);
         watch->queue = NULL;
     }
 }
@@ -127,30 +124,25 @@ static GSourceFuncs mc_async_queue_watch_funcs = {
 
 //////////////////////
 
-guint mc_async_queue_watch_new (GAsyncQueue *queue,
-                                gint iteration_timeout,
-                                MCAsyncQueueWatchFunc callback,
-                                gpointer user_data,
-                                GMainContext *context)
+guint mc_async_queue_watch_new(GAsyncQueue *queue,
+                               gint iteration_timeout,
+                               MCAsyncQueueWatchFunc callback,
+                               gpointer user_data,
+                               GMainContext *context)
 {
-    GSource * source = g_source_new (&mc_async_queue_watch_funcs, sizeof (MCAsyncQueueWatch) );
-
-    MCAsyncQueueWatch * watch = (MCAsyncQueueWatch *) source;
-
+    GSource *source = g_source_new(&mc_async_queue_watch_funcs, sizeof(MCAsyncQueueWatch));
+    MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     watch->timeout_min = 1;
     watch->timeout_max = 60;
     watch->iteration_timeout = 10;
-
     watch->iteration_timer = g_timer_new();
-    watch->queue = g_async_queue_ref (queue);
+    watch->queue = g_async_queue_ref(queue);
     watch->iteration_timeout =
         (iteration_timeout < 0) ?
         30 :
-        CLAMP (iteration_timeout, 5, 500);
-
-    g_source_set_callback (source, (GSourceFunc) callback, user_data, NULL);
-    guint id = g_source_attach (source, context == NULL ? g_main_context_default() : context);
-    g_source_unref (source);
-
+        CLAMP(iteration_timeout, 5, 500);
+    g_source_set_callback(source, (GSourceFunc) callback, user_data, NULL);
+    guint id = g_source_attach(source, context == NULL ? g_main_context_default() : context);
+    g_source_unref(source);
     return id;
 }

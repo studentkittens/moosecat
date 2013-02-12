@@ -39,11 +39,11 @@
     mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
                                     __FILE__, __LINE__, message,                                   \
                                     sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
-     
+ 
 #define CLEAR_BINDS(stmt)          \
     sqlite3_reset (stmt);          \
     sqlite3_clear_bindings (stmt); \
-     
+ 
 #define CLEAR_BINDS_BY_NAME(store, type) \
     CLEAR_BINDS (SQL_STMT (store, type))
 

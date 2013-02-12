@@ -21,7 +21,7 @@
             g_rec_mutex_unlock (&store->db_update_lock); \
         }                                                \
     }                                                    \
-     
+ 
 #define return_if_locked(store) \
     _return_if_locked (store, ;)
 
@@ -43,61 +43,56 @@
  *
  * Returns: the number of songs in the songs table, or -1 on failure.
  */
-static int mc_store_check_if_db_is_still_valid (mc_StoreDB * self, const char * db_path)
+static int mc_store_check_if_db_is_still_valid(mc_StoreDB *self, const char *db_path)
 {
     /* result */
     int song_count = -1;
-
     /* result of check #1 */
     bool exist_check = FALSE;
-
-    char * actual_db_path = (char *) db_path;
+    char *actual_db_path = (char *) db_path;
 
     /* check #1 */
-    if (g_file_test (db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
+    if (g_file_test(db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
         exist_check = TRUE;
     } else if (self->settings->use_compression) {
-        char * zip_path = g_strdup_printf ("%s%s", db_path, MC_GZIP_ENDING);
-        exist_check = g_file_test (zip_path, G_FILE_TEST_IS_REGULAR);
+        char *zip_path = g_strdup_printf("%s%s", db_path, MC_GZIP_ENDING);
+        exist_check = g_file_test(zip_path, G_FILE_TEST_IS_REGULAR);
+        GTimer *zip_timer = g_timer_new();
 
-        GTimer * zip_timer = g_timer_new();
-        if ( (exist_check = mc_gunzip (zip_path) ) == false)
-            mc_shelper_report_progress (self->client, true, "database: Unzipping %s failed.", zip_path);
+        if ((exist_check = mc_gunzip(zip_path)) == false)
+            mc_shelper_report_progress(self->client, true, "database: Unzipping %s failed.", zip_path);
         else
-            mc_shelper_report_progress (self->client, true, "database: Unzipping %s done (took %2.3fs).",
-                                        zip_path, g_timer_elapsed (zip_timer, NULL) );
+            mc_shelper_report_progress(self->client, true, "database: Unzipping %s done (took %2.3fs).",
+                                       zip_path, g_timer_elapsed(zip_timer, NULL));
 
-        g_timer_destroy (zip_timer);
-        g_free (zip_path);
+        g_timer_destroy(zip_timer);
+        g_free(zip_path);
     }
 
     if (exist_check) {
         /* check #2 */
-        if (sqlite3_open (actual_db_path, &self->handle) == SQLITE_OK) {
+        if (sqlite3_open(actual_db_path, &self->handle) == SQLITE_OK) {
             /* needed in order to select metadata */
-            mc_stprv_create_song_table (self);
-            mc_stprv_prepare_all_statements (self);
-
+            mc_stprv_create_song_table(self);
+            mc_stprv_prepare_all_statements(self);
             /* check #3 */
-            char * cached_hostname = mc_stprv_get_mpd_host (self);
-            int cached_port = mc_stprv_get_mpd_port (self);
+            char *cached_hostname = mc_stprv_get_mpd_host(self);
+            int cached_port = mc_stprv_get_mpd_port(self);
 
             if (cached_port == self->client->_port &&
-                g_strcmp0 (cached_hostname, self->client->_host) == 0) {
-
+                    g_strcmp0(cached_hostname, self->client->_host) == 0) {
                 /* check #4 */
-                size_t cached_db_version = mc_stprv_get_db_version (self);
-                size_t cached_sc_version = mc_stprv_get_sc_version (self);
+                size_t cached_db_version = mc_stprv_get_db_version(self);
+                size_t cached_sc_version = mc_stprv_get_sc_version(self);
 
-                if (cached_db_version == mpd_stats_get_db_update_time (self->client->stats) &&
-                    cached_sc_version == MC_DB_SCHEMA_VERSION) {
-                    song_count = mc_stprv_get_song_count (self);
+                if (cached_db_version == mpd_stats_get_db_update_time(self->client->stats) &&
+                        cached_sc_version == MC_DB_SCHEMA_VERSION) {
+                    song_count = mc_stprv_get_song_count(self);
                 }
             }
 
-            mc_stprv_close_handle (self);
-
-            g_free (cached_hostname);
+            mc_stprv_close_handle(self);
+            g_free(cached_hostname);
             self->handle = NULL;
         }
     }
@@ -117,82 +112,75 @@ const gpointer async_queue_terminator = (gpointer) 0x1;
 /* Hopefully we can exchange this by using
  * only filename/pos/id instead of getting a full featured song,
  * and throwing away most of it */
-static gpointer mc_store_do_plchanges_sql_thread (mc_StoreDB * self)
+static gpointer mc_store_do_plchanges_sql_thread(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    struct mpd_song * song = NULL;
-
+    g_assert(self);
+    struct mpd_song *song = NULL;
     /* start a transaction */
-    mc_stprv_begin (self);
-
-    GTimer * timer = g_timer_new ();
+    mc_stprv_begin(self);
+    GTimer *timer = g_timer_new();
     gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
 
     /* set the queue_update column all to 0
      * Other queue functions set it back to 1 */
     //mc_stprv_queue_clear_update_flag (self);
 
-    while ( (gpointer) (song = g_async_queue_pop (self->sqltonet_queue) ) != async_queue_terminator) {
-        mc_stprv_queue_update_posid (self, mpd_song_get_pos (song), mpd_song_get_id (song), mpd_song_get_uri (song) );
-        mpd_song_free (song);
+    while ((gpointer)(song = g_async_queue_pop(self->sqltonet_queue)) != async_queue_terminator) {
+        mc_stprv_queue_update_posid(self, mpd_song_get_pos(song), mpd_song_get_id(song), mpd_song_get_uri(song));
+        mpd_song_free(song);
     }
-    posid_time = g_timer_elapsed (timer, NULL);
 
-
+    posid_time = g_timer_elapsed(timer, NULL);
     /* Clip off songs that were deleted at the end of the queue */
-    g_timer_start (timer);
-    int clipped = mc_stprv_queue_clip (self, mpd_status_get_queue_length (self->client->status) );
+    g_timer_start(timer);
+    int clipped = mc_stprv_queue_clip(self, mpd_status_get_queue_length(self->client->status));
+
     if (clipped > 0) {
-        mc_shelper_report_progress (self->client, true, "database: Clipped %d songs at end of playlist.", clipped);
+        mc_shelper_report_progress(self->client, true, "database: Clipped %d songs at end of playlist.", clipped);
     }
-    clip_time = g_timer_elapsed (timer, NULL);
 
+    clip_time = g_timer_elapsed(timer, NULL);
     /* Commit all those update statements */
-    mc_stprv_commit (self);
-
+    mc_stprv_commit(self);
     /* Update the pos/id data in the song stack (=> sync with db) */
-    g_timer_start (timer);
-    mc_stprv_queue_update_stack_posid (self);
-    stack_time = g_timer_elapsed (timer, NULL);
-
-    g_timer_destroy (timer);
-
-    mc_shelper_report_progress (self->client, true, "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
-                                clip_time, posid_time, stack_time);
-
+    g_timer_start(timer);
+    mc_stprv_queue_update_stack_posid(self);
+    stack_time = g_timer_elapsed(timer, NULL);
+    g_timer_destroy(timer);
+    mc_shelper_report_progress(self->client, true, "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
+                               clip_time, posid_time, stack_time);
     return NULL;
 }
 
 ///////////////
 
-static void mc_store_do_plchanges (mc_StoreDB * store, bool lock_self)
+static void mc_store_do_plchanges(mc_StoreDB *store, bool lock_self)
 {
-    g_assert (store);
-
-    mc_Client * self = store->client;
-    GThread * sql_thread = NULL;
-    GTimer * timer = NULL;
+    g_assert(store);
+    mc_Client *self = store->client;
+    GThread *sql_thread = NULL;
+    GTimer *timer = NULL;
     int progress_counter = 0;
     size_t last_pl_version = 0;
 
     if (lock_self) {
-        LOCK_UPDATE_MTX (store);
+        LOCK_UPDATE_MTX(store);
     }
 
     /* get last version of the queue (which we're having already. */
-    last_pl_version = mc_stprv_get_pl_version (store);
+    last_pl_version = mc_stprv_get_pl_version(store);
 
-    if (last_pl_version == mpd_status_get_queue_version (store->client->status)
-        && store->need_full_queue == false) {
-        mc_shelper_report_progress (self, true,
-                                    "database: Will not update queue, version didn't change (%d == %d, forced: %s)",
-                                    (int) last_pl_version, mpd_status_get_queue_version (store->client->status),
-                                    store->need_full_queue ? "Yes" : "No");
+    if (last_pl_version == mpd_status_get_queue_version(store->client->status)
+            && store->need_full_queue == false) {
+        mc_shelper_report_progress(self, true,
+                                   "database: Will not update queue, version didn't change (%d == %d, forced: %s)",
+                                   (int) last_pl_version, mpd_status_get_queue_version(store->client->status),
+                                   store->need_full_queue ? "Yes" : "No");
 
         if (lock_self) {
-            UNLOCK_UPDATE_MTX (store);
+            UNLOCK_UPDATE_MTX(store);
         }
+
         return;
     }
 
@@ -202,106 +190,107 @@ static void mc_store_do_plchanges (mc_StoreDB * store, bool lock_self)
         last_pl_version = 0;
 
     /* needs to be started after inserting meta attributes, since it calls 'begin;' */
-    sql_thread = g_thread_new ("queue-update", (GThreadFunc) mc_store_do_plchanges_sql_thread, store);
-
+    sql_thread = g_thread_new("queue-update", (GThreadFunc) mc_store_do_plchanges_sql_thread, store);
     /* timing */
     timer = g_timer_new();
-
     /* Now do the actual hard work, send the actual plchanges command,
      * loop over the retrieved contents, and push them to the SQL Thread */
     BEGIN_COMMAND {
-        g_timer_start (timer);
+        g_timer_start(timer);
 
-        mc_shelper_report_progress (self, true, "database: Queue was updated. Will do ,,plchanges %d''", (int) last_pl_version);
-        if (mpd_send_queue_changes_meta (conn, last_pl_version) ) {
-            struct mpd_song * song = NULL;
-            while ( (song = mpd_recv_song (conn) ) != NULL) {
-                g_async_queue_push (store->sqltonet_queue, song);
+        mc_shelper_report_progress(self, true, "database: Queue was updated. Will do ,,plchanges %d''", (int) last_pl_version);
+
+        if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
+            struct mpd_song *song = NULL;
+
+            while ((song = mpd_recv_song(conn)) != NULL) {
+                g_async_queue_push(store->sqltonet_queue, song);
+
                 if (progress_counter++ % 50 == 0)
-                    mc_shelper_report_progress (self, false, "database: receiving queue contents ... [%d/%d]",
-                    progress_counter, mpd_status_get_queue_length (store->client->status) );
+                    mc_shelper_report_progress(self, false, "database: receiving queue contents ... [%d/%d]",
+                    progress_counter, mpd_status_get_queue_length(store->client->status));
             }
         }
 
         /* Killing the SQL thread softly. */
-        g_async_queue_push (store->sqltonet_queue, async_queue_terminator);
-        g_thread_join (sql_thread);
+        g_async_queue_push(store->sqltonet_queue, async_queue_terminator);
+        g_thread_join(sql_thread);
     }
     END_COMMAND
 
     if (lock_self) {
-        UNLOCK_UPDATE_MTX (store);
+        UNLOCK_UPDATE_MTX(store);
     }
 
     /* we updated the queue fully, so next time we want
      * to use a more recent pl version */
     store->need_full_queue = FALSE;
-
     /* Since we modify data in the db,
      * we gonna need to save the changes
      * to disk later.
      */
     store->write_to_disk = TRUE;
-
     /* a bit of timing report */
-    mc_shelper_report_progress (self, true, "database: updated %d song's pos/id (took %2.3fs)",
-                                progress_counter, g_timer_elapsed (timer, NULL) );
-
-    mc_shelper_report_operation_finished (self, MC_OP_QUEUE_UPDATED);
-
-    g_timer_destroy (timer);
+    mc_shelper_report_progress(self, true, "database: updated %d song's pos/id (took %2.3fs)",
+                               progress_counter, g_timer_elapsed(timer, NULL));
+    mc_shelper_report_operation_finished(self, MC_OP_QUEUE_UPDATED);
+    g_timer_destroy(timer);
 }
 
 ///////////////
 
-static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
+static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
 {
-    mc_StoreDB * self = user_data;
-    struct mpd_entity * ent = NULL;
+    mc_StoreDB *self = user_data;
+    struct mpd_entity *ent = NULL;
+    g_assert(self);
+    mc_stprv_begin(self);
 
-    g_assert (self);
-
-    mc_stprv_begin (self);
-
-    while ( (gpointer) (ent = g_async_queue_pop (self->sqltonet_queue) ) > async_queue_terminator) {
-        switch (mpd_entity_get_type (ent) ) {
+    while ((gpointer)(ent = g_async_queue_pop(self->sqltonet_queue)) > async_queue_terminator) {
+        switch (mpd_entity_get_type(ent)) {
         case MPD_ENTITY_TYPE_SONG: {
-            struct mpd_song * song = (struct mpd_song *) mpd_entity_get_song (ent) ;
-            mc_stack_append (self->stack, (struct mpd_song *) song);
-            mc_stprv_insert_song (self, (struct mpd_song *) song);
-
+            struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent) ;
+            mc_stack_append(self->stack, (struct mpd_song *) song);
+            mc_stprv_insert_song(self, (struct mpd_song *) song);
             /* Not sure if this is a nice way,
              * but for now it works. There might be a proper way:
              * duplicate the song with mpd_song_dup, and use mpd_entity_free,
              * but that adds extra memory usage, and costs about 0.2 seconds. */
-            g_free (ent);
+            g_free(ent);
         }
         break;
+
         case MPD_ENTITY_TYPE_DIRECTORY: {
-            const struct mpd_directory * dir = mpd_directory_dup (mpd_entity_get_directory (ent) );
+            const struct mpd_directory *dir = mpd_directory_dup(mpd_entity_get_directory(ent));
+
             if (dir != NULL) {
-                mc_stprv_dir_insert (self, g_strdup (mpd_directory_get_path (dir) ) );
-                mpd_entity_free (ent);
+                mc_stprv_dir_insert(self, g_strdup(mpd_directory_get_path(dir)));
+                mpd_entity_free(ent);
             }
         }
         break;
+
         case MPD_ENTITY_TYPE_PLAYLIST: {
-            const struct mpd_playlist * pl = mpd_entity_get_playlist (ent);
+            const struct mpd_playlist *pl = mpd_entity_get_playlist(ent);
+
             // TODO: Is this supposed to be here?
             if (pl != NULL) {
-                mc_stack_append (self->spl.stack, (struct mpd_playlist *) pl);
+                mc_stack_append(self->spl.stack, (struct mpd_playlist *) pl);
             }
-            g_free (ent);
+
+            g_free(ent);
         }
         break;
+
         default: {
-            mpd_entity_free (ent);
+            mpd_entity_free(ent);
             ent = NULL;
         }
         break;
         }
     }
-    mc_stprv_commit (self);
+
+    mc_stprv_commit(self);
     return NULL;
 }
 
@@ -325,27 +314,26 @@ static gpointer mc_store_do_list_all_info_sql_thread (gpointer user_data)
  *
  * lock_self: lock db while update. (Otherwise do it yourself!)
  */
-static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
+static void mc_store_do_list_all_info(mc_StoreDB *store, bool lock_self)
 {
-    g_assert (store);
-    g_assert (store->client);
-
-    mc_Client * self = store->client;
+    g_assert(store);
+    g_assert(store->client);
+    mc_Client *self = store->client;
     int progress_counter = 0;
-    int number_of_songs = mpd_stats_get_number_of_songs (self->stats);
+    int number_of_songs = mpd_stats_get_number_of_songs(self->stats);
     size_t db_version = 0;
-
-    GTimer * timer = NULL;
-    GThread * sql_thread = NULL;
+    GTimer *timer = NULL;
+    GThread *sql_thread = NULL;
 
     if (lock_self) {
-        LOCK_UPDATE_MTX (store);
+        LOCK_UPDATE_MTX(store);
     }
 
-    db_version = mc_stprv_get_db_version (store);
-    if (store->need_full_db == false && mpd_stats_get_db_update_time (self->stats) == db_version) {
-        mc_shelper_report_progress (self, true,
-                                    "database: Will not update database, timestamp didn't change.");
+    db_version = mc_stprv_get_db_version(store);
+
+    if (store->need_full_db == false && mpd_stats_get_db_update_time(self->stats) == db_version) {
+        mc_shelper_report_progress(self, true,
+                                   "database: Will not update database, timestamp didn't change.");
         return;
     }
 
@@ -354,11 +342,10 @@ static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
      * So we set it here to false again, at the risk
      * that we may do a listallinfo too much in very rare cases. */
     store->stop_listallinfo = FALSE;
-
     /* We're building the whole table new,
      * so throw away old data */
-    mc_stprv_delete_songs_table (store);
-    mc_stprv_dir_delete (store);
+    mc_stprv_delete_songs_table(store);
+    mc_stprv_dir_delete(store);
 
     /* Also throw away current stack, and reallocate it
      * to the fitting size.
@@ -366,167 +353,150 @@ static void mc_store_do_list_all_info (mc_StoreDB * store, bool lock_self)
      * Apparently GPtrArray does not support reallocating,
      * without adding NULL-cells to the array? */
     if (store->stack != NULL) {
-        mc_stack_free (store->stack);
+        mc_stack_free(store->stack);
     }
 
-    store->stack = mc_stack_create (
-                       mpd_stats_get_number_of_songs (self->stats) + 1,
+    store->stack = mc_stack_create(
+                       mpd_stats_get_number_of_songs(self->stats) + 1,
                        (GDestroyNotify) mpd_song_free);
-
-
     /* Profiling */
     timer = g_timer_new();
-    sql_thread = g_thread_new ("sql-thread", mc_store_do_list_all_info_sql_thread, store);
-
+    sql_thread = g_thread_new("sql-thread", mc_store_do_list_all_info_sql_thread, store);
     BEGIN_COMMAND {
-        struct mpd_entity * ent = NULL;
+        struct mpd_entity *ent = NULL;
 
-        g_timer_start (timer);
+        g_timer_start(timer);
 
         /* Order the real big list */
-        mpd_send_list_all_meta (conn, "/");
+        mpd_send_list_all_meta(conn, "/");
 
-        while ( (ent = mpd_recv_entity (conn) ) != NULL) {
+        while ((ent = mpd_recv_entity(conn)) != NULL) {
             if (++progress_counter % 50 == 0)
-                mc_shelper_report_progress (self, false, "database: retrieving entities from mpd ... [%d/%d]",
+                mc_shelper_report_progress(self, false, "database: retrieving entities from mpd ... [%d/%d]",
                 progress_counter, number_of_songs);
 
-            g_async_queue_push (store->sqltonet_queue, ent);
+            g_async_queue_push(store->sqltonet_queue, ent);
 
             if (store->stop_listallinfo == TRUE) {
-                mc_shelper_report_progress (self, true, "database: stopped, attempting more recent update.");
+                mc_shelper_report_progress(self, true, "database: stopped, attempting more recent update.");
                 break;
             }
         }
     }
     END_COMMAND;
-
     /* tell SQL thread kindly to die, but wait for him to bleed */
-    g_async_queue_push (store->sqltonet_queue, async_queue_terminator);
-    g_thread_join (sql_thread);
-
-    mc_shelper_report_progress (self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
-                                number_of_songs, g_timer_elapsed (timer, NULL) );
-
-    mc_shelper_report_operation_finished (self, MC_OP_DB_UPDATED);
-
-    g_timer_destroy (timer);
+    g_async_queue_push(store->sqltonet_queue, async_queue_terminator);
+    g_thread_join(sql_thread);
+    mc_shelper_report_progress(self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
+                               number_of_songs, g_timer_elapsed(timer, NULL));
+    mc_shelper_report_operation_finished(self, MC_OP_DB_UPDATED);
+    g_timer_destroy(timer);
 
     if (lock_self) {
-        UNLOCK_UPDATE_MTX (store);
+        UNLOCK_UPDATE_MTX(store);
     }
 
     /* we got the full db, next time check again if it's needed */
     store->need_full_db = FALSE;
-
     /* we got stopped, but we don't want the next listallinfo to be stopped */
     store->stop_listallinfo = FALSE;
-
     /* If we do a plchanges now, we gonna need the full queue */
     store->need_full_queue = TRUE;
 }
 
 ///////////////
 
-static gpointer mc_store_do_plchanges_wrapper (mc_StoreDB * self)
+static gpointer mc_store_do_plchanges_wrapper(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    mc_store_do_plchanges (self, true);
-    mc_stprv_insert_meta_attributes (self);
-
-    g_thread_unref (g_thread_self () );
+    g_assert(self);
+    mc_store_do_plchanges(self, true);
+    mc_stprv_insert_meta_attributes(self);
+    g_thread_unref(g_thread_self());
     return NULL;
 }
 
 ///////////////
 
-static void mc_store_do_plchanges_bkgd (mc_StoreDB * self)
+static void mc_store_do_plchanges_bkgd(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    g_thread_new ("db-queue-update-thread",
-                  (GThreadFunc) mc_store_do_plchanges_wrapper, self);
+    g_assert(self);
+    g_thread_new("db-queue-update-thread",
+                 (GThreadFunc) mc_store_do_plchanges_wrapper, self);
 }
 
 ///////////////
 
-static gpointer mc_store_do_listall_and_plchanges (mc_StoreDB * self)
+static gpointer mc_store_do_listall_and_plchanges(mc_StoreDB *self)
 {
-    g_assert (self);
-
+    g_assert(self);
     self->stop_listallinfo = TRUE;
-    LOCK_UPDATE_MTX (self);
-    mc_store_do_list_all_info (self, false);
-    mc_store_do_plchanges (self, false);
-    mc_stprv_spl_update (self);
-    mc_stprv_insert_meta_attributes (self);
-    UNLOCK_UPDATE_MTX (self);
+    LOCK_UPDATE_MTX(self);
+    mc_store_do_list_all_info(self, false);
+    mc_store_do_plchanges(self, false);
+    mc_stprv_spl_update(self);
+    mc_stprv_insert_meta_attributes(self);
+    UNLOCK_UPDATE_MTX(self);
 
     if (self->create.double_unlock) {
         g_mutex_unlock(&self->create.mutex);
         self->create.double_unlock = FALSE;
     }
-    
-    g_thread_unref (g_thread_self () );
+
+    g_thread_unref(g_thread_self());
     return NULL;
 }
 
 ///////////////
 
-static void mc_store_do_listall_and_plchanges_bkgd (mc_StoreDB * self)
+static void mc_store_do_listall_and_plchanges_bkgd(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    g_thread_new ("db-listall-and-plchanges",
-                  (GThreadFunc) mc_store_do_listall_and_plchanges, self);
+    g_assert(self);
+    g_thread_new("db-listall-and-plchanges",
+                 (GThreadFunc) mc_store_do_listall_and_plchanges, self);
 }
 
 ///////////////
 
-static gpointer mc_store_deserialize_songs_and_plchanges (mc_StoreDB * self)
+static gpointer mc_store_deserialize_songs_and_plchanges(mc_StoreDB *self)
 {
-    g_assert (self);
+    g_assert(self);
+    LOCK_UPDATE_MTX(self);
+    mc_stprv_deserialize_songs(self, false);
+    mc_store_do_plchanges(self, false);
+    mc_stprv_spl_update(self);
+    mc_stprv_insert_meta_attributes(self);
+    UNLOCK_UPDATE_MTX(self);
 
-    LOCK_UPDATE_MTX (self);
-    mc_stprv_deserialize_songs (self, false);
-    mc_store_do_plchanges (self, false);
-    mc_stprv_spl_update (self);
-    mc_stprv_insert_meta_attributes (self);
-    UNLOCK_UPDATE_MTX (self);
-    
     if (self->create.double_unlock) {
         g_mutex_unlock(&self->create.mutex);
         self->create.double_unlock = FALSE;
     }
 
-    g_thread_unref (g_thread_self () );
+    g_thread_unref(g_thread_self());
     return NULL;
 }
 
-static void mc_store_deserialize_songs_and_plchanges_bkgd (mc_StoreDB * self)
+static void mc_store_deserialize_songs_and_plchanges_bkgd(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    g_thread_new ("db-deserialize-and-plchanges-thread",
-                  (GThreadFunc) mc_store_deserialize_songs_and_plchanges, self);
+    g_assert(self);
+    g_thread_new("db-deserialize-and-plchanges-thread",
+                 (GThreadFunc) mc_store_deserialize_songs_and_plchanges, self);
 }
 
 ///////////////
 
-static gpointer mc_stprv_spl_update_wrapper (mc_StoreDB * self)
+static gpointer mc_stprv_spl_update_wrapper(mc_StoreDB *self)
 {
-    mc_stprv_spl_update (self);
-    g_thread_unref (g_thread_self () );
+    mc_stprv_spl_update(self);
+    g_thread_unref(g_thread_self());
     return NULL;
 }
 
-static void mc_stprv_spl_update_bkgd (mc_StoreDB * self)
+static void mc_stprv_spl_update_bkgd(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    g_thread_new ("db-spl-update-bkgd",
-                  (GThreadFunc) mc_stprv_spl_update_wrapper, self);
+    g_assert(self);
+    g_thread_new("db-spl-update-bkgd",
+                 (GThreadFunc) mc_stprv_spl_update_wrapper, self);
 }
 
 ///////////////
@@ -544,85 +514,76 @@ static void mc_stprv_spl_update_bkgd (mc_StoreDB * self)
  *       #7 Since the data is fresher than what might be on disk, we'll write it there later.
  *
  */
-void mc_store_update_callback (mc_Client * client, enum mpd_idle events, mc_StoreDB * self)
+void mc_store_update_callback(mc_Client *client, enum mpd_idle events, mc_StoreDB *self)
 {
-    g_assert (self && client && self->client == client);
+    g_assert(self && client && self->client == client);
 
     if (events & MPD_IDLE_DATABASE) {
-        mc_store_do_listall_and_plchanges_bkgd (self);
+        mc_store_do_listall_and_plchanges_bkgd(self);
     } else if (events & MPD_IDLE_QUEUE) {
-        mc_store_do_plchanges_bkgd (self);
+        mc_store_do_plchanges_bkgd(self);
     } else if (events & MPD_IDLE_STORED_PLAYLIST) {
-        mc_stprv_spl_update_bkgd (self);
+        mc_stprv_spl_update_bkgd(self);
     }
 
     /* needs to happen in both cases (post) */
-    if (events & (MPD_IDLE_QUEUE | MPD_IDLE_DATABASE | MPD_IDLE_STORED_PLAYLIST) ) {
+    if (events & (MPD_IDLE_QUEUE | MPD_IDLE_DATABASE | MPD_IDLE_STORED_PLAYLIST)) {
         self->write_to_disk = TRUE;
     }
 }
 
 ///////////////
 
-static void mc_store_connectivity_callback (
-    mc_Client * client,
+static void mc_store_connectivity_callback(
+    mc_Client *client,
     bool server_changed,
-    mc_StoreDB * self)
+    mc_StoreDB *self)
 {
-    g_assert (self && client && self->client == client);
+    g_assert(self && client && self->client == client);
 
-    if (mc_proto_is_connected (client) ) {
+    if (mc_proto_is_connected(client)) {
         if (server_changed) {
             self->need_full_db = TRUE;
             self->need_full_queue = TRUE;
         }
-        mc_store_update_callback (client, MPD_IDLE_DATABASE, self);
+
+        mc_store_update_callback(client, MPD_IDLE_DATABASE, self);
     }
 }
 
 ///////////////
 
-static char * mc_store_construct_full_dbpath (mc_Client * client, const char * directory)
+static char *mc_store_construct_full_dbpath(mc_Client *client, const char *directory)
 {
-    g_assert (client);
-
-    return g_strdup_printf ("%s%cmoosecat_%s:%d.sqlite", (directory) ? directory : ".",
-                            G_DIR_SEPARATOR, client->_host, client->_port);
+    g_assert(client);
+    return g_strdup_printf("%s%cmoosecat_%s:%d.sqlite", (directory) ? directory : ".",
+                           G_DIR_SEPARATOR, client->_host, client->_port);
 }
 
 ///////////////
 /// PUBLIC ////
 ///////////////
 
-mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
+mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 {
-    g_assert (client);
-
+    g_assert(client);
     /* allocated memory for the mc_StoreDB struct */
-    mc_StoreDB * store = g_new0 (mc_StoreDB, 1);
-
+    mc_StoreDB *store = g_new0(mc_StoreDB, 1);
     /* Settings */
-    store->settings = (settings) ? settings : mc_store_settings_new ();
-
+    store->settings = (settings) ? settings : mc_store_settings_new();
     /* either songs in 'songs' table or -1 on error */
     int song_count = -1;
-
     /* create the full path to the db */
-    char * db_path = mc_store_construct_full_dbpath (client, store->settings->db_directory);
-
+    char *db_path = mc_store_construct_full_dbpath(client, store->settings->db_directory);
     /* init the background mutex */
-    g_rec_mutex_init (&store->db_update_lock);
+    g_rec_mutex_init(&store->db_update_lock);
     store->db_is_locked = FALSE;
-
     /* client is used to keep the db content updated */
     store->client = client;
-
     /* do not wait by default */
     store->wait_for_db_finish = false;
-
     /* used to exchange songs between network <-> sql threads */
-    store->sqltonet_queue = g_async_queue_new ();
-
+    store->sqltonet_queue = g_async_queue_new();
     /* This mutex survives the return of mc_store_create.
      * It will be unlocked when done by mc_store_create_background
      */
@@ -630,73 +591,58 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
     g_mutex_init(&store->create.mutex);
     g_mutex_lock(&store->create.mutex);
 
-    if ( (song_count = mc_store_check_if_db_is_still_valid (store, db_path) ) < 0) {
-        mc_shelper_report_progress (store->client, true, "database: will fetch stuff from mpd.");
-
+    if ((song_count = mc_store_check_if_db_is_still_valid(store, db_path)) < 0) {
+        mc_shelper_report_progress(store->client, true, "database: will fetch stuff from mpd.");
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
-        mc_strprv_open_memdb (store);
-        mc_stprv_prepare_all_statements (store);
-        mc_stprv_dir_prepare_statemtents (store);
-
+        mc_strprv_open_memdb(store);
+        mc_stprv_prepare_all_statements(store);
+        mc_stprv_dir_prepare_statemtents(store);
         /* make sure we inserted the meta info at least once */
-        mc_stprv_insert_meta_attributes (store);
-
+        mc_stprv_insert_meta_attributes(store);
         /* the database is new, so no pos/id information is there yet */
         store->need_full_queue = TRUE;
         store->need_full_db = TRUE;
-
         /* It's new, so replace the one on the disk, if it's there */
         store->write_to_disk = TRUE;
-
         /* we need to query mpd, update db && queue info */
-        mc_store_do_listall_and_plchanges_bkgd (store);
+        mc_store_do_listall_and_plchanges_bkgd(store);
     } else {
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
-        mc_strprv_open_memdb (store);
-        mc_stprv_prepare_all_statements (store);
-        mc_stprv_dir_prepare_statemtents (store);
-        mc_shelper_report_progress (store->client, true, "database: %s exists already.", db_path);
-
+        mc_strprv_open_memdb(store);
+        mc_stprv_prepare_all_statements(store);
+        mc_stprv_dir_prepare_statemtents(store);
+        mc_shelper_report_progress(store->client, true, "database: %s exists already.", db_path);
         /* stack is allocated to the old size */
-        store->stack = mc_stack_create (song_count + 1, (GDestroyNotify) mpd_song_free);
-
+        store->stack = mc_stack_create(song_count + 1, (GDestroyNotify) mpd_song_free);
         /* load the old database into memory */
-        mc_stprv_load_or_save (store, false, db_path);
-
+        mc_stprv_load_or_save(store, false, db_path);
         /* try to keep the old database,
          * saves write-time, and might reduce bugs,
          * when songs are deserialized wrong
          */
         store->write_to_disk = FALSE;
-
         /* the database is created from possibly valid data,
          *  so we might only need update it a bit */
         store->need_full_queue = FALSE;
         store->need_full_db = FALSE;
-        
         /* Update queue information in bkgd */
-        mc_store_deserialize_songs_and_plchanges_bkgd (store);
-
+        mc_store_deserialize_songs_and_plchanges_bkgd(store);
     }
 
-    mc_signal_add_masked (
+    mc_signal_add_masked(
         &store->client->_signals,
         "client-event", true, /* call first */
         (mc_ClientEventCallback) mc_store_update_callback, store,
         MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST);
-
-    mc_signal_add (
+    mc_signal_add(
         &store->client->_signals,
         "connectivity", true, /* call first */
         (mc_ConnectivityCallback) mc_store_connectivity_callback, store);
-
     /* Playlist support */
-    mc_stprv_spl_init (store);
-
-    g_free (db_path);
-
+    mc_stprv_spl_init(store);
+    g_free(db_path);
     return store;
 }
 
@@ -710,126 +656,121 @@ mc_StoreDB * mc_store_create (mc_Client * client, mc_StoreSettings * settings)
  * #3 Save database dump to disk if it hadn't been read from there.
  * #4 Close the handle.
  */
-void mc_store_close (mc_StoreDB * self)
+void mc_store_close(mc_StoreDB *self)
 {
     if (self == NULL)
         return;
 
-    return_if_locked (self);
+    return_if_locked(self);
+    mc_proto_signal_rm(self->client, "client-event", mc_store_update_callback);
+    mc_proto_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);
+    mc_stack_free(self->stack);
+    mc_stprv_spl_destroy(self);
+    char *full_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
 
-    mc_proto_signal_rm (self->client, "client-event", mc_store_update_callback);
-    mc_proto_signal_rm (self->client, "connectivity", mc_store_connectivity_callback);
-    mc_stack_free (self->stack);
-    mc_stprv_spl_destroy (self);
-
-    char * full_path = mc_store_construct_full_dbpath (self->client, self->db_directory);
     if (self->write_to_disk)
-        mc_stprv_load_or_save (self, true, full_path);
+        mc_stprv_load_or_save(self, true, full_path);
 
-    if (self->settings->use_compression && mc_gzip (full_path) == false)
-        g_print ("Note: Nothing to zip.\n");
+    if (self->settings->use_compression && mc_gzip(full_path) == false)
+        g_print("Note: Nothing to zip.\n");
 
-    mc_stprv_dir_finalize_statements (self);
-    mc_stprv_close_handle (self);
+    mc_stprv_dir_finalize_statements(self);
+    mc_stprv_close_handle(self);
 
     if (self->settings->use_memory_db == false)
-        g_unlink (MC_STORE_TMP_DB_PATH);
-
+        g_unlink(MC_STORE_TMP_DB_PATH);
 
     /* NOTE: Settings should be destroyed by caller,
      *       Since it should be valid to call close()
      *       several times.
      */
     //mc_store_settings_destroy (self->settings);
-    
-    g_rec_mutex_clear (&self->db_update_lock);
-    g_async_queue_unref (self->sqltonet_queue);
+    g_rec_mutex_clear(&self->db_update_lock);
+    g_async_queue_unref(self->sqltonet_queue);
     g_mutex_clear(&self->create.mutex);
-    g_free (self->db_directory);
-    g_free (full_path);
-    g_free (self);
+    g_free(self->db_directory);
+    g_free(full_path);
+    g_free(self);
 }
 
 ///////////////
 
-int mc_store_search_to_stack (mc_StoreDB * self, const char * match_clause, bool queue_only, mc_Stack * stack, int limit_len)
+int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
 {
-    return_val_if_locked (self, -1);
-
-    return mc_stprv_select_to_stack (self, match_clause, queue_only, stack, limit_len);
+    return_val_if_locked(self, -1);
+    return mc_stprv_select_to_stack(self, match_clause, queue_only, stack, limit_len);
 }
 
 ///////////////
 
-void mc_store_set_wait_mode (mc_StoreDB * self, bool wait_for_db_finish)
+void mc_store_set_wait_mode(mc_StoreDB *self, bool wait_for_db_finish)
 {
-    g_assert (self);
+    g_assert(self);
     self->wait_for_db_finish = wait_for_db_finish;
 }
 
 ///////////////
 
-bool mc_store_get_wait_mode (mc_StoreDB * self)
+bool mc_store_get_wait_mode(mc_StoreDB *self)
 {
     return self->wait_for_db_finish;
 }
 
 ///////////////
 
-void mc_store_playlist_load (mc_StoreDB * self, const char * playlist_name)
+void mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
 {
-    mc_stprv_spl_load_by_playlist_name (self, playlist_name);
+    mc_stprv_spl_load_by_playlist_name(self, playlist_name);
 }
 
 ///////////////
 
-int mc_store_playlist_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * playlist_name, const char * match_clause)
+int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
 {
-    return mc_stprv_spl_select_playlist (self, stack, playlist_name, match_clause);
+    return mc_stprv_spl_select_playlist(self, stack, playlist_name, match_clause);
 }
 
 ///////////////
 
-int mc_store_playlist_get_all_loaded (mc_StoreDB * self, mc_Stack * stack)
+int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack)
 {
-    return mc_stprv_spl_get_loaded_playlists (self, stack);
+    return mc_stprv_spl_get_loaded_playlists(self, stack);
 }
 
 ///////////////
 
-const mc_Stack * mc_store_playlist_get_all_names (mc_StoreDB * self)
+const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self)
 {
     return self->spl.stack;
 }
 
 ///////////////
 
-int mc_store_dir_select_to_stack (mc_StoreDB * self, mc_Stack * stack, const char * directory, int depth)
+int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *directory, int depth)
 {
-    return mc_stprv_dir_select_to_stack (self, stack, directory, depth);
+    return mc_stprv_dir_select_to_stack(self, stack, directory, depth);
 }
 
 ///////////////
 
-struct mpd_song * mc_store_song_at (mc_StoreDB * self, int idx) {
-    g_assert (self);
-    g_assert (idx >= 0);
+struct mpd_song *mc_store_song_at(mc_StoreDB *self, int idx) {
+    g_assert(self);
+    g_assert(idx >= 0);
 
-    return (struct mpd_song *) mc_stack_at (self->stack, idx);
+    return (struct mpd_song *) mc_stack_at(self->stack, idx);
 }
 
 ///////////////
 
-int mc_store_total_songs (mc_StoreDB * self)
+int mc_store_total_songs(mc_StoreDB *self)
 {
-    g_assert (self);
-
-    return mc_stack_length (self->stack);
+    g_assert(self);
+    return mc_stack_length(self->stack);
 }
 
 ///////////////
 
-void mc_store_wait (mc_StoreDB * self)
+void mc_store_wait(mc_StoreDB *self)
 {
     if (self->create.double_unlock == FALSE) {
         LOCK_UPDATE_MTX(self);

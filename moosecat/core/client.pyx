@@ -156,12 +156,16 @@ cdef class Client:
     cdef object _store_wrapper
     cdef object _signal_data_map
 
-    def __cinit__(self):
+    def __cinit__(self, protocol_machine='idle'):
         '''
         Create the initial mc_Client structure.
         This is not connected yet.
         '''
-        self._cl = c.mc_proto_create(c.PM_COMMAND)
+        if protocol_machine == 'idle':
+            self._cl = c.mc_proto_create(c.PM_IDLE)
+        else:
+            self._cl = c.mc_proto_create(c.PM_COMMAND)
+
         self._store = NULL
         self._store_wrapper = None
 

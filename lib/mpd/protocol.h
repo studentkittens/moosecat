@@ -39,46 +39,46 @@ typedef struct mc_Client {
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char * (* do_connect) (struct mc_Client *, GMainContext * context, const char *, int, float);
+    char *(* do_connect)(struct mc_Client *, GMainContext *context, const char *, int, float);
 
     /*
      * Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    struct mpd_connection * (* do_get) (struct mc_Client *);
+    struct mpd_connection *(* do_get)(struct mc_Client *);
 
     /*
      * Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put) (struct mc_Client *);
+    void (* do_put)(struct mc_Client *);
 
     /*
      * Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    bool (* do_disconnect) (struct mc_Client *);
+    bool (* do_disconnect)(struct mc_Client *);
 
     /**
      * Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    bool (* do_is_connected) (struct mc_Client *);
+    bool (* do_is_connected)(struct mc_Client *);
 
     /*
      * Free the connector. disconnect() won't free it!
      * May be NULL
      */
-    void (* do_free) (struct mc_Client *);
+    void (* do_free)(struct mc_Client *);
 
     /* This is locked on do_get(),
      * and unlocked on do_put()
      */
-    GRecMutex _getput_mutex;
+    GMutex _getput_mutex;
 
     /* Save last connected host / port */
-    char * _host;
+    char *_host;
     int _port;
 
     /* Only used for bug_report.c */
@@ -95,7 +95,7 @@ typedef struct mc_Client {
 
     /* Outputs of MPD */
     struct {
-        struct mpd_output ** list;
+        struct mpd_output **list;
         int size;
     } outputs;
 
@@ -110,9 +110,9 @@ typedef struct mc_Client {
      * Up-to-date infos.
      * Can be accessed safely in public.
      */
-    struct mpd_song * song;
-    struct mpd_stats * stats;
-    struct mpd_status * status;
+    struct mpd_song *song;
+    struct mpd_stats *stats;
+    struct mpd_status *status;
 
 } mc_Client;
 
@@ -135,7 +135,7 @@ typedef struct mc_Client {
  *
  * @return a newly allocated mc_Client, free with mc_proto_free()
  */
-mc_cc_malloc mc_Client * mc_proto_create (mc_PmType pm);
+mc_cc_malloc mc_Client *mc_proto_create(mc_PmType pm);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
@@ -154,10 +154,10 @@ mc_cc_malloc mc_Client * mc_proto_create (mc_PmType pm);
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-char * mc_proto_connect (
-    mc_Client * self,
-    GMainContext * context,
-    const char * host,
+char *mc_proto_connect(
+    mc_Client *self,
+    GMainContext *context,
+    const char *host,
     int port,
     float timeout);
 
@@ -168,14 +168,14 @@ char * mc_proto_connect (
  *
  * @return a working mpd_connection or NULL
  */
-struct mpd_connection * mc_proto_get (mc_Client * self);
+struct mpd_connection *mc_proto_get(mc_Client *self);
 
 /**
  * @brief Put conenction back to event listening
  *
  * @param self the connector to operate on
  */
-void mc_proto_put (mc_Client * self);
+void mc_proto_put(mc_Client *self);
 
 /**
  * @brief Checks if the connector is connected.
@@ -184,7 +184,7 @@ void mc_proto_put (mc_Client * self);
  *
  * @return true when connected
  */
-bool mc_proto_is_connected (mc_Client * self);
+bool mc_proto_is_connected(mc_Client *self);
 
 /**
  * @brief Disconnect connection and free all.
@@ -193,7 +193,7 @@ bool mc_proto_is_connected (mc_Client * self);
  *
  * @return a error string, or NULL if no error happened
  */
-char * mc_proto_disconnect (mc_Client * self);
+char *mc_proto_disconnect(mc_Client *self);
 
 /**
  * @brief Free all data associated with this connector.
@@ -202,7 +202,7 @@ char * mc_proto_disconnect (mc_Client * self);
  *
  * @param self the connector to operate on
  */
-void mc_proto_free (mc_Client * self);
+void mc_proto_free(mc_Client *self);
 
 ///////////////////////////////
 
@@ -227,11 +227,11 @@ void mc_proto_free (mc_Client * self);
  * @param callback_func the function to call. Prototype depends on signal_name.
  * @param user_data optional user_data to pass to the function.
  */
-void mc_proto_signal_add (
-    mc_Client * self,
-    const char * signal_name,
-    void * callback_func,
-    void * user_data);
+void mc_proto_signal_add(
+    mc_Client *self,
+    const char *signal_name,
+    void *callback_func,
+    void *user_data);
 
 /**
  * @brief Same as mc_proto_signal_add, but only
@@ -244,11 +244,11 @@ void mc_proto_signal_add (
  * @param user_data
  * @param mask
  */
-void mc_proto_signal_add_masked (
-    mc_Client * self,
-    const char * signal_name,
-    void * callback_func,
-    void * user_data,
+void mc_proto_signal_add_masked(
+    mc_Client *self,
+    const char *signal_name,
+    void *callback_func,
+    void *user_data,
     enum mpd_idle mask);
 
 /**
@@ -258,10 +258,10 @@ void mc_proto_signal_add_masked (
  * @param signal_name the signal name this function was registered on.
  * @param callback_addr the addr. of the registered function.
  */
-void mc_proto_signal_rm (
-    mc_Client * self,
-    const char * signal_name,
-    void * callback_addr);
+void mc_proto_signal_rm(
+    mc_Client *self,
+    const char *signal_name,
+    void *callback_addr);
 
 /**
  * @brief This function is mostly used internally to call all registered callbacks.
@@ -270,9 +270,9 @@ void mc_proto_signal_rm (
  * @param signal_name the name of the signal to dispatch.
  * @param ... variable args. See above.
  */
-void mc_proto_signal_dispatch (
-    mc_Client * self,
-    const char * signal_name,
+void mc_proto_signal_dispatch(
+    mc_Client *self,
+    const char *signal_name,
     ...);
 
 /**
@@ -285,9 +285,9 @@ void mc_proto_signal_dispatch (
  *
  * @return 0 - inf
  */
-int mc_proto_signal_length (
-    mc_Client * self,
-    const char * signal_name);
+int mc_proto_signal_length(
+    mc_Client *self,
+    const char *signal_name);
 
 /**
  * @brief Forces the client to update all status/song/stats information.
@@ -298,8 +298,8 @@ int mc_proto_signal_length (
  * @param self the client to operate on.
  * @param events an eventmask. Pass INT_MAX to update all.
  */
-void mc_proto_force_sss_update (
-    mc_Client * self,
+void mc_proto_force_sss_update(
+    mc_Client *self,
     enum mpd_idle events);
 
 /**
@@ -311,7 +311,7 @@ void mc_proto_force_sss_update (
  *
  * @return the hostname, do not free or change it!
  */
-const char * mc_proto_get_host (mc_Client * self);
+const char *mc_proto_get_host(mc_Client *self);
 
 /**
  * @brief Get the Port being currently connected to.
@@ -320,7 +320,7 @@ const char * mc_proto_get_host (mc_Client * self);
  *
  * @return the port or -1 on error.
  */
-int mc_proto_get_port (mc_Client * self);
+int mc_proto_get_port(mc_Client *self);
 
 /**
  * @brief Get the currently set timeout.
@@ -329,8 +329,8 @@ int mc_proto_get_port (mc_Client * self);
  *
  * @return the timeout in seconds, or -1 on error.
  */
-int mc_proto_get_timeout (mc_Client * self);
- 
+int mc_proto_get_timeout(mc_Client *self);
+
 /**
  * @brief Activate a status timer
  *
@@ -344,18 +344,18 @@ int mc_proto_get_timeout (mc_Client * self);
  * @param repeat_ms repeat interval
  * @param trigger_event
  */
-void mc_proto_status_timer_register (
-        mc_Client * self,
-        int repeat_ms,
-        bool trigger_event);
+void mc_proto_status_timer_register(
+    mc_Client *self,
+    int repeat_ms,
+    bool trigger_event);
 
 /**
  * @brief Deactivate the status_timer
  *
  * @param self the client to operate on.
  */
-void mc_proto_status_timer_unregister (
-        mc_Client * self);
+void mc_proto_status_timer_unregister(
+    mc_Client *self);
 
 /**
  * @brief Returns ttue if the status timer is ative
@@ -364,7 +364,7 @@ void mc_proto_status_timer_unregister (
  *
  * @return false on inactive status timer
  */
-bool mc_proto_status_timer_is_active (mc_Client * self);
+bool mc_proto_status_timer_is_active(mc_Client *self);
 
 
 /**
@@ -374,7 +374,7 @@ bool mc_proto_status_timer_is_active (mc_Client * self);
  *
  * @return a mpd_status object which can be read with mpd_status_*
  */
-inline struct mpd_status * mc_proto_get_status(mc_Client * self) {
+inline struct mpd_status *mc_proto_get_status(mc_Client *self) {
     g_assert(self);
     return self->status;
 }
@@ -386,7 +386,7 @@ inline struct mpd_status * mc_proto_get_status(mc_Client * self) {
  *
  * @return a mpd_song object which can be read with mpd_song_*
  */
-inline struct mpd_song * mc_proto_get_current_song(mc_Client * self) {
+inline struct mpd_song *mc_proto_get_current_song(mc_Client *self) {
     g_assert(self);
     return self->song;
 }
@@ -398,7 +398,7 @@ inline struct mpd_song * mc_proto_get_current_song(mc_Client * self) {
  *
  * @return a mpd_stats object which can be read with mpd_stats_*
  */
-inline struct mpd_stats * mc_proto_get_statistics(mc_Client * self) {
+inline struct mpd_stats *mc_proto_get_statistics(mc_Client *self) {
     g_assert(self);
     return self->stats;
 }
@@ -412,10 +412,11 @@ inline struct mpd_stats * mc_proto_get_statistics(mc_Client * self) {
  *
  * @return a list of outputs.
  */
-inline struct mpd_output ** mc_proto_get_outputs(mc_Client * self, /* OUT */ int * size) {
+inline struct mpd_output **mc_proto_get_outputs(mc_Client *self, /* OUT */ int *size) {
     if (size != NULL) {
         *size = self->outputs.size;
     }
+
     return self->outputs.list;
 }
 

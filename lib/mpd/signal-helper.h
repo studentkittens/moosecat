@@ -28,9 +28,9 @@ struct mc_Client;
  * @param self the client to operate on
  * @param cconn libmpdclient's mpd_connection
  */
-bool mc_shelper_report_error (
-    struct mc_Client * self,
-    struct mpd_connection * cconn);
+bool mc_shelper_report_error(
+    struct mc_Client *self,
+    struct mpd_connection *cconn);
 
 /**
  * @brief Same as mc_shelper_report_error, but do no handle actual error (by disconnecting)
@@ -38,9 +38,9 @@ bool mc_shelper_report_error (
  * @param self the client to operate on
  * @param cconn libmpdclient's mpd_connection
  */
-bool mc_shelper_report_error_without_handling (
-    struct mc_Client * self,
-    struct mpd_connection * cconn);
+bool mc_shelper_report_error_without_handling(
+    struct mc_Client *self,
+    struct mpd_connection *cconn);
 
 /**
  * @brief Same as mc_shelper_report_error, but in a printf like fashion.
@@ -51,9 +51,9 @@ bool mc_shelper_report_error_without_handling (
  * @param format printf format
  * @param ... varargs
  */
-void mc_shelper_report_error_printf (
-    struct mc_Client * self,
-    const char * format, ...);
+void mc_shelper_report_error_printf(
+    struct mc_Client *self,
+    const char *format, ...);
 
 /**
  * @brief Dispatch the progress signal
@@ -66,10 +66,10 @@ void mc_shelper_report_error_printf (
  * @param format a printf format
  * @param ... varargs as with printf
  */
-mc_cc_printf (3,4) void mc_shelper_report_progress (
-    struct mc_Client * self,
+mc_cc_printf(3,4) void mc_shelper_report_progress(
+    struct mc_Client *self,
     bool print_newline,
-    const char * format,
+    const char *format,
     ...);
 
 /**
@@ -83,9 +83,9 @@ mc_cc_printf (3,4) void mc_shelper_report_progress (
  * @param new_host the new host passed to connect()
  * @param new_port the new port passed to connect()
  */
-void mc_shelper_report_connectivity (
-    struct mc_Client * self,
-    const char * new_host,
+void mc_shelper_report_connectivity(
+    struct mc_Client *self,
+    const char *new_host,
     int new_port);
 
 /**
@@ -94,8 +94,8 @@ void mc_shelper_report_connectivity (
  * @param self the client to operate on.
  * @param event the event to dispatch
  */
-void mc_shelper_report_client_event (
-    struct mc_Client * self,
+void mc_shelper_report_client_event(
+    struct mc_Client *self,
     enum mpd_idle event);
 
 /**
@@ -105,9 +105,9 @@ void mc_shelper_report_client_event (
  * @param op a member of mc_OpFinishedEnum
  *           to indicate what kind of thing finished.
  */
-void mc_shelper_report_operation_finished (
-        struct mc_Client * self,
-        mc_OpFinishedEnum op);
+void mc_shelper_report_operation_finished(
+    struct mc_Client *self,
+    mc_OpFinishedEnum op);
 
 #endif /* end of include guard: MC_SIGNAL_HELPER_H */
 

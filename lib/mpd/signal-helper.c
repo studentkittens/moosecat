@@ -8,142 +8,144 @@
 
 ///////////////////////////////
 
-static void compose_error_msg (const char * topic, char * dest, const char * src)
+static void compose_error_msg(const char *topic, char *dest, const char *src)
 {
     if (src && topic) {
-        g_snprintf (dest, _MC_PROTO_MAX_ERR_LEN, "%s: ,,%s''", topic, src);
+        g_snprintf(dest, _MC_PROTO_MAX_ERR_LEN, "%s: ,,%s''", topic, src);
     }
 }
 
 ///////////////////////////////
 
-static bool mc_shelper_report_error_impl (struct mc_Client * self, struct mpd_connection * cconn, bool handle_fatal)
+static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_connection *cconn, bool handle_fatal)
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
-            mc_proto_signal_dispatch (self, "error", self, MPD_ERROR_CLOSED,
-                                      "Not connected. (That is no real error)", true);
+            mc_proto_signal_dispatch(self, "error", self, MPD_ERROR_CLOSED,
+                                     "Not connected. (That is no real error)", true);
         }
+
         return true;
     }
 
-    enum mpd_error error = mpd_connection_get_error (cconn);
+    enum mpd_error error = mpd_connection_get_error(cconn);
 
     if (error != MPD_ERROR_SUCCESS) {
         if (MPD_ERROR_SYSTEM == error) {
-            compose_error_msg ("System-Error", self->error_buffer,
-                               g_strerror (mpd_connection_get_system_error (cconn) ) );
+            compose_error_msg("System-Error", self->error_buffer,
+                              g_strerror(mpd_connection_get_system_error(cconn)));
         } else if (MPD_ERROR_SERVER == error) {
-            compose_error_msg ("Server-Error", self->error_buffer,
-                               mpd_connection_get_error_message (cconn) );
+            compose_error_msg("Server-Error", self->error_buffer,
+                              mpd_connection_get_error_message(cconn));
         } else {
-            compose_error_msg ("Client-Error", self->error_buffer,
-                               mpd_connection_get_error_message (cconn) );
+            compose_error_msg("Client-Error", self->error_buffer,
+                              mpd_connection_get_error_message(cconn));
         }
 
-
         /* Try to clear the error */
-        bool is_fatal = ! (mpd_connection_clear_error (cconn) );
+        bool is_fatal = !(mpd_connection_clear_error(cconn));
 
         /* On really fatal error we better disconnect,
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
-            mc_proto_disconnect (self);
+            mc_proto_disconnect(self);
         }
 
         /* Dispatch the error to the users */
-        mc_proto_signal_dispatch (self, "error", self, error, self->error_buffer, is_fatal);
-
+        mc_proto_signal_dispatch(self, "error", self, error, self->error_buffer, is_fatal);
         return true;
     }
+
     return false;
 }
 
 ///////////////////////////////
 
-bool mc_shelper_report_error (struct mc_Client * self, struct mpd_connection * cconn)
+bool mc_shelper_report_error(struct mc_Client *self, struct mpd_connection *cconn)
 {
-    return mc_shelper_report_error_impl (self, cconn, true);
+    return mc_shelper_report_error_impl(self, cconn, true);
 }
 
 ///////////////////////////////
 
-bool mc_shelper_report_error_without_handling (struct mc_Client * self, struct mpd_connection * cconn)
+bool mc_shelper_report_error_without_handling(struct mc_Client *self, struct mpd_connection *cconn)
 {
-    return mc_shelper_report_error_impl (self, cconn, false);
+    return mc_shelper_report_error_impl(self, cconn, false);
 }
 
 ///////////////////////////////
 
-void mc_shelper_report_error_printf (
-    struct mc_Client * self,
-    const char * format, ...)
+void mc_shelper_report_error_printf(
+    struct mc_Client *self,
+    const char *format, ...)
 {
-    char * full_string = NULL;
+    char *full_string = NULL;
     va_list list_ptr;
-    va_start (list_ptr, format);
-    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch (self, "error", self, 0, full_string, false);
+    va_start(list_ptr, format);
+
+    if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
+        mc_proto_signal_dispatch(self, "error", self, 0, full_string, false);
     }
-    va_end (list_ptr);
+
+    va_end(list_ptr);
 }
 
 ///////////////////////////////
 
-void mc_shelper_report_progress (
-    struct mc_Client * self,
+void mc_shelper_report_progress(
+    struct mc_Client *self,
     bool print_newline,
-    const char * format, ...)
+    const char *format, ...)
 {
-    char * full_string = NULL;
+    char *full_string = NULL;
     va_list list_ptr;
-    va_start (list_ptr, format);
-    if (g_vasprintf (&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch (self, "progress", self, print_newline, full_string);
-        g_free (full_string);
+    va_start(list_ptr, format);
+
+    if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
+        mc_proto_signal_dispatch(self, "progress", self, print_newline, full_string);
+        g_free(full_string);
     }
-    va_end (list_ptr);
+
+    va_end(list_ptr);
 }
 
 ///////////////////////////////
 
-void mc_shelper_report_connectivity (
-    struct mc_Client * self,
-    const char * new_host,
+void mc_shelper_report_connectivity(
+    struct mc_Client *self,
+    const char *new_host,
     int new_port)
 {
-    bool server_changed = (g_strcmp0 (new_host, self->_host) != 0) || (new_port != self->_port);
+    bool server_changed = (g_strcmp0(new_host, self->_host) != 0) || (new_port != self->_port);
 
     if (self->_host != NULL)
-        g_free (self->_host);
+        g_free(self->_host);
 
-    self->_host = g_strdup (new_host);
+    self->_host = g_strdup(new_host);
     self->_port = new_port;
-    
     /* Dispatch *after* host being set */
-    mc_proto_signal_dispatch (self, "connectivity", self, server_changed);
+    mc_proto_signal_dispatch(self, "connectivity", self, server_changed);
 }
 
 ///////////////////////////////
 
-void mc_shelper_report_client_event (
-    struct mc_Client * self,
+void mc_shelper_report_client_event(
+    struct mc_Client *self,
     enum mpd_idle event)
 {
     if (event != 0) {
-        mc_proto_update_context_info_cb (self, event, NULL);
-        mc_proto_outputs_update (self, event, NULL);
-        mc_proto_signal_dispatch (self, "client-event", self, event);
+        mc_proto_update_context_info_cb(self, event, NULL);
+        mc_proto_outputs_update(self, event, NULL);
+        mc_proto_signal_dispatch(self, "client-event", self, event);
     }
 }
 
 ///////////////////////////////
 
-void mc_shelper_report_operation_finished (
-        struct mc_Client * self,
-        mc_OpFinishedEnum op)
+void mc_shelper_report_operation_finished(
+    struct mc_Client *self,
+    mc_OpFinishedEnum op)
 {
-    g_assert (self);
-
-    mc_proto_signal_dispatch (self, "op-finished", self, op);
+    g_assert(self);
+    mc_proto_signal_dispatch(self, "op-finished", self, op);
 }

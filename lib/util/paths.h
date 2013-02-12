@@ -16,7 +16,7 @@
  *
  *  @return the depth.
  */
-int mc_path_get_depth (const char * dir_path);
+int mc_path_get_depth(const char *dir_path);
 
 #endif /* end of include guard: MC_PATHS_HH */
 

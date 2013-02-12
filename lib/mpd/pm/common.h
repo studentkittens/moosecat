@@ -17,7 +17,7 @@ typedef struct mpd_connection mpd_connection;
  *
  * @return the corresponding mpd_async_event
  */
-mpd_async_event gio_to_mpd_async (GIOCondition condition);
+mpd_async_event gio_to_mpd_async(GIOCondition condition);
 
 /**
  * @brief Convert a mpd_async_event to a GIOCondition
@@ -26,7 +26,7 @@ mpd_async_event gio_to_mpd_async (GIOCondition condition);
  *
  * @return the corresponding GIOCondition
  */
-GIOCondition mpd_async_to_gio (mpd_async_event events);
+GIOCondition mpd_async_to_gio(mpd_async_event events);
 
 /**
  * @brief Helper to create a mpd_connection with built-in error checks
@@ -38,6 +38,6 @@ GIOCondition mpd_async_to_gio (mpd_async_event events);
  *
  * @return a newly allocated mpd_connection or NULL on error
  */
-mpd_connection * mpd_connect (mc_Client * self, const char * host, int port, float timeout, char ** err);
+mpd_connection *mpd_connect(mc_Client *self, const char *host, int port, float timeout, char **err);
 
 #endif /* end of include guard: COMMON_H_GUARD */
