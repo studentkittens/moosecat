@@ -1,6 +1,4 @@
 cimport binds as c
-
-# bool type
 from libcpp cimport bool
 
 '''
@@ -44,14 +42,14 @@ property. It will give you a list of strings.
 
 cdef class Store:
     cdef c.mc_StoreDB * _db
-    cdef c.mc_StoreSettings *_settings
-    cdef c.mc_Client *_client
+    cdef c.mc_StoreSettings * _settings
+    cdef c.mc_Client * _client
     cdef bool _wait_mode
     cdef bool _initialized
 
     cdef _init(self, c.mc_Client * client, db_directory, use_memory_db=True, use_compression=True, tokenizer=None):
         self._client = client
-        self._settings = c.mc_store_settings_new ()
+        self._settings = c.mc_store_settings_new()
         self._db = NULL
         self._initialized = False
         self._wait_mode = False
@@ -65,7 +63,7 @@ cdef class Store:
 
     def __dealloc__(self):
         self.close()
-        c.mc_store_settings_destroy (self._settings)
+        c.mc_store_settings_destroy(self._settings)
 
     def load(self):
         # Before any load we should make sure, it's not running already.
@@ -73,7 +71,7 @@ cdef class Store:
         if self._initialized:
             self.close()
 
-        self._db = c.mc_store_create (self._client, self._settings)
+        self._db = c.mc_store_create(self._client, self._settings)
         self._initialized = (self._db != NULL)
 
     def close(self):
@@ -104,7 +102,7 @@ cdef class Store:
         if stack != NULL:
             b_name = bytify(name)
             b_match_clause = bytify(match_clause)
-            c.mc_store_playlist_select_to_stack (self._p(), stack,  b_name, b_match_clause)
+            c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
             return Playlist(name=name)._init(stack)
 
     ################
@@ -122,10 +120,10 @@ cdef class Store:
         Will wait by default.
         '''
         def __set__(self, mode):
-            c.mc_store_set_wait_mode (self._db, mode)
+            c.mc_store_set_wait_mode(self._db, mode)
 
         def __get__(self):
-            return c.mc_store_get_wait_mode (self._db)
+            return c.mc_store_get_wait_mode(self._db)
 
     cdef _make_playlist_names(self, c.mc_Stack * stack):
             cdef int i = 0
@@ -133,11 +131,15 @@ cdef class Store:
 
             names = []
 
+            # Iterate over all C-Side mpd_playlists
+            # and fill their name in the names list
             while i < length:
-                b_name = <char*>c.mpd_playlist_get_path(<c.mpd_playlist*>c.mc_stack_at(stack, i))
+                b_name = <char * > c.mpd_playlist_get_path(
+                        <c.mpd_playlist * > c.mc_stack_at(stack, i))
                 names.append(stringify(b_name))
                 i += 1
 
+            # Make only the names accessible to the user.
             return names
 
     property stored_playlist_names:
@@ -147,7 +149,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.mc_Stack * pl_names = <c.mc_Stack *>c.mc_store_playlist_get_all_names(self._p())
+            cdef c.mc_Stack * pl_names = <c.mc_Stack * >c.mc_store_playlist_get_all_names(self._p())
             return self._make_playlist_names(pl_names)
 
     property loaded_stored_playlists:
