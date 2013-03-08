@@ -145,14 +145,15 @@ int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack);
 const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self);
 
 /**
- * @brief
+ * @brief search the Queue or the whole Database.
  *
- * @param self
- * @param match_clause
- * @param queue_only
- * @param stack
+ * @param self the client to operate on
+ * @param match_clause a fts match clause (NULL will return *all* songs)
+ * @param queue_only restrict search to queue only?
+ * @param stack the stack to select the songs too
+ * @param limit_len limit the length of the return. negative numbers dont limit.
  *
- * @return
+ * @return the number of selected songs or a negative number on failure
  */
 int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
 

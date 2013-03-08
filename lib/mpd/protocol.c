@@ -42,9 +42,13 @@ static void mc_proto_reset(mc_Client *self)
     if (self->song != NULL)
         mpd_song_free(self->song);
 
+    if (self->replay_gain_status != NULL)
+        g_free((char *)self->replay_gain_status);
+
     self->song = NULL;
     self->stats = NULL;
     self->status = NULL;
+    self->replay_gain_status = NULL;
 }
 
 ///////////////////
@@ -102,6 +106,8 @@ char *mc_proto_connect(
         /* Force updating of status/stats/song on connect */
         mc_proto_update_context_info_cb(self, INT_MAX, NULL);
         mc_proto_outputs_update(self, INT_MAX, NULL);
+
+        self->_command_list_conn = NULL;
 
         /* For bugreports only */
         self->_timeout = timeout;

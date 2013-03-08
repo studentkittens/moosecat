@@ -124,7 +124,6 @@ int mc_stprv_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *
         bind_int(self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
         bind_txt(self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
     } else {
-        g_print("Cannot select anything with empty directory and negative depth...\n");
         return -1;
     }
 
@@ -135,7 +134,7 @@ int mc_stprv_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *
         while (sqlite3_step(select_stmt) == SQLITE_ROW) {
             const char *rowid = (const char *) sqlite3_column_text(select_stmt, 0);
             const char *path = (const char *) sqlite3_column_text(select_stmt, 1);
-            mc_stack_append(stack, g_strjoin("#", rowid, path, NULL));
+            mc_stack_append(stack, g_strjoin(":", rowid, path, NULL));
             ++returned;
         }
 

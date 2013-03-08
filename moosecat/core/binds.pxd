@@ -274,10 +274,15 @@ cdef extern from "../../lib/mpd/protocol.h":
     mpd_status * mc_proto_get_status(mc_Client *)
     mpd_song * mc_proto_get_current_song(mc_Client *)
     mpd_stats * mc_proto_get_statistics(mc_Client *)
+    char * mc_proto_get_replay_gain_status (mc_Client *)
 
     # Outputs:
     mpd_output ** mc_proto_get_outputs(mc_Client *, int *)
 
+    # Command List:
+    bool mc_client_command_list_begin(mc_Client *)
+    bool mc_client_command_list_commit(mc_Client *)
+    bool mc_client_command_list_is_active(mc_Client *)
 
 ###########################################################################
 #                             Client Commands                             #
@@ -388,136 +393,3 @@ cdef extern from "../../lib/config.h":
         VERSION_MINOR         'MC_VERSION_MINOR'
         VERSION_PATCH         'MC_VERSION_PATCH'
         VERSION_GIT_REVISION  'MC_VERSION_GIT_REVISION'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 

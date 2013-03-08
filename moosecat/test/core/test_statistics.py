@@ -1,5 +1,6 @@
 import moosecat.core as m
 import unittest
+import time
 
 
 stats_response = '''artists: 644
@@ -23,10 +24,10 @@ class TestStats(unittest.TestCase):
         self.assertTrue(self.stats.number_of_artists == 644)
         self.assertTrue(self.stats.number_of_albums == 1326)
         self.assertTrue(self.stats.number_of_songs == 16760)
-        self.assertTrue(self.stats.uptime == 407526)
-        self.assertTrue(self.stats.playtime == 285000)
-        self.assertTrue(self.stats.db_update_time == 134909661)
-        self.assertTrue(self.stats.db_playtime == 4609008)
+        self.assertTrue(self.stats.uptime == time.gmtime(407526))
+        self.assertTrue(self.stats.playtime == time.gmtime(285000))
+        self.assertTrue(self.stats.db_update_time == time.gmtime(134909661))
+        self.assertTrue(self.stats.db_playtime == time.gmtime(4609008))
 
     def test_emptyAttributes(self):
         empty = m.Statistics()

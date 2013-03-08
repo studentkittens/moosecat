@@ -51,7 +51,7 @@ class TestStatus(unittest.TestCase):
         self.assertTrue(self.status.elapsed_seconds == 72)
         self.assertTrue(self.status.elapsed_ms == 71877)
         self.assertTrue(self.status.total_time == 200)
-        self.assertTrue(self.status.update_id == 0)
+        self.assertTrue(self.status.is_updating == 0)
 
         # Audio stuff
         self.assertTrue(self.status.kbit_rate == 256)

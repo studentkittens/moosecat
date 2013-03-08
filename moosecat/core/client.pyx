@@ -121,7 +121,7 @@ cdef void _wrap_OpFinishedCallback(
 
 class UnknownSignalName(Exception):
     '''
-    This gets thrown if the signal_* methods
+    This exception gets thrown if the signal_* methods
     get passed a bad signal name.
     '''
     pass
@@ -135,6 +135,27 @@ class Idle:
 
     You can pass it to client.force_update_metadata(),
     or get it when writing a idle-event handler.
+
+    Example::
+
+        >>> import moosecat.core as m
+        >>> # Update all data that depend on the Queue and Player status
+        >>> your_client.force_update_metadata(m.Idle.QUEUE | m.Idle.PLAYER)
+
+    Constants (named after the event they represent obviously): ::
+
+        DATABASE
+        STORED_PLAYLIST
+        QUEUE
+        PLAYER
+        MIXER
+        OUTPUT
+        OPTIONS
+        UPDATE
+        STICKER
+        SUBSCRIPTION
+        MESSAGE
+
     '''
     DATABASE = c.MPD_IDLE_DATABASE
     STORED_PLAYLIST = c.MPD_IDLE_STORED_PLAYLIST
@@ -170,6 +191,7 @@ cdef class Client:
         self._store_wrapper = None
 
     def __init__(self):
+        'Create a new client object'
         self._signal_data_map = {}
 
     cdef c.mc_Client * _p(self):
@@ -182,6 +204,15 @@ cdef class Client:
         c.mc_proto_free(self._p())
 
     def connect(self, host='localhost', port=6600, timeout_sec=2.):
+        '''Connect this client to a server.
+
+        Will trigger the "connectivity" signal.
+
+        :host: the host (might be a IP(v4 or v6) or a DNS name), default: localhost
+        :port: the port number (6600 as in mpd's default)
+        :timeout_sec: timeout in seconds.
+        :returns: None on success, a string describing an error on failure
+        '''
         cdef char * er = NULL
 
         # Convert input to bytes
@@ -190,12 +221,17 @@ cdef class Client:
         err = c.mc_proto_connect(self._p(), NULL, b_host, port, timeout_sec)
 
         if err == NULL:
-            return ''
+            return None
         else:
             s_err = stringify(err)
             return s_err
 
     def disconnect(self):
+        '''
+        Disconnect from previous server.
+
+        Will trigger the connectivity signal.
+        '''
         cdef char * err = NULL
         err = c.mc_proto_disconnect(self._p())
         return (err == NULL)
@@ -204,7 +240,8 @@ cdef class Client:
         '''Force the Update of Status/Statistics/Current Song
 
         This is usually not needed, since it happens automatically.
-        No callbacks are called.
+
+        **No callbacks are called.**
         '''
         cdef c.mpd_idle event = event_mask
         c.mc_proto_force_sss_update(self._p(), event)
@@ -316,24 +353,26 @@ cdef class Client:
                 c.mc_proto_signal_dispatch(self._p(), b_name, self._p(), op_finished)
 
     def signal(self, signal_name, mask=None):
-        '''
-        For use as a decorator.
-
-            >>> client.signal('idle', mask=Idle.MIXER)
-            >>> def volume_button_handler(client, event):
-            ...     volume_button.set(client.status.volume)
-
-        '''
+        'For use as a decorator over a function.'
         def _signal(function):
             # Register the function
             self.signal_add(signal_name, function)
         return _signal
 
+    def status_timer_activate(self, repeat_ms=500, trigger_idle=True):
+        '''
+        Retrieve the mpd's status additionally every repeat_ms seconds.
 
-    def status_timer_activate(self, repeat_ms, trigger_idle):
+        This is useful to receive changing things like the kbitrate.
+        By default, no status timer is active. (status gets only updated on normal events)
+
+        :repeat_ms: Number of seconds to wait betwenn status updates.
+        :trigger_idle: If the idle-signal shall be called.
+        '''
         c.mc_proto_status_timer_register(self._p(), repeat_ms, trigger_idle)
 
     def status_timer_shutdown(self):
+        'Reverse a previous call to status_timer_activate()'
         c.mc_proto_status_timer_unregister(self._p())
 
     ################
@@ -372,21 +411,33 @@ cdef class Client:
             return ['client-event', 'error', 'connectivity', 'op-finished', 'progress']
 
     property status:
-        'Get the current Status object'
+        'Get the current :class:`.Status` object.'
         def __get__(self):
             return status_from_ptr(c.mc_proto_get_status(self._p()), self._p())
 
     property currentsong:
-        'Get the current Currentsong object'
+        'Get the current :class:`.Song` object.'
         def __get__(self):
             return song_from_ptr(c.mc_proto_get_current_song(self._p()))
 
     property statistics:
-        'Get the current Stats object'
+        'Get the current :class:`.Statistics` object.'
         def __get__(self):
             return statistics_from_ptr(c.mc_proto_get_statistics(self._p()))
 
     property outputs:
+        '''
+        Get a list of outputs on serverside.
+
+        The retrieved outputs have a name, an ID and a flag indicating if they are enabled.
+        If you want to enable them you could do the following::
+
+            >>> audios = client.outputs
+            >>> for output in audios:
+            ...     output.enabled = True
+
+        :returns: A list of :class:`.AudioOutput` objects.
+        '''
         def __get__(self):
             # This is very C-ish. Sorry.
             cdef int size = 0
@@ -403,14 +454,33 @@ cdef class Client:
             return return_list
 
     property store:
+        '''
+        a song-store associated to this client.
+
+        This is only available if store_initialize() was called.
+        Otherwise it will raise an AttributeError.
+
+        See :class:`.Store` for detailed information what you can do with it.
+        '''
         def __get__(self):
-            return self._store_wrapper
+            if self._store_wrapper:
+                return self._store_wrapper
+            else:
+                raise AttributeError('store_initialize() not called yet.')
 
     ####################
     #  Store commands  #
     ####################
 
     def store_initialize(self, db_directory, use_memory_db=True, use_compression=True, tokenizer=None):
+        '''
+        Initialize a new store associated with this client
+
+        :db_directory: the directory where the SQLite Database will be saved in.
+        :use_memory_db: Cache the whole database in memory (a bit faster)
+        :use_compression: save the database file with zip compression on disk
+        :tokenizer: a string naming a FTS-Tokenizer. Default is
+        '''
         self._store_wrapper = Store()._init(self._p(), db_directory, use_memory_db, use_compression, tokenizer)
         self._store_wrapper.load()
 
@@ -419,75 +489,207 @@ cdef class Client:
     #####################
 
     def player_next(self):
+        '''
+        Switch to next song.
+
+        Events: Idle.PLAYER
+        '''
         c.mc_client_next(self._p())
 
     def player_previous(self):
+        '''
+        Switch to previous song.
+
+        Events: Idle.PLAYER
+        '''
         c.mc_client_previous(self._p())
 
     def player_pause(self):
+        '''
+        Pause the playback, or continue if already paused.
+
+        Events: Idle.PLAYER
+        '''
         c.mc_client_pause(self._p())
 
     def player_play(self, queue_id=None):
+        '''
+        Start playing. If playing already, do nothing.
+
+        Events: Idle.PLAYER (if something changed)
+        '''
         if queue_id is None:
             c.mc_client_play(self._p())
         else:
             c.mc_client_play_id(self._p(), queue_id)
 
     def player_stop(self):
+        '''
+        Stop the Playback (reset song to 0 seconds).
+
+        Events: Idle.PLAYER
+        '''
         c.mc_client_stop(self._p())
 
-    def db_rescan(self, path='/'):
+    def database_rescan(self, path='/'):
+        '''
+        Rescan the whole database, not only changed songs.
+        This is a very expensive operation and usually not needed.
+
+        Events: Idle.DATABASE
+        '''
         b_path = bytify(path)
         c.mc_client_database_rescan(self._p(), b_path)
 
-    def db_update(self, path='/'):
+    def database_update(self, path='/'):
+        '''
+        Update the database with new songs.
+
+        Events: Idle.DATABASE if something changed
+        '''
         b_path = bytify(path)
         c.mc_client_database_update(self._p(), b_path)
 
     def authenticate(self, password):
+        '''
+        Send a password to the server to gain privleged rights.
+
+        :returns: true if server accepted the password.
+        '''
         b_password = bytify(password)
         return c.mc_client_password (self._p(), b_password)
 
-    def seek(self, seconds, queue_id=-1):
-        if queue_id is -1:
+    def player_seek(self, seconds, song=None):
+        '''
+        Seek into a specific song.
+
+        Event: Idle.PLAYER
+
+        :seconds: the position to seek into from 0.
+        :song: the song to seek into, if None the current song is used.
+        '''
+        if song is None:
             c.mc_client_seekcur(self._p(), seconds)
         else:
-            c.mc_client_seekid(self._p(), queue_id, seconds)
+            c.mc_client_seekid(self._p(), song.queue_id, seconds)
 
-    def set_priority(self, prio, queue_start_id, queue_end_id=-1):
-        if queue_end_id is -1:
-            c.mc_client_prio(self._p(), prio, queue_start_id)
-        elif queue_end_id > queue_start_id:
-            c.mc_client_prio_range(self._p(), prio, queue_start_id, queue_end_id)
+    def set_priority(self, prio, song, song_end=None):
+        '''
+        Set the priority of a certain song.
+
+        Events: Idle.QUEUE
+
+        :prio: A priority [0-100]
+        :song: the song to set the priority to.
+        :son_end: If not none, apply the priority to the range [song-song_end]
+        '''
+        if song_end is None:
+            c.mc_client_prio(self._p(), prio, song.queue_pos)
+        elif song_end is not None and song.queue_pos > song_end.queue_pos:
+            c.mc_client_prio_range(self._p(), prio, song.queue_pos, song_end.queue_pos)
         else:
-            raise ValueError('queue_start_id is >= queue_end_id')
+            raise ValueError('song >= song_end')
+
+    #####################
+    #  Queue Commands   #
+    #####################
+
+    def queue_clear(self):
+        '''
+        Clear the whole Queue, leaving it empty.
+
+        Events: Idle.QUEUE
+        '''
+        c.mc_client_queue_clear(self._p())
+
+    def queue_delete(self, song, song_end=None):
+        '''
+        Delete a certain song or a range of songs from the Queue.
+
+        Events: Idle.QUEUE
+
+        :song: the song the delete. (a moosecat.core.Song).
+        :song_end: If not None, the range between song and song_end is moved.
+        '''
+        if song_end is None:
+            c.mc_client_queue_delete_id (self._p(), song.queue_id)
+        else:
+            c.mc_client_queue_delete_range(self._p(), song.queue_id, song_end.queue_id)
+
+    def queue_move(self, song, song_end=None, offset=1):
+        '''
+        Move a song or a range of songs in the Queue by a certain offset.
+
+        Events: Idle.QUEUE
+
+        :song_end: If not None, move the whole range between song and song_range
+        :offset: Offset that the song will be moved, may be negative or 0 (does nothing).
+        '''
+        if offset is not 0:
+            if song_end is None:
+                c.mc_client_queue_move(self._p(), song.queue_pos, song.queue_pos + offset)
+            else:
+                c.mc_client_queue_move_range(self._p(), song.queue_pos, song_end.queue_pos, song.queue_pos + offset)
+
+    def queue_shuffle(self):
+        '''
+        Shuffle the Queue in a random order.
+        Will cause a full Queue reload.
+
+        Events: Idle.QUEUE
+        '''
+        c.mc_client_queue_shuffle(self._p())
+
+    def queue_swap(self, song_fst, song_snd):
+        '''
+        Swap two songs in the Queue.
+
+        Events: Idle.QUEUE
+        '''
+        c.mc_client_queue_swap_id(self._p(), song_fst.queue_id, song_snd.queue_id)
+
+    def queue_save(self, as_name):
+        '''
+        Save the current Queue as playlist named "as_name"
+
+        Events: Idle.STORED_PLAYLIST
+        '''
+        b_as_name = bytify(as_name)
+        c.mc_client_playlist_save(self._p(), b_as_name)
+
+    ###########################
+    #  Command List Commands  #
+    ###########################
+
+    @contextmanager
+    def command_list_mode(self):
+        '''
+        A contextmanager.
+
+        Execute Client commands in command_list_mode.
+        Commands get send at once to the server, which processes them at once,
+        and replies them as one. If one command fails the rest of the list is discarded.
+
+        It is supposed if many commands need to be send to the server, but no output is expected.
+
+        .. note:: Since the Python Part is not trusted to mess with the connection:
+                  There is no way to get the response of the sended commands.
 
 
+        Example: ::
 
-'''
-### TODO ###
-
-void mc_client_playlist_add (mc_Client * self, const char * name, const char * file);
-void mc_client_playlist_clear (mc_Client * self, const char * name);
-void mc_client_playlist_delete (mc_Client * self, const char * name, unsigned pos);
-void mc_client_playlist_load (mc_Client * self, const char * playlist);
-void mc_client_playlist_move (mc_Client * self, const char * name, unsigned old_pos, unsigned new_pos);
-void mc_client_playlist_rename (mc_Client * self, const char * old_name, const char * new_name);
-void mc_client_playlist_rm (mc_Client * self, const char * playlist_name);
-void mc_client_playlist_save (mc_Client * self, const char * as_name);
-
-void mc_client_queue_add (mc_Client * self, const char * uri);
-void mc_client_queue_clear (mc_Client * self);
-void mc_client_queue_delete_id (mc_Client * self, int id);
-void mc_client_queue_delete (mc_Client * self, int pos);
-void mc_client_queue_delete_range (mc_Client * self, int start, int end);
-void mc_client_queue_move (mc_Client * self, unsigned old_pos, unsigned new_pos);
-void mc_client_queue_move_range (mc_Client * self, unsigned start_pos, unsigned end_pos, unsigned new_pos);
-void mc_client_queue_shuffle (mc_Client * self);
-void mc_client_queue_swap_id (mc_Client * self, int id_a, int id_b);
-void mc_client_queue_swap (mc_Client * self, int pos_a, int pos_b);
-
-### ???? ###
-
-command_lists?
-'''
+            >>> import moosecat.core as m
+            >>> c = m.Client()
+            >>> c.connect()
+            >>> with c.command_list_mode():
+            ...     c.player_next()
+            ...     c.player_previous()
+            >>> # got sended.
+        '''
+        if self.is_connected:
+            c.mc_client_command_list_begin(self._p())
+            if c.mc_client_command_list_is_active(self._p()):
+                try:
+                    yield
+                finally:
+                    c.mc_client_command_list_commit(self._p())

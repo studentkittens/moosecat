@@ -172,6 +172,7 @@ def build(bld):
 
     build_test_program('lib/main.c', 'moosecat_runner')
     build_test_program('lib/test_idle.c', 'test_idle')
+    build_test_program('lib/test_command_list.c', 'test_command_list')
     build_test_program('lib/time_playlist.c', 'time_playlist')
     build_test_program('lib/db_test.c', 'db_test')
     build_test_program('lib/test_outputs.c', 'test_outputs')

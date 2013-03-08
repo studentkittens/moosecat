@@ -500,7 +500,12 @@ int mc_stprv_select_to_stack(mc_StoreDB *self, const char *match_clause, bool qu
     limit_len = (limit_len < 0) ? INT_MAX : limit_len;
     /* Duplicate this, in order to strip it.
      * We do not want to modify caller's stuff. He would hate us. */
-    gchar *match_clause_dup = g_strstrip(g_strdup(match_clause));
+    gchar *match_clause_dup = g_strdup(match_clause);
+
+    /* emits a warning if NULL is passed *sigh* */
+    if (match_clause_dup != NULL)
+        match_clause_dup = g_strstrip(match_clause_dup);
+
     sqlite3_stmt *select_stmt = NULL;
 
     /* If the query is empty anyway, we just select everything */

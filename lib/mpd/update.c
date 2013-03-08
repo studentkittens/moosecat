@@ -16,16 +16,17 @@ const enum mpd_idle on_stats_update = (0
                                        | MPD_IDLE_UPDATE
                                        | MPD_IDLE_DATABASE);
 
-const enum mpd_idle on_song_update = (0
-                                      | MPD_IDLE_PLAYER);
+const enum mpd_idle on_song_update = (0 | MPD_IDLE_PLAYER);
+const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 ////////////////////////
 
-#define ONLY_IN_MASK(a,b,c) (a & ~(b | c))
+/* Check what events are only in a, not in b, c or d */
+#define ONLY_IN_MASK(a,b,c,d) (a & ~(b | c | d))
 
 ////////////////////////
 
-#define free_if_not_null(var, func) if(var != NULL) func(var)
+#define free_if_not_null(var, func) if(var != NULL) func((void*)var)
 
 ////////////////////////
 
@@ -41,8 +42,9 @@ void mc_proto_update_context_info_cb(
             const bool update_status = (events & on_status_update);
             const bool update_stats = (events & on_stats_update);
             const bool update_song = (events & on_song_update);
+            const bool update_rg = (events & on_rg_status_update);
 
-            if (update_status || update_stats || update_song) {
+            if (update_status || update_stats || update_song || update_rg) {
                 /* Send a block of commands, speeds the thing up by 2x */
                 mpd_command_list_begin(conn, true);
                 {
@@ -52,6 +54,9 @@ void mc_proto_update_context_info_cb(
 
                     if (update_stats)
                         mpd_send_stats(conn);
+
+                    if (update_rg)
+                        mpd_send_command(conn, "replay_gain_status", NULL);
 
                     if (update_song)
                         mpd_send_current_song(conn);
@@ -88,6 +93,20 @@ void mc_proto_update_context_info_cb(
                     mc_shelper_report_error(self, conn);
                 }
 
+                /* Read the current replay gain status */
+                if (update_rg) {
+                    free_if_not_null(self->replay_gain_status, g_free);
+                    struct mpd_pair *mode = mpd_recv_pair_named(conn, "replay_gain_mode");
+
+                    if (mode != NULL) {
+                        self->replay_gain_status = g_strdup(mode->value);
+                        mpd_return_pair (conn, mode);
+                    }
+                    
+                    mpd_response_next(conn);
+                    mc_shelper_report_error(self, conn);
+                }
+
                 /* Try to receive the current song */
                 if (update_song) {
                     free_if_not_null(self->song, mpd_song_free);
@@ -106,7 +125,7 @@ void mc_proto_update_context_info_cb(
                 }
 
                 /* Finish repsonse */
-                if (update_song || update_stats || update_status) {
+                if (update_song || update_stats || update_status || update_rg) {
                     mpd_response_finish(conn);
                     mc_shelper_report_error(self, conn);
                 }
@@ -129,7 +148,8 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
             ONLY_IN_MASK(
                 on_status_update,
                 on_song_update,
-                on_stats_update);
+                on_stats_update,
+                on_rg_status_update);
         mc_proto_update_context_info_cb(self, on_status_only, NULL);
 
         if (self->status_timer.trigger_event) {

@@ -6,21 +6,24 @@
 Welcome to moosecat's documentation!
 ====================================
 
-Contents:
+Architecture Documentation:
+
+.. toctree:: 
+
+    arch/guidelines.rst
+    arch/overview.rst
+    arch/store.rst
+    arch/psys.rst
+    
+
+Developer Documentation:
 
 .. toctree::
-   :maxdepth: 2
 
-   guidelines
-   developers
-   libmoosecat
-   moosecython
-   plugin_design
-   store.rst
-   plchanges.rst
-   misc.rst
-   psys.rst
-
+    api/intro.rst
+    api/client.rst
+    api/store.rst
+    api/client-classes.rst
 
 
 Indices and tables

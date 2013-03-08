@@ -2,6 +2,7 @@
 #define CLIENT_H
 
 #include "protocol.h"
+#include "client-command-list.h"
 
 /**
  * client.h implements the actual commands, which are

@@ -104,95 +104,137 @@ cdef class Status:
     ################
 
     property volume:
+        'Get the current volume from 0 - 100'
         def __get__(self):
             return c.mpd_status_get_volume(self._p())
         def __set__(self, vol):
             c.mc_client_setvol(self._c(), vol)
 
     property repeat:
+        'Check if repeat mode is on'
         def __get__(self):
             return c.mpd_status_get_repeat(self._p())
         def __set__(self, state):
             c.mc_client_repeat(self._c(), state)
 
     property random:
+        'Check if random mode is on'
         def __get__(self):
             return c.mpd_status_get_random(self._p())
         def __set__(self, state):
             c.mc_client_random(self._c(), state)
 
     property single:
+        'Check if single mode is on'
         def __get__(self):
             return c.mpd_status_get_single(self._p())
         def __set__(self, state):
             c.mc_client_single(self._c(), state)
 
     property consume:
+        'Check if consume mode is on'
         def __get__(self):
             return c.mpd_status_get_consume(self._p())
         def __set__(self, state):
             c.mc_client_consume(self._c(), state)
 
     property queue_length:
+        'Return the length of the Queue'
         def __get__(self):
             return c.mpd_status_get_queue_length(self._p())
 
     property queue_version:
+        '''
+        Return the Queue version.
+
+        It changes whenever a operation is done on the Queue.
+        This includes: move, delete, add. Every atomar operations increments
+        the queue version by one.
+
+        Generally this is not very useful to the "outer" client, but very
+        interesting to libmoosecat.
+        '''
         def __get__(self):
             return c.mpd_status_get_queue_version(self._p())
 
     property state:
+        '''
+        The current state of playback.
+
+        Can be:
+
+            * Status.Playing
+            * Status.Stopped
+            * Status.Paused
+            * Status.Unknown
+
+        Use :class:`moosecat.core.Client` 's player_xyz() family of functions
+        to modify the state.
+        '''
         def __get__(self):
             cstate = c.mpd_status_get_state(self._p())
             return Status._cmpdstate_to_py[cstate]
 
     property crossfade:
+        'Get or Set the Crossfade in seconds or 0 to disable'
         def __get__(self):
             return c.mpd_status_get_crossfade(self._p())
+        def __set__(self, new_crossfade):
+            c.mc_client_crossfade(self._c(), new_crossfade)
 
     property mixrampdb:
+        'Retrieve or Set the mixrampdb value (see mpds documentation)'
         def __get__(self):
             return c.mpd_status_get_mixrampdb(self._p())
         def __set__(self, decibel):
             c.mc_client_mixramdb(self._c(), decibel)
 
     property mixrampdelay:
+        'Mixrampdelay (see mpds documentation)'
         def __get__(self):
             return c.mpd_status_get_mixrampdelay(self._p())
         def __set__(self, seconds):
             c.mc_client_mixramdelay(self._c(), seconds)
 
     property song_pos:
+        'Position of the currently playing song within the Queue'
         def __get__(self):
             return c.mpd_status_get_song_pos(self._p())
 
     property song_id:
+        'ID of the currently playing song within the Queue'
         def __get__(self):
             return c.mpd_status_get_song_id(self._p())
 
     property next_song_id:
+        'ID of the next playing song within the Queue'
         def __get__(self):
             return c.mpd_status_get_next_song_id(self._p())
 
     property next_song_pos:
+        'Pos of the next playing song within the Queue'
         def __get__(self):
             return c.mpd_status_get_next_song_pos(self._p())
 
     property elapsed_seconds:
+        'Elapsed seconds of the currently playing song'
         def __get__(self):
             return c.mpd_status_get_elapsed_time(self._p())
 
     property elapsed_ms:
+        'Elapsed milliseconds of the currently playing song'
         def __get__(self):
             return c.mpd_status_get_elapsed_ms(self._p())
 
     property total_time:
+        'Total duration of song in seconds'
         def __get__(self):
             return c.mpd_status_get_total_time(self._p())
 
     property update_id:
+        'Check if mpd is currently updating'
         def __get__(self):
-            return c.mpd_status_get_update_id(self._p())
+            return c.mpd_status_get_update_id(self._p()) > 0
 
     ######################
     #  Audio Properties  #
@@ -202,31 +244,46 @@ cdef class Status:
         return <c.mpd_audio_format*> c.mpd_status_get_audio_format(self._p())
 
     property kbit_rate:
+        '''
+        audio: The last known kilobyte rate of the currently playing song.
+
+        .. note::
+
+            Normally this will only be updated on certain events in order to
+            save network traffic. If you want to update this constantly use
+            the :py:func:`Client.status_timer_activate` function.
+        '''
         def __get__(self):
             return c.mpd_status_get_kbit_rate(self._p())
 
     property audio_sample_rate:
+        'audio: The sample rate of the'
         def __get__(self):
             return self._audio().sample_rate
 
     property audio_bits:
+        'audio: mostly 24 bit'
         def __get__(self):
             return self._audio().bits
 
     property audio_channels:
+        'audio: used channels '
         def __get__(self):
             return self._audio().channels
 
-    ######################
-    #  Replay Gain Prop  #
-    ######################
+    ############################
+    #  Replay Gain Properties  #
+    ############################
 
     property replay_gain_mode:
+        '''
+        Return or Set the current replay_gain mode
+
+        Possible values: ['off', 'album', 'track', 'auto']
+        '''
         def __get__(self):
-            #mc_client_replay_gain_mode(self._c(), )
-            #return self.replay_gain_mode
-            # TODO
-            return 'off'
+            return stringify(<char *>c.mc_proto_get_replay_gain_status(self._c()))
+
         def __set__(self, mode):
             if mode in ['off', 'album', 'track', 'auto']:
                 b_mode = bytify(mode)
@@ -240,5 +297,3 @@ cdef class Status:
                  for k, v in self.__class__.__dict__.items()
                  if type(v) == type(Status.volume)}
         return '\n'.join(['{k}: {v}'.format(k=k,v=v) for k,v in attrs.items()])
-
-

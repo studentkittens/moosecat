@@ -437,7 +437,7 @@ int mc_stprv_spl_select_playlist(mc_StoreDB *store, mc_Stack *out_stack, const c
                 } else {
                     while (sqlite3_step(pl_search_stmt) == SQLITE_ROW) {
                         int rowid = sqlite3_column_int(pl_search_stmt, 0);
-                        struct mpd_song *song = mc_stack_at(store->stack, rowid);
+                        struct mpd_song *song = mc_stack_at(store->stack, rowid - 1);
 
                         if (song != NULL) {
                             mc_stack_append(out_stack, song);

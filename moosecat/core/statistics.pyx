@@ -1,10 +1,16 @@
 cimport binds as c
+import time
 
 cdef statistics_from_ptr(c.mpd_stats * ptr):
     return Statistics()._init(ptr)
 
 
 cdef class Statistics:
+    '''
+    A object holding information about different statistics.
+
+    See below for details on these.
+    '''
 
     ################
     #  Allocation  #
@@ -45,29 +51,36 @@ cdef class Statistics:
     ################
 
     property number_of_artists:
+        'Get the total number of distinct artists in the Database'
         def __get__(self):
             return c.mpd_stats_get_number_of_artists(self._p())
 
     property number_of_albums:
+        'Get the total number of distinct albums in the Database'
         def __get__(self):
             return c.mpd_stats_get_number_of_albums(self._p())
 
     property number_of_songs:
+        'Get the total number of distinct Songs in the Database'
         def __get__(self):
             return c.mpd_stats_get_number_of_songs(self._p())
 
     property uptime:
+        'MPDs uptime with seconds since the last epoch'
         def __get__(self):
-            return c.mpd_stats_get_uptime(self._p())
+            return time.gmtime(c.mpd_stats_get_uptime(self._p()))
 
     property db_update_time:
+        'Last update of the database measured as seconds since the last epoch'
         def __get__(self):
-            return c.mpd_stats_get_db_update_time(self._p())
+            return time.gmtime(c.mpd_stats_get_db_update_time(self._p()))
 
     property playtime:
+        'Time MPD spend playing since it spawned in seconds.'
         def __get__(self):
-            return c.mpd_stats_get_play_time(self._p())
+            return time.gmtime(c.mpd_stats_get_play_time(self._p()))
 
     property db_playtime:
+        'Time it would take to play all songs in the database in seconds.'
         def __get__(self):
-            return c.mpd_stats_get_db_play_time(self._p())
+            return time.gmtime(c.mpd_stats_get_db_play_time(self._p()))

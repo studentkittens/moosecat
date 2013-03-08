@@ -67,5 +67,34 @@ if __name__ == '__main__':
 
         for song in store.stored_playlist_search('test', 'e*'):
             print(song.title)
+    elif command == 'queue':
+        boot.client.store_initialize('/tmp')
+        store = boot.client.store
+        store.wait()
+
+        for song in store.query():
+            print('{a:25} {b:>45} {t:>40}'.format(
+                a=song.artist,
+                b=song.album,
+                t=song.title
+            ))
+
+    elif command == 'dir':
+        boot.client.store_initialize('/tmp')
+        store = boot.client.store
+        store.wait()
+
+        def print_dirs(path=None, depth=-1):
+            for p in store.query_directories(path, depth):
+                print(p)
+
+            print('-' * 40)
+
+        print_dirs(None, 0)
+        print_dirs(None, 1)
+        print_dirs('Musik/Knorkator/Das nächste Album aller Zeiten', -1)
+        print_dirs('*.flac', -1)
+
+
 
     boot.shutdown_moosecat()

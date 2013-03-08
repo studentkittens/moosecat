@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    mc_Client *client = mc_proto_create(MC_PM_COMMAND);
+    mc_Client *client = mc_proto_create(MC_PM_IDLE);
     mc_proto_connect(client, NULL, "localhost", 6600, 2);
     int op_size = 0;
     struct mpd_output **op_list = mc_proto_get_outputs(client, &op_size);

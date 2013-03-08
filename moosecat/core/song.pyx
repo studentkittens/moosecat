@@ -26,6 +26,19 @@ cdef object song_from_ptr(c.mpd_song * ptr):
         return None
 
 cdef class Song:
+    '''
+    A song represents one song in MPD's database.
+
+    It only stores metadata, and can not be used to change a Song.
+    Instead an easy way to access tags is provided.
+
+    .. note::
+
+        Song is just a wrapper around libmpdclient's mpd_song. Internally,
+        a stack with all mpd_songs known to libmoosecat is held. These can be
+        wrapped though in 1..n Song-Wrappers! So, don't rely on something like
+        a id-compare to check if a song is equal.
+    '''
     # Actual c-level struct
     cdef c.mpd_song * _song
 
@@ -157,28 +170,48 @@ cdef class Song:
     ########################
 
     property uri:
+        'Retrieve the uri (file://xyz e.g.) of this song.'
         def __get__(self):
             return c.mpd_song_get_uri(self._p())
 
     property duration:
+        'Retrieve the duration of the song in seconds'
         def __get__(self):
             return c.mpd_song_get_duration(self._p())
 
     property start_end:
+        '''
+        Get the start/end of the virtual song within the physical file in seconds.
+        This will be unset (0) most of the time, but maybe useful for files with
+        an attached .cue sheet.
+
+        :returns: a tuple: (start, end)
+        '''
         def __get__(self):
             return (c.mpd_song_get_start(self._p()),
                     c.mpd_song_get_end(self._p()))
 
     property queue_pos:
+        'Retrieve the position of the song in the Queue (or 0 if in DB only)'
         def __get__(self):
             return c.mpd_song_get_pos(self._p())
         def __set__(self, int pos):
             c.mpd_song_set_pos(self._p(), pos)
 
     property queue_id:
+        '''
+        Retrieve the id of the song in the Queue (or 0 if in DB only)
+
+        In contrast to the Position the Id won't change on move/add/delete.
+        '''
         def __get__(self):
             return c.mpd_song_get_id(self._p())
 
     property last_modified:
+        '''
+        Get the date when this song's file file was last modified.
+
+        :returns: a time.struct_time
+        '''
         def __get__(self):
             return time.gmtime(c.mpd_song_get_last_modified(self._p()))

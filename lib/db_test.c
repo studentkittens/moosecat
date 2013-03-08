@@ -56,14 +56,15 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    mc_Client *client = mc_proto_create(MC_PM_COMMAND);
+    mc_Client *client = mc_proto_create(MC_PM_IDLE);
+
     mc_proto_connect(client, NULL, "localhost", 6600, 10.0);
     mc_proto_signal_add(client, "progress", print_progress, NULL);
     mc_proto_signal_add(client, "error", print_error, NULL);
     mc_proto_signal_add(client, "op-finished", print_opfinished, NULL);
     mc_misc_register_posix_signal(client);
     mc_proto_signal_add(client, "client-event", print_event, NULL);
-    mc_proto_status_timer_register(client, 500, true);
+
     mc_StoreSettings *settings = mc_store_settings_new();
     settings->use_memory_db = FALSE;
     settings->use_compression = FALSE;
@@ -195,9 +196,11 @@ int main(int argc, char *argv[])
             GMainLoop *loop = g_main_loop_new(NULL, true);
             g_main_loop_run(loop);
             g_main_loop_unref(loop);
+
         }
     }
 
+    mc_store_wait(db);
     mc_store_close(db);
     mc_proto_free(client);
 }

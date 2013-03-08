@@ -248,45 +248,41 @@ static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
 
     while ((gpointer)(ent = g_async_queue_pop(self->sqltonet_queue)) > async_queue_terminator) {
         switch (mpd_entity_get_type(ent)) {
-        case MPD_ENTITY_TYPE_SONG: {
-            struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent) ;
-            mc_stack_append(self->stack, (struct mpd_song *) song);
-            mc_stprv_insert_song(self, (struct mpd_song *) song);
-            /* Not sure if this is a nice way,
-             * but for now it works. There might be a proper way:
-             * duplicate the song with mpd_song_dup, and use mpd_entity_free,
-             * but that adds extra memory usage, and costs about 0.2 seconds. */
-            g_free(ent);
-        }
-        break;
+            case MPD_ENTITY_TYPE_SONG: {
+                struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent) ;
+                mc_stack_append(self->stack, (struct mpd_song *) song);
+                mc_stprv_insert_song(self, (struct mpd_song *) song);
+                /* Not sure if this is a nice way,
+                * but for now it works. There might be a proper way:
+                * duplicate the song with mpd_song_dup, and use mpd_entity_free,
+                * but that adds extra memory usage, and costs about 0.2 seconds.
+                * on my setup here - I think this will work fine.
+                * */
+                g_free(ent);
 
-        case MPD_ENTITY_TYPE_DIRECTORY: {
-            const struct mpd_directory *dir = mpd_directory_dup(mpd_entity_get_directory(ent));
+                break;
+            }
 
-            if (dir != NULL) {
-                mc_stprv_dir_insert(self, g_strdup(mpd_directory_get_path(dir)));
+            case MPD_ENTITY_TYPE_DIRECTORY: {
+                const struct mpd_directory *dir = mpd_directory_dup(mpd_entity_get_directory(ent));
+
+                if (dir != NULL) {
+                    mc_stprv_dir_insert(self, g_strdup(mpd_directory_get_path(dir)));
+                    mpd_entity_free(ent);
+                }
+                break;
+            }
+            
+            case MPD_ENTITY_TYPE_PLAYLIST: {
+                /* nothing - we do this only on request (see
+                 * db-stored-playlist.c */
+                break;
+            }
+
+            default: {
                 mpd_entity_free(ent);
+                ent = NULL;
             }
-        }
-        break;
-
-        case MPD_ENTITY_TYPE_PLAYLIST: {
-            const struct mpd_playlist *pl = mpd_entity_get_playlist(ent);
-
-            // TODO: Is this supposed to be here?
-            if (pl != NULL) {
-                mc_stack_append(self->spl.stack, (struct mpd_playlist *) pl);
-            }
-
-            g_free(ent);
-        }
-        break;
-
-        default: {
-            mpd_entity_free(ent);
-            ent = NULL;
-        }
-        break;
         }
     }
 
