@@ -27,7 +27,7 @@ cdef class AudioOutput:
         >>> first.enabled = False
         >>> first.enabled
         True  # Not set yet on serverside.
-        >>> client.force_update_metadata()
+        >>> client.sync()
         >>> first.enabled
         True  # Still! Because it still wraps an old mpd_output instance.
         >>> first = client.outputs[0]

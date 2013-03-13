@@ -29,7 +29,7 @@ Examples:
 
 import sys
 import logging
-import moosecat.boot.boot as boot
+from moosecat.boot import g, shutdown_moosecat, boot_moosecat
 
 
 try:
@@ -44,21 +44,21 @@ if __name__ == '__main__':
     args = docopt.docopt(__doc__, version='moocat 0.1')
     logger = logging.getLogger('moocat')
 
-    boot.boot_moosecat()
+    boot_moosecat()
 
     command = args['<command>']
     if command == 'next':
-        boot.client.player_next()
+        g.client.player_next()
     elif command == 'prev':
-        boot.client.player_previous()
+        g.client.player_previous()
     elif command == 'status':
-        print(boot.client.status)
+        print(g.client.status)
     elif command == 'outputs':
-        for output in boot.client.outputs:
+        for output in g.client.outputs:
             print('#{oid}\t{name}\t{on}'.format(oid=output.oid, name=output.name, on=output.enabled))
     elif command == 'view':
-        boot.client.store_initialize('/tmp')
-        store = boot.client.store
+        g.client.store_initialize('/tmp')
+        store = g.client.store
         store.wait_mode = True
         store.wait()
 
@@ -68,8 +68,8 @@ if __name__ == '__main__':
         for song in store.stored_playlist_search('test', 'e*'):
             print(song.title)
     elif command == 'queue':
-        boot.client.store_initialize('/tmp')
-        store = boot.client.store
+        g.client.store_initialize('/tmp')
+        store = g.client.store
         store.wait()
 
         for song in store.query():
@@ -79,9 +79,32 @@ if __name__ == '__main__':
                 t=song.title
             ))
 
+    elif command == 'list-plugins':
+        import moosecat.plugin_system as plug
+        psys = plug.PluginSystem()
+
+        for info in psys.get_plugin_info():
+            print('''
+                Name        : {i.name}
+                Author      : {i.author}
+                Description : {i.description}
+                Version     : {i.version}
+            '''.format(i=info))
+
+    elif command == 'guess-host':
+        import moosecat.plugin_system as plug
+        psys = plug.PluginSystem()
+        for plugin in psys.category('NetworkProvider'):
+            result = plugin.find()
+            if result is not None:
+                print(':'.join(result))
+                break
+        else:
+            print('Nothing found. Not even a default.')
+
     elif command == 'dir':
-        boot.client.store_initialize('/tmp')
-        store = boot.client.store
+        g.client.store_initialize('/tmp')
+        store = g.client.store
         store.wait()
 
         def print_dirs(path=None, depth=-1):
@@ -95,6 +118,4 @@ if __name__ == '__main__':
         print_dirs('Musik/Knorkator/Das nächste Album aller Zeiten', -1)
         print_dirs('*.flac', -1)
 
-
-
-    boot.shutdown_moosecat()
+        shutdown_moosecat()

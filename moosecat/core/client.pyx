@@ -133,14 +133,14 @@ class Idle:
     Numerical constants for Idle Events.
     This is the same enum as in mpd/idle.h.
 
-    You can pass it to client.force_update_metadata(),
+    You can pass it to client.sync(),
     or get it when writing a idle-event handler.
 
     Example::
 
         >>> import moosecat.core as m
         >>> # Update all data that depend on the Queue and Player status
-        >>> your_client.force_update_metadata(m.Idle.QUEUE | m.Idle.PLAYER)
+        >>> your_client.sync(m.Idle.QUEUE | m.Idle.PLAYER)
 
     Constants (named after the event they represent obviously): ::
 
@@ -236,7 +236,7 @@ cdef class Client:
         err = c.mc_proto_disconnect(self._p())
         return (err == NULL)
 
-    def force_update_metadata(self, event_mask=0xFFFFFFFFF):
+    def sync(self, event_mask=0xFFFFFFFFF):
         '''Force the Update of Status/Statistics/Current Song
 
         This is usually not needed, since it happens automatically.
@@ -593,6 +593,23 @@ cdef class Client:
     #####################
     #  Queue Commands   #
     #####################
+
+    def queue_add(self, uri):
+        '''
+        Add a URI recursively to the Queue.
+
+        Example: ``queue_add('/')`` adds the whole database.
+        Use queue_add_song() if you want to add a song instance only.
+        '''
+        b_uri = bytify(uri)
+        c.mc_client_queue_add(self._p(), b_uri)
+
+    def queue_add_song(self, song):
+        '''
+        Add specified song to the Queue. If it is already in the Queue, it simply gets appended.
+        '''
+        b_uri = bytify(song.uri)
+        c.mc_client_queue_add(self._p(), b_uri)
 
     def queue_clear(self):
         '''

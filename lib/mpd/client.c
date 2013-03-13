@@ -7,7 +7,7 @@
  * Missing commands:
  *
  *  shuffle_range
- *
+ *  (...)
  */
 
 ///////////////////
