@@ -34,7 +34,18 @@ cdef class Store:
 
     cdef _init(self, c.mc_Client * client, db_directory, use_memory_db=True, use_compression=True, tokenizer=None):
         self._client = client
+
+        # Configure Settings
         self._settings = c.mc_store_settings_new()
+        self._settings.use_memory_db = use_memory_db
+        self._settings.use_compression = use_compression
+
+        b_db_directory = bytify(db_directory)
+        self._settings.db_directory = b_db_directory
+        if tokenizer is not None:
+            b_tokenizer = bytify(tokenizer)
+            self._settings.tokenizer = b_tokenizer
+
         self._db = NULL
         self._initialized = False
         self._wait_mode = False
@@ -273,7 +284,7 @@ cdef class Store:
             # and fill their name in the names list
             while i < length:
                 b_name = <char * > c.mpd_playlist_get_path(
-                        <c.mpd_playlist * > c.mc_stack_at(stack, i))
+                        <c.mpd_playlist * ?> c.mc_stack_at(stack, i))
                 names.append(stringify(b_name))
                 i += 1
 

@@ -352,7 +352,10 @@ cdef extern from "../../lib/store/stack.h":
 
 cdef extern from "../../lib/store/db-settings.h":
     ctypedef struct mc_StoreSettings:
-        pass
+        bool use_memory_db
+        bool use_compression
+        char *db_directory
+        char *tokenizer
 
     mc_StoreSettings * mc_store_settings_new ()
     void mc_store_settings_destroy (mc_StoreSettings *)

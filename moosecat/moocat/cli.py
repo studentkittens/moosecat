@@ -29,7 +29,7 @@ Examples:
 
 import sys
 import logging
-from moosecat.boot import g, shutdown_moosecat, boot_moosecat
+from moosecat.boot import g, shutdown_application, boot_base, boot_store
 
 
 try:
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     args = docopt.docopt(__doc__, version='moocat 0.1')
     logger = logging.getLogger('moocat')
 
-    boot_moosecat()
+    boot_base(verbosity=logging.WARNING)
 
     command = args['<command>']
     if command == 'next':
@@ -97,15 +97,14 @@ if __name__ == '__main__':
         for plugin in psys.category('NetworkProvider'):
             result = plugin.find()
             if result is not None:
-                print(':'.join(result))
+                host, port = result
+                print(host, ':', port)
                 break
         else:
             print('Nothing found. Not even a default.')
 
     elif command == 'dir':
-        g.client.store_initialize('/tmp')
-        store = g.client.store
-        store.wait()
+        store = boot_store()
 
         def print_dirs(path=None, depth=-1):
             for p in store.query_directories(path, depth):
@@ -118,4 +117,4 @@ if __name__ == '__main__':
         print_dirs('Musik/Knorkator/Das nächste Album aller Zeiten', -1)
         print_dirs('*.flac', -1)
 
-        shutdown_moosecat()
+        shutdown_application()

@@ -10,7 +10,7 @@ class EnvNetworkProvider(INetworkProvider):
         port = os.environ.get('MPD_PORT')
 
         if host is not None:
-            return (host, 6600 if port is None else port)
+            return (host, 6600 if port is None else int(port))
 
     def priority(self):
         return 50

@@ -563,23 +563,33 @@ static char *mc_store_construct_full_dbpath(mc_Client *client, const char *direc
 mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 {
     g_assert(client);
+
     /* allocated memory for the mc_StoreDB struct */
     mc_StoreDB *store = g_new0(mc_StoreDB, 1);
+
     /* Settings */
     store->settings = (settings) ? settings : mc_store_settings_new();
-    /* either songs in 'songs' table or -1 on error */
+
+    /* either number of songs in 'songs' table or -1 on error */
     int song_count = -1;
+    
     /* create the full path to the db */
-    char *db_path = mc_store_construct_full_dbpath(client, store->settings->db_directory);
+    store->db_directory = g_strdup(store->settings->db_directory);
+    char *db_path = mc_store_construct_full_dbpath(client, store->db_directory);
+
     /* init the background mutex */
     g_rec_mutex_init(&store->db_update_lock);
     store->db_is_locked = FALSE;
+
     /* client is used to keep the db content updated */
     store->client = client;
+
     /* do not wait by default */
     store->wait_for_db_finish = false;
+
     /* used to exchange songs between network <-> sql threads */
     store->sqltonet_queue = g_async_queue_new();
+
     /* This mutex survives the return of mc_store_create.
      * It will be unlocked when done by mc_store_create_background
      */
@@ -658,10 +668,12 @@ void mc_store_close(mc_StoreDB *self)
         return;
 
     return_if_locked(self);
+    
     mc_proto_signal_rm(self->client, "client-event", mc_store_update_callback);
     mc_proto_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);
     mc_stack_free(self->stack);
     mc_stprv_spl_destroy(self);
+
     char *full_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
 
     if (self->write_to_disk)
@@ -679,8 +691,8 @@ void mc_store_close(mc_StoreDB *self)
     /* NOTE: Settings should be destroyed by caller,
      *       Since it should be valid to call close()
      *       several times.
+     * mc_store_settings_destroy (self->settings);
      */
-    //mc_store_settings_destroy (self->settings);
     g_rec_mutex_clear(&self->db_update_lock);
     g_async_queue_unref(self->sqltonet_queue);
     g_mutex_clear(&self->create.mutex);

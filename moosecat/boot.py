@@ -7,6 +7,7 @@ import logging.handlers
 
 import moosecat.config as cfg
 import moosecat.core as core
+from moosecat.plugin_system import PluginSystem
 
 ###########################################################################
 #                             Global Registry                             #
@@ -16,12 +17,21 @@ import moosecat.core as core
 class GlobalRegistry:
     '''
     A Registry for global variables.
+
+    Currently you will be able to access:
+
+        * ``client`` - A :class:`moosecat.core.Client` instance.
+        * ``psys`` - A loaded Plugin System of :class:`moosecat.plugin_system.PluginSystem`
+        * ``config`` - An instance of :class:`moosecat.config`
+
     '''
     def register(self, name, ref):
-        self.__dict__[name] = ref
+        if name not in self.__dict__:
+            self.__dict__[name] = ref
 
     def unregister(self, name):
-        del self.__dict__[name]
+        if name in self.__dict__:
+            del self.__dict__[name]
 
 
 # This is were the mysterious g-variable comes from.
@@ -32,16 +42,10 @@ g = GlobalRegistry()
 #                             PATH CONSTANTS                              #
 ###########################################################################
 
-def _check_path(path):
-    if not os.path.exists(path):
-        LOGGER.warn('Path does not exist: ' + path)
-
 
 def _check_or_mkdir(path):
     if not os.path.exists(path):
-        LOGGER.info('Creating directory: ' + path)
         os.mkdir(path)
-        _check_path(path)
 
 
 def _create_xdg_path(envar, endpoint):
@@ -52,13 +56,8 @@ def _create_file_structure():
     g.register('HOME_DIR', os.path.expanduser('~'))
     g.register('XDG_CONFIG_HOME', _create_xdg_path('XDG_CONFIG_HOME', '.config'))
     g.register('XDG_CACHE_HOME', _create_xdg_path('XDG_CACHE_HOME', '.cache'))
-
-    _check_path(g.HOME_DIR)
-    _check_path(g.XDG_CONFIG_HOME)
-    _check_path(g.XDG_CACHE_HOME)
-
     g.register('CONFIG_DIR', os.path.join(g.XDG_CONFIG_HOME, 'moosecat'))
-    g.register('CACHE_DIR', os.path.join(g.XDG_CONFIG_HOME, 'moosecat'))
+    g.register('CACHE_DIR', os.path.join(g.XDG_CACHE_HOME, 'moosecat'))
 
     _check_or_mkdir(g.CONFIG_DIR)
     _check_or_mkdir(g.CACHE_DIR)
@@ -92,7 +91,7 @@ UNICODE_ICONS = {
 }
 
 
-def _create_logger(name=None):
+def _create_logger(name=None, verbosity=logging.DEBUG):
     '''Create a new Logger configured with moosecat's defaults.
 
     :name: A user-define name that describes the logger
@@ -146,7 +145,7 @@ def _create_logger(name=None):
     # Create the logger and configure it.
     logger.addHandler(file_stream)
     logger.addHandler(stream)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(verbosity)
     return logger
 
 
@@ -169,42 +168,50 @@ def _connectivity_logger(client, server_changed):
         LOGGER.info('Different Server than last time.')
 
 
-def boot_moosecat():
+def _find_out_host_and_port():
+    host = g.config.get('host')
+    if host is None:
+        for plugin in g.psys.category('NetworkProvider'):
+            data = plugin.find()
+            if data is not None:
+                return (data[0], data[1])
+    else:
+        port = g.config.get('port')
+        return host, 6600 if port is None else port
+
+
+def boot_base(verbosity=logging.DEBUG):
     '''Initialize the basic services.
 
     This is basically a helper to spare us a lot of init work in tests.
 
     Following things are done:
 
-        - Initialize a pretty logger
-        - Load the config
+        - Prepate the Filesystem.
+        - Initialize a pretty root logger.
+        - Load the config.
         - Initialize the Plugin System.
-        - Load the 'connection' plugin tag
-        - Find out to which host/port we should connect. (via Psys)
         - Instance the client and connect to it.
-        - If something fails we bailout.
-        - return to caller. Caller should load needed plugins then.
+        - Find out to which host/port we should connect (config and NetworProvider).
+        - Make everything available under the 'g' variable;
+
+    :verbosity: Verbosity to use during bootup. You can adjust this using ``logger.getLogger(None).setLevel(logger.YourLevel)`` later.
+    :returns: True if erverything worked and the client is connected.
     '''
     # prepare filesystem
     _create_file_structure()
 
     # All logger will inherit from the root logger,
     # so we just customize it.
-    _create_logger()
+    _create_logger(verbosity=verbosity)
 
     global LOGGER
-    LOGGER = _create_logger('boot')
-
-    logging.debug('A Debug message')
-    logging.info('An Info message')
-    logging.warning('A Warning message')
-    logging.error('An Error message')
-    logging.critical('A Critical message')
+    LOGGER = _create_logger('boot', verbosity=verbosity)
 
     config = cfg.Config(filename=g.CONFIG_FILE)
 
     # Make it known.
-    g.register('cfg', config)
+    g.register('config', config)
 
     # Logging signals
     client = core.Client()
@@ -215,20 +222,42 @@ def boot_moosecat():
     client.signal_add('error', _error_logger)
     client.signal_add('progress', _progress_logger)
 
+    psys = PluginSystem()
+    g.register('psys', psys)
+
     # Go into the hot phase...
-    client.connect()
+    host, port = _find_out_host_and_port()
+    error = client.connect(host, port)
+    if error is not None:
+        logging.error("Connection Trouble: " + error)
 
     return client.is_connected
 
 
-def shutdown_moosecat():
-    LOGGER.info('Shutting down moosecat')
+def boot_store(wait=True):
+    '''
+    Initialize the store (optional)
+
+    Must be called after boot_base()!
+
+    :wait: If True call store.wait() after initialize. If you set wait to False
+           you have to call store.wait() yourself, but can do other tasks before.
+    :returns: the store (as shortcut) if wait=True, None otherwise.
+    '''
+    g.client.store_initialize(g.CACHE_DIR)
+    if wait:
+        g.client.store.wait()
+        return g.client.store
+
+
+def shutdown_application():
+    '''
+    Destruct everything boot_base() and boot_store() created.
+
+    You can call this function also safely if you did not call boot_store().
+    '''
+    LOGGER.info('shutting down moosecat.')
     g.config.save()
-    LOGGER.info('Config saved')
-    if client.store is not None:
-        client.store.close()
-    client.disconnect()
-
-
-if __name__ == '__main__':
-    boot_moosecat()
+    if g.client.store is not None:
+        g.client.store.close()
+    g.client.disconnect()
