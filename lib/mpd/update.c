@@ -69,8 +69,10 @@ void mc_proto_update_context_info_cb(
                     struct mpd_status *tmp_status;
                     tmp_status = mpd_recv_status(conn);
 
-                    /* Reset the status timer to 0 */                                        
-                    g_timer_start(self->status_timer.last_update);
+                    if (self->status_timer.last_update != NULL && self->status_timer.reset_timer) {
+                        /* Reset the status timer to 0 */                                        
+                        g_timer_start(self->status_timer.last_update);
+                    }
 
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
@@ -146,18 +148,32 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
     g_assert(data);
     struct mc_Client *self = data;
 
-    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) { 
-        if (g_time_elapsed(self->status_timer.last_update) > 
-        enum mpd_idle on_status_only =
-            ONLY_IN_MASK(
-                on_status_update,
-                on_song_update,
-                on_stats_update,
-                on_rg_status_update);
-        mc_proto_update_context_info_cb(self, on_status_only, NULL);
+    if (mc_proto_is_connected(self) == false) {
+        return false;
+    }
 
-        if (self->status_timer.trigger_event) {
-            mc_shelper_report_client_event(self, on_status_only);
+    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) { 
+
+        int compare_value = self->status_timer.interval;
+        compare_value = compare_value - (compare_value / 4);
+
+        float elapsed = g_timer_elapsed(self->status_timer.last_update, NULL) * 1000;
+
+        if (elapsed > compare_value) {
+            enum mpd_idle on_status_only =
+                ONLY_IN_MASK(
+                    on_status_update,
+                    on_song_update,
+                    on_stats_update,
+                    on_rg_status_update);
+    
+            self->status_timer.reset_timer = false;
+            mc_proto_update_context_info_cb(self, on_status_only, NULL);
+            self->status_timer.reset_timer = true;
+
+            if (self->status_timer.trigger_event) {
+                mc_shelper_report_client_event(self, on_status_only);
+            }
         }
     }
 
@@ -172,7 +188,11 @@ void mc_proto_update_register_status_timer(
     bool trigger_event)
 {
     g_assert(self);
+
     self->status_timer.trigger_event = trigger_event;
+    self->status_timer.last_update = g_timer_new();
+    self->status_timer.reset_timer = true;
+    self->status_timer.interval = repeat_ms;
     self->status_timer.timeout_id =
         g_timeout_add(repeat_ms, mc_proto_update_status_timer_cb, self);
 }
@@ -187,6 +207,11 @@ void mc_proto_update_unregister_status_timer(
     if (mc_proto_update_status_timer_is_active(self)) {
         g_source_remove(self->status_timer.timeout_id);
         self->status_timer.timeout_id = -1;
+        self->status_timer.interval = 0;
+        self->status_timer.reset_timer = true;
+        if (self->status_timer.last_update != NULL) {
+            g_timer_destroy(self->status_timer.last_update);
+        }
     }
 }
 

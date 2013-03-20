@@ -108,6 +108,7 @@ typedef struct mc_Client {
         int interval;
         bool trigger_event;
         GTimer *last_update;
+        bool reset_timer;
     } status_timer;
 
     /*
