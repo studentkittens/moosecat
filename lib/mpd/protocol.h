@@ -107,6 +107,7 @@ typedef struct mc_Client {
         int timeout_id;
         int interval;
         bool trigger_event;
+        GTimer *last_update;
     } status_timer;
 
     /*
