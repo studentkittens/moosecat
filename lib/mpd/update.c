@@ -69,6 +69,9 @@ void mc_proto_update_context_info_cb(
                     struct mpd_status *tmp_status;
                     tmp_status = mpd_recv_status(conn);
 
+                    /* Reset the status timer to 0 */                                        
+                    g_timer_start(self->status_timer.last_update);
+
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
                         free_if_not_null(self->status, mpd_status_free);
@@ -143,7 +146,8 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
     g_assert(data);
     struct mc_Client *self = data;
 
-    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) {
+    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) { 
+        if (g_time_elapsed(self->status_timer.last_update) > 
         enum mpd_idle on_status_only =
             ONLY_IN_MASK(
                 on_status_update,
