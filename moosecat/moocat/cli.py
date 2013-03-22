@@ -4,7 +4,7 @@ moocat is the commandline interface to moosecat, a versatile MPD Client.
 
 Usage:
     moocat
-    moocat <command> [options] [-v...]
+    moocat <command> [options] [-v...] [-q...]
     moocat -H | --help
     moocat -V | --version
 
@@ -16,7 +16,7 @@ Options:
     -c --self-connect    Connect to a daemonized instance, instead of building db itself.
     -w --wait            Wait for operations to finish (database updates, idle) [default: no]
     -v --verbose         Print more output than usual. Might be given more than once to increase the verbosity.
-    -q --quiet           Try to print no output. (Except very unexpected errors)
+    -q --quiet           Try to print no output. (Except very unexpected errors), can be passed more than once.
 
 Misc Options:
     -H --help            Show this help text.
@@ -32,6 +32,15 @@ import logging
 from moosecat.boot import g, shutdown_application, boot_base, boot_store
 
 
+def verbosity_to_loglevel(vs_passed):
+    return {
+        0: logging.CRITICAL,
+        1: logging.ERROR,
+        2: logging.WARNING,
+        3: logging.INFO,
+        4: logging.DEBUG
+    }.get(vs_passed, logging.INFO)
+
 try:
     import docopt
 except ImportError:
@@ -44,7 +53,8 @@ if __name__ == '__main__':
     args = docopt.docopt(__doc__, version='moocat 0.1')
     logger = logging.getLogger('moocat')
 
-    boot_base(verbosity=logging.WARNING)
+    verbosity = 2 + args['--verbose'] - args['--quiet']
+    boot_base(verbosity=verbosity_to_loglevel(verbosity))
 
     command = args['<command>']
     if command == 'next':
@@ -117,4 +127,4 @@ if __name__ == '__main__':
         print_dirs('Musik/Knorkator/Das nächste Album aller Zeiten', -1)
         print_dirs('*.flac', -1)
 
-        shutdown_application()
+    shutdown_application()

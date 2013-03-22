@@ -21,3 +21,14 @@ class INetworkProvider(IBasePlugin):
         :returns: a tuple: (host:str, port:int, timeout:float)
         '''
         return ('localhost', 6600, 2.0)
+
+class IConfigDefaults(IBasePlugin):
+    '''
+    Implement this Interface if your Plugin needs to store Configuration Values.
+    '''
+
+    name = 'ConfigDefaults'
+
+    def get_config_defaults(self):
+        'Return a dictionary that gets passed to Config.add_defaults()'
+        return {}

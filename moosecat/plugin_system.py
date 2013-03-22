@@ -56,10 +56,10 @@ class PluginSystem:
 
         # find the categories specified in moosecat/plugins/__init__.py
         self._categories = _get_interfaces_from_module()
-        LOGGER.debug('Discovered following plugins categories: ' + ', '.join(self.list_categories))
+        LOGGER.debug('Discovered following plugins categories: ' + ', '.join(self.list_categories()))
 
         # tell yapsy about our extra categories
-        self._mngr.setCategoriesFilter(categories)
+        self._mngr.setCategoriesFilter(self._categories)
 
         try:
             self._mngr.collectPlugins()

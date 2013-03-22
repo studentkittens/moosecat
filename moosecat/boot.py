@@ -7,7 +7,9 @@ import logging.handlers
 
 import moosecat.config as cfg
 import moosecat.core as core
+
 from moosecat.plugin_system import PluginSystem
+from moosecat.config_defaults import CONFIG_DEFAULTS
 
 ###########################################################################
 #                             Global Registry                             #
@@ -208,7 +210,11 @@ def boot_base(verbosity=logging.DEBUG):
     global LOGGER
     LOGGER = _create_logger('boot', verbosity=verbosity)
 
+    # Set up Config
     config = cfg.Config(filename=g.CONFIG_FILE)
+    config.add_defaults(CONFIG_DEFAULTS)
+    config.set('paths.config_home', g.XDG_CONFIG_HOME)
+    config.set('paths.cache_home', g.XDG_CACHE_HOME)
 
     # Make it known.
     g.register('config', config)
@@ -222,8 +228,13 @@ def boot_base(verbosity=logging.DEBUG):
     client.signal_add('error', _error_logger)
     client.signal_add('progress', _progress_logger)
 
+    # Initialize the Plugin System
     psys = PluginSystem()
     g.register('psys', psys)
+
+    # Acquire Config Defaults for all Plugins
+    for plugin in psys.category('ConfigDefaults'):
+        config.add_defaults(plugin.get_config_defaults())
 
     # Go into the hot phase...
     host, port = _find_out_host_and_port()
@@ -258,6 +269,10 @@ def shutdown_application():
     '''
     LOGGER.info('shutting down moosecat.')
     g.config.save()
-    if g.client.store is not None:
+
+    try:
         g.client.store.close()
+    except AttributeError:
+        pass
+
     g.client.disconnect()

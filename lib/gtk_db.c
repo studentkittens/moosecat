@@ -43,8 +43,8 @@ static void update_view(EntryTag *tag, const char *search_text)
     int found = mc_store_search_to_stack(tag->store, search_text, true, tag->song_buf, -1);
     select_time = g_timer_elapsed(tag->profile_timer, NULL);
 
-    if (found == 0)
-        return;
+    //if (found == 0)
+     //   return;
 
     g_timer_start(tag->profile_timer);
     gtk_list_store_clear(list_store);

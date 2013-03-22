@@ -6,9 +6,13 @@ Tools for loading and saving toplevel keys from a yaml file
 .. moduleauthor:: serztle <serztle@googlemail.com>
 """
 
+import logging
+import collections
 
 import yaml
 
+
+_LOGGER  = logging.getLogger('config')
 
 class Config:
     """A great self-explanatory configuration class.
@@ -25,6 +29,19 @@ class Config:
         self._filename = filename
         self._data = {}
 
+    def _resolve(self, name, default=None):
+        cont = self._data
+        last = self._data
+        for key in name.split('.'):
+            try:
+                if isinstance(last, collections.Mapping):
+                    cont = last
+                    last = last[key]
+            except KeyError:
+                return cont, None
+
+        return cont, key
+
     def get(self, name, default=None):
         """get a configuration value by name
 
@@ -32,7 +49,8 @@ class Config:
         name: the toplevel key to search in the config
         returns: a python object depending on the content of the .yaml file
         """
-        return self._data.get(name, default)
+        container, last_key = self._resolve(name, default=default)
+        return container.get(last_key, default)
 
     def set(self, name, value):
         """set a configuration value by name
@@ -40,7 +58,9 @@ class Config:
         name: the toplevel key to search in the config
         value: the python object that should be saved
         """
-        self._data[name] = value
+        container, last_key = self._resolve(name)
+        if last_key is not None:
+            container[last_key] = value
 
     def load(self):
         """Load the config from the .yaml file"""
@@ -60,3 +80,8 @@ class Config:
         """Save the config to the .yaml file"""
         with open(self._filename, 'w') as f:
             f.write(yaml.dump(self._data, default_flow_style=False))
+
+    def add_defaults(self, default_dict):
+        'Add a dictionary with configuration values as default'
+        self._data = {k: self._data.get(k, default_dict.get(k))
+                for k in self._data.keys() | default_dict.keys()}
