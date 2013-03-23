@@ -9,6 +9,7 @@ import moosecat.config as cfg
 import moosecat.core as core
 
 from moosecat.plugin_system import PluginSystem
+from moosecat.heartbeat import Heartbeat
 from moosecat.config_defaults import CONFIG_DEFAULTS
 
 ###########################################################################
@@ -245,6 +246,9 @@ def boot_base(verbosity=logging.DEBUG):
                 name: plugin.plugin_object.get_config_defaults()
             }
         })
+
+    # do the Heartbeat stuff
+    g.register('heartbeat', Heartbeat(client))
 
     # Go into the hot phase...
     host, port = _find_out_host_and_port()

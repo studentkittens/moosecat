@@ -16,21 +16,25 @@ the time. (Although there is libmoosecat's status_timer).
 As :class:`moosecat.core.Client`'s Signalsystem does, Heartbeat needs a running
 Mainloop.
 
+You can access a pre-instanced Heartbeat-object via the ``g`` object: ::
+
+    >>> from moosceat.boot import g
+    >>> print(g.heartbeat.elapsed)
+
 Example
 -------
 
 Print the calculated value every 500 milliseconds: ::
 
-    from moosecat.heartbeat import Heartbeat
     from moosecat.boot import boot_base, g
     from gi.repository import GLib
 
-    def timeout_callback(heartbeat):
-        print(heartbeat.elapsed)
+    def timeout_callback():
+        print(g.heartbeat.elapsed)
         return True
 
     boot_base()
-    GLib.timeout_add(500, timeout_callback, Heartbeat(g.client))
+    GLib.timeout_add(500, timeout_callback)
     GLib.MainLoop().run()
 
 Reference

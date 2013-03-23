@@ -26,6 +26,9 @@ class Heartbeat:
 
         :returns: The number of seconds as a float, with milliseconds fraction
         '''
+        if not self._client.is_connected:
+            return 0.0
+
         if self._client.status.state is Status.Playing:
             offset = self._current_time_ms() - self._last_update_tmstp
         else:
@@ -45,10 +48,19 @@ if __name__ == '__main__':
     from moosecat.boot import boot_base, g
     from gi.repository import GLib
 
-    def timeout_callback(heartbeat):
-        print(heartbeat.elapsed)
+    def timeout_callback():
+        print(g.heartbeat.elapsed)
+        g.client.connect()
         return True
 
     boot_base()
-    GLib.timeout_add(500, timeout_callback, Heartbeat(g.client))
-    GLib.MainLoop().run()
+
+    # additional challenge, make first request disconnected
+    g.client.disconnect()
+
+    GLib.timeout_add(500, timeout_callback)
+
+    try:
+        GLib.MainLoop().run()
+    except KeyboardInterrupt:
+        pass
