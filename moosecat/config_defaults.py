@@ -19,8 +19,4 @@ CONFIG_DEFAULTS = {
         }
     },
     'active_profile': 'default',
-    'paths': {
-        'config_home': None,  # Set on bootup by boot.py
-        'cache_home': None    # echSet on bootup by boot.py
-    }
 }

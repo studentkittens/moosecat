@@ -213,8 +213,12 @@ def boot_base(verbosity=logging.DEBUG):
     # Set up Config
     config = cfg.Config(filename=g.CONFIG_FILE)
     config.add_defaults(CONFIG_DEFAULTS)
-    config.set('paths.config_home', g.XDG_CONFIG_HOME)
-    config.set('paths.cache_home', g.XDG_CACHE_HOME)
+    config.add_defaults({
+        'paths': {
+            'config_home': g.XDG_CONFIG_HOME,
+            'cache_home': g.XDG_CACHE_HOME
+        }
+    })
 
     # Make it known.
     g.register('config', config)
