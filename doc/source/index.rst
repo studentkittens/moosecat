@@ -20,6 +20,7 @@ Developer Documentation:
     api/bootup.rst
     api/plugin_system.rst
     api/config.rst
+    api/heartbeat.rst
 
 
 Indices and tables
