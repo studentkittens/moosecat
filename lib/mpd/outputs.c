@@ -24,9 +24,7 @@ void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event, void *unused)
             mc_shelper_report_error(self, conn);
         } else {
             if (self->outputs.list != NULL) {
-                g_free(self->outputs.list);
-                self->outputs.list = NULL;
-                self->outputs.size = 0;
+                mc_proto_outputs_free(self);
             }
 
             struct mpd_output *output = NULL;

@@ -21,11 +21,6 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 ////////////////////////
 
-/* Check what events are only in a, not in b, c or d */
-#define ONLY_IN_MASK(a,b,c,d) (a & ~(b | c | d))
-
-////////////////////////
-
 #define free_if_not_null(var, func) if(var != NULL) func((void*)var)
 
 ////////////////////////
@@ -154,18 +149,15 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
 
     if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) { 
 
-        int compare_value = self->status_timer.interval;
-        compare_value = compare_value - (compare_value / 4);
-
+        /* Substract a small amount to include the network latency - a bit of a hack 
+         * but worst thing that could happen: you miss one status update.
+         * */
+        float compare = MAX(self->status_timer.interval - self->status_timer.interval / 10, 0);
         float elapsed = g_timer_elapsed(self->status_timer.last_update, NULL) * 1000;
 
-        if (elapsed > compare_value) {
-            enum mpd_idle on_status_only =
-                ONLY_IN_MASK(
-                    on_status_update,
-                    on_song_update,
-                    on_stats_update,
-                    on_rg_status_update);
+        if (elapsed >= compare) {
+            /* MIXER is a harmless event, but it causes status to update */
+            enum mpd_idle on_status_only = MPD_IDLE_MIXER;
     
             self->status_timer.reset_timer = false;
             mc_proto_update_context_info_cb(self, on_status_only, NULL);

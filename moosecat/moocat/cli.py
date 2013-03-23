@@ -39,7 +39,7 @@ def verbosity_to_loglevel(vs_passed):
         2: logging.WARNING,
         3: logging.INFO,
         4: logging.DEBUG
-    }.get(vs_passed, logging.INFO)
+    }.get(min(4, max(0, vs_passed)), logging.INFO)
 
 try:
     import docopt

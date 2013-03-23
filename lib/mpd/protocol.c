@@ -203,9 +203,13 @@ void mc_proto_free(mc_Client *self)
     if (self == NULL)
         return;
 
+    if (mc_proto_status_timer_is_active(self)) {
+        mc_proto_status_timer_unregister(self);
+    }
+
     /* Disconnect if not done yet */
     mc_proto_disconnect(self);
-
+        
     /* Kill any previously connected host info */
     if (self->_host != NULL)
         g_free(self->_host);
