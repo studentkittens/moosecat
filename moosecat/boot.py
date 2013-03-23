@@ -212,6 +212,7 @@ def boot_base(verbosity=logging.DEBUG):
 
     # Set up Config
     config = cfg.Config(filename=g.CONFIG_FILE)
+    config.load()
     config.add_defaults(CONFIG_DEFAULTS)
     config.add_defaults({
         'paths': {

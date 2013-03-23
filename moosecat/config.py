@@ -6,9 +6,11 @@ Tools for loading and saving toplevel keys from a yaml file
 .. moduleauthor:: serztle <serztle@googlemail.com>
 """
 
+# stdlib
 import logging
 import collections
 
+# pyaml
 import yaml
 
 
@@ -25,11 +27,11 @@ class Config:
 
         filename: name where the config is located
         """
-        self._loaded = False
         self._filename = filename
         self._data = {}
 
     def _resolve(self, name, default=None):
+        'Resolve a config-urn to a key and its surrounding container'
         cont = self._data
         last = self._data
         for key in name.split('.'):
@@ -45,18 +47,24 @@ class Config:
     def get(self, name, default=None):
         """get a configuration value by name
 
-        default: An optional default value may be passed (without None)
-        name: the toplevel key to search in the config
-        returns: a python object depending on the content of the .yaml file
+        :default: An optional default value may be passed (without None)
+        :name: the toplevel key to search in the config
+        :returns: a python object depending on the content of the .yaml file
         """
         container, last_key = self._resolve(name, default=default)
         return container.get(last_key, default)
 
+    def __getitem__(self, idx):
+        return self.get(idx)
+
+    def __setitem__(self, idx, value):
+        self.set(idx, value)
+
     def set(self, name, value):
         """set a configuration value by name
 
-        name: the toplevel key to search in the config
-        value: the python object that should be saved
+        :name: the toplevel key to search in the config
+        :value: the python object that should be saved
         """
         container, last_key = self._resolve(name)
         if last_key is not None:
@@ -67,17 +75,14 @@ class Config:
         try:
             with open(self._filename, 'r') as f:
                 self._data = yaml.load(f.read())
-            self._loaded = True
         except IOError:
             self._data = {}
-            self._loaded = False
 
-        if not isinstance(self._data, dict):
+        if not isinstance(self._data, collections.Mapping):
             self._data = {}
-            self._loaded = False
 
     def save(self):
-        """Save the config to the .yaml file"""
+        """Save the config to a .yaml file"""
         with open(self._filename, 'w') as f:
             f.write(yaml.dump(self._data, default_flow_style=False))
 
