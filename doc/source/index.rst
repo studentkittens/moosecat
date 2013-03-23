@@ -7,8 +7,6 @@ Architecture Documentation:
 
     arch/guidelines.rst
     arch/overview.rst
-    arch/store.rst
-    arch/psys.rst
     
 
 Developer Documentation:
