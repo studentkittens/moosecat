@@ -233,8 +233,13 @@ def boot_base(verbosity=logging.DEBUG):
     g.register('psys', psys)
 
     # Acquire Config Defaults for all Plugins
-    for plugin in psys.category('ConfigDefaults'):
-        config.add_defaults(plugin.get_config_defaults())
+    for plugin in psys.list_plugin_info_by_category('ConfigDefaults'):
+        name = plugin.name
+        config.add_defaults({
+            'plugins': {
+                name: plugin.plugin_object.get_config_defaults()
+            }
+        })
 
     # Go into the hot phase...
     host, port = _find_out_host_and_port()

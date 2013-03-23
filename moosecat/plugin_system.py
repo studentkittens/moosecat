@@ -86,6 +86,9 @@ class PluginSystem:
         '''
         return self._mngr.getAllPlugins()
 
+    def list_plugin_info_by_category(self, name):
+        return self._mngr.getPluginsOfCategory(name)
+
     def list_categories(self):
         'Get a string list of categories.'
         return self._categories.keys()
@@ -102,7 +105,7 @@ class PluginSystem:
         :name: The name of a category.
         :returns: A list of instances of a certain Plugin Classes.
         '''
-        cat = [info.plugin_object for info in self._mngr.getPluginsOfCategory(name)]
+        cat = [info.plugin_object for info in self.list_plugin_info_by_category(name)]
         cat.sort(key=lambda pobj: pobj.priority(), reverse=True)
         return cat
 
