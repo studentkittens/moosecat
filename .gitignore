@@ -20,8 +20,10 @@ waf
 lib/config.h
 
 # db
-moosecat_*sqlite
+*sqlite*
 .cython_cache/
 
 # Coredumps
 core
+
+
