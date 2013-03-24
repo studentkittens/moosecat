@@ -14,7 +14,8 @@ import collections
 import yaml
 
 
-_LOGGER  = logging.getLogger('config')
+_LOGGER = logging.getLogger('config')
+
 
 class Config:
     """A great self-explanatory configuration class.
@@ -22,12 +23,8 @@ class Config:
     Loads and saves config params in a .yaml file
 
     """
-    def __init__(self, filename='config.yaml'):
-        """Constructor
-
-        filename: name where the config is located
-        """
-        self._filename = filename
+    def __init__(self):
+        '''Constructor'''
         self._data = {}
 
     def _resolve(self, name, default=None):
@@ -70,21 +67,17 @@ class Config:
         if last_key is not None:
             container[last_key] = value
 
-    def load(self):
+    def load(self, content):
         """Load the config from the .yaml file"""
-        try:
-            with open(self._filename, 'r') as f:
-                self._data = yaml.load(f.read())
-        except IOError:
-            self._data = {}
-
+        self._data = yaml.load(content)
         if not isinstance(self._data, collections.Mapping):
             self._data = {}
 
-    def save(self):
+    def save(self, path=None):
         """Save the config to a .yaml file"""
-        with open(self._filename, 'w') as f:
-            f.write(yaml.dump(self._data, default_flow_style=False))
+        if path is not None:
+            with open(path, 'w') as f:
+                f.write(yaml.dump(self._data, default_flow_style=False))
 
     def add_defaults(self, default_dict):
         'Add a dictionary with configuration values as default'

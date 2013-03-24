@@ -212,8 +212,10 @@ def boot_base(verbosity=logging.DEBUG):
     LOGGER = _create_logger('boot', verbosity=verbosity)
 
     # Set up Config
-    config = cfg.Config(filename=g.CONFIG_FILE)
-    config.load()
+    config = cfg.Config()
+    with open(g.CONFIG_FILE, 'r') as f:
+        config.load(f.read())
+
     config.add_defaults(CONFIG_DEFAULTS)
     config.add_defaults({
         'paths': {
@@ -282,7 +284,7 @@ def shutdown_application():
     You can call this function also safely if you did not call boot_store().
     '''
     LOGGER.info('shutting down moosecat.')
-    g.config.save()
+    g.config.save(g.CONFIG_FILE)
 
     try:
         g.client.store.close()

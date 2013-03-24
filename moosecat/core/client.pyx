@@ -215,6 +215,9 @@ cdef class Client:
         '''
         cdef char * er = NULL
 
+        if self.is_connected:
+            return None
+
         # Convert input to bytes
         b_host = bytify(host)
 
