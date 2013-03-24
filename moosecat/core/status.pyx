@@ -231,7 +231,7 @@ cdef class Status:
         def __get__(self):
             return c.mpd_status_get_total_time(self._p())
 
-    property update_id:
+    property is_updating:
         'Check if mpd is currently updating'
         def __get__(self):
             return c.mpd_status_get_update_id(self._p()) > 0

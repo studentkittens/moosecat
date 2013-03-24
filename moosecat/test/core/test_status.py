@@ -79,7 +79,7 @@ class TestStatus(unittest.TestCase):
         self.assertRaises(ValueError, lambda: empty.elapsed_seconds)
         self.assertRaises(ValueError, lambda: empty.elapsed_ms)
         self.assertRaises(ValueError, lambda: empty.total_time)
-        self.assertRaises(ValueError, lambda: empty.update_id)
+        self.assertRaises(ValueError, lambda: empty.is_updating)
 
         self.assertRaises(ValueError, lambda: empty.kbit_rate)
         self.assertRaises(ValueError, lambda: empty.audio_sample_rate)
