@@ -145,7 +145,9 @@ static void cmnder_shutdown_listener(mc_CmndClient *self)
     mpd_send_noidle(self->idle_con);
 
     if (self->watch_source_id != -1) {
-        g_source_remove(self->watch_source_id);
+        if (self->watch_source_id > 0) {
+            g_source_remove(self->watch_source_id);
+        }
         /* join the idle thread.
          * This is a very good argument, to not call disconnect
          * (especially implicitely!) in the idle thread.

@@ -197,7 +197,9 @@ void mc_proto_update_unregister_status_timer(
     g_assert(self);
 
     if (mc_proto_update_status_timer_is_active(self)) {
-        g_source_remove(self->status_timer.timeout_id);
+        if (self->status_timer.timeout_id > 0) {
+            g_source_remove(self->status_timer.timeout_id);
+        }
         self->status_timer.timeout_id = -1;
         self->status_timer.interval = 0;
         self->status_timer.reset_timer = true;
