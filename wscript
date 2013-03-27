@@ -39,7 +39,6 @@ def define_config_h(conf):
 
     # non-optional dependencies
     conf.define(conf.have_define('GLIB'), 1)
-    #conf.define(conf.have_define('SQLITE3'), 1)
 
     version_numbers = [int(v) for v in VERSION.split('.')]
     conf.define('MC_VERSION', VERSION)
@@ -177,14 +176,6 @@ def build(bld):
             includes_h=INCLUDES + bld.env.INCLUDES_GTK3
     )
 
-    # Build our own SQLite version.
-    #bld.stlib(
-    #        source='ext/sqlite/sqlite3.c',
-    #        target='sqlite3',
-    #        lib=['dl', 'pthread'],
-    #        cflags=['-pthread', '-pipe', '-O3', '-s', '-fPIC'] + ['-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1', '-DSQLITE_ENABLE_FTS3', '-DSQLITE_ENABLE_FTS3_PARENTHESIS']
-    #)
-
     bld.stlib(
             source=_find_libmoosecat_src(bld),
             target='moosecat',
@@ -199,7 +190,6 @@ def build(bld):
     bld(
         features='c cshlib pyext',
         source=_find_cython_src(bld),
-        #source=['moosecat/core/moose.pyx', 'moosecat/core/client.pyx'],
         target='moosecat/core/moose',
         use='moosecat',
         lib=LIBS,
