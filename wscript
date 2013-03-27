@@ -13,16 +13,17 @@ APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
 # Needed/Adviceable flags:
-CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-O']
+CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-O3', '-s']
 
 # Optional flags:
-CFLAGS += ['-ggdb3', '-Wall', '-W', '-Wno-unused-parameter']
+CFLAGS += ['-Wall', '-W', '-Wno-unused-parameter', '-Wno-unused-value']
+
+# Sqlite Flags:
+CFLAGS += ['-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1', '-DSQLITE_ENABLE_FTS3', '-DSQLITE_ENABLE_FTS3_PARENTHESIS']
 
 # These files are not built into libmoosecat.so
 EXCLUDE_FILES = []
 
-# Use SPLINT to statically check libmoosecat? (this will fail currently)
-USE_SPLINT = False
 
 def options(opt):
         opt.load('compiler_c')
@@ -38,7 +39,7 @@ def define_config_h(conf):
 
     # non-optional dependencies
     conf.define(conf.have_define('GLIB'), 1)
-    conf.define(conf.have_define('SQLITE3'), 1)
+    #conf.define(conf.have_define('SQLITE3'), 1)
 
     version_numbers = [int(v) for v in VERSION.split('.')]
     conf.define('MC_VERSION', VERSION)
@@ -74,7 +75,6 @@ def configure(conf):
     conf.start_msg(' => configuring the project in ')
     conf.end_msg(conf.path.abspath())
 
-
     conf.start_msg(' => install prefix is ')
     conf.end_msg(conf.options.prefix)
 
@@ -93,12 +93,6 @@ def configure(conf):
     conf.check_cfg(
             package='glib-2.0',
             uselib_store='GLIB',
-            args='--libs --cflags'
-    )
-
-    conf.check_cfg(
-            package='sqlite3',
-            uselib_store='SQLITE3',
             args='--libs --cflags'
     )
 
@@ -139,7 +133,7 @@ def _find_libmoosecat_src(ctx):
         except ValueError:
             pass
 
-    return c_files
+    return c_files + ['ext/sqlite/sqlite3.c']
 
 
 def _find_cython_src(ctx):
@@ -154,8 +148,8 @@ def _find_cython_src(ctx):
 
 
 def build(bld):
-    LIBS = ['mpdclient'] + ['curses'] + bld.env.LIB_GLIB + bld.env.LIB_SQLITE3 + bld.env.LIB_ZLIB
-    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_SQLITE3 + bld.env.INCLUDES_ZLIB
+    LIBS = ['mpdclient', 'dl', 'pthread'] + bld.env.LIB_GLIB + bld.env.LIB_ZLIB
+    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_ZLIB + ['ext/sqlite/inc']
 
     def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
         bld.program(
@@ -183,11 +177,20 @@ def build(bld):
             includes_h=INCLUDES + bld.env.INCLUDES_GTK3
     )
 
+    # Build our own SQLite version.
+    #bld.stlib(
+    #        source='ext/sqlite/sqlite3.c',
+    #        target='sqlite3',
+    #        lib=['dl', 'pthread'],
+    #        cflags=['-pthread', '-pipe', '-O3', '-s', '-fPIC'] + ['-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1', '-DSQLITE_ENABLE_FTS3', '-DSQLITE_ENABLE_FTS3_PARENTHESIS']
+    #)
+
     bld.stlib(
             source=_find_libmoosecat_src(bld),
             target='moosecat',
             install_path='bin',
             includes=INCLUDES,
+            use='sqlite3',
             lib=LIBS,
             cflags=CFLAGS
     )
@@ -219,28 +222,3 @@ def build(bld):
 
         from waflib.Tools import waf_unit_test
         bld.add_post_fun(waf_unit_test.summary)
-
-
-# I think this should be removed.
-
-@feature('c')
-@after_method('process_source')
-def add_files_to_lint(self):
-    if not USE_SPLINT:
-        return
-
-    for x in self.compiled_tasks:
-        c_file = repr(x.inputs[0])
-        # Only check files in lib/
-        if 'lib' in c_file.split(os.path.sep):
-            self.create_task('Lint', src=x.inputs[0])
-
-
-
-class Lint(Task.Task):
-    run_str = '${SPLINT} +charindex -nullpass ${CPPPATH_ST:INCPATHS} ${SRC[0].abspath()}'
-    ext_in = ['.h']  # guess why this line..
-    before = ['c']
-
-    def __init__(self, *args, **kwargs):
-        Task.Task.__init__(self, *args, **kwargs)
