@@ -1,6 +1,6 @@
 #include <glib.h>
 
-#include "../mpd/protocol.h"
+#include "external-logs.h"
 #include "../mpd/signal-helper.h"
 
 //////////////////////

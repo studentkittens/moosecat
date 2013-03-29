@@ -284,6 +284,11 @@ cdef extern from "../../lib/mpd/protocol.h":
     bool mc_client_command_list_commit(mc_Client *)
     bool mc_client_command_list_is_active(mc_Client *)
 
+
+cdef extern from "../../lib/misc/external-logs.h":
+    # External Logs
+    void mc_misc_catch_external_logs(mc_Client *)
+
 ###########################################################################
 #                             Client Commands                             #
 ###########################################################################
@@ -378,6 +383,9 @@ cdef extern from "../../lib/store/db.h":
     int mc_store_search_to_stack (mc_StoreDB *, char *, bool, mc_Stack *, int)
     bool mc_store_get_wait_mode (mc_StoreDB *)
     void mc_store_wait (mc_StoreDB *) nogil
+
+cdef extern from "../../lib/store/db-query-parser.h":
+    char *mc_store_qp_parse(char *)
 
 ###########################################################################
 #                             Misc Interfaces                             #

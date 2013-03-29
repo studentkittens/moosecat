@@ -231,6 +231,9 @@ def boot_base(verbosity=logging.DEBUG):
     client = core.Client()
     g.register('client', client)
 
+    # Redirect GLib Errors to the error signal (needs to know what client's signals)
+    core.register_external_logs(client)
+
     # register auto-logging
     client.signal_add('connectivity', _connectivity_logger)
     client.signal_add('error', _error_logger)

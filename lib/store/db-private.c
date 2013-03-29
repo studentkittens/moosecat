@@ -101,7 +101,8 @@ enum {
     SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID,
     SQL_COL_MUSICBRAINZ_TRACK_ID,
     SQL_COL_QUEUE_POS,
-    SQL_COL_QUEUE_IDX
+    SQL_COL_QUEUE_IDX,
+    SQL_COL_ALWAYS_DUMMY
 };
 
 ///////////////////
@@ -135,6 +136,8 @@ static const char *_sql_stmts[] = {
     "    -- Queue Data:                                                                                 \n"
     "    queue_pos INTEGER,             -- Position of the song in the Queue                            \n"
     "    queue_idx INTEGER,             -- Index of the song in the Queue, does not change on moves     \n"
+    "    -- Constant Value. Useful for a MATCH clause that selects everything.                          \n"
+    "    always_dummy INTEGER,                                                                          \n"
     "    -- Depth of uri:                                                                               \n"
     "    uri_depth INTEGER NOT NULL,                                                                    \n"
     "    -- FTS options:                                                                                \n"
@@ -175,7 +178,7 @@ static const char *_sql_stmts[] = {
     [STMT_SQL_COUNT] =
     "SELECT count(*) FROM songs;",
     [STMT_SQL_INSERT] =
-    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [STMT_SQL_QUEUE_UPDATE_ROW] =
     "UPDATE songs_content SET c20queue_pos = ?, c21queue_idx = ? WHERE c0uri = ?;",
     [STMT_SQL_QUEUE_CLEAR] =
@@ -442,6 +445,10 @@ bool mc_stprv_insert_song(mc_StoreDB *db, struct mpd_song *song)
      */
     bind_int(db, INSERT, pos_idx, -1, error_id);
     bind_int(db, INSERT, pos_idx, -1, error_id);
+
+    /* Constant Value. See Create statement. */
+    bind_int(db, INSERT, pos_idx,  0, error_id);
+
     bind_int(db, INSERT, pos_idx, mc_path_get_depth(mpd_song_get_uri(song)), error_id);
 
     /* this is one error check for all the blocks above */

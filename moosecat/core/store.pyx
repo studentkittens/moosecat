@@ -113,7 +113,7 @@ cdef class Store:
             if match_clause is None:
                 num = c.mc_store_search_to_stack(self._p(), NULL, queue_only, result, limit_length)
             else:
-                b_match_clause = bytify(match_clause)
+                b_match_clause = parse_query_bytes(bytify(match_clause))
                 num = c.mc_store_search_to_stack(self._p(), b_match_clause, queue_only, result, limit_length)
 
             if num is not 0:
@@ -244,9 +244,9 @@ cdef class Store:
 
                 if match_clause is None:
                     # Perform the actual search
-                    c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, NULL)
+                    c.mc_store_playlist_select_to_stack(self._p(), stack, b_name, NULL)
                 else:
-                    b_match_clause = bytify(match_clause)
+                    b_match_clause = parse_query_bytes(bytify(match_clause))
                     c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
 
                 # Encapuslate the stack into a playlist object

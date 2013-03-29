@@ -36,15 +36,24 @@ static GtkTreeModel *create_model(void)
 static void update_view(EntryTag *tag, const char *search_text)
 {
     GtkListStore *list_store = GTK_LIST_STORE(tag->model);
-    gdouble select_time, gui_time;
+    gdouble select_time, gui_time, parse_time;
     GtkTreeIter iter;
     g_timer_start(tag->profile_timer);
     mc_stack_clear(tag->song_buf);
-    int found = mc_store_search_to_stack(tag->store, search_text, true, tag->song_buf, -1);
+
+    GTimer *parse_timer = g_timer_new();
+    g_timer_start(parse_timer);
+    char *query = mc_store_qp_parse(search_text);
+    parse_time = g_timer_elapsed(parse_timer, NULL);
+
+        
+
+    int found = mc_store_search_to_stack(tag->store, query, true, tag->song_buf, -1);
+
     select_time = g_timer_elapsed(tag->profile_timer, NULL);
 
     //if (found == 0)
-     //   return;
+    //   return;
 
     g_timer_start(tag->profile_timer);
     gtk_list_store_clear(list_store);
@@ -60,8 +69,10 @@ static void update_view(EntryTag *tag, const char *search_text)
     }
 
     gui_time = g_timer_elapsed(tag->profile_timer, NULL);
-    g_print("Timing: select=%2.5fs + gui_redraw=%2.5fs = %2.5fs (%-5d rows)\n",
-            select_time, gui_time, select_time + gui_time, found);
+    g_print("Timing: parse=%2.5fs + select=%2.5fs + gui_redraw=%2.5fs = %2.5fs (%-5d rows)\n\t%s\n",
+            parse_time, select_time, gui_time, select_time + gui_time + parse_time, found, query);
+    
+    g_free(query);
 }
 
 static void on_entry_text_changed(GtkEditable *editable, gpointer user_data)
@@ -104,7 +115,11 @@ static EntryTag *setup_client(void)
     if (client && mc_proto_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
-        mc_StoreDB *store = mc_store_create(client, NULL);
+        mc_StoreSettings *settings = mc_store_settings_new();
+        settings->use_memory_db = FALSE;
+        settings->use_compression = FALSE;
+
+        mc_StoreDB *store = mc_store_create(client, settings);
         db_setup = g_timer_elapsed(setup_timer, NULL);
 
         if (store != NULL) {

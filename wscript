@@ -13,7 +13,7 @@ APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
 # Needed/Adviceable flags:
-CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-O3', '-s']
+CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-Os', '-s']
 
 # Optional flags:
 CFLAGS += ['-Wall', '-W', '-Wno-unused-parameter', '-Wno-unused-value']
@@ -29,7 +29,7 @@ def options(opt):
         opt.load('compiler_c')
         opt.load('python')
         opt.load('cython')
-        #opt.load('cython_cache', tooldir='.')
+        opt.load('cython_cache', tooldir='.')
 
         opt.add_option('--cython-dev', action='store', default=True, help='Compile all Cython Files')
         opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')

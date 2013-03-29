@@ -6,6 +6,8 @@
 #include "mpd/protocol.h"
 #include "mpd/client.h"
 #include "store/db.h"
+#include "store/db-query-parser.h"
+#include "misc/external-logs.h"
 
 #endif /* end of include guard: MOOSECAT_API_HH */
 
