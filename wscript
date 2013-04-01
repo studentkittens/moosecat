@@ -96,7 +96,7 @@ def configure(conf):
     )
 
     conf.check_cfg(
-            package='gtk+-2.0',
+            package='gtk+-3.0',
             uselib_store='GTK3',
             args='--libs --cflags'
     )
@@ -106,9 +106,6 @@ def configure(conf):
             uselib_store='ZLIB',
             args='--libs --cflags'
     )
-
-    # Find the static C source checker
-    conf.find_program('splint', var='SPLINT', mandatory=False)
 
     # Create lib/config.h. Includes basic Version/Feature Info.
     conf.path.make_node('lib/config.h').write(define_config_h(conf))

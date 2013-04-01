@@ -3,20 +3,51 @@
 #include <string.h>
 
 
-static const char *mc_store_qp_abbrev_list[] = {
-    ['a'] = "artist:",
-    ['b'] = "album:",
-    ['c'] = "album_artist:",
-    ['d'] = "duration:",
-    ['g'] = "genre:",
-    ['n'] = "name:",
-    ['p'] = "performer:",
-    ['r'] = "track:",
-    ['s'] = "disc:",
-    ['t'] = "title:",
-    ['u'] = "uri:",
-    ['~'] = NULL
-};
+/* Stores everything the parinsg routines need to know */
+typedef struct {
+    /* Pointer to start of query */
+    const char *query;
+    
+    /* Pointer to current element */
+    const char *iter;
+
+    /* strlen(query) */
+    size_t query_len;
+
+    /* Output Buffer */
+    GString *output;
+
+    /* Last character investigated */
+    gunichar current_char;
+    gunichar previous_char;
+
+    struct {
+        /* Previous token was a tag (a:) */
+        bool was_tag;
+
+        /* Missing operable before operand */
+        bool bad_conjunction;
+        
+        /* Balance of brackets (should be 0) */
+        int bracket_balance;
+
+        /* Quote counter (should not be odd) */
+        int quote_counter;
+    } check;
+
+    /* For warning messages */
+    struct  {
+        int *pos;
+        const char **msg;
+    } warning;
+
+} mc_StoreParseData;
+
+///////////////////
+
+#define WARNING(data, pmsg) \
+    if(data->warning.msg != NULL) *data->warning.msg = pmsg;  \
+    if(data->warning.pos != NULL) *data->warning.pos = (data->iter - data->query);  \
 
 ///////////////////
 
@@ -27,14 +58,15 @@ static bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
         "last_modifie", "artist", "album", "title",
         "album_artist", "track", "name", "genre",
         "composer", "performer", "comment", "disc",
-        "musicbrainz_artist_id", "musicbrainz_album_id", "musicbrainz_albumartist_id", "musicbrainz_track",
-        "queue_pos", "queue_idx", "always_dummy", "uri_depth", NULL
+        "musicbrainz_artist_id", "musicbrainz_album_id",
+        "musicbrainz_albumartist_id", "musicbrainz_track",
+        "queue_pos", "queue_idx", "always_dummy", "uri_depth",
+        NULL
     };
 
     const char ** iter = tags;
     while(*iter != NULL) {
         if(strncmp(*iter, tag, MAX(len, strlen(*iter))) == 0) {
-            g_print("%s\n", *iter);
             return true;
         }
 
@@ -69,9 +101,24 @@ static const char *mc_store_qp_is_tag_text(const char *text, size_t len)
 
 static const char *mc_store_qp_tag_abbrev_to_full(const char * token, size_t len) 
 {
+    static const char *abbrev_list[] = {
+        ['a'] = "artist:",
+        ['b'] = "album:",
+        ['c'] = "album_artist:",
+        ['d'] = "duration:",
+        ['g'] = "genre:",
+        ['n'] = "name:",
+        ['p'] = "performer:",
+        ['r'] = "track:",
+        ['s'] = "disc:",
+        ['t'] = "title:",
+        ['u'] = "uri:",
+        ['~'] = NULL
+    };
+
     if(len >= 1 && token[1] == ':') {
         if(*token < '~') {
-            return mc_store_qp_abbrev_list[(int)*token];
+            return abbrev_list[(int)*token];
         }
     }
     return NULL;
@@ -79,7 +126,7 @@ static const char *mc_store_qp_tag_abbrev_to_full(const char * token, size_t len
 
 ///////////////////
 
-static void mc_store_qp_write_string(GString *output, const char *string, size_t len)
+static void mc_store_qp_write_string(mc_StoreParseData *data, const char *string, size_t len)
 {
     const char *iter = string;
     
@@ -89,7 +136,7 @@ static void mc_store_qp_write_string(GString *output, const char *string, size_t
             case '"':
                 break;
             default:
-                g_string_append_unichar(output, c);
+                g_string_append_unichar(data->output, c);
         }
 
         iter = g_utf8_next_char(iter);
@@ -98,88 +145,74 @@ static void mc_store_qp_write_string(GString *output, const char *string, size_t
 
 ///////////////////
 
-void mc_store_qp_process_single_word(const char *text, size_t len, GString *output)
+void mc_store_qp_process_single_word(mc_StoreParseData * data, const char *text, size_t len)
 {
     if(len < 1) {
         return;
     }
 
-    g_string_append_c(output, '(');
-    g_string_append(output, "artist:");
-    mc_store_qp_write_string(output, text, len);
-    g_string_append_c(output, '*');
-    g_string_append(output, " OR ");
-    g_string_append(output, "album_artist:");
-    mc_store_qp_write_string(output, text, len);
-    g_string_append_c(output, '*');
-    g_string_append(output, " OR ");
-    g_string_append(output, "album:");
-    mc_store_qp_write_string(output, text, len);
-    g_string_append_c(output, '*');
-    g_string_append(output, " OR ");
-    g_string_append(output, "title:");
-    mc_store_qp_write_string(output, text, len);
-    g_string_append_c(output, '*');
-    g_string_append_c(output, ')');
+    #define TAG(name, last)                        \
+        g_string_append(data->output, name);       \
+        mc_store_qp_write_string(data, text, len); \
+        if(text[len-1] != '*') {                   \
+            g_string_append_c(data->output, '*');  \
+        }                                          \
+        if(!last) {                                \
+            g_string_append(data->output, " OR "); \
+        }                                          \
+
+    g_string_append_c(data->output, '('); 
+    {
+        TAG("artist:", false);
+        TAG("album_artist:", false);
+        TAG("album:", false);
+        TAG("title:", true);
+    }
+    g_string_append_c(data->output, ')');
 }
 
 ///////////////////
 
-#define WARNING(pwarn, ppost, msg, pos) \
-    if(pwarn != NULL) *pwarn = msg;     \
-    if(ppost != NULL) *ppost = pos;     \
-
-///////////////////
-
-bool mc_store_qp_process_text(const char *text, size_t len, bool prev_was_tag, GString *output, const char *query, const char **warning, int *warning_pos)
+void mc_store_qp_process_text(mc_StoreParseData *data, const char *text, size_t len)
 {
     bool is_tag = false;
     const char *tag_middle = NULL;
 
-    if(strncmp(text, "NOT", len) == 0) {
-        g_string_append(output, " NOT ");
-    } else
-    if(strncmp(text, "AND", len) == 0) {
-        g_string_append(output, " AND ");
-    } else
-    if(strncmp(text, "OR", len) == 0) {
-        g_string_append(output, " OR ");
-    } else {
-        if((tag_middle = mc_store_qp_is_tag_text(text, len)) != NULL) {
-            const char *full = mc_store_qp_tag_abbrev_to_full(text, len);
-            int rest_len = 0;
+    if((tag_middle = mc_store_qp_is_tag_text(text, len)) != NULL) {
+        const char *full = mc_store_qp_tag_abbrev_to_full(text, len);
+        int rest_len = 0;
 
-            if(full == NULL) {
-                if(mc_store_qp_is_valid_tag(text, tag_middle - text) == false) {
-                    WARNING(warning, warning_pos, "Warning: Invalid tag name.", (tag_middle - query));
-                }
-                mc_store_qp_write_string(output, text, tag_middle-text + 1);
-            } else {
-                g_string_append(output, full);
+        if(full == NULL) {
+            if(mc_store_qp_is_valid_tag(text, tag_middle - text) == false) {
+                WARNING(data, "Invalid tag name.");
             }
-            
-            tag_middle++;
-            rest_len = len - (tag_middle - text);
-
-            /* is_tag is true if the expression is something like "a:" */
-            is_tag = !rest_len;
-            
-            if(prev_was_tag && is_tag) {
-                WARNING(warning, warning_pos, "Warning: Double Tag.", (tag_middle - query));
-            }
-
-            /* Skip : */
-            mc_store_qp_write_string(output, tag_middle, rest_len);
-        } else if(prev_was_tag) {
-            mc_store_qp_write_string(output, text, len);
+            mc_store_qp_write_string(data, text, tag_middle-text + 1);
         } else {
-            mc_store_qp_process_single_word(text, len, output);
+            g_string_append(data->output, full);
+        }
+        
+        tag_middle++;
+        rest_len = len - (tag_middle - text);
+
+        /* is_tag is true if the expression is something like "a:" */
+        is_tag = !rest_len;
+        
+        if(data->check.was_tag && is_tag) {
+            WARNING(data, "After a tag, there must not be another tag.");
         }
 
-        g_string_append_unichar(output, ' ');
+        /* Skip : */
+        mc_store_qp_write_string(data, tag_middle, rest_len);
+        g_string_append_unichar(data->output, ' ');
+    } else if(data->check.was_tag) {
+        mc_store_qp_write_string(data, text, len);
+    } else {
+        mc_store_qp_process_single_word(data, text, len);
+        g_string_append_unichar(data->output, ' ');
     }
 
-    return is_tag;
+
+    data->check.was_tag = is_tag;
 }
 
 ///////////////////
@@ -201,7 +234,7 @@ static const char *mc_store_qp_special_char_to_full(char c)
 
 ///////////////////
 
-bool mc_store_qp_check_is_soft_token(char *iter)
+bool mc_store_qp_check_is_soft_token(const char *iter)
 {
     gunichar c = g_utf8_get_char(iter);
     switch(c) {
@@ -218,7 +251,7 @@ bool mc_store_qp_check_is_near_token(char *iter)
 {
     gunichar c = g_utf8_get_char(iter);
     switch(c) {
-        case '|': case '+': case '!': case '"':
+        case '|': case '+': case '!': case '"': case '\0':
             return true;
         default:
             return mc_store_qp_check_is_soft_token(iter);
@@ -227,10 +260,9 @@ bool mc_store_qp_check_is_near_token(char *iter)
 
 ///////////////////
 
-
-gunichar mc_store_qp_get_prev_char(const char *query, const char *iter)
+gunichar mc_store_qp_get_prev_char(mc_StoreParseData *data, const char *current_pos)
 {
-    char *pprev = g_utf8_find_prev_char(query, iter);
+    char *pprev = g_utf8_find_prev_char(data->query, current_pos);
     if(pprev != NULL) {
         return g_utf8_get_char(pprev);
     }
@@ -240,10 +272,11 @@ gunichar mc_store_qp_get_prev_char(const char *query, const char *iter)
 
 ///////////////////
 
-bool mc_store_qp_check_if_single_token(const char *query, char *iter)
+bool mc_store_qp_check_if_single_token(mc_StoreParseData *data)
 {
-    char *pprev = g_utf8_find_prev_char(query, iter);
-    char *pnext = g_utf8_next_char(iter);
+    char *pprev = g_utf8_find_prev_char(data->query, data->iter);
+    char *pnext = g_utf8_next_char(data->iter);
+
     bool left  = (pprev == NULL) || mc_store_qp_check_is_near_token(pprev);
     bool right = (pnext == NULL) || mc_store_qp_check_is_near_token(pnext);
 
@@ -252,161 +285,225 @@ bool mc_store_qp_check_if_single_token(const char *query, char *iter)
 
 ///////////////////
 
-char * mc_store_qp_parse_full(const char *query, const char **warning, int *warning_pos)
+void mc_store_qp_process_star(mc_StoreParseData *data)
 {
-    if (query == NULL || g_utf8_validate (query, -1, NULL) == false)
+    /* If a star is a single word it matches everything */
+    if (mc_store_qp_check_if_single_token(data)) {
+        g_string_append(data->output, "always_dummy:0 ");
+        data->check.was_tag = false;
+    } else if(data->previous_char == '\\') {
+        g_string_append_unichar(data->output, '*');
+    }
+
+    /* An operator may follow. */
+    data->check.bad_conjunction = false;
+}
+
+///////////////////
+
+void mc_store_qp_process_operand(mc_StoreParseData *data)
+{
+    /* You cannot do something like "a: AND b",
+     * Since an empty tag is not valid */
+    if(data->check.was_tag == true) {
+        WARNING(data, "(AND OR NOT) should not be placed after a tag.");
+    }
+
+    /* If no operable was found before, we assume it is a "*" */
+    if(data->check.bad_conjunction == true) {
+        g_string_append(data->output, "always_dummy:0 ");
+    }
+    
+    /* Prevent double operators from being possible e.g. "AND AND" */
+    data->check.bad_conjunction = true;
+
+    /* Handle escaping */
+    if(data->previous_char == '\\') {
+        g_string_append_unichar(data->output, data->current_char);
+    } else {
+        g_string_append(data->output, mc_store_qp_special_char_to_full(data->current_char));
+        data->check.was_tag = false;
+    }
+}
+
+///////////////////
+
+void mc_store_qp_process_token(mc_StoreParseData *data)
+{
+    int token_len = 0;
+    const char *end_token = data->iter; 
+
+    while(1) {
+        /* Jump to the next token */
+        end_token = strpbrk(end_token, " ()\t\r+|!");
+
+        /* If one was found, we may need to repeat, due to a escaping \ */
+        if(end_token != NULL) {
+            if(mc_store_qp_get_prev_char(data, end_token) == '\\') {
+                end_token++;
+                continue;
+            } else {
+                token_len = end_token - data->iter;
+            }
+        } else {
+            /* We're at the end of the string, so see it at the last token */
+            token_len = (data->query + data->query_len) - data->iter;
+        }
+        break;
+    }
+
+    
+    if(strncmp(data->iter, "NOT", token_len) == 0 || 
+       strncmp(data->iter, "AND", token_len) == 0 ||
+       strncmp(data->iter, "OR", token_len)  == 0) {
+        /* If no operable was found before, we assume it is a "*" */
+        if(data->check.bad_conjunction == true) {
+            g_string_append(data->output, "always_dummy:0 ");
+        }
+    
+        /* Append the output */
+        g_string_append_unichar(data->output, ' ');
+        g_string_append_len(data->output, data->iter, token_len);
+        g_string_append_unichar(data->output, ' ');
+        data->check.bad_conjunction = true;
+    } else {
+        /* Next token to parse is assumed to be
+         * valid to (AND OR NOT) */
+        data->check.bad_conjunction = false;
+        mc_store_qp_process_text(data, data->iter, token_len);
+    }
+
+
+    
+
+    /* Jump over the parsed area */
+    data->iter += MAX(0, token_len - 1);
+}
+
+///////////////////
+
+void mc_store_qp_process_empty(mc_StoreParseData *data)
+{
+    switch(data->current_char) {
+        /* Make some statistics */
+        case '(': case ')':
+            if(data->current_char == '(') {
+                /* After a ( no (AND NOT OR) should come */
+                data->check.bad_conjunction = true;
+                data->check.bracket_balance++;
+            } else {
+                /* Somebody forgot to give a (AND NOT OR) a r-operand */
+                if(data->check.bad_conjunction) {
+                    WARNING(data, "Dangling (AND OR NOT) at closing bracket.");
+                }
+
+                data->check.bracket_balance--;
+            }
+
+            /* Obviously, a ) might not come before a ( */
+            if(data->check.bracket_balance < 0) {
+                WARNING(data, "Closing bracket before opening.");
+            }
+
+            /* Add it to the string, no parsing done with brackets otherwise */
+            g_string_append_unichar(data->output, data->current_char);
+
+            if(data->check.was_tag) {
+                WARNING(data, "Unclosed tag before/after bracket.");
+            }
+            /* A tag may follow after thisnow */
+            data->check.was_tag = false;
+    }
+}
+
+///////////////////
+
+char * mc_store_qp_parse(const char *query, const char **warning, int *warning_pos)
+{
+    mc_StoreParseData sdata;
+    mc_StoreParseData *data = &sdata;
+    memset(data, 0, sizeof(mc_StoreParseData));
+    
+    /* Make warnings work */
+    data->warning.msg = warning;
+    data->warning.pos = warning_pos;
+
+    if (query == NULL)
         return NULL;
 
-    size_t query_len = strlen(query);
-    GString *output = g_string_sized_new(query_len);
+    if(g_utf8_validate (query, -1, NULL) == false) {
+        WARNING(data, "Invalid utf-8 querty");
+        return NULL;
+    }
 
-    bool prev_was_tag = false;
-    char *iter = (char *)query;
+    /* Everything else is 0 for now */
+    data->query = query;
+    data->query_len = strlen(query);
+    data->iter = query;
+    data->output = g_string_sized_new(data->query_len);
 
-    /* Static Query Check */
-    int check_bracket_balance = 0, check_quote_counter = 0;
-    bool check_at_end = true;
+    /* "runtime" checks */
+    data->check.bad_conjunction = true;
 
-    while(*iter) {
-        gunichar c = g_utf8_get_char(iter);
-        gunichar prev_char = mc_store_qp_get_prev_char(query, iter);
+    /* Loop over all utf8 glyphs */
+    while(*(data->iter)) {
+        data->current_char = g_utf8_get_char(data->iter);
+        data->previous_char = mc_store_qp_get_prev_char(data, data->iter);
 
-        if(!mc_store_qp_check_is_soft_token(iter)) {
-            switch(c) {
+        if(!mc_store_qp_check_is_soft_token(data->iter)) {
+            switch(data->current_char) {
                 case '*':
-                    if (mc_store_qp_check_if_single_token(query, iter)) {
-                        g_string_append(output, "always_dummy:0 ");
-                        prev_was_tag = false;
-                    } else if(prev_was_tag || prev_char == '\\') {
-                        g_string_append_unichar(output, c);
-                    }
-                    check_at_end = false;
+                    mc_store_qp_process_star(data);
                     break;
                 case '+':
                 case '|':
                 case '!':
-                    if(prev_was_tag == true || check_at_end == true) {
-                        WARNING(warning, warning_pos, "Warning: (AND OR NOT) should not be placed there.", iter - query + 1);
-                    }
-                    check_at_end = true;
-
-                    if(prev_char == '\\') {
-                        g_string_append_unichar(output, c);
-                    } else {
-                        g_string_append(output, mc_store_qp_special_char_to_full(c));
-                        prev_was_tag = false;
-                    }
-        
-
+                    mc_store_qp_process_operand(data);
                     break;
                 case '"':
-                    check_quote_counter++;
+                    data->check.quote_counter++;
                     break;
                 default: {
-                    int token_len = 0;
-                    char *end_token = iter; 
-                    
-                    check_at_end = false;
-
-                    while(true) {
-                        end_token = strpbrk(end_token, " ()\t\r+|!*");
-                        if(end_token != NULL) {
-                            if(mc_store_qp_get_prev_char(query, end_token) == '\\') {
-                                end_token++;
-                                continue;
-                            } else {
-                                token_len = end_token - iter;
-                            }
-                        } else {
-                            token_len = (query + query_len) - iter;
-                        }
-                        break;
-                    }
-
-                    prev_was_tag = mc_store_qp_process_text(iter, token_len, prev_was_tag, output, query, warning, warning_pos);
-                    iter += MAX(0, token_len - 1);
+                    mc_store_qp_process_token(data);
                     break;
                 }
             }
         } else {
-            switch(c) {
-                case '(': case ')':
-                    if(c == '(') {
-                        check_at_end = true;
-                        check_bracket_balance++;
-                    } else {
-                        if(check_at_end) {
-                            WARNING(warning, warning_pos, "Warning: Dangling (AND OR NOT) at closing bracket.", iter - query);
-                        }
-                        check_bracket_balance--;
-                    }
-
-                    if(check_bracket_balance < 0) {
-                        WARNING(warning, warning_pos, "Warning: Closing bracket before opening.", (iter - query) + 1); 
-                    }
-                    g_string_append_unichar(output, c);
-                    prev_was_tag = false;
-            }
+            mc_store_qp_process_empty(data);
         }
 
-        if(*iter == 0) {
+        /* Hop to the next char or stop */
+        if(*data->iter == 0) {
             break;
         } else {
-            iter = g_utf8_next_char(iter);
+            data->iter = g_utf8_next_char(data->iter);
         }
     }
 
-    if(check_at_end) {
-        WARNING(warning, warning_pos, "Warning: Dangling (AND OR NOT) at end of string.", (iter - query));
+    /*
+     * A last error checking parcour.
+     * Basically all the stuff we can only have a statistic during
+     * runtime, but know how it went after parsing 
+     */
+    if(data->check.bad_conjunction) {
+        WARNING(data, "Dangling (AND OR NOT) at end of string.");
     }
 
-    if(check_bracket_balance != 0) {
-        if(check_bracket_balance > 0) {
-            WARNING(warning, warning_pos, "Warning: Too many opening brackets.", (iter - query));
+    if(data->check.was_tag) {
+        WARNING(data, "Unfilled tag specification at end of string.");
+    }
+
+    if(data->check.bracket_balance != 0) {
+        if(data->check.bracket_balance > 0) {
+            WARNING(data, "Too many opening brackets.");
         } else {
-            WARNING(warning, warning_pos, "Warning: Too many closing brackets.", (iter - query));
+            WARNING(data, "Too many closing brackets.");
         }
     }
 
-    return g_strstrip(g_string_free(output, false));
-}
-
-///////////////////
-
-char * mc_store_qp_parse(const char *query)
-{
-    return mc_store_qp_parse_full(query, NULL, NULL);
-}
-
-///////////////////
-
-#if 0
-int main(int argc, char const *argv[])
-{
-    if(argc < 2)
-        return -1;
-
-    int pos = -1;
-    const char *warning = NULL;
-    char *query = mc_store_qp_parse_full(argv[1], &warning, &pos);
-
-
-    if(warning == NULL) {
-        g_print("%s\n", query);
-    } else {
-        g_print("W: %s\n", argv[1]);
-        for(int i = 0; i < pos + 2; i++) {
-            g_print(" ");
-        }
-        g_print("^\n");
-        for(int i = 0; i < pos + 2; i++) {
-            g_print(" ");
-        }
-        g_print("%s\n", warning);
-        g_print("\nHere's the generated output anyway:\n  %s\n", query);
+    if(data->check.quote_counter % 2 != 0) {
+        WARNING(data, "Odd number of quotes");
     }
-    
-    g_free(query);
-    return 0;
+
+    return g_strstrip(g_string_free(data->output, false));
 }
-#endif

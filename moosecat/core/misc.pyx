@@ -1,4 +1,5 @@
 cimport binds as c
+from libc.stdlib cimport free
 
 
 def bug_report(Client client=None):
@@ -23,10 +24,28 @@ def register_external_logs(Client client):
         raise ValueError('client argument may not be None')
 
 
-def parse_query(string):
-    b_string = bytify(string)
-    return stringify(c.mc_store_qp_parse(b_string))
+class QueryParseException(Exception):
+    def __init__(self, msg, pos):
+        self.msg = msg
+        self.pos = pos
+        Exception.__init__(self, msg)
 
 
-def parse_query_bytes(b_string):
-    return c.mc_store_qp_parse(b_string)
+def parse_query(query):
+    b_query = bytify(query)
+    b_result = parse_query_bytes(b_query)
+    return stringify(b_result)
+
+
+def parse_query_bytes(b_query):
+    cdef const char *warning = NULL
+    cdef int warning_pos = 0
+    cdef char *result
+
+    result = c.mc_store_qp_parse(b_query, &warning, &warning_pos)
+    if warning is not NULL:  # Uh-oh.
+        if result is not NULL:
+            free(result)
+        raise QueryParseException(stringify(<char *>warning), warning_pos)
+    else:
+        return result

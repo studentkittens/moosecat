@@ -314,6 +314,7 @@ sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_StoreDB *self, const ch
             /* Uh-Oh. Typo? */
             if (prep_error != SQLITE_OK)
                 REPORT_SQL_ERROR(self, "WARNING: cannot prepare statement");
+                g_print("Faulty statement: %s\n", sql);
         }
     }
 

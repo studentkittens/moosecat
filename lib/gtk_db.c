@@ -19,6 +19,7 @@ typedef struct {
     mc_Client *client;
     mc_StoreDB *store;
     GtkTreeModel *model;
+    GtkTreeView *view;
     mc_Stack *song_buf;
     GTimer *profile_timer;
 } EntryTag;
@@ -43,7 +44,7 @@ static void update_view(EntryTag *tag, const char *search_text)
 
     GTimer *parse_timer = g_timer_new();
     g_timer_start(parse_timer);
-    char *query = mc_store_qp_parse(search_text);
+    char *query = mc_store_qp_parse(search_text, NULL, NULL);
     parse_time = g_timer_elapsed(parse_timer, NULL);
 
         
@@ -56,6 +57,12 @@ static void update_view(EntryTag *tag, const char *search_text)
     //   return;
 
     g_timer_start(tag->profile_timer);
+
+    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tag->view));
+    g_object_ref(model); /* Make sure the model stays with us after the tree view unrefs it */
+    gtk_tree_view_set_model(GTK_TREE_VIEW(tag->view), NULL); /* Detach model from view */
+ 
+
     gtk_list_store_clear(list_store);
 
     for (int i = 0; i < found; i++) {
@@ -67,6 +74,9 @@ static void update_view(EntryTag *tag, const char *search_text)
                            COLUMN_TITLE, mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
                            -1);
     }
+  
+    gtk_tree_view_set_model(GTK_TREE_VIEW(tag->view), model); /* Re-attach model to view */
+    g_object_unref(model);
 
     gui_time = g_timer_elapsed(tag->profile_timer, NULL);
     g_print("Timing: parse=%2.5fs + select=%2.5fs + gui_redraw=%2.5fs = %2.5fs (%-5d rows)\n\t%s\n",
@@ -160,6 +170,7 @@ static void build_gui(EntryTag *tag)
     GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
     GtkTreeView *treeview = GTK_TREE_VIEW(tvw);
+    tag->view = treeview;
     gtk_tree_view_set_rules_hint(treeview, TRUE);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scw), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
     gtk_tree_view_set_fixed_height_mode(treeview, true);

@@ -47,9 +47,11 @@
  * This assumes that SQLite was compiled with -DSQLITE_ENABLE_FTS3_PARENTHESIS
  *
  * @query: A String with query extensions.
+ * @warning: (OUT) If input is invalid a warning is placed (still a result is returned)
+ * @warning_pos: (OUT) If warning is filled, the position inside the string is written in here.
  * @returns: A newly allocated string containing a valid FTS Query.
  */
-char * mc_store_qp_parse(const char *query);
+char * mc_store_qp_parse(const char *query, const char **warning, int *warning_pos);
 
 
 #endif /* end of include guard: MC_DB_QUERY_PASRSER_HH */

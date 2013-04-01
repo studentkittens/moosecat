@@ -385,7 +385,7 @@ cdef extern from "../../lib/store/db.h":
     void mc_store_wait (mc_StoreDB *) nogil
 
 cdef extern from "../../lib/store/db-query-parser.h":
-    char *mc_store_qp_parse(char *)
+    char *mc_store_qp_parse(char *, char **, int *)
 
 ###########################################################################
 #                             Misc Interfaces                             #
