@@ -50,14 +50,14 @@
 
 #include <glib.h>
 #include <string.h>
+#include <stdlib.h> /* bsearch */
 
 enum {
     STMT_SELECT_TABLES = 0,
     STMT_DROP_SPLTABLE,
     STMT_CREATE_SPLTABLE,
     STMT_INSERT_SONG_IDX,
-    STMT_PLAYLIST_SEARCH,
-    STMT_PLAYLIST_DUMPIT
+    STMT_PLAYLIST_GETIDS
 };
 
 const char *spl_sql_stmts[] = {
@@ -65,8 +65,7 @@ const char *spl_sql_stmts[] = {
     [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
     [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
     [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
-    [STMT_PLAYLIST_SEARCH] = "SELECT songs.rowid FROM songs JOIN %q AS pl ON songs.rowid = pl.song_idx WHERE songs.artist MATCH %Q;",
-    [STMT_PLAYLIST_DUMPIT] = "SELECT songs.rowid FROM songs_content AS songs JOIN %q AS pl ON songs.rowid = pl.song_idx;"
+    [STMT_PLAYLIST_GETIDS] = "SELECT song_idx FROM %q;"
 };
 
 void mc_stprv_spl_init(mc_StoreDB *self)
@@ -405,62 +404,121 @@ void mc_stprv_spl_load_by_playlist_name(mc_StoreDB *store, const char *playlist_
 
 ///////////////////
 
+static inline int mc_stprv_spl_hash_compare(gconstpointer a, gconstpointer b)
+{
+    return *((gconstpointer **)a) - *((gconstpointer **)b);
+}
+
+///////////////////
+
+static int bsearch_cmp(const void *key, const void *array)
+{
+    return key - *(void **)array;
+}
+
+///////////////////
+
+static int mc_stprv_spl_filter_id_list(mc_StoreDB *store, GPtrArray *song_ptr_array, const char *match_clause, mc_Stack *out_stack)
+{
+    // TODO: Preallic strategy..
+    int rc = 0;
+    mc_Stack *db_songs = mc_stack_create(1000, NULL);
+
+    if(mc_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
+        for(size_t i = 0; i < mc_stack_length(db_songs); ++i) {
+            struct mpd_song *song = mc_stack_at(db_songs, i);
+            if(bsearch(song, song_ptr_array->pdata, song_ptr_array->len, sizeof(gpointer), bsearch_cmp)) {
+                ++rc;
+                mc_stack_append(out_stack, song);
+            }
+        }
+    }
+
+    /* Set them free */
+    mc_stack_free(db_songs);
+
+    return rc;
+}
+
+///////////////////
+
 int mc_stprv_spl_select_playlist(mc_StoreDB *store, mc_Stack *out_stack, const char *playlist_name, const char *match_clause)
 {
     g_assert(store);
     g_assert(playlist_name);
     g_assert(out_stack);
+
+    /*
+     * Algorithm:
+     *
+     * ids = sort('select id from spl_xzy_1234')
+     * songs = queue_search(match_clause)
+     * for song in songs:
+     *     if bsearch(, song.id) == FOUND:
+     *          results.append(song)
+     *          
+     * return len(songs)
+     *
+     *
+     * (JOIN is much more expensive, that's why.)
+     */
+
     int rc = 0;
-
-    if (match_clause && *match_clause == 0)
+    char *table_name, *dyn_sql;
+    GPtrArray *song_ptr_array = NULL;
+    sqlite3_stmt *pl_id_stmt = NULL;
+    struct mpd_playlist *playlist;
+    
+    if (match_clause && *match_clause == 0) {
         match_clause = NULL;
-
-    struct mpd_playlist *playlist = mc_stprv_spl_name_to_playlist(store, playlist_name);
-
-    if (playlist != NULL) {
-        char *table_name = mc_stprv_spl_construct_table_name(playlist);
-
-        if (table_name != NULL) {
-            char *sql = NULL;
-
-            if (match_clause == NULL) {
-                sql = sqlite3_mprintf(spl_sql_stmts[STMT_PLAYLIST_DUMPIT], table_name);
-            } else {
-                sql = sqlite3_mprintf(spl_sql_stmts[STMT_PLAYLIST_SEARCH], table_name, match_clause);
-            }
-
-            if (sql != NULL) {
-                sqlite3_stmt *pl_search_stmt = NULL;
-
-                if (sqlite3_prepare_v2(store->handle, sql, -1, &pl_search_stmt, NULL) != SQLITE_OK) {
-                    REPORT_SQL_ERROR(store, "Cannot prepare playlist search statement");
-                } else {
-                    while (sqlite3_step(pl_search_stmt) == SQLITE_ROW) {
-                        int rowid = sqlite3_column_int(pl_search_stmt, 0);
-                        struct mpd_song *song = mc_stack_at(store->stack, rowid - 1);
-
-                        if (song != NULL) {
-                            mc_stack_append(out_stack, song);
-                            ++rc;
-                        }
-                    }
-
-                    if (sqlite3_errcode(store->handle) != SQLITE_DONE) {
-                        REPORT_SQL_ERROR(store, "Error while matching stuff in playlist");
-                    }
-
-                    if (sqlite3_finalize(pl_search_stmt) != SQLITE_OK) {
-                        REPORT_SQL_ERROR(store, "Error while finalizing match statement");
-                    }
-                }
-
-                sqlite3_free(sql);
-            }
-
-            g_free(table_name);
-        }
     }
 
+    /* Try to find the playlist structure in the playlist_struct list by name */
+    if ((playlist = mc_stprv_spl_name_to_playlist(store, playlist_name)) == NULL) {
+        return -1;
+    }
+
+    /* Use the acquired playlist to find out the correct playlist name */ 
+    if ((table_name = mc_stprv_spl_construct_table_name(playlist)) == NULL) {
+        return -2;
+    }
+
+    /* Use the table name to construct a select on this table */
+    if ((dyn_sql = sqlite3_mprintf(spl_sql_stmts[STMT_PLAYLIST_GETIDS], table_name)) == NULL) {
+        sqlite3_free(table_name);
+        return -3;
+    }
+
+    if (sqlite3_prepare_v2(store->handle, dyn_sql, -1, &pl_id_stmt, NULL) != SQLITE_OK) {
+        REPORT_SQL_ERROR(store, "Cannot prepare playlist search statement");
+    } else {
+        song_ptr_array = g_ptr_array_sized_new(1000);
+        while (sqlite3_step(pl_id_stmt) == SQLITE_ROW) {
+            /* Get the actual song */
+            int song_idx = sqlite3_column_int(pl_id_stmt, 0);
+            struct mpd_song *song = mc_stack_at(store->stack, song_idx - 1);
+
+            /* Remember the pointer */
+            g_ptr_array_add(song_ptr_array, song);
+        }
+
+        if (sqlite3_errcode(store->handle) != SQLITE_DONE) {
+            REPORT_SQL_ERROR(store, "Error while matching stuff in playlist");
+        } else {
+            if (sqlite3_finalize(pl_id_stmt) != SQLITE_OK) {
+                REPORT_SQL_ERROR(store, "Error while finalizing getid statement");
+            } else {
+                g_ptr_array_sort(song_ptr_array, mc_stprv_spl_hash_compare);
+                rc = mc_stprv_spl_filter_id_list(store, song_ptr_array, match_clause, out_stack);
+            }
+        }
+        g_ptr_array_free(song_ptr_array, true);
+    }
+
+    g_free(table_name);
+    sqlite3_free(dyn_sql);
+    
+    
     return rc;
 }
 

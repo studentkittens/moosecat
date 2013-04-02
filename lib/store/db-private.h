@@ -29,7 +29,14 @@ void mc_stprv_insert_meta_attributes(mc_StoreDB *self);
  */
 void mc_stprv_prepare_all_statements(mc_StoreDB *self);
 
+/**
+ * @brief Initialize the statement buffer of mc_StoreDB
+ */
 sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_StoreDB *self, const char **sql_stmts, int offset, int n_stmts);
+
+/**
+ * @brief Deinitialize the statement buffer of mc_StoreDB
+ */
 void mc_stprv_finalize_statements(mc_StoreDB *self, sqlite3_stmt **stmts, int offset, int n_stmts);
 
 /**
