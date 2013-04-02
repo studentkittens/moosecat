@@ -189,9 +189,6 @@ cdef class Client:
 
         self._store = NULL
         self._store_wrapper = None
-
-    def __init__(self):
-        'Create a new client object'
         self._signal_data_map = {}
 
     cdef c.mc_Client * _p(self):

@@ -86,7 +86,7 @@ typedef struct mc_Client {
     mc_PmType _pm;
 
     /* True if mc_client_command_list_begin was called */
-    struct mpd_connection * _command_list_conn;
+    struct mpd_connection *_command_list_conn;
 
     /*
      * Signal functions are stored in here
@@ -118,7 +118,7 @@ typedef struct mc_Client {
     struct mpd_song *song;
     struct mpd_stats *stats;
     struct mpd_status *status;
-    const char * replay_gain_status;
+    const char *replay_gain_status;
 
 } mc_Client;
 
@@ -430,12 +430,13 @@ inline struct mpd_output **mc_proto_get_outputs(mc_Client *self, /* OUT */ int *
  * @brief Get the currently set replay gain mode
  *
  * It will be updated on the MPD_IDLE_OPTIONS event.
- *  
+ *
  * @param self the client to operate on
  *
  * @return a const string ("off", "album", "title", "auto")
  */
-inline const char *mc_proto_get_replay_gain_status(mc_Client *self) {
+inline const char *mc_proto_get_replay_gain_status(mc_Client *self)
+{
     if (self != NULL) {
         return self->replay_gain_status;
     } else {

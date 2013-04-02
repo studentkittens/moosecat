@@ -47,7 +47,7 @@ static void update_view(EntryTag *tag, const char *search_text)
     char *query = mc_store_qp_parse(search_text, NULL, NULL);
     parse_time = g_timer_elapsed(parse_timer, NULL);
 
-        
+
 
     int found = mc_store_search_to_stack(tag->store, query, true, tag->song_buf, -1);
 
@@ -61,7 +61,7 @@ static void update_view(EntryTag *tag, const char *search_text)
     GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(tag->view));
     g_object_ref(model); /* Make sure the model stays with us after the tree view unrefs it */
     gtk_tree_view_set_model(GTK_TREE_VIEW(tag->view), NULL); /* Detach model from view */
- 
+
 
     gtk_list_store_clear(list_store);
 
@@ -74,14 +74,14 @@ static void update_view(EntryTag *tag, const char *search_text)
                            COLUMN_TITLE, mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
                            -1);
     }
-  
+
     gtk_tree_view_set_model(GTK_TREE_VIEW(tag->view), model); /* Re-attach model to view */
     g_object_unref(model);
 
     gui_time = g_timer_elapsed(tag->profile_timer, NULL);
     g_print("Timing: parse=%2.5fs + select=%2.5fs + gui_redraw=%2.5fs = %2.5fs (%-5d rows)\n\t%s\n",
             parse_time, select_time, gui_time, select_time + gui_time + parse_time, found, query);
-    
+
     g_free(query);
 }
 

@@ -12,7 +12,7 @@ static void signal_event(
     void *user_data)
 {
     (void) u_conn;
-    GMainLoop * loop = user_data;
+    GMainLoop *loop = user_data;
 
 
     g_print("%p %p %p\n", conn->status, conn->song, conn->stats);

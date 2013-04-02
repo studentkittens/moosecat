@@ -65,7 +65,7 @@ void mc_proto_update_context_info_cb(
                     tmp_status = mpd_recv_status(conn);
 
                     if (self->status_timer.last_update != NULL && self->status_timer.reset_timer) {
-                        /* Reset the status timer to 0 */                                        
+                        /* Reset the status timer to 0 */
                         g_timer_start(self->status_timer.last_update);
                     }
 
@@ -100,9 +100,9 @@ void mc_proto_update_context_info_cb(
 
                     if (mode != NULL) {
                         self->replay_gain_status = g_strdup(mode->value);
-                        mpd_return_pair (conn, mode);
+                        mpd_return_pair(conn, mode);
                     }
-                    
+
                     mpd_response_next(conn);
                     mc_shelper_report_error(self, conn);
                 }
@@ -147,9 +147,9 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
         return false;
     }
 
-    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) { 
+    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) {
 
-        /* Substract a small amount to include the network latency - a bit of a hack 
+        /* Substract a small amount to include the network latency - a bit of a hack
          * but worst thing that could happen: you miss one status update.
          * */
         float compare = MAX(self->status_timer.interval - self->status_timer.interval / 10, 0);
@@ -158,7 +158,7 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
         if (elapsed >= compare) {
             /* MIXER is a harmless event, but it causes status to update */
             enum mpd_idle on_status_only = MPD_IDLE_MIXER;
-    
+
             self->status_timer.reset_timer = false;
             mc_proto_update_context_info_cb(self, on_status_only, NULL);
             self->status_timer.reset_timer = true;
@@ -200,9 +200,11 @@ void mc_proto_update_unregister_status_timer(
         if (self->status_timer.timeout_id > 0) {
             g_source_remove(self->status_timer.timeout_id);
         }
+
         self->status_timer.timeout_id = -1;
         self->status_timer.interval = 0;
         self->status_timer.reset_timer = true;
+
         if (self->status_timer.last_update != NULL) {
             g_timer_destroy(self->status_timer.last_update);
         }

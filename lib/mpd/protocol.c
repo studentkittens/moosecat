@@ -209,7 +209,7 @@ void mc_proto_free(mc_Client *self)
 
     /* Disconnect if not done yet */
     mc_proto_disconnect(self);
-        
+
     /* Kill any previously connected host info */
     if (self->_host != NULL)
         g_free(self->_host);

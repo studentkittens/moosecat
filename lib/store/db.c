@@ -248,41 +248,42 @@ static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
 
     while ((gpointer)(ent = g_async_queue_pop(self->sqltonet_queue)) > async_queue_terminator) {
         switch (mpd_entity_get_type(ent)) {
-            case MPD_ENTITY_TYPE_SONG: {
-                struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent) ;
-                mc_stack_append(self->stack, (struct mpd_song *) song);
-                mc_stprv_insert_song(self, (struct mpd_song *) song);
-                /* Not sure if this is a nice way,
-                * but for now it works. There might be a proper way:
-                * duplicate the song with mpd_song_dup, and use mpd_entity_free,
-                * but that adds extra memory usage, and costs about 0.2 seconds.
-                * on my setup here - I think this will work fine.
-                * */
-                g_free(ent);
+        case MPD_ENTITY_TYPE_SONG: {
+            struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent) ;
+            mc_stack_append(self->stack, (struct mpd_song *) song);
+            mc_stprv_insert_song(self, (struct mpd_song *) song);
+            /* Not sure if this is a nice way,
+            * but for now it works. There might be a proper way:
+            * duplicate the song with mpd_song_dup, and use mpd_entity_free,
+            * but that adds extra memory usage, and costs about 0.2 seconds.
+            * on my setup here - I think this will work fine.
+            * */
+            g_free(ent);
 
-                break;
-            }
+            break;
+        }
 
-            case MPD_ENTITY_TYPE_DIRECTORY: {
-                const struct mpd_directory *dir = mpd_directory_dup(mpd_entity_get_directory(ent));
+        case MPD_ENTITY_TYPE_DIRECTORY: {
+            const struct mpd_directory *dir = mpd_directory_dup(mpd_entity_get_directory(ent));
 
-                if (dir != NULL) {
-                    mc_stprv_dir_insert(self, g_strdup(mpd_directory_get_path(dir)));
-                    mpd_entity_free(ent);
-                }
-                break;
-            }
-            
-            case MPD_ENTITY_TYPE_PLAYLIST: {
-                /* nothing - we do this only on request (see
-                 * db-stored-playlist.c */
-                break;
-            }
-
-            default: {
+            if (dir != NULL) {
+                mc_stprv_dir_insert(self, g_strdup(mpd_directory_get_path(dir)));
                 mpd_entity_free(ent);
-                ent = NULL;
             }
+
+            break;
+        }
+
+        case MPD_ENTITY_TYPE_PLAYLIST: {
+            /* nothing - we do this only on request (see
+             * db-stored-playlist.c */
+            break;
+        }
+
+        default: {
+            mpd_entity_free(ent);
+            ent = NULL;
+        }
         }
     }
 
@@ -572,7 +573,7 @@ mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 
     /* either number of songs in 'songs' table or -1 on error */
     int song_count = -1;
-    
+
     /* create the full path to the db */
     store->db_directory = g_strdup(store->settings->db_directory);
     char *db_path = mc_store_construct_full_dbpath(client, store->db_directory);
@@ -668,7 +669,7 @@ void mc_store_close(mc_StoreDB *self)
         return;
 
     return_if_locked(self);
-    
+
     mc_proto_signal_rm(self->client, "client-event", mc_store_update_callback);
     mc_proto_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);
     mc_stack_free(self->stack);

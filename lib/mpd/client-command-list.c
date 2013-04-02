@@ -1,13 +1,14 @@
 #include "client-command-list.h"
 
 
-bool mc_client_command_list_begin(mc_Client * self) 
+bool mc_client_command_list_begin(mc_Client *self)
 {
-    g_assert (self);
+    g_assert(self);
 
     if (mc_client_command_list_is_active(self) == false) {
         self->_command_list_conn = mc_proto_get(self);
-        if(self->_command_list_conn != NULL) {
+
+        if (self->_command_list_conn != NULL) {
             if (mpd_command_list_begin(self->_command_list_conn, false) == false) {
                 return false;
             }
@@ -19,18 +20,18 @@ bool mc_client_command_list_begin(mc_Client * self)
 
 ///////////////////
 
-bool mc_client_command_list_is_active(mc_Client * self) 
+bool mc_client_command_list_is_active(mc_Client *self)
 {
-    g_assert (self);
+    g_assert(self);
 
     return self->_command_list_conn != NULL;
 }
 
 ///////////////////
 
-bool mc_client_command_list_commit(mc_Client * self) 
+bool mc_client_command_list_commit(mc_Client *self)
 {
-    g_assert (self);
+    g_assert(self);
 
     if (mc_client_command_list_is_active(self) == true) {
         if (mpd_command_list_end(self->_command_list_conn) == false)

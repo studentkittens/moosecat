@@ -183,7 +183,7 @@ def _find_out_host_and_port():
         return host, 6600 if port is None else port
 
 
-def boot_base(verbosity=logging.DEBUG):
+def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
     '''Initialize the basic services.
 
     This is basically a helper to spare us a lot of init work in tests.
@@ -198,6 +198,7 @@ def boot_base(verbosity=logging.DEBUG):
         - Find out to which host/port we should connect (config and NetworProvider).
         - Make everything available under the 'g' variable;
 
+    :protocol_machine: The pm to use for the Client. Please know what you do.
     :verbosity: Verbosity to use during bootup. You can adjust this using ``logger.getLogger(None).setLevel(logger.YourLevel)`` later.
     :returns: True if erverything worked and the client is connected.
     '''
@@ -228,7 +229,7 @@ def boot_base(verbosity=logging.DEBUG):
     g.register('config', config)
 
     # Logging signals
-    client = core.Client()
+    client = core.Client(protocol_machine=protocol_machine)
     g.register('client', client)
 
     # Redirect GLib Errors to the error signal (needs to know what client's signals)

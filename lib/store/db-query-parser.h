@@ -14,8 +14,8 @@
  * Things already found in normal FTS Queries:
  *
  *    ():  Overwrite precedence of a expression.
- *    artist: Search for artist only. There are more tag-specifiers, 
- *    which also may just be written with only one letter (a: for artist:): 
+ *    artist: Search for artist only. There are more tag-specifiers,
+ *    which also may just be written with only one letter (a: for artist:):
  *
  *          ['a'] = "artist"
  *          ['b'] = "album"
@@ -51,7 +51,7 @@
  * @warning_pos: (OUT) If warning is filled, the position inside the string is written in here.
  * @returns: A newly allocated string containing a valid FTS Query.
  */
-char * mc_store_qp_parse(const char *query, const char **warning, int *warning_pos);
+char *mc_store_qp_parse(const char *query, const char **warning, int *warning_pos);
 
 
 #endif /* end of include guard: MC_DB_QUERY_PASRSER_HH */

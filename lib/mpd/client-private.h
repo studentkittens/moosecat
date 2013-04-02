@@ -32,6 +32,6 @@
         }                                                        \
         END_COMMAND                                              \
     }
-    
+
 
 #endif /* end of include guard: MC_CLIENT_PRIVATE_HH */

@@ -110,7 +110,7 @@ cdef class Store:
         result = c.mc_stack_create(stack_size, NULL)
 
         if result != NULL:
-            if match_clause is None:
+            if match_clause is None or len(match_clause.strip()) is 0:
                 num = c.mc_store_search_to_stack(self._p(), NULL, queue_only, result, limit_length)
             else:
                 b_match_clause = parse_query_bytes(bytify(match_clause))

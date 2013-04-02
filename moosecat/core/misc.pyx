@@ -40,7 +40,7 @@ def parse_query(query):
 def parse_query_bytes(b_query):
     cdef const char *warning = NULL
     cdef int warning_pos = 0
-    cdef char *result
+    cdef char *result = NULL
 
     result = c.mc_store_qp_parse(b_query, &warning, &warning_pos)
     if warning is not NULL:  # Uh-oh.
