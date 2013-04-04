@@ -13,7 +13,7 @@ APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
 # Needed/Adviceable flags:
-CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-Os', '-s']
+CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-g', '-O']
 
 # Optional flags:
 CFLAGS += ['-Wall', '-W', '-Wno-unused-parameter', '-Wno-unused-value']

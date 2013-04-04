@@ -57,7 +57,8 @@ enum {
     STMT_DROP_SPLTABLE,
     STMT_CREATE_SPLTABLE,
     STMT_INSERT_SONG_IDX,
-    STMT_PLAYLIST_GETIDS
+    STMT_PLAYLIST_GETIDS,
+    STMT_PLAYLIST_SCOUNT
 };
 
 const char *spl_sql_stmts[] = {
@@ -65,7 +66,8 @@ const char *spl_sql_stmts[] = {
     [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
     [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
     [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
-    [STMT_PLAYLIST_GETIDS] = "SELECT song_idx FROM %q;"
+    [STMT_PLAYLIST_GETIDS] = "SELECT song_idx FROM %q;",
+    [STMT_PLAYLIST_SCOUNT] = "SELECT count(*) FROM %q;"
 };
 
 void mc_stprv_spl_init(mc_StoreDB *self)
@@ -233,6 +235,41 @@ static GList *mc_stprv_spl_get_loaded_list(mc_StoreDB *self)
     }
 
     return table_name_list;
+}
+
+///////////////////
+
+static int mc_stprv_spl_get_song_count(mc_StoreDB *self, struct mpd_playlist *playlist)
+{
+    g_assert(self);
+
+    int count = -1;
+    char *table_name = mc_stprv_spl_construct_table_name(playlist);
+
+    if(table_name != NULL) {
+        char *dyn_sql = sqlite3_mprintf(spl_sql_stmts[STMT_PLAYLIST_SCOUNT], table_name);
+
+        if(dyn_sql != NULL) {
+            sqlite3_stmt *count_stmt = NULL;
+
+            if (sqlite3_prepare_v2(self->handle, dyn_sql, -1, &count_stmt, NULL) != SQLITE_OK) {
+                REPORT_SQL_ERROR(self, "Cannot prepare COUNT stmt!");
+            } else {
+                if(sqlite3_step(count_stmt) == SQLITE_ROW) {
+                    count = sqlite3_column_int(count_stmt, 0);
+                }
+
+                if (sqlite3_step(count_stmt) != SQLITE_DONE) {
+                    REPORT_SQL_ERROR(self, "Cannot count songs in stored playlist table.");
+                }
+            }
+
+            sqlite3_free(dyn_sql);
+        }
+
+        g_free(table_name);
+    }
+    return count;
 }
 
 /////////////////// PUBLIC AREA ///////////////////
@@ -411,7 +448,7 @@ static inline int mc_stprv_spl_hash_compare(gconstpointer a, gconstpointer b)
 
 ///////////////////
 
-static int bsearch_cmp(const void *key, const void *array)
+static int mc_stprv_spl_bsearch_cmp(const void *key, const void *array)
 {
     return key - *(void **)array;
 }
@@ -420,15 +457,25 @@ static int bsearch_cmp(const void *key, const void *array)
 
 static int mc_stprv_spl_filter_id_list(mc_StoreDB *store, GPtrArray *song_ptr_array, const char *match_clause, mc_Stack *out_stack)
 {
-    // TODO: Preallic strategy..
-    int rc = 0;
-    mc_Stack *db_songs = mc_stack_create(1000, NULL);
+    /* Roughly estimate the number of song pointer to expect */
+    int preallocations = mc_stack_length(store->stack) /
+                        (((match_clause) ? MAX(strlen(match_clause), 1) : 1) * 2);
+
+    /* Temp. container to hold the query on the database */
+    mc_Stack *db_songs = mc_stack_create(preallocations, NULL);
 
     if(mc_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
         for(size_t i = 0; i < mc_stack_length(db_songs); ++i) {
             struct mpd_song *song = mc_stack_at(db_songs, i);
-            if(bsearch(song, song_ptr_array->pdata, song_ptr_array->len, sizeof(gpointer), bsearch_cmp)) {
-                ++rc;
+            if(bsearch(
+                        song, 
+                        song_ptr_array->pdata, 
+                        song_ptr_array->len,
+                        sizeof(gpointer),
+                        mc_stprv_spl_bsearch_cmp
+                    )
+            )
+            {
                 mc_stack_append(out_stack, song);
             }
         }
@@ -437,7 +484,7 @@ static int mc_stprv_spl_filter_id_list(mc_StoreDB *store, GPtrArray *song_ptr_ar
     /* Set them free */
     mc_stack_free(db_songs);
 
-    return rc;
+    return mc_stack_length(out_stack);
 }
 
 ///////////////////
@@ -492,7 +539,9 @@ int mc_stprv_spl_select_playlist(mc_StoreDB *store, mc_Stack *out_stack, const c
     if (sqlite3_prepare_v2(store->handle, dyn_sql, -1, &pl_id_stmt, NULL) != SQLITE_OK) {
         REPORT_SQL_ERROR(store, "Cannot prepare playlist search statement");
     } else {
-        song_ptr_array = g_ptr_array_sized_new(1000);
+        int song_count = mc_stprv_spl_get_song_count(store, playlist);
+        song_ptr_array = g_ptr_array_sized_new(MAX(song_count, 1));
+
         while (sqlite3_step(pl_id_stmt) == SQLITE_ROW) {
             /* Get the actual song */
             int song_idx = sqlite3_column_int(pl_id_stmt, 0);
