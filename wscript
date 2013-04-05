@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 #encoding: utf-8
-import os
 import subprocess
+import urllib.request
+import traceback
+import shutil
+import zipfile
+import sys
+import os
+
 
 from waflib import Logs
 from waflib import Task
@@ -24,6 +30,81 @@ CFLAGS += ['-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1', '-DSQLITE_ENABLE_FTS3', '-DSQ
 # These files are not built into libmoosecat.so
 EXCLUDE_FILES = []
 
+
+###########################################################################
+#                         SQLite related helpers                          #
+###########################################################################
+
+
+TEMP_PATH = 'extracted'
+
+
+def download_sqlite_amalgamation(url):
+    try:
+        if os.path.exists('ext/sqlite'):
+            Logs.info('  Cool. Already there.')
+        else:
+            Logs.info('  [DOWNLOADING]: {url}'.format(url=url))
+            zipped_file = download(url)
+            Logs.info('  [EXTRACTING]: {zipf}'.format(zipf=zipped_file))
+            extracted_files = extract(zipped_file)
+            Logs.info('  [COPYING]: {files}'.format(files=extracted_files))
+            copy(extracted_files)
+            Logs.info('  [CLEANING]')
+            clean(zipped_file)
+    except:
+        Logs.warn('Error during getting SQLite:')
+        traceback.print_exc()
+        Logs.warn('Maybe no Internet connection?')
+        sys.exit(-1)
+
+
+def download(url):
+    try:
+        local, headers = urllib.request.urlretrieve(url, os.path.basename(url))
+        return local
+    except urllib.URLError as err:
+        Logs.warn('Invalid URL? {error}'.format(error=err))
+
+
+def extract(zfile):
+    try:
+        zipfile.ZipFile(zfile, 'r').extractall()
+        shutil.move(zfile[:-4], TEMP_PATH)
+        files = os.listdir(TEMP_PATH)
+        return [os.path.join(TEMP_PATH, x) for x in files if x.upper() != 'SHELL.C']
+    except shutil.Error:
+        Log.warn('path {temp} already exists.'.format(TEMP_PATH))
+
+
+def copy(files):
+    try:
+        cpath = 'ext/sqlite'
+        hpath = 'ext/sqlite/inc'
+        if not os.path.exists(cpath):
+            os.mkdir(cpath)
+        if not os.path.exists(hpath):
+            os.mkdir(hpath)
+        for f in files:
+            if f.endswith('c'):
+                shutil.copy(f, cpath)
+            elif f.endswith('h'):
+                shutil.copy(f, hpath)
+    except shutil.Error as err:
+        print('Error during copy process. {error}'.format(error=err))
+
+
+def clean(zfile):
+    try:
+        shutil.move(zfile, TEMP_PATH)
+        shutil.rmtree(TEMP_PATH, ignore_errors=True)
+    except shutil.Error as err:
+        print('Error during clean up. {error}'.format(error=err))
+
+
+###########################################################################
+#                          Actual waf functions                           #
+###########################################################################
 
 def options(opt):
         opt.load('compiler_c')
@@ -85,6 +166,11 @@ def configure(conf):
     except conf.errors.ConfigurationError:
         Logs.warn('Cython was not found, using the cache')
 
+    # Get the SQLite source
+    Logs.info("Retrieving SQLite source")
+    SQLITE_AMALGAMATION = 'http://www.sqlite.org/2013/sqlite-amalgamation-3071601.zip'
+    download_sqlite_amalgamation(SQLITE_AMALGAMATION)
+
     # Try to find git
     conf.find_program('git', mandatory=False)
 
@@ -96,7 +182,7 @@ def configure(conf):
     )
 
     conf.check_cfg(
-            package='gtk+-3.0',
+            package='gtk+-2.0',
             uselib_store='GTK3',
             args='--libs --cflags'
     )
