@@ -12,6 +12,10 @@ from moosecat.plugin_system import PluginSystem
 from moosecat.heartbeat import Heartbeat
 from moosecat.config_defaults import CONFIG_DEFAULTS
 
+# PyXDG Sepcs
+from xdg import BaseDirectory
+
+
 ###########################################################################
 #                             Global Registry                             #
 ###########################################################################
@@ -56,13 +60,10 @@ def _create_xdg_path(envar, endpoint):
 
 
 def _create_file_structure():
-    g.register('HOME_DIR', os.path.expanduser('~'))
-    g.register('XDG_CONFIG_HOME', _create_xdg_path('XDG_CONFIG_HOME', '.config'))
-    g.register('XDG_CACHE_HOME', _create_xdg_path('XDG_CACHE_HOME', '.cache'))
-    g.register('CONFIG_DIR', os.path.join(g.XDG_CONFIG_HOME, 'moosecat'))
-    g.register('CACHE_DIR', os.path.join(g.XDG_CACHE_HOME, 'moosecat'))
-
+    g.register('CONFIG_DIR', os.path.join(BaseDirectory.xdg_config_dirs[0], 'moosecat'))
     _check_or_mkdir(g.CONFIG_DIR)
+
+    g.register('CACHE_DIR', os.path.join(BaseDirectory.xdg_cache_home, 'moosecat'))
     _check_or_mkdir(g.CACHE_DIR)
 
     g.register('CONFIG_FILE', os.path.join(g.CONFIG_DIR, 'config.yaml'))
@@ -220,8 +221,8 @@ def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
     config.add_defaults(CONFIG_DEFAULTS)
     config.add_defaults({
         'paths': {
-            'config_home': g.XDG_CONFIG_HOME,
-            'cache_home': g.XDG_CACHE_HOME
+            'config_home': g.CONFIG_DIR,
+            'cache_home': g.CACHE_DIR
         }
     })
 
