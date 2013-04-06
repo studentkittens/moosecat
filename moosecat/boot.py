@@ -215,8 +215,11 @@ def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
 
     # Set up Config
     config = cfg.Config()
-    with open(g.CONFIG_FILE, 'r') as f:
-        config.load(f.read())
+    try:
+        with open(g.CONFIG_FILE, 'r') as f:
+            config.load(f.read())
+    except FileNotFoundError:
+        pass
 
     config.add_defaults(CONFIG_DEFAULTS)
     config.add_defaults({
@@ -242,7 +245,7 @@ def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
     client.signal_add('progress', _progress_logger)
 
     # Initialize the Plugin System
-    psys = PluginSystem()
+    psys = PluginSystem(config=g.config)
     g.register('psys', psys)
 
     # Acquire Config Defaults for all Plugins

@@ -90,10 +90,7 @@ if __name__ == '__main__':
             ))
 
     elif command == 'list-plugins':
-        import moosecat.plugin_system as plug
-        psys = plug.PluginSystem()
-
-        for info in psys.get_plugin_info():
+        for info in g.psys.get_plugin_info():
             print('''
                 Name        : {i.name}
                 Author      : {i.author}
@@ -102,9 +99,7 @@ if __name__ == '__main__':
             '''.format(i=info))
 
     elif command == 'guess-host':
-        import moosecat.plugin_system as plug
-        psys = plug.PluginSystem()
-        for plugin in psys.category('NetworkProvider'):
+        for plugin in g.psys.category('NetworkProvider'):
             result = plugin.find()
             if result is not None:
                 host, port = result

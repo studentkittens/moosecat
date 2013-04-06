@@ -45,7 +45,7 @@ def _get_interfaces_from_module():
 
 
 class PluginSystem:
-    def __init__(self):
+    def __init__(self, config=None):
         'Initialize a new PluginSystem. Needs no arguments.'
         # Build the manager
         self._mngr = PluginManager(plugin_info_ext='plugin')
@@ -66,11 +66,15 @@ class PluginSystem:
         except SystemError as e:
             LOGGER.exception('Some plugin could not be loaded.')
 
-        # Activate all loaded plugins
-        # This is a TODO. We only want to load wanted plugins.
-        # i.e. defined in the config.
-        for pluginInfo in self._mngr.getAllPlugins():
-            self._mngr.activatePluginByName(pluginInfo.name)
+        # Get a list of  plugin names to load
+        load_these = [pluginInfo.name for pluginInfo in self._mngr.getAllPlugins()]
+        if config is not None:
+            config.add_defaults({'plugins_to_load': load_these})
+            load_these = config.get('plugins_to_load')
+
+        # Actually load them
+        for name in load_these:
+            self._mngr.activatePluginByName(name)
 
     def list_plugin_info(self):
         '''
