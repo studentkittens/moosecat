@@ -66,6 +66,9 @@ def _create_file_structure():
     g.register('CACHE_DIR', os.path.join(BaseDirectory.xdg_cache_home, 'moosecat'))
     _check_or_mkdir(g.CACHE_DIR)
 
+    g.register('USER_PLUGIN_DIR', os.path.join(g.CONFIG_DIR, 'plugins'))
+    _check_or_mkdir(g.USER_PLUGIN_DIR)
+
     g.register('CONFIG_FILE', os.path.join(g.CONFIG_DIR, 'config.yaml'))
     g.register('LOG_FILE', os.path.join(g.CONFIG_DIR, 'app.log'))
 
@@ -245,7 +248,7 @@ def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
     client.signal_add('progress', _progress_logger)
 
     # Initialize the Plugin System
-    psys = PluginSystem(config=g.config)
+    psys = PluginSystem(config=g.config, extra_plugin_paths=[g.USER_PLUGIN_DIR])
     g.register('psys', psys)
 
     # Acquire Config Defaults for all Plugins

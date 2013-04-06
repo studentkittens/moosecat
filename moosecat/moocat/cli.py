@@ -90,13 +90,13 @@ if __name__ == '__main__':
             ))
 
     elif command == 'list-plugins':
-        for info in g.psys.get_plugin_info():
-            print('''
-                Name        : {i.name}
-                Author      : {i.author}
-                Description : {i.description}
-                Version     : {i.version}
-            '''.format(i=info))
+        categories = g.psys.list_categories()
+        for category in categories:
+            print(category)
+            for info in g.psys.list_plugin_info_by_category(category):
+                print('  name       : ', info.name)
+                print('  description: ', info.description)
+                print('  version    : ', info.version)
 
     elif command == 'guess-host':
         for plugin in g.psys.category('NetworkProvider'):

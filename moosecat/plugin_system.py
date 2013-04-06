@@ -45,14 +45,14 @@ def _get_interfaces_from_module():
 
 
 class PluginSystem:
-    def __init__(self, config=None):
+    def __init__(self, config=None, extra_plugin_paths=[]):
         'Initialize a new PluginSystem. Needs no arguments.'
         # Build the manager
         self._mngr = PluginManager(plugin_info_ext='plugin')
 
         # Tell it the default place(s) where to find plugins
         plugin_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'plugins')
-        self._mngr.setPluginPlaces([plugin_path])
+        self._mngr.setPluginPlaces([plugin_path] + extra_plugin_paths)
 
         # find the categories specified in moosecat/plugins/__init__.py
         self._categories = _get_interfaces_from_module()
