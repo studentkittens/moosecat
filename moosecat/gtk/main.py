@@ -1,4 +1,11 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 from gi.repository import Gtk, GLib
+
+
+from moosecat.gtk.widgets import BarSlider, ProgressSlider
+
 from moosecat.boot import boot_base, boot_store, shutdown_application, g
 from moosecat.core import parse_query, QueryParseException
 from moosecat.gtk.data_tree_model import DataTreeModel
@@ -15,17 +22,14 @@ def timing(msg):
     yield
     print(msg, ":", time() - now)
 
-
 class Demo:
     def __init__(self):
-        window = Gtk.Window()
-        window.set_title('Database Demo')
-
         box = Gtk.VBox()
         ent = Gtk.Entry()
         scw = Gtk.ScrolledWindow()
         scw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
+        self.box = box
 
         self._view = Gtk.TreeView(model=None)
         self._view.set_fixed_height_mode(True)
@@ -51,17 +55,13 @@ class Demo:
         box.pack_start(Gtk.HSeparator(), False, False, 1)
         box.pack_start(bottom_box, False, False, 1)
 
-        # Add rootbox to window
-        window.add(box)
-        window.show_all()
-
         # Signals
         ent.connect('changed', self._changed)
-        window.connect_after('destroy', self._destroy)
 
         # Type Optimzations
         self._last_length = -1
         self._search_queue = Queue()
+
         GLib.timeout_add(250, self._search)
 
     def _changed(self, entry):
@@ -103,7 +103,18 @@ class Demo:
         shutdown_application()
 
 
-def main():
+
+if __name__ == '__main__':
+    builder = Gtk.Builder()
+    builder.add_from_file('/home/sahib/dev/moosecat/moosecat/gtk/ui/main.glade')
+
+    window = builder.get_object('MainWindow')
+    window.connect('delete-event', Gtk.main_quit)
+
+    builder.get_object('timeslider_align').add(ProgressSlider())
+    builder.get_object('volumeslider_align').add(BarSlider())
+
+
     import logging
     boot_base(verbosity=logging.WARNING)
     boot_store(wait=False)
@@ -111,8 +122,9 @@ def main():
 
     g.client.store.wait()
     app = Demo()
+
+    main_pane = builder.get_object('main_pane')
+    main_pane.add(app.box)
+
+    window.show_all()
     Gtk.main()
-
-
-if __name__ == '__main__':
-    main()
