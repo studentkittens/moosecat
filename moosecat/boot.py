@@ -27,9 +27,10 @@ class GlobalRegistry:
 
     Currently you will be able to access:
 
-        * ``client`` - A :class:`moosecat.core.Client` instance.
-        * ``psys`` - A loaded Plugin System of :class:`moosecat.plugin_system.PluginSystem`
-        * ``config`` - An instance of :class:`moosecat.config`
+        * ``client``    - A :class:`moosecat.core.Client` instance.
+        * ``psys``      - A loaded Plugin System of :class:`moosecat.plugin_system.PluginSystem`
+        * ``config``    - An instance of :class:`moosecat.config`
+        * ``heartbeat`` - An instance of :class:`moosecat.Heartbeat`
 
     '''
     def register(self, name, ref):
