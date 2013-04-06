@@ -172,7 +172,7 @@ cdef class Song:
     property uri:
         'Retrieve the uri (file://xyz e.g.) of this song.'
         def __get__(self):
-            return c.mpd_song_get_uri(self._p())
+            return stringify(<char *>c.mpd_song_get_uri(self._p()))
 
     property duration:
         'Retrieve the duration of the song in seconds'

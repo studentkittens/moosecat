@@ -26,9 +26,9 @@ class Demo:
         scw = Gtk.ScrolledWindow()
         scw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-        self.view = Gtk.TreeView(model=None)
-        self.view.set_fixed_height_mode(True)
-        self.view.set_rules_hint(True)
+        self._view = Gtk.TreeView(model=None)
+        self._view.set_fixed_height_mode(True)
+        self._view.set_rules_hint(True)
 
         for i, col in enumerate(['Artist', 'Album', 'Title']):
             renderer = Gtk.CellRendererText()
@@ -37,7 +37,7 @@ class Demo:
             col = Gtk.TreeViewColumn(col, renderer, text=i)
             col.set_min_width(250)
             col.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
-            self.view.append_column(col)
+            self._view.append_column(col)
 
         self._status_label = Gtk.Label('!')
         bottom_box = Gtk.HBox()
@@ -45,7 +45,7 @@ class Demo:
         bottom_box.pack_start(self._status_label, False, False, 0)
 
         # Packing
-        scw.add(self.view)
+        scw.add(self._view)
         box.pack_start(scw, True, True, 1)
         box.pack_start(Gtk.HSeparator(), False, False, 1)
         box.pack_start(bottom_box, False, False, 1)
@@ -92,8 +92,8 @@ class Demo:
             self._last_length = len(songs)
 
         with timing('drawing'):
-            self.view.set_model(DataTreeModel([]))
-            self.view.set_model(DataTreeModel(songs))
+            self._view.set_model(DataTreeModel([]))
+            self._view.set_model(DataTreeModel(songs))
 
         return True
 
