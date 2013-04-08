@@ -2,11 +2,35 @@
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkActionGroup" id="actiongroup1"/>
+  <object class="GtkImage" id="image_consume">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-indent</property>
+    <property name="icon-size">2</property>
+  </object>
+  <object class="GtkImage" id="image_random">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-justify-right</property>
+    <property name="icon-size">2</property>
+  </object>
+  <object class="GtkImage" id="image_repeat">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-refresh</property>
+    <property name="icon-size">2</property>
+  </object>
+  <object class="GtkImage" id="image_single">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-jump-to</property>
+    <property name="icon-size">2</property>
+  </object>
   <object class="GtkWindow" id="MainWindow">
     <property name="width_request">850</property>
     <property name="height_request">600</property>
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Freya</property>
+    <property name="title" translatable="yes">Moosecat</property>
     <property name="default_width">600</property>
     <property name="default_height">500</property>
     <property name="icon_name">audio-x-generic</property>
@@ -307,7 +331,7 @@
                     <property name="can_focus">False</property>
                     <property name="margin_left">3</property>
                     <property name="margin_right">3</property>
-                    <property name="yscale">0.5</property>
+                    <property name="yscale">0.40000000596046448</property>
                     <child>
                       <placeholder/>
                     </child>
@@ -323,7 +347,8 @@
                     <property name="width_request">100</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="bottom_padding">7</property>
+                    <property name="top_padding">2</property>
+                    <property name="bottom_padding">4</property>
                     <child>
                       <placeholder/>
                     </child>
@@ -356,6 +381,7 @@
               <object class="GtkLabel" id="top_label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_left">2</property>
                 <property name="xalign">2.2351741291171123e-10</property>
                 <property name="label" translatable="yes">&lt;b&gt;Geschöpfe der Nacht&lt;/b&gt; [Track 03/16] &lt;small&gt;by&lt;/small&gt; Rabenschrey &lt;small&gt;on&lt;/small&gt; Exzessivus (2011-09-04)</property>
                 <property name="use_markup">True</property>
@@ -408,9 +434,6 @@
                         <property name="headers_visible">False</property>
                         <property name="headers_clickable">False</property>
                         <property name="reorderable">True</property>
-                        <property name="rules_hint">True</property>
-                        <property name="hover_expand">True</property>
-                        <property name="enable_grid_lines">horizontal</property>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection" id="treeview-selection1"/>
                         </child>
@@ -580,30 +603,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSeparator" id="separator7">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkStatusbar" id="statusbar1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="orientation">vertical</property>
-                <property name="spacing">2</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -615,7 +614,55 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="pack_type">end</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="box3">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkSeparator" id="separator5">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label3">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">&lt;small&gt;3:04/4:11 | 32168 Songs in Database (~7 weeks playtime) | 44100 khz | 24bit | 224kbit | Stereo&lt;/small&gt;</property>
+                    <property name="use_markup">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator" id="separator2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -632,30 +679,6 @@
     <property name="upper">100</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
-  </object>
-  <object class="GtkImage" id="image_consume">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-indent</property>
-    <property name="icon-size">2</property>
-  </object>
-  <object class="GtkImage" id="image_random">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-justify-right</property>
-    <property name="icon-size">2</property>
-  </object>
-  <object class="GtkImage" id="image_repeat">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-refresh</property>
-    <property name="icon-size">2</property>
-  </object>
-  <object class="GtkImage" id="image_single">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-jump-to</property>
-    <property name="icon-size">2</property>
   </object>
   <object class="GtkImage" id="next_image">
     <property name="visible">True</property>
