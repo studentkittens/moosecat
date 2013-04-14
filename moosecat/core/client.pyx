@@ -2,6 +2,7 @@ cimport binds as c
 
 # bool type
 from libcpp cimport bool
+from libc.stdlib cimport free
 
 # Exception logging
 from cpython cimport PyErr_Print, PyErr_Occurred
@@ -224,6 +225,9 @@ cdef class Client:
             return None
         else:
             s_err = stringify(err)
+            if err is not NULL:
+                free(err)
+
             return s_err
 
     def disconnect(self):

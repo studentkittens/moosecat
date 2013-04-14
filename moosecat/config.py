@@ -83,3 +83,6 @@ class Config:
         'Add a dictionary with configuration values as default'
         self._data = {k: self._data.get(k, default_dict.get(k))
                 for k in self._data.keys() | default_dict.keys()}
+
+    def __str__(self):
+        return str(self._data)

@@ -15,8 +15,10 @@ CONFIG_DEFAULTS = {
         'default': {
             'host': 'localhost',
             'port': 6600,
-            'timeout': 2.0
+            'timeout': 2.0,
+            'password': None
         }
     },
     'active_profile': 'default',
+    'verbosity': 3
 }

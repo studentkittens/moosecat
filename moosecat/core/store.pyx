@@ -192,6 +192,8 @@ cdef class Store:
 
                     rlist.append(result)
 
+            c.mc_stack_free(stack)
+
         return rlist
 
     cdef c.mpd_playlist * _stored_playlist_get_by_name(self, b_name):
@@ -234,6 +236,7 @@ cdef class Store:
         # Create a buffer for the songs
         cdef c.mc_Stack * stack = c.mc_stack_create(0, NULL)
         cdef c.mpd_playlist * playlist = NULL
+        cdef char * b_match_clause = NULL
 
         if stack != NULL:
             # Convert input to char * compatible bytestrings
@@ -248,6 +251,9 @@ cdef class Store:
                 else:
                     b_match_clause = parse_query_bytes(bytify(match_clause))
                     c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
+
+                    if b_match_clause is not NULL:
+                        free(b_match_clause)
 
                 # Encapuslate the stack into a playlist object
                 return StoredPlaylist()._init_stored_playlist(stack, self._c(), playlist)

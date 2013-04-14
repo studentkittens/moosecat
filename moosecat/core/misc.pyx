@@ -18,6 +18,12 @@ def bug_report(Client client=None):
 
 
 def register_external_logs(Client client):
+    '''
+    Catch Gtk/GLibs logging, and forward them via the error callback.
+
+    :client: The client object to use to forward error messages.
+    :throws: a ValueError if no client is passed.
+    '''
     if client is not None:
         c.mc_misc_catch_external_logs(client._p())
     else:
@@ -25,6 +31,12 @@ def register_external_logs(Client client):
 
 
 class QueryParseException(Exception):
+    '''
+    Thrown if parse_query() encounters invalid syntax.
+
+    The exact cause can be found in self.msg, the position
+    of the error in (approx.) self.pos.
+    '''
     def __init__(self, msg, pos):
         self.msg = msg
         self.pos = pos
@@ -32,12 +44,37 @@ class QueryParseException(Exception):
 
 
 def parse_query(query):
+    '''
+    Parse a string (in the format of a Extended Search Syntax), to a query
+    that can be used by SQLite's FTS Extension.
+
+    .. note::
+
+        There's usually no need to use this function directly, since
+        all query-functions of :class:`moosecat.core.Store` already call
+        this implicitly on your input. It might be useful to check if
+        a query is valid.
+
+    :query: An arbitary input string.
+    :returns: A parsed string.
+    :throws: a QueryParseException on invalid input.
+    '''
+    cdef char * b_result = NULL
+
+    result = None
     b_query = bytify(query)
+
     b_result = parse_query_bytes(b_query)
-    return stringify(b_result)
+    result = stringify(b_result)
+
+    if b_result is not NULL:
+        free(b_result)
+
+    return result
 
 
-def parse_query_bytes(b_query):
+cdef char * parse_query_bytes(b_query) except NULL:
+    'Used internally. So no byte-str-conversion needs to be done.'
     cdef const char *warning = NULL
     cdef int warning_pos = 0
     cdef char *result = NULL
@@ -47,5 +84,5 @@ def parse_query_bytes(b_query):
         if result is not NULL:
             free(result)
         raise QueryParseException(stringify(<char *>warning), warning_pos)
-    else:
-        return result
+
+    return result

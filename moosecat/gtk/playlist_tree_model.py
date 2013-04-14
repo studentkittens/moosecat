@@ -1,7 +1,7 @@
 from gi.repository import Gtk, Pango, GObject, GLib
 
 
-class DataTreeModel(GObject.GObject, Gtk.TreeModel):
+class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
     def __init__(self, data):
         self.data = data
         self._num_rows = len(self.data)
