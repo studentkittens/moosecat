@@ -837,7 +837,7 @@ int mc_stprv_queue_clip(mc_StoreDB *self, int since_pos)
     int pos_idx = 1;
     int error_id = SQLITE_OK;
     sqlite3_stmt *clear_stmt = SQL_STMT(self, QUEUE_CLEAR);
-    bind_int(self, QUEUE_CLEAR, pos_idx, MAX(0, since_pos - 1), error_id);
+    bind_int(self, QUEUE_CLEAR, pos_idx, MAX(-1, since_pos - 1), error_id);
 
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot bind stuff to clear statement");

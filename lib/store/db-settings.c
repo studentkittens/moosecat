@@ -18,3 +18,12 @@ void mc_store_settings_destroy(mc_StoreSettings *self)
 {
     g_free(self);
 }
+
+///////////////////////////////
+
+void mc_store_settings_set_db_directory(mc_StoreSettings *self, const char *db_directory)
+{
+    g_assert(self);
+
+    self->db_directory = g_strdup(db_directory);
+}

@@ -55,5 +55,7 @@ mc_StoreSettings *mc_store_settings_new(void);
  */
 void mc_store_settings_destroy(mc_StoreSettings *settings);
 
+void mc_store_settings_set_db_directory(mc_StoreSettings *self, const char *db_directory);
+
 
 #endif /* end of include guard: MC_DB_SETTINGS_HH */

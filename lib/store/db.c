@@ -406,8 +406,14 @@ static void mc_store_do_list_all_info(mc_StoreDB *store, bool lock_self)
 static gpointer mc_store_do_plchanges_wrapper(mc_StoreDB *self)
 {
     g_assert(self);
-    mc_store_do_plchanges(self, true);
-    mc_stprv_insert_meta_attributes(self);
+    g_assert(self);
+    LOCK_UPDATE_MTX(self);
+    {
+        mc_store_do_plchanges(self, true);
+        mc_stprv_insert_meta_attributes(self);
+    }
+    UNLOCK_UPDATE_MTX(self);
+
     g_thread_unref(g_thread_self());
     return NULL;
 }
@@ -458,10 +464,12 @@ static gpointer mc_store_deserialize_songs_and_plchanges(mc_StoreDB *self)
 {
     g_assert(self);
     LOCK_UPDATE_MTX(self);
-    mc_stprv_deserialize_songs(self, false);
-    mc_store_do_plchanges(self, false);
-    mc_stprv_spl_update(self);
-    mc_stprv_insert_meta_attributes(self);
+    {
+        mc_stprv_deserialize_songs(self, false);
+        mc_store_do_plchanges(self, false);
+        mc_stprv_spl_update(self);
+        mc_stprv_insert_meta_attributes(self);
+    }
     UNLOCK_UPDATE_MTX(self);
 
     if (self->create.double_unlock) {
@@ -484,7 +492,13 @@ static void mc_store_deserialize_songs_and_plchanges_bkgd(mc_StoreDB *self)
 
 static gpointer mc_stprv_spl_update_wrapper(mc_StoreDB *self)
 {
-    mc_stprv_spl_update(self);
+    g_assert(self);
+    LOCK_UPDATE_MTX(self); 
+    {
+        mc_stprv_spl_update(self);
+    }
+    UNLOCK_UPDATE_MTX(self);
+
     g_thread_unref(g_thread_self());
     return NULL;
 }
@@ -514,6 +528,13 @@ static void mc_stprv_spl_update_bkgd(mc_StoreDB *self)
 void mc_store_update_callback(mc_Client *client, enum mpd_idle events, mc_StoreDB *self)
 {
     g_assert(self && client && self->client == client);
+
+    /* We have to wait until 
+     *
+     * TODO: Make operations cancelable. Tricky. */
+    g_print("WAIT!  (%d %d) \n", events, MPD_IDLE_QUEUE);
+    mc_store_wait(self);
+    g_print("WAIT END!  (%d %d) \n", events, MPD_IDLE_QUEUE);
 
     if (events & MPD_IDLE_DATABASE) {
         mc_store_do_listall_and_plchanges_bkgd(self);

@@ -41,7 +41,8 @@ cdef class Store:
         self._settings.use_compression = use_compression
 
         b_db_directory = bytify(db_directory)
-        self._settings.db_directory = b_db_directory
+        c.mc_store_settings_set_db_directory(self._settings, b_db_directory)
+        #self._settings.db_directory = b_db_directory
         if tokenizer is not None:
             b_tokenizer = bytify(tokenizer)
             self._settings.tokenizer = b_tokenizer

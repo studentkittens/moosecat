@@ -364,6 +364,7 @@ cdef extern from "../../lib/store/db-settings.h":
 
     mc_StoreSettings * mc_store_settings_new ()
     void mc_store_settings_destroy (mc_StoreSettings *)
+    void mc_store_settings_set_db_directory(mc_StoreSettings *, const char *)
 
 
 cdef extern from "../../lib/store/db.h":
