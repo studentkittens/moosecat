@@ -18,22 +18,6 @@
 
 #define MC_STORE_TMP_DB_PATH "/tmp/.moosecat.tmp.db"
 
-/* Useful for debugging */
-#define PRINT_LOCKS 0
-
-#define LOCK_UPDATE_MTX(store) {                                           \
-        store->db_is_locked = TRUE;                                        \
-        g_rec_mutex_lock (&store->db_update_lock);                         \
-        if(PRINT_LOCKS)                                                    \
-            g_print ("*** (debug) LOCK (%s:%d)\n", __FILE__, __LINE__);    \
-    }
-
-#define UNLOCK_UPDATE_MTX(store) {                                         \
-        g_rec_mutex_unlock (&store->db_update_lock);                       \
-        store->db_is_locked = FALSE;                                       \
-        if(PRINT_LOCKS)                                                    \
-            g_print ("*** (debug) UNLOCK (%s:%d)\n", __FILE__, __LINE__);  \
-    }
 
 #define REPORT_SQL_ERROR(store, message)                                                           \
     mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \

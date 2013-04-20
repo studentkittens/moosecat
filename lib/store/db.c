@@ -5,10 +5,11 @@
 
 #include "db-private.h"
 #include "db-stored-playlists.h"
-#include "db-dirs.h"
 #include "db-macros.h"
+#include "db-dirs.h"
 #include "db.h"
 
+#if 0
 
 #include <glib/gstdio.h>
 
@@ -29,76 +30,6 @@
     _return_if_locked (store, val)
 
 
-/*
- * Will return true, if the database located on disk is still valid.
- * Checks include:
- *
- *  #1 check if db path is accessible and we have read permissions.
- *  #2 try to open the database (no :memory: connection)
- *  #3 check if hostname/port matches the current one.
- *  #4 check if db_version and sc_version are equal.
- *
- *  - in order to use the old database all checks must succeed.
- *  - there may not be a connection open already on the store!
- *
- * Returns: the number of songs in the songs table, or -1 on failure.
- */
-static int mc_store_check_if_db_is_still_valid(mc_StoreDB *self, const char *db_path)
-{
-    /* result */
-    int song_count = -1;
-    /* result of check #1 */
-    bool exist_check = FALSE;
-    char *actual_db_path = (char *) db_path;
-
-    /* check #1 */
-    if (g_file_test(db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
-        exist_check = TRUE;
-    } else if (self->settings->use_compression) {
-        char *zip_path = g_strdup_printf("%s%s", db_path, MC_GZIP_ENDING);
-        exist_check = g_file_test(zip_path, G_FILE_TEST_IS_REGULAR);
-        GTimer *zip_timer = g_timer_new();
-
-        if ((exist_check = mc_gunzip(zip_path)) == false)
-            mc_shelper_report_progress(self->client, true, "database: Unzipping %s failed.", zip_path);
-        else
-            mc_shelper_report_progress(self->client, true, "database: Unzipping %s done (took %2.3fs).",
-                                       zip_path, g_timer_elapsed(zip_timer, NULL));
-
-        g_timer_destroy(zip_timer);
-        g_free(zip_path);
-    }
-
-    if (exist_check) {
-        /* check #2 */
-        if (sqlite3_open(actual_db_path, &self->handle) == SQLITE_OK) {
-            /* needed in order to select metadata */
-            mc_stprv_create_song_table(self);
-            mc_stprv_prepare_all_statements(self);
-            /* check #3 */
-            char *cached_hostname = mc_stprv_get_mpd_host(self);
-            int cached_port = mc_stprv_get_mpd_port(self);
-
-            if (cached_port == self->client->_port &&
-                    g_strcmp0(cached_hostname, self->client->_host) == 0) {
-                /* check #4 */
-                size_t cached_db_version = mc_stprv_get_db_version(self);
-                size_t cached_sc_version = mc_stprv_get_sc_version(self);
-
-                if (cached_db_version == mpd_stats_get_db_update_time(self->client->stats) &&
-                        cached_sc_version == MC_DB_SCHEMA_VERSION) {
-                    song_count = mc_stprv_get_song_count(self);
-                }
-            }
-
-            mc_stprv_close_handle(self);
-            g_free(cached_hostname);
-            self->handle = NULL;
-        }
-    }
-
-    return song_count;
-}
 
 ///////////////
 
@@ -164,7 +95,6 @@ static void mc_store_do_plchanges(mc_StoreDB *store, bool lock_self)
     size_t last_pl_version = 0;
 
     if (lock_self) {
-        LOCK_UPDATE_MTX(store);
     }
 
     /* get last version of the queue (which we're having already. */
@@ -178,7 +108,6 @@ static void mc_store_do_plchanges(mc_StoreDB *store, bool lock_self)
                                    store->need_full_queue ? "Yes" : "No");
 
         if (lock_self) {
-            UNLOCK_UPDATE_MTX(store);
         }
 
         return;
@@ -219,7 +148,6 @@ static void mc_store_do_plchanges(mc_StoreDB *store, bool lock_self)
     END_COMMAND
 
     if (lock_self) {
-        UNLOCK_UPDATE_MTX(store);
     }
 
     /* we updated the queue fully, so next time we want
@@ -323,7 +251,6 @@ static void mc_store_do_list_all_info(mc_StoreDB *store, bool lock_self)
     GThread *sql_thread = NULL;
 
     if (lock_self) {
-        LOCK_UPDATE_MTX(store);
     }
 
     db_version = mc_stprv_get_db_version(store);
@@ -390,7 +317,6 @@ static void mc_store_do_list_all_info(mc_StoreDB *store, bool lock_self)
     g_timer_destroy(timer);
 
     if (lock_self) {
-        UNLOCK_UPDATE_MTX(store);
     }
 
     /* we got the full db, next time check again if it's needed */
@@ -407,12 +333,10 @@ static gpointer mc_store_do_plchanges_wrapper(mc_StoreDB *self)
 {
     g_assert(self);
     g_assert(self);
-    LOCK_UPDATE_MTX(self);
     {
         mc_store_do_plchanges(self, true);
         mc_stprv_insert_meta_attributes(self);
     }
-    UNLOCK_UPDATE_MTX(self);
 
     g_thread_unref(g_thread_self());
     return NULL;
@@ -433,12 +357,10 @@ static gpointer mc_store_do_listall_and_plchanges(mc_StoreDB *self)
 {
     g_assert(self);
     self->stop_listallinfo = TRUE;
-    LOCK_UPDATE_MTX(self);
     mc_store_do_list_all_info(self, false);
     mc_store_do_plchanges(self, false);
     mc_stprv_spl_update(self);
     mc_stprv_insert_meta_attributes(self);
-    UNLOCK_UPDATE_MTX(self);
 
     if (self->create.double_unlock) {
         g_mutex_unlock(&self->create.mutex);
@@ -463,14 +385,12 @@ static void mc_store_do_listall_and_plchanges_bkgd(mc_StoreDB *self)
 static gpointer mc_store_deserialize_songs_and_plchanges(mc_StoreDB *self)
 {
     g_assert(self);
-    LOCK_UPDATE_MTX(self);
     {
         mc_stprv_deserialize_songs(self, false);
         mc_store_do_plchanges(self, false);
         mc_stprv_spl_update(self);
         mc_stprv_insert_meta_attributes(self);
     }
-    UNLOCK_UPDATE_MTX(self);
 
     if (self->create.double_unlock) {
         g_mutex_unlock(&self->create.mutex);
@@ -493,11 +413,9 @@ static void mc_store_deserialize_songs_and_plchanges_bkgd(mc_StoreDB *self)
 static gpointer mc_stprv_spl_update_wrapper(mc_StoreDB *self)
 {
     g_assert(self);
-    LOCK_UPDATE_MTX(self); 
     {
         mc_stprv_spl_update(self);
     }
-    UNLOCK_UPDATE_MTX(self);
 
     g_thread_unref(g_thread_self());
     return NULL;
@@ -571,12 +489,7 @@ static void mc_store_connectivity_callback(
 
 ///////////////
 
-static char *mc_store_construct_full_dbpath(mc_Client *client, const char *directory)
-{
-    g_assert(client);
-    return g_strdup_printf("%s%cmoosecat_%s:%d.sqlite", (directory) ? directory : ".",
-                           G_DIR_SEPARATOR, client->_host, client->_port);
-}
+
 
 ///////////////
 /// PUBLIC ////
@@ -803,10 +716,338 @@ int mc_store_total_songs(mc_StoreDB *self)
 void mc_store_wait(mc_StoreDB *self)
 {
     if (self->create.double_unlock == FALSE) {
-        LOCK_UPDATE_MTX(self);
-        UNLOCK_UPDATE_MTX(self);
     } else {
         g_mutex_lock(&self->create.mutex);
         g_mutex_unlock(&self->create.mutex);
     }
+}
+#endif
+//////////////////////////////
+//                          //
+//     Signal Callbacksa    //
+//                          //
+//////////////////////////////
+
+/**
+ * @brief Gets called on client events
+ *
+ * On DB update we have no chance, but updating the whole tables.
+ * (we do not need to update, if db version did not changed though.)
+ *
+ * #1 If events contains MPD_IDLE_DATABASE
+ *    #2 If db_version changed
+ *       #3 Insert new database metadata
+ *       #4 DELETE * FROM songs;
+ *       #5 clear previous contents of song stack.
+ *       #6 Update song metadata (i.e. read stuff from mpd)
+ *       #7 Since the data is fresher than what might be on disk, we'll write it there later.
+ *
+ * @param client the client that noticed the event.
+ * @param events event bitmask 
+ * @param self Store to operate on.
+ */
+static void mc_store_update_callback(
+        mc_Client *client,
+        enum mpd_idle events,
+        mc_StoreDB *self)
+{
+    g_assert(self && client && self->client == client);
+
+    if (events & MPD_IDLE_DATABASE) {
+        //mc_store_do_listall_and_plchanges_bkgd(self);
+    } else if (events & MPD_IDLE_QUEUE) {
+        //mc_store_do_plchanges_bkgd(self);
+    } else if (events & MPD_IDLE_STORED_PLAYLIST) {
+        //mc_stprv_spl_update_bkgd(self);
+    }
+
+    /* needs to happen in both cases (post) */
+    if (events & (MPD_IDLE_QUEUE | MPD_IDLE_DATABASE | MPD_IDLE_STORED_PLAYLIST)) {
+        //self->write_to_disk = TRUE;
+    }
+}
+
+//////////////////////////////
+
+/**
+ * @brief Called when the connection status changes.
+ *
+ * @param client the client to watch.
+ * @param server_changed did the server changed since last connect()?
+ * @param self the store to operate on
+ */
+static void mc_store_connectivity_callback(
+    mc_Client *client,
+    bool server_changed,
+    mc_StoreDB *self)
+{
+    g_assert(self && client && self->client == client);
+
+    if (mc_proto_is_connected(client)) {
+        if (server_changed) {
+            // ...
+        }
+
+        mc_store_update_callback(client, MPD_IDLE_DATABASE, self);
+    }
+}
+
+//////////////////////////////
+//                          //
+//     Utility Functions    //
+//                          //
+//////////////////////////////
+
+
+/**
+ * @brief Construct a full path from a host, port and root directory
+ *
+ * @param client Client to get the host and port from.
+ * @param directory The root directory of the database
+ *
+ * @return a newly allocated path, use free once done.
+ */
+static char *mc_store_construct_full_dbpath(mc_Client *client, const char *directory)
+{
+    return g_strdup_printf(
+            "%s%cmoosecat_%s:%d.sqlite",
+            (directory) ? directory : ".",
+            G_DIR_SEPARATOR,
+            client->_host,
+            client->_port);
+}
+
+//////////////////////////////
+
+/**
+ * @brief Will return true, if the database located on disk is still valid.
+ *
+ * Checks include:
+ *
+ *  #1 check if db path is accessible and we have read permissions.
+ *  #2 try to open the database (no :memory: connection)
+ *  #3 check if hostname/port matches the current one.
+ *  #4 check if db_version and sc_version are equal.
+ *
+ *  - in order to use the old database all checks must succeed.
+ *  - there may not be a connection open already on the store!
+ *
+ *  @param self The database to check
+ *  @db_path path to the directory
+ *
+ * @return the number of songs in the songs table, or -1 on failure.
+ */
+static int mc_store_check_if_db_is_still_valid(mc_StoreDB *self, const char *db_path)
+{
+    /* result */
+    int song_count = -1;
+    /* result of check #1 */
+    bool exist_check = FALSE;
+    char *actual_db_path = (char *) db_path;
+
+    /* check #1 */
+    if (g_file_test(db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
+        exist_check = TRUE;
+    } else if (self->settings->use_compression) {
+        char *zip_path = g_strdup_printf("%s%s", db_path, MC_GZIP_ENDING);
+        exist_check = g_file_test(zip_path, G_FILE_TEST_IS_REGULAR);
+        GTimer *zip_timer = g_timer_new();
+
+        if ((exist_check = mc_gunzip(zip_path)) == false)
+            mc_shelper_report_progress(self->client, true, "database: Unzipping %s failed.", zip_path);
+        else
+            mc_shelper_report_progress(self->client, true, "database: Unzipping %s done (took %2.3fs).",
+                                       zip_path, g_timer_elapsed(zip_timer, NULL));
+
+        g_timer_destroy(zip_timer);
+        g_free(zip_path);
+    }
+
+    if (exist_check) {
+
+        /* check #2 */
+        if (sqlite3_open(actual_db_path, &self->handle) == SQLITE_OK) {
+            /* needed in order to select metadata */
+            mc_stprv_create_song_table(self);
+            mc_stprv_prepare_all_statements(self);
+
+            /* check #3 */
+            char *cached_hostname = mc_stprv_get_mpd_host(self);
+            int cached_port = mc_stprv_get_mpd_port(self);
+
+            if (cached_port == self->client->_port &&
+                    g_strcmp0(cached_hostname, self->client->_host) == 0) {
+
+                /* check #4 */
+                size_t cached_db_version = mc_stprv_get_db_version(self);
+                size_t cached_sc_version = mc_stprv_get_sc_version(self);
+
+                if (cached_db_version == mpd_stats_get_db_update_time(self->client->stats) &&
+                        cached_sc_version == MC_DB_SCHEMA_VERSION) {
+                    song_count = mc_stprv_get_song_count(self);
+                }
+            }
+
+            mc_stprv_close_handle(self);
+            g_free(cached_hostname);
+            self->handle = NULL;
+        }
+    }
+
+    return song_count;
+}
+
+//////////////////////////////
+//                          //
+//     Public Functions     //
+//                          //
+//////////////////////////////
+
+mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
+{
+    g_assert(client);
+
+    /* allocated memory for the mc_StoreDB struct */
+    mc_StoreDB *store = g_new0(mc_StoreDB, 1);
+
+    /* Settings */
+    store->settings = (settings) ? settings : mc_store_settings_new();
+
+    /* either number of songs in 'songs' table or -1 on error */
+    int song_count = -1;
+
+    /* create the full path to the db */
+    store->db_directory = g_strdup(store->settings->db_directory);
+    char *db_path = mc_store_construct_full_dbpath(client, store->db_directory);
+
+    /* client is used to keep the db content updated */
+    store->client = client;
+
+    if ((song_count = mc_store_check_if_db_is_still_valid(store, db_path)) < 0) {
+        mc_shelper_report_progress(store->client, true, "database: will fetch stuff from mpd.");
+
+        /* open a sqlite handle, pointing to a database, either a new one will be created,
+         * or an backup will be loaded into memory */
+        mc_strprv_open_memdb(store);
+        mc_stprv_prepare_all_statements(store);
+        mc_stprv_dir_prepare_statemtents(store);
+
+        /* make sure we inserted the meta info at least once */
+        mc_stprv_insert_meta_attributes(store);
+
+        /* the database is new, so no pos/id information is there yet */
+        /* we need to query mpd, update db && queue info */
+        mc_store_do_listall_and_plchanges_bkgd(store);
+    } else {
+        /* open a sqlite handle, pointing to a database, either a new one will be created,
+         * or an backup will be loaded into memory */
+        mc_strprv_open_memdb(store);
+        mc_stprv_prepare_all_statements(store);
+        mc_stprv_dir_prepare_statemtents(store);
+        mc_shelper_report_progress(store->client, true, "database: %s exists already.", db_path);
+
+        /* stack is allocated to the old size */
+        store->stack = mc_stack_create(song_count + 1, (GDestroyNotify) mpd_song_free);
+
+        /* load the old database into memory */
+        mc_stprv_load_or_save(store, false, db_path);
+
+        /* Update queue information in bkgd */
+        mc_store_deserialize_songs_and_plchanges_bkgd(store);
+    }
+
+    /* Register for client events */
+    mc_signal_add_masked(
+        &store->client->_signals,
+        "client-event", true, /* call first */
+        (mc_ClientEventCallback) mc_store_update_callback, store,
+        MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST);
+
+    /* Register to be notifed when the connection status changes */
+    mc_signal_add(
+        &store->client->_signals,
+        "connectivity", true, /* call first */
+        (mc_ConnectivityCallback) mc_store_connectivity_callback, store);
+
+    /* Playlist support */
+    mc_stprv_spl_init(store);
+
+    g_free(db_path);
+    return store;
+}
+
+//////////////////////////////
+
+void mc_store_close(mc_StoreDB *self)
+{
+}
+
+//////////////////////////////
+
+void mc_store_set_wait_mode(mc_StoreDB *self, bool wait_for_db_finish)
+{
+}
+
+//////////////////////////////
+
+bool mc_store_get_wait_mode(mc_StoreDB *self)
+{
+}
+
+//////////////////////////////
+
+struct mpd_song *mc_store_song_at(mc_StoreDB *self, int idx)
+{
+}
+
+//////////////////////////////
+
+int mc_store_total_songs(mc_StoreDB *self)
+{
+}
+
+//////////////////////////////
+//                          //
+//    Playlist Functions    //
+//                          //
+//////////////////////////////
+
+void mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
+{
+}
+
+//////////////////////////////
+
+int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
+{
+}
+
+//////////////////////////////
+
+int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *directory, int depth)
+{
+}
+
+//////////////////////////////
+
+int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack)
+{
+}
+
+//////////////////////////////
+
+const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self)
+{
+}
+
+//////////////////////////////
+
+int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
+{
+}
+
+//////////////////////////////
+
+void mc_store_wait(mc_StoreDB *self)
+{
 }

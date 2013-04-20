@@ -650,27 +650,30 @@ void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
+
     /* used to convert integer and dates to string */
     char val_buf[64] = {0};
     const int val_buf_size = sizeof(val_buf);
+
     /* the stmt we will use here, shorter to write.. */
     sqlite3_stmt *stmt = SQL_STMT(self, SELECT_ALL);
+
     /* a pair (tuple of name/value) that is fed to a mpd_song */
     struct mpd_pair pair;
+
     /* for date feeding */
     time_t last_modified = 0;
     struct tm *lm_tm = NULL;
+
     /* range parsing */
     int start = 0, end = 0;
+
     /* queue pos */
     char *pos_text = NULL;
+    
     /* progress */
     int progress_counter = 0;
     GTimer *timer = g_timer_new();
-
-    if (lock_self) {
-        LOCK_UPDATE_MTX(self);
-    }
 
     /* loop over all rows in the songs table */
     while ((error_id = sqlite3_step(stmt)) == SQLITE_ROW) {
@@ -754,10 +757,6 @@ void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self)
 
     if (error_id != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "ERROR: cannot load songs from database");
-    }
-
-    if (lock_self) {
-        UNLOCK_UPDATE_MTX(self);
     }
 }
 

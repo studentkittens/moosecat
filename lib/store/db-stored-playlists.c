@@ -196,7 +196,6 @@ static void mc_stprv_spl_listplaylists(mc_StoreDB *store)
     g_assert(store);
     g_assert(store->client);
     mc_Client *self = store->client;
-    LOCK_UPDATE_MTX(store);
 
     if (store->spl.stack != NULL)
         mc_stack_free(store->spl.stack);
@@ -211,7 +210,6 @@ static void mc_stprv_spl_listplaylists(mc_StoreDB *store)
         }
 
     } END_COMMAND;
-    UNLOCK_UPDATE_MTX(store);
 }
 ///////////////////
 
@@ -277,7 +275,6 @@ static int mc_stprv_spl_get_song_count(mc_StoreDB *self, struct mpd_playlist *pl
 void mc_stprv_spl_update(mc_StoreDB *self)
 {
     g_assert(self);
-    LOCK_UPDATE_MTX(self);
     mc_stprv_spl_listplaylists(self);
     GList *table_name_list = mc_stprv_spl_get_loaded_list(self);
 
@@ -359,7 +356,6 @@ void mc_stprv_spl_update(mc_StoreDB *self)
     mc_shelper_report_operation_finished(self->client, MC_OP_SPL_LIST_UPDATED);
     /* table names were dyn. allocated. */
     g_list_free_full(table_name_list, g_free);
-    UNLOCK_UPDATE_MTX(self);
 }
 
 ///////////////////
@@ -369,7 +365,6 @@ void mc_stprv_spl_load(mc_StoreDB *store, struct mpd_playlist *playlist)
     g_assert(store);
     g_assert(store->client);
     g_assert(playlist);
-    LOCK_UPDATE_MTX(store);
     mc_Client *self = store->client;
     sqlite3_stmt *insert_stmt = NULL;
     char *table_name = mc_stprv_spl_construct_table_name(playlist);
@@ -382,7 +377,6 @@ void mc_stprv_spl_load(mc_StoreDB *store, struct mpd_playlist *playlist)
         if (sql != NULL) {
             if (sqlite3_prepare_v2(store->handle, sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
                 REPORT_SQL_ERROR(store, "Cannot prepare INSERT stmt!");
-                UNLOCK_UPDATE_MTX(store);
                 return;
             }
 
@@ -421,7 +415,6 @@ void mc_stprv_spl_load(mc_StoreDB *store, struct mpd_playlist *playlist)
         g_free(table_name);
     }
 
-    UNLOCK_UPDATE_MTX(store);
 }
 
 ///////////////////
