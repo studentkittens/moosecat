@@ -17,7 +17,7 @@ enum {
 
 typedef struct {
     mc_Client *client;
-    mc_StoreDB *store;
+    mc_Store *store;
     GtkTreeModel *model;
     GtkTreeView *view;
     mc_Stack *song_buf;
@@ -129,7 +129,7 @@ static EntryTag *setup_client(void)
         settings->use_memory_db = FALSE;
         settings->use_compression = FALSE;
 
-        mc_StoreDB *store = mc_store_create(client, settings);
+        mc_Store *store = mc_store_create(client, settings);
         db_setup = g_timer_elapsed(setup_timer, NULL);
 
         if (store != NULL) {

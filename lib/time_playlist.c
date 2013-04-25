@@ -25,7 +25,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    mc_StoreDB *store = mc_store_create(client, NULL);
+    mc_Store *store = mc_store_create(client, NULL);
     mc_store_wait(store);
 
     mc_Stack *songs = mc_stack_create(10000, NULL);

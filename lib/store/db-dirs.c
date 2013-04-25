@@ -43,7 +43,7 @@ const char *dirs_sql_stmts[] = {
 
 ///////////////////
 
-void mc_stprv_dir_prepare_statemtents(mc_StoreDB *self)
+void mc_stprv_dir_prepare_statemtents(mc_Store *self)
 {
     g_assert(self);
     self->sql_dir_stmts = mc_stprv_prepare_all_statements_listed(
@@ -53,7 +53,7 @@ void mc_stprv_dir_prepare_statemtents(mc_StoreDB *self)
 
 ///////////////////
 
-void mc_stprv_dir_finalize_statements(mc_StoreDB *self)
+void mc_stprv_dir_finalize_statements(mc_Store *self)
 {
     mc_stprv_finalize_statements(self, self->sql_dir_stmts, 0, SQL_DIR_STMT_COUNT);
     self->sql_dir_stmts = NULL;
@@ -61,7 +61,7 @@ void mc_stprv_dir_finalize_statements(mc_StoreDB *self)
 
 ///////////////////
 
-void mc_stprv_dir_insert(mc_StoreDB *self, const char *path)
+void mc_stprv_dir_insert(mc_Store *self, const char *path)
 {
     g_assert(self);
     g_assert(path);
@@ -85,7 +85,7 @@ void mc_stprv_dir_insert(mc_StoreDB *self, const char *path)
 
 //////////////////
 
-void mc_stprv_dir_delete(mc_StoreDB *self)
+void mc_stprv_dir_delete(mc_Store *self)
 {
     g_assert(self);
 
@@ -96,7 +96,7 @@ void mc_stprv_dir_delete(mc_StoreDB *self)
 
 //////////////////
 
-int mc_stprv_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *directory, int depth)
+int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
 {
     g_assert(self);
     g_assert(stack);

@@ -10,7 +10,7 @@
 
 
 typedef struct {
-    mc_StoreDB *store;
+    mc_Store *store;
     GAsyncQueue *queue;
 } mc_StoreQueueTag;
 
@@ -20,7 +20,7 @@ typedef struct {
 static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
 {
     mc_StoreQueueTag *tag = user_data;
-    mc_StoreDB *self = tag->store;
+    mc_Store *self = tag->store;
     GAsyncQueue *queue = tag->queue;
 
     struct mpd_entity *ent = NULL;
@@ -90,7 +90,7 @@ static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
  *       Also, this value is adjustable in mpd.conf
  *       e.g. max_command_list_size "16192"
  */
-void mc_store_oper_listallinfo(mc_StoreDB *store)
+void mc_store_oper_listallinfo(mc_Store *store)
 {
     g_assert(store);
     g_assert(store->client);
@@ -190,7 +190,7 @@ void mc_store_oper_listallinfo(mc_StoreDB *store)
 gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
 {
     mc_StoreQueueTag *tag = user_data;
-    mc_StoreDB *self = tag->store;
+    mc_Store *self = tag->store;
     GAsyncQueue *queue = tag->queue;
 
     struct mpd_song *song = NULL;
@@ -252,7 +252,7 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
 
 ///////////////////////////////////
 
-void mc_store_oper_plchanges(mc_StoreDB *store)
+void mc_store_oper_plchanges(mc_Store *store)
 {
     g_assert(store);
 

@@ -31,7 +31,7 @@ typedef struct {
 //////////////////////////////
 
 static int mc_store_send_job_no_args(
-        mc_StoreDB *self,
+        mc_Store *self,
         int priority, 
         mc_StoreOperation op
 )
@@ -82,7 +82,7 @@ static char *mc_store_construct_full_dbpath(mc_Client *client, const char *direc
  *
  * @return the number of songs in the songs table, or -1 on failure.
  */
-static int mc_store_check_if_db_is_still_valid(mc_StoreDB *self, const char *db_path)
+static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_path)
 {
     /* result */
     int song_count = -1;
@@ -188,7 +188,7 @@ close_handle:
 static void mc_store_update_callback(
         mc_Client *client,
         enum mpd_idle events,
-        mc_StoreDB *self)
+        mc_Store *self)
 {
     g_assert(self && client && self->client == client);
 
@@ -218,7 +218,7 @@ static void mc_store_update_callback(
 static void mc_store_connectivity_callback(
     mc_Client *client,
     bool server_changed,
-    mc_StoreDB *self)
+    mc_Store *self)
 {
     g_assert(self && client && self->client == client);
 
@@ -246,7 +246,7 @@ void *mc_store_job_execute_callback(
 )
 {
     void * result = NULL;
-    mc_StoreDB *self = user_data;
+    mc_Store *self = user_data;
     mc_JobData *data = job_data;
 
     if(data->op & MC_OPER_DESERIALIZE) {
@@ -332,12 +332,12 @@ void *mc_store_job_execute_callback(
 //                          //
 //////////////////////////////
 
-mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
+mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 {
     g_assert(client);
 
-    /* allocated memory for the mc_StoreDB struct */
-    mc_StoreDB *store = g_new0(mc_StoreDB, 1);
+    /* allocated memory for the mc_Store struct */
+    mc_Store *store = g_new0(mc_Store, 1);
 
     /* Initialize the job manager used to background jobs */
     store->jm = mc_jm_create(mc_store_job_execute_callback, store);
@@ -423,7 +423,7 @@ mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
  * #3 Save database dump to disk if it hadn't been read from there.
  * #4 Close the handle.
  */
-void mc_store_close(mc_StoreDB *self)
+void mc_store_close(mc_Store *self)
 {
     if (self == NULL)
         return;
@@ -467,7 +467,7 @@ void mc_store_close(mc_StoreDB *self)
 
 //////////////////////////////
 
-struct mpd_song *mc_store_song_at(mc_StoreDB *self, int idx)
+struct mpd_song *mc_store_song_at(mc_Store *self, int idx)
 {
     g_assert(self); 
     g_assert(idx >= 0);
@@ -477,7 +477,7 @@ struct mpd_song *mc_store_song_at(mc_StoreDB *self, int idx)
 
 //////////////////////////////
 
-int mc_store_total_songs(mc_StoreDB *self)
+int mc_store_total_songs(mc_Store *self)
 {
     g_assert(self);
 
@@ -490,7 +490,7 @@ int mc_store_total_songs(mc_StoreDB *self)
 //                          //
 //////////////////////////////
 
-int mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
+int mc_store_playlist_load(mc_Store *self, const char *playlist_name)
 {
     g_assert(self);
 
@@ -506,7 +506,7 @@ int mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
 
 //////////////////////////////
 
-int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
+int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
 {
     g_assert(self);
     g_assert(stack);
@@ -529,7 +529,7 @@ int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const c
 
 //////////////////////////////
 
-int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *directory, int depth)
+int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
 { 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DB_SEARCH;
@@ -547,7 +547,7 @@ int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *
 
 //////////////////////////////
 
-int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack)
+int mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DB_SEARCH;
@@ -563,14 +563,14 @@ int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack)
 
 //////////////////////////////
 
-const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self)
+const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self)
 {
     return self->spl.stack;
 }
 
 //////////////////////////////
 
-int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
+int mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DB_SEARCH;
@@ -589,21 +589,21 @@ int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool qu
 
 //////////////////////////////
 
-void mc_store_wait(mc_StoreDB *self)
+void mc_store_wait(mc_Store *self)
 {
     mc_jm_wait(self->jm);
 }
 
 //////////////////////////////
 
-void mc_store_wait_for_job(mc_StoreDB *self, int job_id)
+void mc_store_wait_for_job(mc_Store *self, int job_id)
 {
     mc_jm_wait_for_id(self->jm, job_id);
 }
 
 //////////////////////////////
 
-mc_Stack *mc_store_get_result(mc_StoreDB *self, int job_id)
+mc_Stack *mc_store_get_result(mc_Store *self, int job_id)
 {
     return mc_jm_get_result(self->jm, job_id);
 }

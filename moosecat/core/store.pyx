@@ -26,7 +26,7 @@ property. It will give you a list of strings.
 '''
 
 cdef class Store:
-    cdef c.mc_StoreDB * _db
+    cdef c.mc_Store * _db
     cdef c.mc_StoreSettings * _settings
     cdef c.mc_Client * _client
     cdef bool _initialized
@@ -50,7 +50,7 @@ cdef class Store:
         self._initialized = False
         return self
 
-    cdef c.mc_StoreDB * _p(self) except NULL:
+    cdef c.mc_Store * _p(self) except NULL:
         if self._db != NULL:
             return self._db
         else:
@@ -88,7 +88,7 @@ cdef class Store:
         Operations that will use the database will lock a mutex. wait() will
         try to lock this mutex and and wait till it is released.
         '''
-        cdef c.mc_StoreDB * p = self._p()
+        cdef c.mc_Store * p = self._p()
         with nogil:
             c.mc_store_wait(p)
 

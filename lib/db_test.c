@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     mc_StoreSettings *settings = mc_store_settings_new();
     settings->use_memory_db = FALSE;
     settings->use_compression = FALSE;
-    mc_StoreDB *db = mc_store_create(client, settings);
+    mc_Store *db = mc_store_create(client, settings);
     mc_store_wait(db);
 
     if (db != NULL) {

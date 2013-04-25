@@ -174,7 +174,7 @@ class Idle:
 
 cdef class Client:
     cdef c.mc_Client * _cl
-    cdef c.mc_StoreDB * _store
+    cdef c.mc_Store * _store
     cdef object _store_wrapper
     cdef object _signal_data_map
 

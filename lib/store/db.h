@@ -24,9 +24,9 @@
  *
  * The name of the db will me moosecat_$host:$port
  *
- * @return a new mc_StoreDB , free with mc_store_close()
+ * @return a new mc_Store , free with mc_store_close()
  */
-mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings);
+mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings);
 
 /**
  * @brief Close the mc_Store.
@@ -36,7 +36,7 @@ mc_StoreDB *mc_store_create(mc_Client *client, mc_StoreSettings *settings);
  *
  * @param self the store to close.
  */
-void mc_store_close(mc_StoreDB *self);
+void mc_store_close(mc_Store *self);
 
 /**
  * @brief Returns a mpd_song at some index
@@ -49,7 +49,7 @@ void mc_store_close(mc_StoreDB *self);
  *
  * @return an mpd_song. DO NOT FREE!
  */
-struct mpd_song *mc_store_song_at(mc_StoreDB *self, int idx);
+struct mpd_song *mc_store_song_at(mc_Store *self, int idx);
 
 /**
  * @brief Returns the total number of songs stored in the database.
@@ -60,7 +60,7 @@ struct mpd_song *mc_store_song_at(mc_StoreDB *self, int idx);
  *
  * @return a number between 0 and fucktuple.
  */
-int mc_store_total_songs(mc_StoreDB *self);
+int mc_store_total_songs(mc_Store *self);
 
 ///// PLAYLIST HANDLING ////
 
@@ -74,7 +74,7 @@ int mc_store_total_songs(mc_StoreDB *self);
  *
  * @return a job id
  */
-int mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name);
+int mc_store_playlist_load(mc_Store *self, const char *playlist_name);
 
 /**
  * @brief Queries the contents of a playlist in a similar fashion as mc_store_search_out does.
@@ -88,7 +88,7 @@ int mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name);
  *
  * @return a job id
  */
-int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *playlist_name, const char *match_clause);
+int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause);
 
 /**
  * @brief List a directory in MPD's database.
@@ -100,7 +100,7 @@ int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const c
  *
  * @return a job id
  */
-int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *directory, int depth);
+int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth);
 
 /**
  * @brief return a stack of the loaded playlists. Not the actually ones there.
@@ -110,7 +110,7 @@ int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *
  *
  * @return a job id
  */
-int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack);
+int mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
 
 /**
  * @brief Get a list (i.e. mc_Stack) of available playlist names on server-side.
@@ -124,7 +124,7 @@ int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack);
  *
  * @return A mc_Stack. DO NOT MODIFY IT!
  */
-const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self);
+const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self);
 
 /**
  * @brief search the Queue or the whole Database.
@@ -137,7 +137,7 @@ const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self);
  *
  * @return a Job id
  */
-int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
+int mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
 
 /**
  * @brief Wait for the store to finish it's current operation.
@@ -146,7 +146,7 @@ int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool qu
  *
  * @param self the store to operate on.
  */
-void mc_store_wait(mc_StoreDB *self);
+void mc_store_wait(mc_Store *self);
 
 /**
  * @brief Wait for a certain job to complete.
@@ -159,7 +159,7 @@ void mc_store_wait(mc_StoreDB *self);
  * @param self the store to operate on
  * @param job_id a job id to wait on (acquired by the above functions)
  */
-void mc_store_wait_for_job(mc_StoreDB *self, int job_id);
+void mc_store_wait_for_job(mc_Store *self, int job_id);
 
 /**
  * @brief Get a result from a job.
@@ -172,6 +172,6 @@ void mc_store_wait_for_job(mc_StoreDB *self, int job_id);
  *
  * @return a mc_Stack containing the results you wanted.
  */
-mc_Stack *mc_store_get_result(mc_StoreDB *self, int job_id);
+mc_Stack *mc_store_get_result(mc_Store *self, int job_id);
 
 #endif /* end of include guard: DB_GUARD_H */

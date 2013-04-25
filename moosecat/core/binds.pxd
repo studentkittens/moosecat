@@ -368,22 +368,22 @@ cdef extern from "../../lib/store/db-settings.h":
 
 
 cdef extern from "../../lib/store/db.h":
-    ctypedef struct mc_StoreDB:
+    ctypedef struct mc_Store:
         pass
 
-    mc_StoreDB * mc_store_create (mc_Client *, mc_StoreSettings *)
-    void mc_store_close ( mc_StoreDB *)
-    void mc_store_set_wait_mode (mc_StoreDB *, bool)
-    mpd_song * mc_store_song_at (mc_StoreDB *, int)
-    int mc_store_total_songs (mc_StoreDB *)
-    void mc_store_playlist_load (mc_StoreDB *,char *)
-    int mc_store_playlist_select_to_stack (mc_StoreDB *, mc_Stack *, char *, char *)
-    int mc_store_dir_select_to_stack (mc_StoreDB *, mc_Stack *,char *, int)
-    int mc_store_playlist_get_all_loaded (mc_StoreDB *, mc_Stack *)
-    mc_Stack * mc_store_playlist_get_all_names (mc_StoreDB *)
-    int mc_store_search_to_stack (mc_StoreDB *, char *, bool, mc_Stack *, int)
-    bool mc_store_get_wait_mode (mc_StoreDB *)
-    void mc_store_wait (mc_StoreDB *) nogil
+    mc_Store * mc_store_create (mc_Client *, mc_StoreSettings *)
+    void mc_store_close ( mc_Store *)
+    void mc_store_set_wait_mode (mc_Store *, bool)
+    mpd_song * mc_store_song_at (mc_Store *, int)
+    int mc_store_total_songs (mc_Store *)
+    void mc_store_playlist_load (mc_Store *,char *)
+    int mc_store_playlist_select_to_stack (mc_Store *, mc_Stack *, char *, char *)
+    int mc_store_dir_select_to_stack (mc_Store *, mc_Stack *,char *, int)
+    int mc_store_playlist_get_all_loaded (mc_Store *, mc_Stack *)
+    mc_Stack * mc_store_playlist_get_all_names (mc_Store *)
+    int mc_store_search_to_stack (mc_Store *, char *, bool, mc_Stack *, int)
+    bool mc_store_get_wait_mode (mc_Store *)
+    void mc_store_wait (mc_Store *) nogil
 
 cdef extern from "../../lib/store/db-query-parser.h":
     char *mc_store_qp_parse(char *, char **, int *)

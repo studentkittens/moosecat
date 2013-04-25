@@ -15,8 +15,8 @@ typedef enum {
     MC_OPER_UPDATE_META   = 1 << 9, /* Update meta information about the table */
 } mc_StoreOperation;
 
-void mc_store_oper_listallinfo(mc_StoreDB *store, volatile bool *cancel);
+void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel);
 
-void mc_store_oper_plchanges(mc_StoreDB *store, volatile bool *cancel);
+void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel);
 
 #endif /* end of include guard: MC_DB_OPERATIONS_H */

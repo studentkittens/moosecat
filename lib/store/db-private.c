@@ -216,7 +216,7 @@ static const char *_sql_stmts[] = {
  * since they rely on already created tables. That's why we
  * have to insert the values manually.
  */
-void mc_stprv_insert_meta_attributes(mc_StoreDB *self)
+void mc_stprv_insert_meta_attributes(mc_Store *self)
 {
     char *zSql = sqlite3_mprintf(SQL_CODE(META),
             mpd_stats_get_db_update_time(self->client->stats),
@@ -236,7 +236,7 @@ void mc_stprv_insert_meta_attributes(mc_StoreDB *self)
 
 ////////////////////////////////
 
-bool mc_stprv_create_song_table(mc_StoreDB *self)
+bool mc_stprv_create_song_table(mc_Store *self)
 {
     g_assert(self);
 
@@ -281,7 +281,7 @@ bool mc_stprv_create_song_table(mc_StoreDB *self)
 
 ////////////////////////////////
 
-void mc_stprv_prepare_all_statements(mc_StoreDB *self)
+void mc_stprv_prepare_all_statements(mc_Store *self)
 {
     g_assert(self);
 
@@ -305,7 +305,7 @@ void mc_stprv_prepare_all_statements(mc_StoreDB *self)
 
 ////////////////////////////////
 
-sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_StoreDB *self, const char **sql_stmts, int offset, int n_stmts)
+sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_Store *self, const char **sql_stmts, int offset, int n_stmts)
 {
     g_assert(self);
     sqlite3_stmt **stmt_list = NULL;
@@ -337,7 +337,7 @@ sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_StoreDB *self, const ch
  *
  * Returns: true on success.
  */
-bool mc_strprv_open_memdb(mc_StoreDB *self)
+bool mc_strprv_open_memdb(mc_Store *self)
 {
     g_assert(self);
     const char *db_name = (self->settings->use_memory_db) ? ":memory:" : MC_STORE_TMP_DB_PATH;
@@ -356,7 +356,7 @@ bool mc_strprv_open_memdb(mc_StoreDB *self)
 
 ////////////////////////////////
 
-void mc_stprv_finalize_statements(mc_StoreDB *self, sqlite3_stmt **stmts, int offset, int n_stmts)
+void mc_stprv_finalize_statements(mc_Store *self, sqlite3_stmt **stmts, int offset, int n_stmts)
 {
     g_assert(self);
     g_assert(stmts);
@@ -377,7 +377,7 @@ void mc_stprv_finalize_statements(mc_StoreDB *self, sqlite3_stmt **stmts, int of
 
 ////////////////////////////////
 
-void mc_stprv_close_handle(mc_StoreDB *self)
+void mc_stprv_close_handle(mc_Store *self)
 {
     mc_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
     self->sql_prep_stmts = NULL;
@@ -388,7 +388,7 @@ void mc_stprv_close_handle(mc_StoreDB *self)
 
 ////////////////////////////////
 
-void mc_stprv_begin(mc_StoreDB *self)
+void mc_stprv_begin(mc_Store *self)
 {
     if (sqlite3_step(SQL_STMT(self, BEGIN)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute BEGIN");
@@ -396,7 +396,7 @@ void mc_stprv_begin(mc_StoreDB *self)
 
 ////////////////////////////////
 
-void mc_stprv_commit(mc_StoreDB *self)
+void mc_stprv_commit(mc_Store *self)
 {
     if (sqlite3_step(SQL_STMT(self, COMMIT)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute COMMIT");
@@ -404,7 +404,7 @@ void mc_stprv_commit(mc_StoreDB *self)
 
 ////////////////////////////////
 
-void mc_stprv_delete_songs_table(mc_StoreDB *self)
+void mc_stprv_delete_songs_table(mc_Store *self)
 {
     if (sqlite3_step(SQL_STMT(self, DELETE_ALL)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Cannot delete table contentes of 'songs'");
@@ -422,7 +422,7 @@ void mc_stprv_delete_songs_table(mc_StoreDB *self)
  *
  * A prepared statement is used for simplicity & speed reasons.
  */
-bool mc_stprv_insert_song(mc_StoreDB *db, struct mpd_song *song)
+bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
 {
     int error_id = SQLITE_OK;
     int pos_idx = 1;
@@ -511,7 +511,7 @@ static gint mc_stprv_select_impl_sort_func_noud(gconstpointer a, gconstpointer b
  *
  * Returns: number of actually found songs, or -1 on error.
  */
-int mc_stprv_select_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
+int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
 {
     int error_id = SQLITE_OK, pos_id = 1;
     limit_len = (limit_len < 0) ? INT_MAX : limit_len;
@@ -587,7 +587,7 @@ int mc_stprv_select_to_stack(mc_StoreDB *self, const char *match_clause, bool qu
  ** If the operation is successful, SQLITE_OK is returned. Otherwise, if
  ** an error occurs, an SQLite error code is returned.
  */
-void mc_stprv_load_or_save(mc_StoreDB *self, bool is_save, const char *db_path)
+void mc_stprv_load_or_save(mc_Store *self, bool is_save, const char *db_path)
 {
     sqlite3 *pFile;           /* Database connection opened on zFilename */
     sqlite3_backup *pBackup;  /* Backup object used to copy data */
@@ -654,7 +654,7 @@ if (pair.value) {                                             \
  *
  * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
  */
-void mc_stprv_deserialize_songs(mc_StoreDB *self)
+void mc_stprv_deserialize_songs(mc_Store *self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
@@ -787,7 +787,7 @@ void mc_stprv_deserialize_songs(mc_StoreDB *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_song_count(mc_StoreDB *self)
+int mc_stprv_get_song_count(mc_Store *self)
 {
     int song_count = -1;
     select_meta_attribute(self, COUNT, sqlite3_column_int, song_count, ABS, int);
@@ -796,7 +796,7 @@ int mc_stprv_get_song_count(mc_StoreDB *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_db_version(mc_StoreDB *self)
+int mc_stprv_get_db_version(mc_Store *self)
 {
     int db_version = 0;
     select_meta_attribute(self, SELECT_META_DB_VERSION, sqlite3_column_int, db_version, ABS, int);
@@ -805,7 +805,7 @@ int mc_stprv_get_db_version(mc_StoreDB *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_pl_version(mc_StoreDB *self)
+int mc_stprv_get_pl_version(mc_Store *self)
 {
     int pl_version = 0;
     select_meta_attribute(self, SELECT_META_PL_VERSION, sqlite3_column_int, pl_version, ABS, int);
@@ -814,7 +814,7 @@ int mc_stprv_get_pl_version(mc_StoreDB *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_sc_version(mc_StoreDB *self)
+int mc_stprv_get_sc_version(mc_Store *self)
 {
     int sc_version = 0;
     select_meta_attribute(self, SELECT_META_SC_VERSION, sqlite3_column_int, sc_version, ABS, int);
@@ -823,7 +823,7 @@ int mc_stprv_get_sc_version(mc_StoreDB *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_mpd_port(mc_StoreDB *self)
+int mc_stprv_get_mpd_port(mc_Store *self)
 {
     int mpd_port = 0;
     select_meta_attribute(self, SELECT_META_MPD_PORT, sqlite3_column_int, mpd_port, ABS, int);
@@ -832,7 +832,7 @@ int mc_stprv_get_mpd_port(mc_StoreDB *self)
 
 ////////////////////////////////
 
-char *mc_stprv_get_mpd_host(mc_StoreDB *self)
+char *mc_stprv_get_mpd_host(mc_Store *self)
 {
     char *mpd_host = NULL;
     select_meta_attribute(self, SELECT_META_MPD_HOST, sqlite3_column_text, mpd_host, g_strdup, char *);
@@ -841,7 +841,7 @@ char *mc_stprv_get_mpd_host(mc_StoreDB *self)
 
 /////////////////// QUEUE STUFF ////////////////////
 
-int mc_stprv_queue_clip(mc_StoreDB *self, int since_pos)
+int mc_stprv_queue_clip(mc_Store *self, int since_pos)
 {
     g_assert(self);
     int pos_idx = 1;
@@ -865,7 +865,7 @@ int mc_stprv_queue_clip(mc_StoreDB *self, int since_pos)
 
 ///////////////////
 
-void mc_stprv_queue_update_stack_posid(mc_StoreDB *self)
+void mc_stprv_queue_update_stack_posid(mc_Store *self)
 {
     g_assert(self);
     int error_id = SQLITE_OK;
@@ -892,7 +892,7 @@ void mc_stprv_queue_update_stack_posid(mc_StoreDB *self)
 
 ///////////////////
 
-void mc_stprv_queue_update_posid(mc_StoreDB *self, int pos, int idx, const char *file)
+void mc_stprv_queue_update_posid(mc_Store *self, int pos, int idx, const char *file)
 {
     int pos_idx = 1, error_id = SQLITE_OK;
     bind_int(self, QUEUE_UPDATE_ROW, pos_idx, pos, error_id);

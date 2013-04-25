@@ -71,7 +71,7 @@ const char *spl_sql_stmts[] = {
     [STMT_PLAYLIST_SCOUNT] = "SELECT count(*) FROM %q;"
 };
 
-void mc_stprv_spl_init(mc_StoreDB *self)
+void mc_stprv_spl_init(mc_Store *self)
 {
     g_assert(self);
 
@@ -83,7 +83,7 @@ void mc_stprv_spl_init(mc_StoreDB *self)
 
 ///////////////////
 
-void mc_stprv_spl_destroy(mc_StoreDB *self)
+void mc_stprv_spl_destroy(mc_Store *self)
 {
     g_assert(self);
 
@@ -130,7 +130,7 @@ static char *mc_stprv_spl_parse_table_name(const char *table_name, /* OUT */ tim
 
 ///////////////////
 
-static void mc_stprv_spl_drop_table(mc_StoreDB   *self, const char *table_name)
+static void mc_stprv_spl_drop_table(mc_Store   *self, const char *table_name)
 {
     g_assert(table_name);
     g_assert(self);
@@ -147,7 +147,7 @@ static void mc_stprv_spl_drop_table(mc_StoreDB   *self, const char *table_name)
 
 ///////////////////
 
-static void mc_stprv_spl_create_table(mc_StoreDB *self, const char *table_name)
+static void mc_stprv_spl_create_table(mc_Store *self, const char *table_name)
 {
     g_assert(self);
     g_assert(table_name);
@@ -164,7 +164,7 @@ static void mc_stprv_spl_create_table(mc_StoreDB *self, const char *table_name)
 
 ///////////////////
 
-static void mc_stprv_spl_delete_content(mc_StoreDB *self, const char *table_name)
+static void mc_stprv_spl_delete_content(mc_Store *self, const char *table_name)
 {
     g_assert(self);
     g_assert(table_name);
@@ -174,7 +174,7 @@ static void mc_stprv_spl_delete_content(mc_StoreDB *self, const char *table_name
 
 ///////////////////
 
-static struct mpd_playlist *mc_stprv_spl_name_to_playlist(mc_StoreDB *store, const char *playlist_name) {
+static struct mpd_playlist *mc_stprv_spl_name_to_playlist(mc_Store *store, const char *playlist_name) {
     g_assert(store);
 
     unsigned length = mc_stack_length(store->spl.stack);
@@ -192,7 +192,7 @@ static struct mpd_playlist *mc_stprv_spl_name_to_playlist(mc_StoreDB *store, con
 
 ///////////////////
 
-static void mc_stprv_spl_listplaylists(mc_StoreDB *store)
+static void mc_stprv_spl_listplaylists(mc_Store *store)
 {
     g_assert(store);
     g_assert(store->client);
@@ -214,7 +214,7 @@ static void mc_stprv_spl_listplaylists(mc_StoreDB *store)
 }
 ///////////////////
 
-static GList *mc_stprv_spl_get_loaded_list(mc_StoreDB *self)
+static GList *mc_stprv_spl_get_loaded_list(mc_Store *self)
 {
     GList *table_name_list = NULL;
 
@@ -238,7 +238,7 @@ static GList *mc_stprv_spl_get_loaded_list(mc_StoreDB *self)
 
 ///////////////////
 
-static int mc_stprv_spl_get_song_count(mc_StoreDB *self, struct mpd_playlist *playlist)
+static int mc_stprv_spl_get_song_count(mc_Store *self, struct mpd_playlist *playlist)
 {
     g_assert(self);
 
@@ -273,7 +273,7 @@ static int mc_stprv_spl_get_song_count(mc_StoreDB *self, struct mpd_playlist *pl
 
 /////////////////// PUBLIC AREA ///////////////////
 
-void mc_stprv_spl_update(mc_StoreDB *self)
+void mc_stprv_spl_update(mc_Store *self)
 {
     g_assert(self);
     mc_stprv_spl_listplaylists(self);
@@ -361,7 +361,7 @@ void mc_stprv_spl_update(mc_StoreDB *self)
 
 ///////////////////
 
-void mc_stprv_spl_load(mc_StoreDB *store, struct mpd_playlist *playlist)
+void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
 {
     g_assert(store);
     g_assert(store->client);
@@ -420,7 +420,7 @@ void mc_stprv_spl_load(mc_StoreDB *store, struct mpd_playlist *playlist)
 
 ///////////////////
 
-void mc_stprv_spl_load_by_playlist_name(mc_StoreDB *store, const char *playlist_name)
+void mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_name)
 {
     g_assert(store);
     g_assert(playlist_name);
@@ -449,7 +449,7 @@ static int mc_stprv_spl_bsearch_cmp(const void *key, const void *array)
 
 ///////////////////
 
-static int mc_stprv_spl_filter_id_list(mc_StoreDB *store, GPtrArray *song_ptr_array, const char *match_clause, mc_Stack *out_stack)
+static int mc_stprv_spl_filter_id_list(mc_Store *store, GPtrArray *song_ptr_array, const char *match_clause, mc_Stack *out_stack)
 {
     /* Roughly estimate the number of song pointer to expect */
     int preallocations = mc_stack_length(store->stack) /
@@ -483,7 +483,7 @@ static int mc_stprv_spl_filter_id_list(mc_StoreDB *store, GPtrArray *song_ptr_ar
 
 ///////////////////
 
-int mc_stprv_spl_select_playlist(mc_StoreDB *store, mc_Stack *out_stack, const char *playlist_name, const char *match_clause)
+int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const char *playlist_name, const char *match_clause)
 {
     g_assert(store);
     g_assert(playlist_name);
@@ -567,7 +567,7 @@ int mc_stprv_spl_select_playlist(mc_StoreDB *store, mc_Stack *out_stack, const c
 
 ///////////////////
 
-int mc_stprv_spl_get_loaded_playlists(mc_StoreDB *store, mc_Stack *stack)
+int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack)
 {
     g_assert(store);
     g_assert(stack);

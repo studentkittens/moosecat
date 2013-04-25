@@ -11,7 +11,7 @@
 
 #include "../util/job-manager.h"
 
-typedef struct mc_StoreDB {
+typedef struct mc_Store {
     /* directory db lies in */
     char *db_directory;
 
@@ -54,6 +54,6 @@ typedef struct mc_StoreDB {
     /* Job manager used to process database tasks in the background */
     struct mc_JobManager *jm;
 
-} mc_StoreDB;
+} mc_Store;
 
 #endif /* end of include guard: MC_DB_STORE_HH */
