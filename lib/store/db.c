@@ -145,9 +145,9 @@ static int mc_store_check_if_db_is_still_valid(mc_StoreDB *self, const char *db_
         goto close_handle;
 
     size_t cached_sc_version = mc_stprv_get_sc_version(self);
-    if (cached_sc_version == MC_DB_SCHEMA_VERSION)
+    if (cached_sc_version != MC_DB_SCHEMA_VERSION)
         goto close_handle;
-
+    
     /* All okay! we can use the old database */
     song_count = mc_stprv_get_song_count(self);
 
@@ -163,7 +163,7 @@ close_handle:
 
 //////////////////////////////
 //                          //
-//     Signal Callbacksa    //
+//     Signal Callbacks     //
 //                          //
 //////////////////////////////
 
@@ -288,6 +288,7 @@ void *mc_store_job_execute_callback(
                 self, data->match_clause, data->queue_only,
                 data->out_stack, data->length_limit
         );
+        result = data->out_stack;
     }
 
     if(data->op & MC_OPER_DIR_SEARCH) {
@@ -295,10 +296,15 @@ void *mc_store_job_execute_callback(
                 self, data->out_stack,
                 data->dir_directory, data->dir_depth
         );
+        result = data->out_stack;
     }
 
     if(data->op & MC_OPER_SPL_QUERY) {
-        mc_stprv_spl_select_playlist(self, data->out_stack, data->playlist_name, data->match_clause);
+        mc_stprv_spl_select_playlist(
+                self, data->out_stack, 
+                data->playlist_name, data->match_clause
+        );
+        result = data->out_stack;
     }
 
     /* If the operation includes writing stuff,
@@ -313,9 +319,6 @@ void *mc_store_job_execute_callback(
     ) {
         self->write_to_disk = TRUE;
     }
-
-
-    g_print("--- END JOB %d\n", data->op);
 
     /* Free the data pack */
     g_free(data);
@@ -487,7 +490,7 @@ int mc_store_total_songs(mc_StoreDB *self)
 //                          //
 //////////////////////////////
 
-void mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
+int mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
 {
     g_assert(self);
 
@@ -495,10 +498,10 @@ void mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name)
     data->op = MC_OPER_SPL_LOAD;
     data->playlist_name = playlist_name;
 
-    int job_id = mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, 1, data);
 
     /* Synchronize with the database action */
-    mc_jm_wait_for_id(self->jm, job_id);
+    //mc_jm_wait_for_id(self->jm, job_id);
 }
 
 //////////////////////////////
@@ -515,12 +518,12 @@ int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const c
     data->match_clause = match_clause;
     data->out_stack = stack;
 
-    int job_id = mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, 1, data);
 
     /* Synchronize with the database action */
-    mc_jm_wait_for_id(self->jm, job_id);
+    /*mc_jm_wait_for_id(self->jm, job_id);*/
 
-    return mc_stack_length(stack);
+    /*return mc_stack_length(stack);*/
     
 }
 
@@ -534,12 +537,12 @@ int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *
     data->dir_depth= depth;
     data->out_stack = stack;
 
-    int job_id = mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, 1, data);
 
     /* Synchronize with the database action */
-    mc_jm_wait_for_id(self->jm, job_id);
+    /*mc_jm_wait_for_id(self->jm, job_id);*/
 
-    return mc_stack_length(stack);
+    /*return mc_stack_length(stack);*/
 }
 
 //////////////////////////////
@@ -550,12 +553,12 @@ int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack)
     data->op = MC_OPER_DB_SEARCH;
     data->out_stack = stack;
 
-    int job_id = mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, 1, data);
 
     /* Synchronize with the database action */
-    mc_jm_wait_for_id(self->jm, job_id);
+    /*mc_jm_wait_for_id(self->jm, job_id);*/
 
-    return mc_stack_length(stack);
+    /*return mc_stack_length(stack);*/
 }
 
 //////////////////////////////
@@ -596,4 +599,11 @@ void mc_store_wait(mc_StoreDB *self)
 void mc_store_wait_for_job(mc_StoreDB *self, int job_id)
 {
     mc_jm_wait_for_id(self->jm, job_id);
+}
+
+//////////////////////////////
+
+mc_Stack *mc_store_get_result(mc_StoreDB *self, int job_id)
+{
+    return mc_jm_get_result(self->jm, job_id);
 }

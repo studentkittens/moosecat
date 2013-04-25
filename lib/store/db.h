@@ -72,8 +72,9 @@ int mc_store_total_songs(mc_StoreDB *self);
  * @param self the store to operate on.
  * @param playlist_name a playlist name, as displayed by MPD.
  *
+ * @return a job id
  */
-void mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name);
+int mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name);
 
 /**
  * @brief Queries the contents of a playlist in a similar fashion as mc_store_search_out does.
@@ -85,7 +86,7 @@ void mc_store_playlist_load(mc_StoreDB *self, const char *playlist_name);
  * @param playlist_name a playlist name, as displayed by MPD.
  * @param match_clause an fts match clause. Empty ("") or NULL returns *all* songs in the playlist.
  *
- * @return number of found songs, or negative number on failure.
+ * @return a job id
  */
 int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *playlist_name, const char *match_clause);
 
@@ -97,7 +98,7 @@ int mc_store_playlist_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const c
  * @param directory the directory to list. (NULL == '/')
  * @param depth at wath depth to search (0 == '/', -1 to disable.)
  *
- * @return number of selected songs.
+ * @return a job id
  */
 int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *directory, int depth);
 
@@ -107,7 +108,7 @@ int mc_store_dir_select_to_stack(mc_StoreDB *self, mc_Stack *stack, const char *
  * @param self the store to operate on.
  * @param stack a stack of mpd_playlists. DO NOT FREE CONTENT!
  *
- * @return number of loaded playlists.
+ * @return a job id
  */
 int mc_store_playlist_get_all_loaded(mc_StoreDB *self, mc_Stack *stack);
 
@@ -134,7 +135,7 @@ const mc_Stack *mc_store_playlist_get_all_names(mc_StoreDB *self);
  * @param stack the stack to select the songs too
  * @param limit_len limit the length of the return. negative numbers dont limit.
  *
- * @return the number of selected songs or a negative number on failure
+ * @return a Job id
  */
 int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
 
@@ -146,5 +147,31 @@ int mc_store_search_to_stack(mc_StoreDB *self, const char *match_clause, bool qu
  * @param self the store to operate on.
  */
 void mc_store_wait(mc_StoreDB *self);
+
+/**
+ * @brief Wait for a certain job to complete.
+ *
+ * This can be useful at times when you want to fire an operation to
+ * the database, but do not want for it to complete and do other things in 
+ * the meanwhile. After some time you can get the result with
+ * mc_store_get_result()
+ *
+ * @param self the store to operate on
+ * @param job_id a job id to wait on (acquired by the above functions)
+ */
+void mc_store_wait_for_job(mc_StoreDB *self, int job_id);
+
+/**
+ * @brief Get a result from a job.
+ *
+ * Note: This function does NOT wait. To be sure that the result is there
+ *       you should call mc_store_wait_for_job() previously.
+ *
+ * @param self the store to operate on.
+ * @param job_id the job id obtained from one of the above functions.
+ *
+ * @return a mc_Stack containing the results you wanted.
+ */
+mc_Stack *mc_store_get_result(mc_StoreDB *self, int job_id);
 
 #endif /* end of include guard: DB_GUARD_H */

@@ -110,9 +110,8 @@ def options(opt):
         opt.load('compiler_c')
         opt.load('python')
         opt.load('cython')
-        opt.load('cython_cache', tooldir='.')
+        #opt.load('cython_cache', tooldir='.')
 
-        opt.add_option('--cython-dev', action='store', default=True, help='Compile all Cython Files')
         opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')
 
 
@@ -273,7 +272,7 @@ def build(bld):
     bld(
         features='c cshlib pyext',
         source=_find_cython_src(bld),
-        target='moosecat/core/moose',
+        target='moosecython',
         use='moosecat',
         lib=LIBS,
         includes=['moosecat'] + INCLUDES,
