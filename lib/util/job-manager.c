@@ -11,7 +11,7 @@ typedef struct {
     volatile bool cancel;
 
     /* User data passed to the callback function */
-    gpointer user_data;
+    gpointer job_data;
 
     /* Integer ID of the Job (incrementing up from 0) */
     int id;
@@ -59,6 +59,9 @@ struct mc_JobManager {
 
     /* The ID of the most recently send job (-1 initially) */
     int last_send_job;
+
+    /* User data that is passed to callback (settable per manager) */
+    gpointer user_data;
 };
 
 ///////////////////////////
@@ -87,9 +90,9 @@ static void mc_job_free(mc_Job *job)
 //                       //
 ///////////////////////////
 
-static int mc_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer user_data)
+static int mc_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer job_data)
 {
-    (void) user_data;
+    (void) job_data;
 
     const mc_Job *ja = a, *jb = b;
     return (ja->priority > jb->priority ? +1 : ja->priority == jb->priority? 0 : -1);
@@ -121,7 +124,7 @@ static gpointer mc_jm_executor(gpointer data)
 
             /* Do actual job */
             if(is_already_canceled == false) {
-                void * item = jm->callback(jm, &job->cancel, job->user_data);
+                void * item = jm->callback(jm, &job->cancel, jm->user_data, job->job_data);
 
                 g_mutex_lock(&jm->hash_table_mutex);
                 {
@@ -145,7 +148,7 @@ static gpointer mc_jm_executor(gpointer data)
 
 /////////////////////////////////
 
-struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute)
+struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute, gpointer user_data)
 {
     struct mc_JobManager *jm = g_new0(struct mc_JobManager, 1);
 
@@ -160,6 +163,7 @@ struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute)
     jm->job_queue = g_async_queue_new();
     jm->terminator.priority = -INT_MAX;
     jm->results = g_hash_table_new(g_direct_hash, g_direct_equal);
+    jm->user_data = user_data;
 
     /* Job ids */
     jm->last_finished_job = -1;
@@ -187,12 +191,12 @@ bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel)
 
 /////////////////////////////////
 
-int mc_jm_send(struct mc_JobManager *jm, int priority, gpointer user_data)
+int mc_jm_send(struct mc_JobManager *jm, int priority, gpointer job_data)
 {
     /* Create a new job, with a unique job-id */
     mc_Job *job = mc_job_create(jm);
     job->priority = priority;
-    job->user_data = user_data;
+    job->job_data = job_data;
 
     /* Lock the current job structure, since it gets read in the main thread */
     g_mutex_lock(&jm->current_job_mutex);

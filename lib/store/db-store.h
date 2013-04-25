@@ -9,6 +9,8 @@
 
 #include "../mpd/protocol.h"
 
+#include "../util/job-manager.h"
+
 typedef struct mc_StoreDB {
     /* directory db lies in */
     char *db_directory;
@@ -31,6 +33,11 @@ typedef struct mc_StoreDB {
     /* Various user defined settings go here */
     mc_StoreSettings *settings;
 
+    /* Write database to disk?
+     * on changes this gets set to True 
+     * */
+    bool write_to_disk;
+
     /* Support for stored playlists */
     struct {
         /* A stack of mpd_playlists (all of them) */
@@ -39,6 +46,13 @@ typedef struct mc_StoreDB {
         /* Sql statements for stored playlists */
         sqlite3_stmt *select_tables_stmt;
     } spl;
+
+
+    bool force_update_listallinfo;
+    bool force_update_plchanges;
+
+    /* Job manager used to process database tasks in the background */
+    struct mc_JobManager *jm;
 
 } mc_StoreDB;
 

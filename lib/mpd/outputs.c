@@ -1,4 +1,5 @@
 #include "client-private.h"
+#include "client.h"
 #include "signal-helper.h"
 #include "outputs.h"
 

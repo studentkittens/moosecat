@@ -29,7 +29,6 @@ cdef class Store:
     cdef c.mc_StoreDB * _db
     cdef c.mc_StoreSettings * _settings
     cdef c.mc_Client * _client
-    cdef bool _wait_mode
     cdef bool _initialized
 
     cdef _init(self, c.mc_Client * client, db_directory, use_memory_db=True, use_compression=True, tokenizer=None):
@@ -49,7 +48,6 @@ cdef class Store:
 
         self._db = NULL
         self._initialized = False
-        self._wait_mode = False
         return self
 
     cdef c.mc_StoreDB * _p(self) except NULL:
@@ -264,22 +262,6 @@ cdef class Store:
     ################
     #  Properties  #
     ################
-
-    property wait_mode:
-        '''
-        Set/Get the wait-mode of this Store instance.
-        The wait-mode tells calls either to wait (True) or to return
-        without response immediately (False) on blocking operations.
-
-        Already running calls are not affected.
-
-        Will wait by default.
-        '''
-        def __set__(self, mode):
-            c.mc_store_set_wait_mode(self._db, mode)
-
-        def __get__(self):
-            return c.mc_store_get_wait_mode(self._db)
 
     cdef _make_playlist_names(self, c.mc_Stack * stack):
             cdef int i = 0

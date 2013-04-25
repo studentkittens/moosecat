@@ -10,6 +10,7 @@ bool mc_client_command_list_begin(mc_Client *self)
 
         if (self->_command_list_conn != NULL) {
             if (mpd_command_list_begin(self->_command_list_conn, false) == false) {
+                self->_command_list_conn = NULL;
                 return false;
             }
         }

@@ -219,11 +219,12 @@ static const char *_sql_stmts[] = {
 void mc_stprv_insert_meta_attributes(mc_StoreDB *self)
 {
     char *zSql = sqlite3_mprintf(SQL_CODE(META),
-                                 mpd_stats_get_db_update_time(self->client->stats),
-                                 mpd_status_get_queue_version(self->client->status),
-                                 MC_DB_SCHEMA_VERSION,
-                                 self->client->_port,
-                                 self->client->_host);
+            mpd_stats_get_db_update_time(self->client->stats),
+            mpd_status_get_queue_version(self->client->status),
+            MC_DB_SCHEMA_VERSION,
+            self->client->_port,
+            self->client->_host
+    );
 
     if (zSql != NULL) {
         if (sqlite3_exec(self->handle, zSql, NULL, NULL, NULL) != SQLITE_OK)
@@ -253,14 +254,20 @@ bool mc_stprv_create_song_table(mc_StoreDB *self)
         }
 
         if (found == false) {
-            mc_shelper_report_error_printf(self->client,
-                                           "Cannot CREATE TABLE Structure. Tokenizer ,,%s'' is unknown.",
-                                           self->settings->tokenizer);
-            return false;
+            mc_shelper_report_error_printf(
+                    self->client,
+                    "Tokenizer ,,%s'' is unknown. Defaulting to 'porter'.",
+                    self->settings->tokenizer
+            );
+
+            self->settings->tokenizer = "porter";
         }
     }
 
-    char *sql_create = g_strdup_printf(SQL_CODE(CREATE), self->settings->tokenizer);
+    char *sql_create = g_strdup_printf(
+            SQL_CODE(CREATE),
+            self->settings->tokenizer
+    );
 
     if (sqlite3_exec(self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
@@ -289,10 +296,11 @@ void mc_stprv_prepare_all_statements(mc_StoreDB *self)
     }
 
     self->sql_prep_stmts = mc_stprv_prepare_all_statements_listed(
-                               self,
-                               _sql_stmts,
-                               STMT_SQL_NEED_TO_PREPARE_COUNT + 1,
-                               STMT_SQL_SOURCE_COUNT);
+            self,
+            _sql_stmts,
+            STMT_SQL_NEED_TO_PREPARE_COUNT + 1,
+            STMT_SQL_SOURCE_COUNT
+    );
 }
 
 ////////////////////////////////
@@ -646,7 +654,7 @@ if (pair.value) {                                             \
  *
  * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
  */
-void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self)
+void mc_stprv_deserialize_songs(mc_StoreDB *self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
@@ -691,6 +699,7 @@ void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self)
          */
         struct mpd_song *song = mpd_song_begin(&pair);
         g_assert(song != NULL);
+
         /* Parse start/end - this is at least here almost always 0 */
         pair.name = "Range";
         start = sqlite3_column_int(stmt, SQL_COL_START);
@@ -703,10 +712,12 @@ void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self)
 
         pair.value = val_buf;
         mpd_song_feed(song, &pair);
+
         /* Since SQLite is completely typeless we can just retrieve the column as string */
         pair.name = "Time";
         pair.value = (char *) sqlite3_column_text(stmt, SQL_COL_DURATION);
         mpd_song_feed(song, &pair);
+
         /* We parse the date ourself, since we can use a nice static buffer here */
         pair.name = "Last-Modified";
         last_modified = sqlite3_column_int(stmt, SQL_COL_LAST_MODIFIED);
@@ -766,9 +777,9 @@ void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self)
 {                                                                                       \
     int error_id = SQLITE_OK;                                                           \
     if ( (error_id = sqlite3_step(SQL_STMT(self, meta_enum))) == SQLITE_ROW)            \
-    out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
+        out_var = (cast_type)column_func(SQL_STMT(self, meta_enum), 0);                 \
     if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)                              \
-    REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
+        REPORT_SQL_ERROR (self, "WARNING: Cannot SELECT META");                         \
     out_var = (cast_type)copy_func((cast_type)out_var);                                 \
     sqlite3_reset (SQL_STMT (self, meta_enum));                                         \
 }                                                                                       \

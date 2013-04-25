@@ -45,6 +45,7 @@
 #include "db-stored-playlists.h"
 #include "db-macros.h"
 
+#include "../mpd/client.h"
 #include "../mpd/client-private.h"
 #include "../mpd/signal-helper.h"
 
@@ -279,7 +280,7 @@ void mc_stprv_spl_update(mc_StoreDB *self)
     GList *table_name_list = mc_stprv_spl_get_loaded_list(self);
 
     /* Filter all Playlist Tables that do not exist anymore in the current playlist stack.
-     * I.e. those that were deleted, or accidentally created. */
+     * i.e. those that were deleted, or accidentally created. */
     for (GList *iter = table_name_list; iter;) {
         char *drop_table_name = iter->data;
 

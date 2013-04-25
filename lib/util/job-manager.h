@@ -19,17 +19,19 @@ struct mc_JobManager;
 typedef void * (* mc_JobManagerCallback)(
         struct mc_JobManager *jm, /* JobManger executing the Job                                  */
         volatile bool *cancel,    /* Pointer to check periodically if the operation was cancelled */
-        void *user_data           /* user data passed to the executor                             */
+        void *user_data,          /* user data passed to the executor                             */
+        void *job_data            /* user data passed to the executor                             */
 );
 
 /**
  * @brief Create a new JobManger instance.
  *
  * @param on_execute: Callback to call on execution of a job (may not be NULL.)
+ * @param user_data: Userdata that is passed to the callback once per job manager.
  *
  * @return a newly allocated mc_JobManager, pass to mc_store_close() when done.
  */
-struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute);
+struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute, void *user_data);
 
 /**
  * @brief Check in a callback is this job should be cancelled. 

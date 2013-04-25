@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     settings->use_memory_db = FALSE;
     settings->use_compression = FALSE;
     mc_StoreDB *db = mc_store_create(client, settings);
-    mc_store_set_wait_mode(db, true);
+    mc_store_wait(db);
 
     if (db != NULL) {
         if (g_strcmp0(argv[1], "search") == 0) {
@@ -202,5 +202,6 @@ int main(int argc, char *argv[])
 
     mc_store_wait(db);
     mc_store_close(db);
+    mc_store_settings_destroy(settings);
     mc_proto_free(client);
 }

@@ -71,7 +71,7 @@ void mc_stprv_load_or_save(mc_StoreDB *self, bool is_save, const char *db_path);
 /**
  * @brief Load songs from previously saved database into stack.
  */
-void mc_stprv_deserialize_songs(mc_StoreDB *self, bool lock_self);
+void mc_stprv_deserialize_songs(mc_StoreDB *self);
 
 /**
  * @brief Search the songs table.
