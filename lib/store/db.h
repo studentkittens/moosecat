@@ -174,4 +174,16 @@ void mc_store_wait_for_job(mc_Store *self, int job_id);
  */
 mc_Stack *mc_store_get_result(mc_Store *self, int job_id);
 
+
+/**
+ * @brief Shortcur for mc_store_wait_for_job and mc_store_get_result
+ *
+ * @param self the store to operate on
+ * @param job_id job_id to wait on and get the result from
+ *
+ * @return same as mc_store_get_result
+ */
+mc_Stack *mc_store_gw(mc_Store *self, int job_id);
+
+
 #endif /* end of include guard: DB_GUARD_H */

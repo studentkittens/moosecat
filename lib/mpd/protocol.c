@@ -7,6 +7,7 @@
 #include "signal-helper.h"
 #include "outputs.h"
 
+#include "client.h"
 
 /* memset */
 #include <string.h>
@@ -99,6 +100,8 @@ char *mc_proto_connect(
     /* init the getput mutex */
     g_rec_mutex_init(&self->_getput_mutex);
 
+    mc_client_init(self);
+
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup(self->do_connect(self, context, host, port, ABS(timeout)));
 
@@ -140,6 +143,7 @@ void mc_proto_put(mc_Client *self)
         self->do_put(self);
 
         /* Make the connection accesible to other threads */
+        g_printerr("UNLOCK\n");
         g_rec_mutex_unlock(&self->_getput_mutex);
 
     }
@@ -159,6 +163,7 @@ struct mpd_connection *mc_proto_get(mc_Client *self) {
         * can use it. This prevents us from relying on
         * the user to lock himself. */
         g_rec_mutex_lock(&self->_getput_mutex);
+        g_printerr("LOCK\n");
 
         cconn = self->do_get(self);
         mc_shelper_report_error(self, cconn);
@@ -173,6 +178,9 @@ char *mc_proto_disconnect(
     mc_Client *self)
 {
     if (self && mc_proto_is_connected(self)) {
+        /* Finish current running command */
+        mc_client_destroy(self);
+
         /* let the connector clean up itself */
         bool error_happenend = !self->do_disconnect(self);
 

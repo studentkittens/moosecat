@@ -1,6 +1,6 @@
-#include "mpd/protocol.h"
-#include "store/db.h"
-#include "misc/posix-signal.h"
+#include "../mpd/protocol.h"
+#include "../store/db.h"
+#include "../misc/posix-signal.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -69,7 +69,6 @@ int main(int argc, char *argv[])
     settings->use_memory_db = FALSE;
     settings->use_compression = FALSE;
     mc_Store *db = mc_store_create(client, settings);
-    mc_store_wait(db);
 
     if (db != NULL) {
         if (g_strcmp0(argv[1], "search") == 0) {
@@ -101,7 +100,7 @@ int main(int argc, char *argv[])
 
                 if (strncmp(line_buf, ":load", 5) == 0) {
                     char *pl_name = g_strstrip(&line_buf[5]);
-                    mc_store_playlist_load(db, pl_name);
+                    mc_store_gw(db, mc_store_playlist_load(db, pl_name));
                     continue;
                 }
 
@@ -126,9 +125,10 @@ int main(int argc, char *argv[])
 
                     if (args != NULL)  {
                         mc_Stack *stack = mc_stack_create(1000, NULL);
-                        int found = mc_store_playlist_select_to_stack(db, stack, args[1], args[2]);
+                        mc_store_gw(db, mc_store_playlist_select_to_stack(db, stack, args[1], args[2]));
                         g_print("%s %s\n", args[1], args[2]);
 
+                        int found = mc_stack_length(stack);
                         if (found == 0) {
                             g_print("Nothing found.\n");
                         } else {
@@ -152,8 +152,9 @@ int main(int argc, char *argv[])
                         char *query = (*args[1] == '_') ? NULL : args[1];
                         mc_Stack *stack = mc_stack_create(100, g_free);
                         int depth = (args[2]) ? g_ascii_strtoll(args[2], NULL, 10) : -1;
-                        int found = mc_store_dir_select_to_stack(db, stack, query, depth);
+                        mc_store_gw(db, mc_store_dir_select_to_stack(db, stack, query, depth));
 
+                        int found = mc_stack_length(stack);
                         if (found == 0) {
                             g_print("Nothing found.\n");
                         } else {
@@ -170,8 +171,9 @@ int main(int argc, char *argv[])
                 }
 
                 mc_stack_clear(song_buf);
-                int selected = mc_store_search_to_stack(db, line_buf, queue_only, song_buf, song_buf_size);
+                mc_store_gw(db, mc_store_search_to_stack(db, line_buf, queue_only, song_buf, song_buf_size));
 
+                int selected = mc_stack_length(song_buf);
                 if (selected > 0) {
                     g_print("#%04d/%03d %-35s | %-35s | %-35s\n", 0, 0, "Artist", "Album", "Title");
                     g_print("------------------------------------------------------------------------------------------------\n");
@@ -200,7 +202,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    mc_store_wait(db);
     mc_store_close(db);
     mc_store_settings_destroy(settings);
     mc_proto_free(client);

@@ -3,6 +3,12 @@
 #include "signal-helper.h"
 #include "outputs.h"
 
+//////////////////////////////////////
+//                                  //
+//     Client Command Handlers      //
+//                                  //
+//////////////////////////////////////
+
 /**
  * Missing commands:
  *
@@ -10,82 +16,121 @@
  *  (...)
  */
 
+
+#define intarg(argument, result)                     \
+{                                                    \
+    char *endptr = NULL;                             \
+    result = g_ascii_strtoll(argument, &endptr, 10); \
+                                                     \
+    if(result == 0 && endptr != NULL) {              \
+        return false;                                \
+    }                                                \
+}                                                    \
+
+
+#define intarg_named(argument, name) \
+    int name = 0;                    \
+    intarg(argument, name);          \
+
 ///////////////////
 
-void mc_client_queue_add(mc_Client *self, const char *uri)
+static bool handle_queue_add(mc_Client *self, const char **argv)
 {
+    const char *uri = argv[0];
     COMMAND(
         mpd_run_add(conn, uri),
         mpd_send_add(conn, uri)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_clear(mc_Client *self)
+static bool handle_queue_clear(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_clear(conn),
         mpd_send_clear(conn)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_consume(mc_Client *self, bool mode)
+static bool handle_consume(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], mode);
     COMMAND(
         mpd_run_consume(conn, mode),
         mpd_send_consume(conn, mode)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_crossfade(mc_Client *self, bool mode)
+static bool handle_crossfade(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], mode);
     COMMAND(
         mpd_run_crossfade(conn, mode),
         mpd_send_crossfade(conn, mode)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_delete(mc_Client *self, int pos)
+static bool handle_queue_delete(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], pos);
     COMMAND(
         mpd_run_delete(conn, pos),
         mpd_send_delete(conn, pos)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_delete_id(mc_Client *self, int id)
+static bool handle_queue_delete_id(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], id);
     COMMAND(
         mpd_run_delete_id(conn, id),
         mpd_send_delete_id(conn, id)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_delete_range(mc_Client *self, int start, int end)
+static bool handle_queue_delete_range(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], start);
+    intarg_named(argv[1], end);
     COMMAND(
         mpd_run_delete_range(conn, start, end),
         mpd_send_delete_range(conn, start, end)
     )
+
+    return true;
 }
 
 ///////////////////
 
-bool mc_client_output_switch(mc_Client *self, const char *output_name, bool mode)
+static bool handle_output_switch(mc_Client *self, const char **argv)
 {
-    g_assert(self);
+    const char *output_name = argv[0];
     int output_id = mc_proto_outputs_name_to_id(self, output_name);
+
+    intarg_named(argv[1], mode);
 
     if (output_id != -1) {
         if (mode == TRUE) {
@@ -108,282 +153,381 @@ bool mc_client_output_switch(mc_Client *self, const char *output_name, bool mode
 
 ///////////////////
 
-void mc_client_playlist_load(mc_Client *self, const char *playlist)
+static bool handle_playlist_load(mc_Client *self, const char **argv)
 {
+    const char *playlist = argv[0];
     COMMAND(
         mpd_run_load(conn, playlist),
         mpd_send_load(conn, playlist)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_mixramdb(mc_Client *self, int decibel)
+static bool handle_mixramdb(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], decibel);
     COMMAND(
         mpd_run_mixrampdb(conn, decibel),
         mpd_send_mixrampdb(conn, decibel)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_mixramdelay(mc_Client *self, int seconds)
+static bool handle_mixramdelay(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], seconds);
     COMMAND(
         mpd_run_mixrampdelay(conn, seconds),
         mpd_send_mixrampdelay(conn, seconds)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_move(mc_Client *self, unsigned old_id, unsigned new_id)
+static bool handle_queue_move(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], old_id);
+    intarg_named(argv[1], new_id);
     COMMAND(
         mpd_run_move_id(conn, old_id, new_id),
         mpd_send_move_id(conn, old_id, new_id)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_move_range(mc_Client *self, unsigned start_pos, unsigned end_pos, unsigned new_pos)
+static bool handle_queue_move_range(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], start_pos);
+    intarg_named(argv[1], end_pos);
+    intarg_named(argv[2], new_pos);
     COMMAND(
         mpd_run_move_range(conn, start_pos, end_pos, new_pos),
         mpd_send_move_range(conn, start_pos, end_pos, new_pos)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_next(mc_Client *self)
+static bool handle_next(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_next(conn),
         mpd_send_next(conn)
     )
+
+    return true;
 }
 
 ///////////////////
 
-bool mc_client_password(mc_Client *self, const char *pwd)
+static bool handle_password(mc_Client *self, const char **argv)
 {
+    const char *password = argv[0];
     bool rc = false;
     COMMAND(
-        rc = mpd_run_password(conn, pwd),
-        mpd_send_password(conn, pwd)
+        rc = mpd_run_password(conn, password),
+        mpd_send_password(conn, password)
     );
     return rc;
 }
 
 ///////////////////
 
-void mc_client_pause(mc_Client *self)
+static bool handle_pause(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_toggle_pause(conn),
         mpd_send_toggle_pause(conn)
     )
+    
+    return true;
 }
 
 ///////////////////
 
-void mc_client_play(mc_Client *self)
+static bool handle_play(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_play(conn),
         mpd_send_play(conn)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_play_id(mc_Client *self, unsigned id)
+static bool handle_play_id(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], id);
     COMMAND(
         mpd_run_play_id(conn, id),
         mpd_send_play_id(conn, id)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_playlist_add(mc_Client *self, const char *name, const char *file)
+static bool handle_playlist_add(mc_Client *self, const char **argv)
 {
+    const char *name = argv[0];
+    const char *file = argv[1];
     COMMAND(
         mpd_run_playlist_add(conn, name, file),
         mpd_send_playlist_add(conn, name, file)
     )
+    
+    return true;
 }
 
 ///////////////////
 
-void mc_client_playlist_clear(mc_Client *self, const char *name)
+static bool handle_playlist_clear(mc_Client *self, const char **argv)
 {
+    const char *name = argv[0];
     COMMAND(
         mpd_run_playlist_clear(conn, name),
         mpd_send_playlist_clear(conn, name)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_playlist_delete(mc_Client *self, const char *name, unsigned pos)
+static bool handle_playlist_delete(mc_Client *self, const char **argv)
 {
+    const char *name = argv[0];
+    intarg_named(argv[1], pos);
     COMMAND(
         mpd_run_playlist_delete(conn, name, pos),
         mpd_send_playlist_delete(conn, name, pos)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_playlist_move(mc_Client *self, const char *name, unsigned old_pos, unsigned new_pos)
+static bool handle_playlist_move(mc_Client *self, const char **argv)
 {
+    const char *name = argv[0];
+    intarg_named(argv[1], old_pos);
+    intarg_named(argv[2], new_pos);
     COMMAND(
         mpd_send_playlist_move(conn, name, old_pos, new_pos);
         mpd_response_finish(conn);
         ,
         mpd_send_playlist_move(conn, name, old_pos, new_pos);
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_previous(mc_Client *self)
+static bool handle_previous(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_previous(conn),
         mpd_send_previous(conn)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_prio(mc_Client *self, unsigned prio, unsigned position)
+static bool handle_prio(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], prio);
+    intarg_named(argv[1], position);
+
     COMMAND(
         mpd_run_prio(conn,  prio, position),
         mpd_send_prio(conn, prio, position)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_prio_range(mc_Client *self, unsigned prio, unsigned start_pos, unsigned end_pos)
+static bool handle_prio_range(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], prio);
+    intarg_named(argv[1], start_pos);
+    intarg_named(argv[2], end_pos);
+
     COMMAND(
         mpd_run_prio_range(conn,  prio, start_pos, end_pos),
         mpd_send_prio_range(conn, prio, start_pos, end_pos)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_prio_id(mc_Client *self, unsigned prio, unsigned id)
+static bool handle_prio_id(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], prio);
+    intarg_named(argv[1], id);
+
     COMMAND(
         mpd_run_prio_id(conn,  prio, id),
         mpd_send_prio_id(conn, prio, id)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_random(mc_Client *self, bool mode)
+static bool handle_random(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], mode);
+
     COMMAND(
         mpd_run_random(conn, mode),
         mpd_send_random(conn, mode)
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_playlist_rename(mc_Client *self, const char *old_name, const char *new_name)
+static bool handle_playlist_rename(mc_Client *self, const char **argv)
 {
+    const char *old_name = argv[0];
+    const char *new_name = argv[1];
+
     COMMAND(
         mpd_run_rename(conn, old_name, new_name),
         mpd_send_rename(conn, old_name, new_name)
     );
+    return true;
 }
 
 ///////////////////
 
-void mc_client_repeat(mc_Client *self, bool mode)
+static bool handle_repeat(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], mode);
+
     COMMAND(
         mpd_run_repeat(conn, mode),
         mpd_send_repeat(conn, mode)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_replay_gain_mode(mc_Client *self, const char *replay_gain_mode)
+static bool handle_replay_gain_mode(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], replay_gain_mode);
+
     COMMAND(
         mpd_send_command(conn, "replay_gain_mode", replay_gain_mode, NULL);
         mpd_response_finish(conn);
         , /* send command */
         mpd_send_command(conn, "replay_gain_mode", replay_gain_mode, NULL);
     )
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_database_rescan(mc_Client *self, const char *path)
+static bool handle_database_rescan(mc_Client *self, const char **argv)
 {
+    const char *path = argv[0];
     COMMAND(
         mpd_run_rescan(conn, path),
         mpd_send_rescan(conn, path)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_playlist_rm(mc_Client *self, const char *playlist_name)
+static bool handle_playlist_rm(mc_Client *self, const char **argv)
 {
+    const char *playlist_name = argv[0];
     COMMAND(
         mpd_run_rm(conn, playlist_name),
         mpd_send_rm(conn, playlist_name)
     );
+
+    return true;
 }
 
-void mc_client_playlist_save(mc_Client *self, const char *as_name)
+static bool handle_playlist_save(mc_Client *self, const char **argv)
 {
+    const char *as_name = argv[0];
     COMMAND(
         mpd_run_save(conn, as_name),
         mpd_send_save(conn, as_name)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_seek(mc_Client *self, int pos, int seconds)
+static bool handle_seek(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], pos);
+    intarg_named(argv[1], seconds);
+
     COMMAND(
         mpd_run_seek_pos(conn, pos, seconds),
         mpd_send_seek_pos(conn, pos, seconds)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_seekid(mc_Client *self, int id, int seconds)
+static bool handle_seekid(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], id);
+    intarg_named(argv[1], seconds);
+
     COMMAND(
         mpd_run_seek_id(conn, id, seconds),
         mpd_send_seek_id(conn, id, seconds)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_seekcur(mc_Client *self, int seconds)
+static bool handle_seekcur(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], seconds);
+
     /* there is 'seekcur' in newer mpd versions,
      * but we can emulate it easily */
     if (self->song != NULL) {
@@ -393,76 +537,274 @@ void mc_client_seekcur(mc_Client *self, int seconds)
             mpd_send_seek_id(conn, curr_id, seconds)
         )
     }
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_setvol(mc_Client *self, int volume)
+static bool handle_setvol(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], volume);
     COMMAND(
         mpd_run_set_volume(conn, volume),
         mpd_send_set_volume(conn, volume)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_shuffle(mc_Client *self)
+static bool handle_queue_shuffle(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_shuffle(conn),
         mpd_send_shuffle(conn)
     );
+    return true;
 }
 
 ///////////////////
 
-void mc_client_single(mc_Client *self, bool mode)
+static bool handle_single(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], mode);
     COMMAND(
         mpd_run_single(conn, mode),
         mpd_send_single(conn, mode)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_stop(mc_Client *self)
+static bool handle_stop(mc_Client *self, const char **argv)
 {
     COMMAND(
         mpd_run_stop(conn),
         mpd_send_stop(conn)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_swap(mc_Client *self, int pos_a, int pos_b)
+static bool handle_queue_swap(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], pos_a);
+    intarg_named(argv[1], pos_b);
+
     COMMAND(
         mpd_run_swap(conn, pos_a, pos_b),
         mpd_send_swap(conn, pos_a, pos_b)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_queue_swap_id(mc_Client *self, int id_a, int id_b)
+static bool handle_queue_swap_id(mc_Client *self, const char **argv)
 {
+    intarg_named(argv[0], id_a);
+    intarg_named(argv[1], id_b);
+
     COMMAND(
         mpd_run_swap_id(conn, id_a, id_b),
         mpd_send_swap_id(conn, id_a, id_b)
     );
+
+    return true;
 }
 
 ///////////////////
 
-void mc_client_database_update(mc_Client *self, const char *path)
+static bool handle_database_update(mc_Client *self, const char **argv)
 {
+    const char *path = argv[0];
     COMMAND(
         mpd_run_update(conn, path),
         mpd_send_update(conn, path)
     );
+
+    return true;
+}
+
+//////////////////////////////////////
+//                                  //
+//       Private Command Logic      //
+//                                  //
+//////////////////////////////////////
+
+typedef bool (*mc_ClientHandler)(mc_Client *self, const char **args);
+
+///////////////////
+
+typedef struct {
+    const char *command;
+    int num_args;
+    mc_ClientHandler handler;
+} mc_HandlerField;
+
+///////////////////
+
+static const mc_HandlerField HandlerTable[] = {
+    {"consume",            1,  handle_consume},
+    {"crossfade",          1,  handle_crossfade},
+    {"database_rescan",    1,  handle_database_rescan},
+    {"database_update",    1,  handle_database_update},
+    {"mixramdb",           1,  handle_mixramdb},
+    {"mixramdelay",        1,  handle_mixramdelay},
+    {"next",               0,  handle_next},
+    {"output_switch",      2,  handle_output_switch},
+    {"password",           1,  handle_password},
+    {"pause",              0,  handle_pause},
+    {"play",               0,  handle_play},
+    {"play_id",            1,  handle_play_id},
+    {"playlist_add",       2,  handle_playlist_add},
+    {"playlist_clear",     1,  handle_playlist_clear},
+    {"playlist_delete",    2,  handle_playlist_delete},
+    {"playlist_load",      1,  handle_playlist_load},
+    {"playlist_move",      3,  handle_playlist_move},
+    {"playlist_rename",    2,  handle_playlist_rename},
+    {"playlist_rm",        1,  handle_playlist_rm},
+    {"playlist_save",      1,  handle_playlist_save},
+    {"previous",           0,  handle_previous},
+    {"prio",               2,  handle_prio},
+    {"prio_id",            2,  handle_prio_id},
+    {"prio_range",         3,  handle_prio_range},
+    {"queue_add",          1,  handle_queue_add},
+    {"queue_clear",        0,  handle_queue_clear},
+    {"queue_delete",       1,  handle_queue_delete},
+    {"queue_delete_id",    1,  handle_queue_delete_id},
+    {"queue_delete_range", 2,  handle_queue_delete_range},
+    {"queue_move",         2,  handle_queue_move},
+    {"queue_move_range",   3,  handle_queue_move_range},
+    {"queue_shuffle",      0,  handle_queue_shuffle},
+    {"queue_swap",         2,  handle_queue_swap},
+    {"queue_swap_id",      2,  handle_queue_swap_id},
+    {"random",             1,  handle_random},
+    {"repeat",             1,  handle_repeat},
+    {"replay_gain_mode",   1,  handle_replay_gain_mode},
+    {"seek",               2,  handle_seek},
+    {"seekcur",            1,  handle_seekcur},
+    {"seekid",             2,  handle_seekid},
+    {"setvol",             1,  handle_setvol},
+    {"single",             1,  handle_single},
+    {"stop",               0,  handle_stop},
+    {NULL,                 0,  NULL}
+};
+
+///////////////////
+
+static const mc_HandlerField * mc_client_find_handler(const char *command)
+{
+    for(int i = 0; HandlerTable[i].command; ++i) {
+        if(g_ascii_strcasecmp(command, HandlerTable[i].command) == 0) {
+            return &HandlerTable[i];
+        }
+    }
+    return NULL;
 }
 
 ///////////////////
+
+static int test_counter = 0;
+static void * mc_client_command_dispatcher(
+        struct mc_JobManager *jm,
+        volatile bool *cancel,
+        void *user_data,
+        void *job_data) 
+{
+    g_assert(user_data);
+    g_assert(job_data);
+
+    /* Client to operate on */
+    mc_Client *self = user_data;  
+
+    /* Input command left to parse */
+    const char *input = job_data;
+
+    g_printerr("Process: %s\n", input);
+
+    /* success state of the command */
+    bool result = false;
+
+    /* Argument vector */
+    char **parts = g_strsplit(input, " ", -1);
+
+    /* find out what handler to call */
+    const mc_HandlerField *handler = mc_client_find_handler(g_strstrip(parts[0]));
+
+    if(handler != NULL) {
+        /* Count arguments */
+        int arguments = 0;
+        while(parts[arguments++]);
+
+        if((arguments - 2) >= handler->num_args) {
+            result = handler->handler(self, (const char **)&parts[1]);
+        } else {
+            g_print("Too many arguments to %s: Expected %d, Got %d\n", 
+                    parts[0], handler->num_args, arguments - 2);
+        }
+    }
+
+    g_strfreev(parts);
+
+    g_printerr("test counter: %d\n", ++test_counter);
+
+    return GINT_TO_POINTER(result);
+}
+
+//////////////////////////////////////
+//                                  //
+//    Public Function Interface     //
+//                                  //
+//////////////////////////////////////
+
+
+void mc_client_init(mc_Client *self)
+{
+    g_assert(self);
+
+    self->jm = mc_jm_create(mc_client_command_dispatcher, self);
+}
+
+///////////////////
+
+void mc_client_destroy(mc_Client *self)
+{
+    g_assert(self);
+
+    mc_jm_close(self->jm);
+    self->jm = NULL;
+}
+
+///////////////////
+
+int mc_client_send(mc_Client *self, const char *command)
+{
+    g_assert(self);
+
+    return mc_jm_send(self->jm, 0, (void *)command);
+}
+
+///////////////////
+
+bool mc_client_recv(mc_Client *self, int job_id)
+{
+    g_assert(self);
+
+    mc_jm_wait_for_id(self->jm, job_id);
+    return GPOINTER_TO_INT(mc_jm_get_result(self->jm, job_id));
+}
+
+///////////////////
+
+bool mc_client_run(mc_Client *self, const char *command)
+{
+    return mc_client_recv(self, mc_client_send(self, command));
+}

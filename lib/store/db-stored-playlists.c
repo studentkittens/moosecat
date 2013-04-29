@@ -75,6 +75,7 @@ void mc_stprv_spl_init(mc_Store *self)
 {
     g_assert(self);
 
+    self->spl.select_tables_stmt = NULL;
     if (sqlite3_prepare_v2(self->handle, spl_sql_stmts[STMT_SELECT_TABLES], -1, &self->spl.select_tables_stmt, NULL) != SQLITE_OK)
         REPORT_SQL_ERROR(self, "Cannot initialize Stored Playlist Support.");
 
@@ -361,12 +362,55 @@ void mc_stprv_spl_update(mc_Store *self)
 
 ///////////////////
 
+bool mc_stprv_spl_is_loaded(mc_Store *store, struct mpd_playlist *playlist)
+{
+    bool result = false;
+
+    /* Construct the table name for comparasion */
+    char *table_name = mc_stprv_spl_construct_table_name(playlist);
+    GList *table_names = mc_stprv_spl_get_loaded_list(store);
+
+    for(GList *iter = table_names; iter != NULL; iter = iter->next) {
+        char *comp_table_name = iter->data;
+        if(g_ascii_strcasecmp(comp_table_name, table_name) == 0) {
+
+            /* Get the actual playlist name from the table name and the last_mod date */
+            time_t comp_last_mod = 0;
+            g_free(mc_stprv_spl_parse_table_name(
+                    comp_table_name, &comp_last_mod
+            ));
+            
+            if(comp_last_mod == mpd_playlist_get_last_modified(playlist)) {
+                result = true;
+                break;
+            }
+        }
+    }
+
+    g_free(table_name);
+    g_list_free_full(table_names, g_free);
+
+    return result;
+}
+
+///////////////////
+
 void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
 {
     g_assert(store);
     g_assert(store->client);
     g_assert(playlist);
+    
     mc_Client *self = store->client;
+
+    if(mc_stprv_spl_is_loaded(store, playlist)) {
+        mc_shelper_report_progress(
+                self, true,
+                "database: Stored playlist already loaded - skipping."
+        );
+        return;
+    }
+
     sqlite3_stmt *insert_stmt = NULL;
     char *table_name = mc_stprv_spl_construct_table_name(playlist);
 

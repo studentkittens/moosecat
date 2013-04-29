@@ -499,9 +499,6 @@ int mc_store_playlist_load(mc_Store *self, const char *playlist_name)
     data->playlist_name = playlist_name;
 
     return mc_jm_send(self->jm, 1, data);
-
-    /* Synchronize with the database action */
-    //mc_jm_wait_for_id(self->jm, job_id);
 }
 
 //////////////////////////////
@@ -513,18 +510,12 @@ int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const cha
     g_assert(playlist_name);
 
     mc_JobData * data = g_new0(mc_JobData, 1);
-    data->op = MC_OPER_DB_SEARCH;
+    data->op = MC_OPER_SPL_QUERY;
     data->playlist_name = playlist_name;
     data->match_clause = match_clause;
     data->out_stack = stack;
 
     return mc_jm_send(self->jm, 1, data);
-
-    /* Synchronize with the database action */
-    /*mc_jm_wait_for_id(self->jm, job_id);*/
-
-    /*return mc_stack_length(stack);*/
-    
 }
 
 //////////////////////////////
@@ -532,17 +523,12 @@ int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const cha
 int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
 { 
     mc_JobData * data = g_new0(mc_JobData, 1);
-    data->op = MC_OPER_DB_SEARCH;
+    data->op = MC_OPER_DIR_SEARCH;
     data->dir_directory = directory;
-    data->dir_depth= depth;
+    data->dir_depth = depth;
     data->out_stack = stack;
 
     return mc_jm_send(self->jm, 1, data);
-
-    /* Synchronize with the database action */
-    /*mc_jm_wait_for_id(self->jm, job_id);*/
-
-    /*return mc_stack_length(stack);*/
 }
 
 //////////////////////////////
@@ -550,15 +536,10 @@ int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *di
 int mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
-    data->op = MC_OPER_DB_SEARCH;
+    data->op = MC_OPER_SPL_LIST;
     data->out_stack = stack;
 
     return mc_jm_send(self->jm, 1, data);
-
-    /* Synchronize with the database action */
-    /*mc_jm_wait_for_id(self->jm, job_id);*/
-
-    /*return mc_stack_length(stack);*/
 }
 
 //////////////////////////////
@@ -579,12 +560,7 @@ int mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queu
     data->length_limit = limit_len;
     data->out_stack = stack;
 
-    int job_id = mc_jm_send(self->jm, 1, data);
-
-    /* Synchronize with the database action */
-    mc_jm_wait_for_id(self->jm, job_id);
-
-    return mc_stack_length(stack);
+    return mc_jm_send(self->jm, 1, data);
 }
 
 //////////////////////////////
@@ -606,4 +582,12 @@ void mc_store_wait_for_job(mc_Store *self, int job_id)
 mc_Stack *mc_store_get_result(mc_Store *self, int job_id)
 {
     return mc_jm_get_result(self->jm, job_id);
+}
+
+//////////////////////////////
+
+mc_Stack *mc_store_gw(mc_Store *self, int job_id)
+{
+    mc_store_wait_for_job(self, job_id);
+    return mc_store_get_result(self, job_id);
 }

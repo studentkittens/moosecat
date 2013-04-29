@@ -47,8 +47,14 @@ typedef struct mc_Store {
         sqlite3_stmt *select_tables_stmt;
     } spl;
 
-
+    /* If this flag is set listallinfo will retrieve all songs,
+     * and skipping the check if is actually necessary.
+     * */
     bool force_update_listallinfo;
+
+    /* If this flag is set plchanges will take last_version as 0,
+     * even if, judging from the queue version, no full update is necessary.
+     * */
     bool force_update_plchanges;
 
     /* Job manager used to process database tasks in the background */

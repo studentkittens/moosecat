@@ -1,0 +1,33 @@
+libmoosecat 
+-----------
+
+Near-Term:
+    - Replace COMMAND with something more appropiate. Replace old impl.
+        - Read through:
+            
+            - protocol.c
+            - client-command-list.c
+            - update.c
+            - store/db.c
+            - store/db-private.c
+            - store/db-stored-playlist.c
+
+    - Implement command_list with mc_JobManager.
+    - Update cython wrapper
+    - Replace job_id with long.
+
+
+- Make libmoosecat fully threadsafe. (Although it should be already.)
+- Make client/store failsafe in case of mpd crash/shutdown/connectionkill
+- Update Cython Wrapper to reflect the changes.
+- Make store operations cancellable.
+- Rethink Prio in store operations.
+- Fix the f@@king buildsystem.. why does it keep compiling moose.c always?
+- Write finally some tests for the Store? Still not 100% sure it will work
+  with all configurations. Especially when output buffer is too large.
+- Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 
+  kills the startup time more than I'd accept (especially since that's a very
+  easy patch...).
+- rethink signals. really.
+- Split Queue in seperate table. Fixes problem with duplicate songs in Queue...
+  (Same algorithm with stored playlist, just more lightweight)

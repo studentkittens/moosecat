@@ -1,4 +1,4 @@
-#include "api.h"
+#include "../api.h"
 #include <stdlib.h>
 
 static mc_Client *conn = NULL;

@@ -54,6 +54,9 @@ struct mc_JobManager {
     /* Job IDs are created by incrementing this counter */
     int job_id_counter;
 
+    /* Mutex to protext job id counter */
+    GMutex job_id_counter_mutex;
+
     /* The ID of the most recently finished job (-1 initially) */
     int last_finished_job;
 
@@ -73,7 +76,9 @@ struct mc_JobManager {
 static mc_Job *mc_job_create(struct mc_JobManager *jm)
 {
     mc_Job *job = g_new0(mc_Job, 1);
+    g_mutex_lock(&jm->job_id_counter_mutex);
     job->id = (jm->job_id_counter)++;
+    g_mutex_unlock(&jm->job_id_counter_mutex);
     return job;
 }
 
@@ -95,7 +100,19 @@ static int mc_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer job_d
     (void) job_data;
 
     const mc_Job *ja = a, *jb = b;
-    return (ja->priority > jb->priority ? +1 : ja->priority == jb->priority? 0 : -1);
+    if(ja->priority > jb->priority)
+        return +1;
+
+    if(ja->priority < jb->priority)
+        return -1;
+
+    if(ja->id > jb->id)
+        return +1;
+
+    if(ja->id < jb->id)
+        return -1;
+        
+    return 0;
 }
 
 ////////////////////////////////
@@ -157,6 +174,7 @@ struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute, gpointer us
     g_mutex_init(&jm->finish_mutex);
     g_mutex_init(&jm->current_job_mutex);
     g_mutex_init(&jm->hash_table_mutex);
+    g_mutex_init(&jm->job_id_counter_mutex);
 
     /* Save arguments */
     jm->callback = on_execute;
@@ -311,6 +329,7 @@ void mc_jm_close(struct mc_JobManager *jm)
     g_mutex_clear(&jm->finish_mutex);
     g_mutex_clear(&jm->current_job_mutex);
     g_mutex_clear(&jm->hash_table_mutex);
+    g_mutex_clear(&jm->job_id_counter_mutex);
 
     if(jm->current_job != NULL) {
         mc_job_free(jm->current_job);

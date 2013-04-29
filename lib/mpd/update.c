@@ -30,6 +30,10 @@ void mc_proto_update_context_info_cb(
     enum mpd_idle events,
     mc_cc_unused void *user_data)
 {
+
+    //TODO: this is for debugging. REMOVE
+    return;
+
     if (self != NULL && events != 0 && mc_proto_is_connected(self)) {
         struct mpd_connection *conn = mc_proto_get(self);
 

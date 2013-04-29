@@ -8,6 +8,9 @@
 /* Compiler macros */
 #include "../compiler.h"
 
+/* Job Dispatcher */
+#include "../util/job-manager.h"
+
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
@@ -119,6 +122,9 @@ typedef struct mc_Client {
     struct mpd_stats *stats;
     struct mpd_status *status;
     const char *replay_gain_status;
+
+    /* Job Dispatcher */
+    struct mc_JobManager *jm;
 
 } mc_Client;
 

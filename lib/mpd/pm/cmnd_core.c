@@ -20,7 +20,7 @@
 /* time to check between sleep if pinger thread
  * needs to be closed down
  */
-#define PING_SLEEP_TIMEOUT 700 // ms
+#define PING_SLEEP_TIMEOUT 500 // ms
 
 ///////////////////////
 // Private Interface //
@@ -72,7 +72,51 @@ typedef struct {
      * The ping-thread only exists to work solely against this purpose. */
     glong connection_timeout_ms;
 
+    /* Protect write read access 
+     * to the run_* flags
+     */ 
+    GMutex flagmtx_run_pinger;
+    GMutex flagmtx_run_listener;
+
 } mc_CmndClient;
+
+//////////////////////
+
+/* We want to make helgrind happy. */
+
+static bool cmnder_get_run_pinger(mc_CmndClient * self)
+{
+    volatile bool result = false;
+    g_mutex_lock(&self->flagmtx_run_pinger);
+    result = self->run_pinger;    
+    g_mutex_unlock(&self->flagmtx_run_pinger);
+
+    return result;
+}
+
+static void cmnder_set_run_pinger(mc_CmndClient * self, volatile bool state)
+{
+    g_mutex_lock(&self->flagmtx_run_pinger);
+    self->run_pinger = state;
+    g_mutex_unlock(&self->flagmtx_run_pinger);
+}
+
+static bool cmnder_get_run_listener(mc_CmndClient * self)
+{
+    volatile bool result = false;
+    g_mutex_lock(&self->flagmtx_run_listener);
+    result = self->run_listener;    
+    g_mutex_unlock(&self->flagmtx_run_listener);
+
+    return result;
+}
+
+static void cmnder_set_run_listener(mc_CmndClient * self, volatile bool state)
+{
+    g_mutex_lock(&self->flagmtx_run_listener);
+    self->run_listener = state;
+    g_mutex_unlock(&self->flagmtx_run_listener);
+}
 
 //////////////////////
 
@@ -105,7 +149,7 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
      * Why? It may call disconnect() on fatal errors.
      * This would lead to joining this thread with itself,
      * which is deadly. */
-    while (self->run_listener) {
+    while (cmnder_get_run_listener(self)) {
         if ((events = mpd_run_idle(self->idle_con)) == 0) {
             mc_shelper_report_error_without_handling((mc_Client *) self, self->idle_con);
             break;
@@ -141,7 +185,7 @@ static void cmnder_create_glib_adapter(
 static void cmnder_shutdown_listener(mc_CmndClient *self)
 {
     /* Interrupt the idling, and tell the idle thread to die. */
-    self->run_listener = FALSE;
+    cmnder_set_run_listener(self, FALSE);
     mpd_send_noidle(self->idle_con);
 
     if (self->watch_source_id != -1) {
@@ -204,11 +248,11 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
 {
     g_assert(self);
 
-    while (self->run_pinger) {
+    while (cmnder_get_run_pinger(self)) {
         mc_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
                          PING_SLEEP_TIMEOUT, &self->run_pinger);
 
-        if (self->run_pinger == false) {
+        if (cmnder_get_run_pinger(self) == false) {
             break;
         }
 
@@ -226,7 +270,7 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
             mc_proto_put((mc_Client *) self);
         }
 
-        if (self->run_pinger) {
+        if (cmnder_get_run_pinger(self)) {
             mc_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
                              PING_SLEEP_TIMEOUT, &self->run_pinger);
         }
@@ -243,7 +287,7 @@ static void cmnder_shutdown_pinger(mc_CmndClient *self)
     g_assert(self);
 
     if (self->pinger_thread != NULL) {
-        self->run_pinger = FALSE;
+        cmnder_set_run_pinger(self, FALSE);
         g_thread_join(self->pinger_thread);
         self->pinger_thread = NULL;
     }
@@ -280,14 +324,14 @@ static char *cmnder_do_connect(
     }
 
     /* listener */
-    self->run_listener = TRUE;
+    cmnder_set_run_listener(self, TRUE);
     self->watch_source_id = -1;
     self->event_queue = g_async_queue_new();
     cmnder_create_glib_adapter(self, context);
 
     /* start ping thread */
     if (self->pinger_thread == NULL) {
-        self->run_pinger = TRUE;
+        cmnder_set_run_pinger(self, TRUE);
         self->pinger_thread = g_thread_new("cmnd-core-pinger",
                                            (GThreadFunc) cmnder_ping_server, self);
     }
@@ -340,6 +384,8 @@ static void cmnder_do_free(mc_Client *parent)
     g_assert(parent);
     mc_CmndClient *self = child(parent);
     cmnder_do_disconnect(parent);
+    g_mutex_clear(&self->flagmtx_run_pinger);
+    g_mutex_clear(&self->flagmtx_run_listener);
     memset(self, 0, sizeof(mc_CmndClient));
     g_free(self);
 }
@@ -361,6 +407,9 @@ mc_Client *mc_proto_create_cmnder(long connection_timeout_ms)
     self->logic.do_free = cmnder_do_free;
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;
+
+    g_mutex_init(&self->flagmtx_run_pinger);
+    g_mutex_init(&self->flagmtx_run_listener);
 
     /* Fallback to default when neg. number given */
     if (connection_timeout_ms < 0)

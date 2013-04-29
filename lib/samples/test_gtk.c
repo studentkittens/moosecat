@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
 #include <stdbool.h>
 
-#include "api.h"
+#include "../api.h"
 
 /*
  * Test applications to see if db search is fast enough.
@@ -48,8 +48,9 @@ static void update_view(EntryTag *tag, const char *search_text)
     parse_time = g_timer_elapsed(parse_timer, NULL);
 
 
+    mc_store_gw(tag->store, mc_store_search_to_stack(tag->store, query, true, tag->song_buf, -1));
 
-    int found = mc_store_search_to_stack(tag->store, query, true, tag->song_buf, -1);
+    int found = mc_stack_length(tag->song_buf);
 
     select_time = g_timer_elapsed(tag->profile_timer, NULL);
 

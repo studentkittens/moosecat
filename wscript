@@ -204,7 +204,12 @@ def _find_libmoosecat_src(ctx):
     If files are in there that shouldn't be built,
     fill them in the exclude_files list.
     """
-    c_files = ctx.path.ant_glob('lib/**/*.c')
+    c_files = []
+    c_files += ctx.path.ant_glob('lib/mpd/*.c')
+    c_files += ctx.path.ant_glob('lib/mpd/pm/*.c')
+    c_files += ctx.path.ant_glob('lib/misc/*.c')
+    c_files += ctx.path.ant_glob('lib/util/*.c')
+    c_files += ctx.path.ant_glob('lib/store/*.c')
 
     for exclude in EXCLUDE_FILES:
         exclude_node = ctx.path.make_node(exclude)
@@ -245,15 +250,15 @@ def build(bld):
 
         EXCLUDE_FILES.append(sources)
 
-    build_test_program('lib/main.c', 'moosecat_runner')
-    build_test_program('lib/test_idle.c', 'test_idle')
-    build_test_program('lib/test_status_timer.c', 'test_status_timer')
-    build_test_program('lib/test_command_list.c', 'test_command_list')
-    build_test_program('lib/time_playlist.c', 'time_playlist')
-    build_test_program('lib/db_test.c', 'db_test')
-    build_test_program('lib/test_outputs.c', 'test_outputs')
-    build_test_program('lib/event_test.c', 'event_test')
-    build_test_program('lib/gtk_db.c', 'gtk_db',
+    #build_test_program('lib/samples/test_idle.c', 'test_idle')
+    #build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
+    #build_test_program('lib/samples/test_command_list.c', 'test_command_list')
+    build_test_program('lib/samples/test_client.c', 'test_client')
+    #build_test_program('lib/samples/test_playlist.c', 'time_playlist')
+    #build_test_program('lib/samples/test_db.c', 'test_db')
+    #build_test_program('lib/samples/test_outputs.c', 'test_outputs')
+    #build_test_program('lib/samples/test_event.c', 'test_event')
+    build_test_program('lib/samples/test_gtk.c', 'test_gtk',
             libraries=LIBS + bld.env.LIB_GTK3,
             includes_h=INCLUDES + bld.env.INCLUDES_GTK3
     )
