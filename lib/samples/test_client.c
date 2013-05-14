@@ -18,12 +18,12 @@ static void * execute(struct mc_JobManager *jm, volatile bool *cancel, void *use
 
 int main(int argc, char const *argv[])
 {
-    mc_Client *client = mc_proto_create(MC_PM_COMMAND);
+    mc_Client *client = mc_proto_create(MC_PM_IDLE);
     struct mc_JobManager *jm = mc_jm_create(execute, client);
 
     char * error = mc_proto_connect(client, NULL, "localhost", 6600, 2.0);
     if(error == NULL) {
-        int job = mc_jm_send(jm, 0, NULL);
+        long job = mc_jm_send(jm, 0, NULL);
         send_some_commands(client);
         mc_jm_wait_for_id(jm, job);
     } else {

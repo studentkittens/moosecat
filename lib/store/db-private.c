@@ -2,7 +2,6 @@
 #include "db-macros.h"
 
 #include "../mpd/signal-helper.h"
-#include "../mpd/client-private.h"
 #include "../util/paths.h"
 
 /* strlen() */
@@ -682,7 +681,7 @@ void mc_stprv_deserialize_songs(mc_Store *self)
     /* progress */
     int progress_counter = 0;
     GTimer *timer = g_timer_new();
-
+ 
     /* loop over all rows in the songs table */
     while ((error_id = sqlite3_step(stmt)) == SQLITE_ROW) {
         pair.name = "file";

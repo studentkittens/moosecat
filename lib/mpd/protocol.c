@@ -110,8 +110,6 @@ char *mc_proto_connect(
         mc_proto_update_context_info_cb(self, INT_MAX, NULL);
         mc_proto_outputs_update(self, INT_MAX, NULL);
 
-        self->_command_list_conn = NULL;
-
         /* For bugreports only */
         self->_timeout = timeout;
 
@@ -143,7 +141,6 @@ void mc_proto_put(mc_Client *self)
         self->do_put(self);
 
         /* Make the connection accesible to other threads */
-        g_printerr("UNLOCK\n");
         g_rec_mutex_unlock(&self->_getput_mutex);
 
     }
@@ -163,7 +160,6 @@ struct mpd_connection *mc_proto_get(mc_Client *self) {
         * can use it. This prevents us from relying on
         * the user to lock himself. */
         g_rec_mutex_lock(&self->_getput_mutex);
-        g_printerr("LOCK\n");
 
         cconn = self->do_get(self);
         mc_shelper_report_error(self, cconn);

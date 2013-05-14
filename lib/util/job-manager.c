@@ -14,7 +14,7 @@ typedef struct {
     gpointer job_data;
 
     /* Integer ID of the Job (incrementing up from 0) */
-    int id;
+    long id;
 
 } mc_Job;
 
@@ -52,16 +52,16 @@ struct mc_JobManager {
     GHashTable *results;
 
     /* Job IDs are created by incrementing this counter */
-    int job_id_counter;
+    long job_id_counter;
 
     /* Mutex to protext job id counter */
     GMutex job_id_counter_mutex;
 
     /* The ID of the most recently finished job (-1 initially) */
-    int last_finished_job;
+    long last_finished_job;
 
     /* The ID of the most recently send job (-1 initially) */
-    int last_send_job;
+    long last_send_job;
 
     /* User data that is passed to callback (settable per manager) */
     gpointer user_data;
@@ -209,7 +209,7 @@ bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel)
 
 /////////////////////////////////
 
-int mc_jm_send(struct mc_JobManager *jm, int priority, gpointer job_data)
+long mc_jm_send(struct mc_JobManager *jm, int priority, gpointer job_data)
 {
     /* Create a new job, with a unique job-id */
     mc_Job *job = mc_job_create(jm);

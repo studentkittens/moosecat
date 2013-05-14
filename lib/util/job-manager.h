@@ -56,7 +56,7 @@ bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel);
  *
  * @return a unique integer, being the id of the job.
  */
-int mc_jm_send(struct mc_JobManager *jm, int priority, void *user_data);
+long mc_jm_send(struct mc_JobManager *jm, int priority, void *user_data);
 
 /**
  * @brief Blocks until the internal Queue is empty. (No jobs currently processed)

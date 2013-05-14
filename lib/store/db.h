@@ -74,7 +74,7 @@ int mc_store_total_songs(mc_Store *self);
  *
  * @return a job id
  */
-int mc_store_playlist_load(mc_Store *self, const char *playlist_name);
+long mc_store_playlist_load(mc_Store *self, const char *playlist_name);
 
 /**
  * @brief Queries the contents of a playlist in a similar fashion as mc_store_search_out does.
@@ -88,7 +88,7 @@ int mc_store_playlist_load(mc_Store *self, const char *playlist_name);
  *
  * @return a job id
  */
-int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause);
+long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause);
 
 /**
  * @brief List a directory in MPD's database.
@@ -100,7 +100,7 @@ int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const cha
  *
  * @return a job id
  */
-int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth);
+long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth);
 
 /**
  * @brief return a stack of the loaded playlists. Not the actually ones there.
@@ -110,7 +110,7 @@ int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *di
  *
  * @return a job id
  */
-int mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
+long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
 
 /**
  * @brief Get a list (i.e. mc_Stack) of available playlist names on server-side.
@@ -137,7 +137,7 @@ const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self);
  *
  * @return a Job id
  */
-int mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
+long mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
 
 /**
  * @brief Wait for the store to finish it's current operation.

@@ -252,7 +252,7 @@ def build(bld):
 
     #build_test_program('lib/samples/test_idle.c', 'test_idle')
     #build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
-    #build_test_program('lib/samples/test_command_list.c', 'test_command_list')
+    build_test_program('lib/samples/test_command_list.c', 'test_command_list')
     build_test_program('lib/samples/test_client.c', 'test_client')
     #build_test_program('lib/samples/test_playlist.c', 'time_playlist')
     #build_test_program('lib/samples/test_db.c', 'test_db')
@@ -274,15 +274,15 @@ def build(bld):
     )
 
     # Compile the cython code into build/moose.something.so
-    bld(
-        features='c cshlib pyext',
-        source=_find_cython_src(bld),
-        target='moosecython',
-        use='moosecat',
-        lib=LIBS,
-        includes=['moosecat'] + INCLUDES,
-        cflags=CFLAGS
-    )
+    #bld(
+    #    features='c cshlib pyext',
+    #    source=_find_cython_src(bld),
+    #    target='moosecython',
+    #    use='moosecat',
+    #    lib=LIBS,
+    #    includes=['moosecat'] + INCLUDES,
+    #    cflags=CFLAGS
+    #)
 
     if bld.options.runtests:
         for path in bld.path.ant_glob('test/lib/**/*.c'):

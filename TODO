@@ -2,26 +2,14 @@ libmoosecat
 -----------
 
 Near-Term:
-    - Replace COMMAND with something more appropiate. Replace old impl.
-        - Read through:
-            
-            - protocol.c
-            - client-command-list.c
-            - update.c
-            - store/db.c
-            - store/db-private.c
-            - store/db-stored-playlist.c
-
-    - Implement command_list with mc_JobManager.
-    - Update cython wrapper
-    - Replace job_id with long.
+    - Command List support not working (Grrrr.)
+    - update.c (Very tricky)
+    - Update cython wrapper (Oof)
 
 
 - Make libmoosecat fully threadsafe. (Although it should be already.)
-- Make client/store failsafe in case of mpd crash/shutdown/connectionkill
-- Update Cython Wrapper to reflect the changes.
-- Make store operations cancellable.
-- Rethink Prio in store operations.
+- Make client/store failsafe in case of connection loss
+
 - Fix the f@@king buildsystem.. why does it keep compiling moose.c always?
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.

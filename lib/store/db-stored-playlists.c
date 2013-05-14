@@ -46,7 +46,6 @@
 #include "db-macros.h"
 
 #include "../mpd/client.h"
-#include "../mpd/client-private.h"
 #include "../mpd/signal-helper.h"
 
 #include <glib.h>
@@ -203,7 +202,10 @@ static void mc_stprv_spl_listplaylists(mc_Store *store)
         mc_stack_free(store->spl.stack);
 
     store->spl.stack = mc_stack_create(10, (GDestroyNotify) mpd_playlist_free);
-    BEGIN_COMMAND {
+
+
+    struct mpd_connection *conn = mc_proto_get(self);
+    if(conn != NULL) {
         struct mpd_playlist *playlist = NULL;
         mpd_send_list_playlists(conn);
 
@@ -211,7 +213,11 @@ static void mc_stprv_spl_listplaylists(mc_Store *store)
             mc_stack_append(store->spl.stack, playlist);
         }
 
-    } END_COMMAND;
+        if (mpd_response_finish(conn) == false) {       
+            mc_shelper_report_error(self, conn);        
+        }                                               
+    }
+    mc_proto_put(self);
 }
 ///////////////////
 
@@ -427,7 +433,10 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
 
             mc_shelper_report_progress(self, true, "database: Loading stored playlist ,,%s'' from MPD", table_name);
             sqlite3_free(sql);
-            BEGIN_COMMAND {
+
+            /* Acquire the connection (this locks the connection for others) */
+            struct mpd_connection *conn = mc_proto_get(self);
+            if(conn != NULL) {
 
                 if (mpd_send_list_playlist(conn, mpd_playlist_get_path(playlist))) {
                     struct mpd_pair *file_pair = NULL;
@@ -449,8 +458,10 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
                         mc_shelper_report_operation_finished(self, MC_OP_SPL_UPDATED);
                     }
                 }
+            }
 
-            } END_COMMAND;
+            /* Release the connection mutex */
+            mc_proto_put(self);
 
             if (sqlite3_finalize(insert_stmt) != SQLITE_OK)
                 REPORT_SQL_ERROR(store, "Cannot finalize INSERT stmt");

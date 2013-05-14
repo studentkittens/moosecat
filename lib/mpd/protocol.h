@@ -88,9 +88,6 @@ typedef struct mc_Client {
     float _timeout;
     mc_PmType _pm;
 
-    /* True if mc_client_command_list_begin was called */
-    struct mpd_connection *_command_list_conn;
-
     /*
      * Signal functions are stored in here
      */
@@ -126,6 +123,14 @@ typedef struct mc_Client {
     /* Job Dispatcher */
     struct mc_JobManager *jm;
 
+    /* true when command_list_begin was sended */
+    struct {
+        /* Id of command list job */
+        int is_active;
+        GMutex is_active_mtx;
+        GList *commands;
+    } command_list;
+    
 } mc_Client;
 
 ///////////////////

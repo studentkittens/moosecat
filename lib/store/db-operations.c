@@ -4,7 +4,6 @@
 #include "db-private.h"
 
 #include "../mpd/client.h"
-#include "../mpd/client-private.h"
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
 
@@ -90,7 +89,7 @@ static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
  *       Also, this value is adjustable in mpd.conf
  *       e.g. max_command_list_size "16192"
  */
-void mc_store_oper_listallinfo(mc_Store *store)
+void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
 {
     g_assert(store);
     g_assert(store->client);
@@ -148,7 +147,8 @@ void mc_store_oper_listallinfo(mc_Store *store)
             &tag
     );
 
-    BEGIN_COMMAND {
+    struct mpd_connection *conn = mc_proto_get(store->client);
+    if(conn != NULL) {
         struct mpd_entity *ent = NULL;
 
         g_timer_start(timer);
@@ -157,6 +157,14 @@ void mc_store_oper_listallinfo(mc_Store *store)
         mpd_send_list_all_meta(conn, "/");
 
         while ((ent = mpd_recv_entity(conn)) != NULL) {
+            if(mc_jm_check_cancel(store->jm, cancel)) {
+                mc_shelper_report_progress(
+                        self, false, "database: listallinfo cancelled!"
+                );
+
+                break;
+            }
+
             if (++progress_counter % 50 == 0) {
                 mc_shelper_report_progress(
                         self, false, "database: retrieving entities from mpd ... [%d/%d]",
@@ -166,8 +174,13 @@ void mc_store_oper_listallinfo(mc_Store *store)
 
             g_async_queue_push(queue, ent);
         }
+
+        /* This should only happen if the operation was cancelled */
+        if (mpd_response_finish(conn) == false) {       
+            mc_shelper_report_error(store->client, conn);        
+        }                                               
     }
-    END_COMMAND;
+    mc_proto_put(store->client);
 
     /* tell SQL thread kindly to die, but wait for him to bleed */
     g_async_queue_push(queue, queue);
@@ -252,7 +265,7 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
 
 ///////////////////////////////////
 
-void mc_store_oper_plchanges(mc_Store *store)
+void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
 {
     g_assert(store);
 
@@ -294,7 +307,8 @@ void mc_store_oper_plchanges(mc_Store *store)
 
     /* Now do the actual hard work, send the actual plchanges command,
      * loop over the retrieved contents, and push them to the SQL Thread */
-    BEGIN_COMMAND {
+    struct mpd_connection *conn = mc_proto_get(store->client);
+    if(conn != NULL) {
         g_timer_start(timer);
 
         mc_shelper_report_progress(
@@ -306,6 +320,14 @@ void mc_store_oper_plchanges(mc_Store *store)
             struct mpd_song *song = NULL;
 
             while ((song = mpd_recv_song(conn)) != NULL) {
+                if(mc_jm_check_cancel(store->jm, cancel)) {
+                    mc_shelper_report_progress(
+                            self, false, "database: plchanges cancelled!"
+                    );
+
+                    break;
+                }
+
                 g_async_queue_push(queue, song);
                 if (progress_counter++ % 50 == 0)
                     mc_shelper_report_progress(
@@ -315,11 +337,15 @@ void mc_store_oper_plchanges(mc_Store *store)
             }
         }
 
-        /* Killing the SQL thread softly. */
-        g_async_queue_push(queue, queue);
-        g_thread_join(sql_thread);
+        if (mpd_response_finish(conn) == false) {       
+            mc_shelper_report_error(store->client, conn);        
+        }                                               
     }
-    END_COMMAND
+    mc_proto_put(store->client);
+
+    /* Killing the SQL thread softly. */
+    g_async_queue_push(queue, queue);
+    g_thread_join(sql_thread);
 
     /* a bit of timing report */
     mc_shelper_report_progress(

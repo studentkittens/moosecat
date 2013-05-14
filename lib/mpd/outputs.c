@@ -1,4 +1,3 @@
-#include "client-private.h"
 #include "client.h"
 #include "signal-helper.h"
 #include "outputs.h"
@@ -20,7 +19,8 @@ void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event, void *unused)
     if ((event & MPD_IDLE_OUTPUT) == 0)
         return /* because of no relevant event */;
 
-    BEGIN_COMMAND {
+    struct mpd_connection *conn = mc_proto_get(self);
+    if(conn != NULL) {
         if (mpd_send_outputs(conn) == false) {
             mc_shelper_report_error(self, conn);
         } else {
@@ -40,7 +40,11 @@ void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event, void *unused)
             }
         }
 
-    } END_COMMAND;
+        if(mpd_response_finish(conn) == false) {
+            mc_shelper_report_error(self, conn);
+        }
+    }
+    mc_proto_put(self);
 }
 
 ///////////////////

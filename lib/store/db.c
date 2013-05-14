@@ -1,4 +1,3 @@
-#include "../mpd/client-private.h"
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
 #include "../util/gzip.h"
@@ -24,21 +23,36 @@ typedef struct {
     mc_Stack *out_stack;
 } mc_JobData;
 
+
+int mc_JobPrios[] = {
+    [MC_OPER_DESERIALIZE] = -1,
+    [MC_OPER_LISTALLINFO] = -1,
+    [MC_OPER_PLCHANGES]   = +0,
+    [MC_OPER_SPL_LOAD]    = +1,
+    [MC_OPER_SPL_UPDATE]  = +1,
+    [MC_OPER_UPDATE_META] = +1,
+    [MC_OPER_DB_SEARCH]   = +2,
+    [MC_OPER_DIR_SEARCH]  = +2,
+    [MC_OPER_SPL_LIST]    = +2,
+    [MC_OPER_SPL_QUERY]   = +2,
+    [MC_OPER_UNDEFINED]   = 10
+};
+
+
 //////////////////////////////
 //                          //
 //     Utility Functions    //
 //                          //
 //////////////////////////////
 
-static int mc_store_send_job_no_args(
+static long mc_store_send_job_no_args(
         mc_Store *self,
-        int priority, 
-        mc_StoreOperation op
-)
+        mc_StoreOperation op)
 {
     mc_JobData *data = g_new0(mc_JobData, 1);
     data->op = op;
-    return mc_jm_send(self->jm, priority, data);
+
+    return mc_jm_send(self->jm, mc_JobPrios[data->op], data);
 }
 
 //////////////////////////////
@@ -193,15 +207,15 @@ static void mc_store_update_callback(
     g_assert(self && client && self->client == client);
 
     if (events & MPD_IDLE_DATABASE) {
-        mc_store_send_job_no_args(self, -1,
+        mc_store_send_job_no_args(self,
                 MC_OPER_LISTALLINFO
         );
     } else if (events & MPD_IDLE_QUEUE) {
-        mc_store_send_job_no_args(self, 0,
+        mc_store_send_job_no_args(self,
                 MC_OPER_PLCHANGES
         );
     } else if (events & MPD_IDLE_STORED_PLAYLIST) {
-        mc_store_send_job_no_args(self, 1,
+        mc_store_send_job_no_args(self,
                 MC_OPER_SPL_LIST);
     }
 }
@@ -373,7 +387,7 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 
         /* the database is new, so no pos/id information is there yet
          * we need to query mpd, update db && queue info */
-        mc_store_send_job_no_args(store, -1, MC_OPER_LISTALLINFO);
+        mc_store_send_job_no_args(store, MC_OPER_LISTALLINFO);
     } else {
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
@@ -388,7 +402,7 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
         /* load the old database into memory */
         mc_stprv_load_or_save(store, false, db_path);
 
-        mc_store_send_job_no_args(store, -1, MC_OPER_DESERIALIZE);
+        mc_store_send_job_no_args(store, MC_OPER_DESERIALIZE);
     }
 
     /* Register for client events */
@@ -490,7 +504,7 @@ int mc_store_total_songs(mc_Store *self)
 //                          //
 //////////////////////////////
 
-int mc_store_playlist_load(mc_Store *self, const char *playlist_name)
+long mc_store_playlist_load(mc_Store *self, const char *playlist_name)
 {
     g_assert(self);
 
@@ -498,12 +512,12 @@ int mc_store_playlist_load(mc_Store *self, const char *playlist_name)
     data->op = MC_OPER_SPL_LOAD;
     data->playlist_name = playlist_name;
 
-    return mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_LOAD], data);
 }
 
 //////////////////////////////
 
-int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
+long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
 {
     g_assert(self);
     g_assert(stack);
@@ -515,12 +529,12 @@ int mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const cha
     data->match_clause = match_clause;
     data->out_stack = stack;
 
-    return mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_QUERY], data);
 }
 
 //////////////////////////////
 
-int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
+long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
 { 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DIR_SEARCH;
@@ -528,18 +542,18 @@ int mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *di
     data->dir_depth = depth;
     data->out_stack = stack;
 
-    return mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_DIR_SEARCH], data);
 }
 
 //////////////////////////////
 
-int mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
+long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_LIST;
     data->out_stack = stack;
 
-    return mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_LIST], data);
 }
 
 //////////////////////////////
@@ -551,7 +565,10 @@ const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self)
 
 //////////////////////////////
 
-int mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
+long mc_store_search_to_stack(
+        mc_Store *self, const char *match_clause,
+        bool queue_only, mc_Stack *stack, int limit_len
+    )
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DB_SEARCH;
@@ -560,7 +577,7 @@ int mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queu
     data->length_limit = limit_len;
     data->out_stack = stack;
 
-    return mc_jm_send(self->jm, 1, data);
+    return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_DB_SEARCH], data);
 }
 
 //////////////////////////////
