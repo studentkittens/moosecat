@@ -120,6 +120,10 @@ typedef struct mc_Client {
     struct mpd_status *status;
     const char *replay_gain_status;
 
+    struct {
+        GMutex song, status, stats;
+    } update_mtx;
+
     /* Job Dispatcher */
     struct mc_JobManager *jm;
 

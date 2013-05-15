@@ -218,3 +218,45 @@ bool mc_proto_update_status_timer_is_active(struct mc_Client *self)
     g_assert(self);
     return (self->status_timer.timeout_id != -1);
 }
+
+////////////////////////
+
+void mc_lock_status(struct mc_Client *self)
+{
+    g_mutex_lock(&self->update_mtx.status);
+}
+
+////////////////////////
+
+void mc_unlock_status(struct mc_Client *self)
+{
+    g_mutex_unlock(&self->update_mtx.stats);
+}
+
+////////////////////////
+
+void mc_lock_stats(struct mc_Client *self)
+{
+    g_mutex_lock(&self->update_mtx.stats);
+}
+
+////////////////////////
+
+void mc_unlock_stats(struct mc_Client *self)
+{
+    g_mutex_unlock(&self->update_mtx.stats);
+}
+
+////////////////////////
+
+void mc_lock_current_song(struct mc_Client *self)
+{
+    g_mutex_lock(&self->update_mtx.song);
+}
+
+////////////////////////
+
+void mc_unlock_current_song(struct mc_Client *self)
+{
+    g_mutex_unlock(&self->update_mtx.song);
+}

@@ -18,6 +18,18 @@ void mc_proto_update_register_status_timer(
     int repeat_ms,
     bool trigger_event);
 
+/**
+ * @brief Stop a registered status timer
+ *
+ * @param self the client to operate on
+ */
 void mc_proto_update_unregister_status_timer(struct mc_Client *self);
 
 bool mc_proto_update_status_timer_is_active(struct mc_Client *self);
+
+void mc_lock_status(struct mc_Client *self);
+void mc_unlock_status(struct mc_Client *self);
+void mc_lock_stats(struct mc_Client *self);
+void mc_unlock_stats(struct mc_Client *self);
+void mc_lock_current_song(struct mc_Client *self);
+void mc_unlock_current_song(struct mc_Client *self);
