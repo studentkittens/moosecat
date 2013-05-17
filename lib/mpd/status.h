@@ -8,7 +8,6 @@
  * to a mpd_status sicne it may silenty delete it behind your back.
  */ 
 
-
 int mc_status_get_volume(mc_Client *self);
 bool mc_status_get_repeat(mc_Client *self);
 bool mc_status_get_random(mc_Client *self);
