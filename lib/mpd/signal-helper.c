@@ -134,8 +134,7 @@ void mc_shelper_report_client_event(
     enum mpd_idle event)
 {
     if (event != 0) {
-        mc_proto_update_context_info_cb(self, event, NULL);
-        mc_proto_outputs_update(self, event, NULL);
+        mc_proto_force_sss_update(self, event);
         mc_proto_signal_dispatch(self, "client-event", self, event);
     }
 }

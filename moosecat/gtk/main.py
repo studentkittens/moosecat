@@ -6,6 +6,7 @@ from moosecat.boot import boot_base, boot_store, shutdown_application, g
 import moosecat.gtk.controller as ctrl
 
 
+
 class Application(Gtk.Application):
     def __init__(self):
         Gtk.Application.__init__(self)

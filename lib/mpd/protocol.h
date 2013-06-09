@@ -75,6 +75,10 @@ typedef struct mc_Client {
      */
     void (* do_free)(struct mc_Client *);
 
+    /////////////////////////////
+    //    Actual Variables     //
+    /////////////////////////////
+
     /* This is locked on do_get(),
      * and unlocked on do_put()
      */
@@ -111,15 +115,19 @@ typedef struct mc_Client {
         bool reset_timer;
     } status_timer;
 
-    /*
-     * Up-to-date infos.
-     * Can be accessed safely in public.
-     */
+    /* Up-to-date infos. */
     struct mpd_song *song;
     struct mpd_stats *stats;
     struct mpd_status *status;
     const char *replay_gain_status;
 
+    /* Thread in which the status updating runs in. */
+    GThread * update_thread;
+
+    /* Jobs are sended to the update queue via this */
+    GAsyncQueue * update_queue;
+
+    /* Locking for updating song/status/stats */
     struct {
         GMutex song, status, stats;
     } update_mtx;
@@ -127,7 +135,6 @@ typedef struct mc_Client {
     /* Job Dispatcher */
     struct mc_JobManager *jm;
 
-    /* true when command_list_begin was sended */
     struct {
         /* Id of command list job */
         int is_active;

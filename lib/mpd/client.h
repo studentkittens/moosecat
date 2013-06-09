@@ -20,8 +20,8 @@ bool mc_client_command_list_is_active(mc_Client *self);
 void mc_client_wait(mc_Client *self);
 
 
-bool mc_client_begin(mc_Client *self);
-bool mc_client_commit(mc_Client *self);
+void mc_client_begin(mc_Client *self);
+void mc_client_commit(mc_Client *self);
 
 
 #endif /* end of include guard: CLIENT_H */
