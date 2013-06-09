@@ -793,24 +793,23 @@ static void * mc_client_command_dispatcher(
         /* Input command left to parse */
         const char *input = job_data;
 
-        /* Free input (since it was strdrup'd */
+        /* Free input (since it was strdrup'd) */
         bool free_input = true;
 
-
         if(mc_client_command_list_is_start_or_end(input) == -1) {
-            g_print("Command list commit\n");
+            g_printerr("Command list commit\n");
             result = mc_client_command_list_commit(self);
         }
         else
         if(mc_client_command_list_is_active(self)) {
-            g_print("Appending: %s\n", input);
+            g_printerr("Appending: %s\n", input);
             mc_client_command_list_append(self, input);
             result = true;
             free_input = false;
         }
         else 
         if(mc_client_command_list_is_start_or_end(input) == +1) {
-            g_print("Command List begin\n");
+            g_printerr("Command List begin\n");
             mc_client_command_list_begin(self);
             result = true;
         }
@@ -916,8 +915,17 @@ static bool mc_client_command_list_commit(mc_Client *self)
         if (mpd_response_finish(conn) == false) {       
             mc_shelper_report_error(self, conn);        
         }                                               
-    }                                                   
+    }                   
+
+    g_list_free(self->command_list.commands);
+    self->command_list.commands = NULL;
+
+    /* Put mutex back */
     mc_proto_put(self);                                 
+
+    g_mutex_lock(&self->command_list.is_active_mtx);
+    self->command_list.is_active = 0;
+    g_mutex_unlock(&self->command_list.is_active_mtx);
 
     return !mc_client_command_list_is_active(self);
 }

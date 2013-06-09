@@ -18,8 +18,8 @@ int main(void)
             mc_client_send(client, "previous");
             mc_client_send(client, "pause");
             mc_client_send(client, "command_list_end");
-            g_print("%d %d\n", mc_client_recv(client, job_id),
-                        mc_client_command_list_is_active(client));
+            g_printerr("is_active=%d\n", mc_client_command_list_is_active(client));
+            g_printerr("recv=%d\n", mc_client_recv(client, job_id));
         }
 
 
@@ -28,6 +28,8 @@ int main(void)
     } else {
         puts("Not connected.");
     }
+
+    puts("-- Freeing client.");
 
     mc_proto_free(client);
     return 0;
