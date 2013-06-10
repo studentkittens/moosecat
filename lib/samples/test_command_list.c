@@ -12,14 +12,22 @@ int main(void)
 
         long job_id = 0;
 
-        for(int i = 0; i < 10; ++i) {
-            job_id = mc_client_send(client, "command_list_begin");
+        for(int i = 0; i < 1000; ++i) {
+            g_print("SEND: BEGIN\n");
+            mc_client_begin(client);
+            g_print("SEND: NEXT\n");
             mc_client_send(client, "next");
+            g_print("SEND: PREV\n");
             mc_client_send(client, "previous");
+            g_print("SEND: PAUSE\n");
             mc_client_send(client, "pause");
-            mc_client_send(client, "command_list_end");
+            g_print("SEND: END\n");
+            job_id = mc_client_commit(client);
+            g_print("SEND: IS ACTIVE\n");
             g_printerr("is_active=%d\n", mc_client_command_list_is_active(client));
+            g_print("SEND: RECV %ld\n", job_id);
             g_printerr("recv=%d\n", mc_client_recv(client, job_id));
+            g_print("AFTER: RECV\n");
         }
 
 

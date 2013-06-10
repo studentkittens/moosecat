@@ -758,6 +758,7 @@ static bool mc_client_execute(
     }
 
     g_strfreev(parts);
+    g_print("Processing done \n");
     return result;
 }
 
@@ -927,6 +928,8 @@ static bool mc_client_command_list_commit(mc_Client *self)
     self->command_list.is_active = 0;
     g_mutex_unlock(&self->command_list.is_active_mtx);
 
+    g_print("Committed.\n");
+
     return !mc_client_command_list_is_active(self);
 }
 
@@ -972,7 +975,9 @@ bool mc_client_recv(mc_Client *self, long job_id)
 {
     g_assert(self);
 
+    g_print("BEFORE WAIT\n");
     mc_jm_wait_for_id(self->jm, job_id);
+    g_print("AFTER WAIT\n");
     return GPOINTER_TO_INT(mc_jm_get_result(self->jm, job_id));
 }
 
@@ -1019,11 +1024,9 @@ void mc_client_begin(mc_Client *self)
 
 ///////////////////
 
-void mc_client_commit(mc_Client *self)
+long mc_client_commit(mc_Client *self)
 {
     g_assert(self);
 
-    mc_client_send(self, "command_list_end");
+    return mc_client_send(self, "command_list_end");
 }
-
-///////////////////

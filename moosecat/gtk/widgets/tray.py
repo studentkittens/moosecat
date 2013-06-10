@@ -55,7 +55,7 @@ def draw_playing(ctx, width, height, mx, my):
 def draw_undefined(ctx, width, height, mx, my):
     'Undefined state: Draw a Question Mark'
     # Draw a nice unicode symbol in the middle
-    draw_center_text(ctx, width, height, '?', font_size=0.45 * min(width, height))
+    draw_center_text(ctx, width, height, '#', font_size=0.5 * min(width, height))
 
 
 DRAW_STATE_MAP = {
@@ -66,7 +66,7 @@ DRAW_STATE_MAP = {
 }
 
 
-def draw_status_icon(state, col_insens, col_active, col_middle, segments=5, percent=0, width=70, height=70):
+def draw_status_icon(state, col_insens, col_active, col_middle, segments=5, percent=0, width=100, height=100):
     '''
     Actually draw the Gtk.StatusIcon
 
@@ -91,7 +91,7 @@ def draw_status_icon(state, col_insens, col_active, col_middle, segments=5, perc
     mx, my = width / 2, height / 2
 
     # Border Width
-    bw = min(width, height) / 8
+    bw = min(width, height) / 6
     ctx.set_line_width(bw)
 
     # Number of segments and length in radiants
@@ -100,12 +100,15 @@ def draw_status_icon(state, col_insens, col_active, col_middle, segments=5, perc
     radius = min(mx, my) - (bw / 2 + 1)
 
     # Draw a black circle in the middle of the segments (non-touching)
-    rg = RadialGradient(mx, my, radius / 2, mx, my, min(mx, my))
-    rg.add_color_stop_rgb(0, 0.1, 0.1, 0.1)
-    rg.add_color_stop_rgb(1, 0.4, 0.4, 0.4)
-    ctx.set_source(rg)
+    ctx.save()
     ctx.arc(mx, my, min(mx, my) - 1, 0, 2 * pi)
-    ctx.fill()
+    ctx.clip()
+    rg = RadialGradient(mx, my, radius / 2, mx, my, min(mx, my))
+    rg.add_color_stop_rgb(0, 0.6, 0.6, 0.6)
+    rg.add_color_stop_rgb(1, 1.0, 1.0, 1.0)
+    ctx.set_source(rg)
+    ctx.mask(rg)
+    ctx.restore()
 
     # Draw {segments} curvy segments
     for segment in range(segments):
@@ -127,6 +130,8 @@ def draw_status_icon(state, col_insens, col_active, col_middle, segments=5, perc
     ctx.set_source_rgb(*col_middle)
     DRAW_STATE_MAP[state](ctx, width, height, mx, my)
 
+    surface.write_to_png('/tmp/test.png')
+
     # Convert the surface to an actual Gdk.Pixbuf we can set to the StatusIcon
     return Gdk.pixbuf_get_from_surface(
             surface, 0, 0,
@@ -146,9 +151,9 @@ class TrayIcon(Gtk.StatusIcon):
         self.connect('scroll-event', self.on_default_scroll_event)
 
         # Colors - fixed, not from theme
-        self._col_active = (0.09, 0.57, 0.82)
+        self._col_active = (0.91, 0.43, 0.16)
         self._col_insens = (0.25, 0.25, 0.25)
-        self._col_middle = (0.90, 0.90, 0.90)
+        self._col_middle = (0.10, 0.10, 0.10)
 
         # Settings:
         self._percent = 0
