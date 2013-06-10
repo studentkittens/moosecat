@@ -2,7 +2,6 @@ libmoosecat
 -----------
 
 Near-Term:
-    - Command List support not working (Grrrr.)
     - update.c (Very tricky)
     - Update cython wrapper (Oof)
 

@@ -1,5 +1,7 @@
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
+#include "../mpd/status.h"
+#include "../mpd/statistics.h"
 #include "../util/gzip.h"
 
 #include "db-stored-playlists.h"
@@ -155,7 +157,7 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
 
     /* check #4 */
     size_t cached_db_version = mc_stprv_get_db_version(self);
-    if(cached_db_version != mpd_stats_get_db_update_time(self->client->stats))
+    if(cached_db_version != mc_stats_get_db_update_time(self->client))
         goto close_handle;
 
     size_t cached_sc_version = mc_stprv_get_sc_version(self);

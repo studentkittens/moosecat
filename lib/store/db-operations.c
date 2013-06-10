@@ -6,6 +6,8 @@
 #include "../mpd/client.h"
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
+#include "../mpd/status.h"
+#include "../mpd/statistics.h"
 
 
 typedef struct {
@@ -96,7 +98,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
 
     mc_Client *self = store->client;
     int progress_counter = 0;
-    int number_of_songs = mpd_stats_get_number_of_songs(self->stats);
+    int number_of_songs = mc_stats_get_number_of_songs(self);
     size_t db_version = 0;
     
     GTimer *timer = NULL;
@@ -110,7 +112,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
     db_version = mc_stprv_get_db_version(store);
 
     if(store->force_update_listallinfo == false) {
-        if (mpd_stats_get_db_update_time(self->stats) == db_version) {
+        if (mc_stats_get_db_update_time(self) == db_version) {
             mc_shelper_report_progress(
                     self, true,
                     "database: Will not update database, timestamp didn't change."
@@ -134,7 +136,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
     }
 
     store->stack = mc_stack_create(
-            mpd_stats_get_number_of_songs(self->stats) + 1,
+            mc_stats_get_number_of_songs(self) + 1,
             (GDestroyNotify) mpd_song_free
     );
 
@@ -230,7 +232,7 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
     /* Clip off songs that were deleted at the end of the queue */
     int clipped = mc_stprv_queue_clip(
             self,
-            mpd_status_get_queue_length(self->client->status)
+            mc_status_get_queue_length(self->client)
     );
 
     if (clipped > 0) {
@@ -289,11 +291,11 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
     }
 
     if(store->force_update_plchanges == false) {
-        if (last_pl_version == mpd_status_get_queue_version(store->client->status)) {
+        if (last_pl_version == mc_status_get_queue_version(store->client)) {
             mc_shelper_report_progress(
                     self, true,
                     "database: Will not update queue, version didn't change (%d == %d)",
-                    (int) last_pl_version, mpd_status_get_queue_version(store->client->status)
+                    (int) last_pl_version, mc_status_get_queue_version(store->client)
             );
             return;
         }
@@ -333,7 +335,7 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
                     mc_shelper_report_progress(
                             self, false,
                             "database: receiving queue contents ... [%d/%d]",
-                            progress_counter, mpd_status_get_queue_length(store->client->status));
+                            progress_counter, mc_status_get_queue_length(store->client));
             }
         }
 

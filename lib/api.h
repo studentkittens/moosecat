@@ -9,5 +9,9 @@
 #include "store/db-query-parser.h"
 #include "misc/external-logs.h"
 
+#include "mpd/status.h"
+#include "mpd/current-song.h"
+#include "mpd/statistics.h"
+
 #endif /* end of include guard: MOOSECAT_API_HH */
 

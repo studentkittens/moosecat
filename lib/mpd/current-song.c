@@ -1,8 +1,8 @@
-#include "current_song.h"
+#include "current-song.h"
 #include "update.h"
 
 #define SONG_FUNC(NAME, RTYPE)                           \
-    RTYPE mc_status_get_  ## NAME (mc_Client *self)      \
+    RTYPE mc_current_song_get_ ## NAME (mc_Client *self) \
     {                                                    \
         RTYPE rc = 0;                                    \
         if(self && self->song) {                         \

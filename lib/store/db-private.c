@@ -2,6 +2,8 @@
 #include "db-macros.h"
 
 #include "../mpd/signal-helper.h"
+#include "../mpd/statistics.h"
+#include "../mpd/status.h"
 #include "../util/paths.h"
 
 /* strlen() */
@@ -218,8 +220,8 @@ static const char *_sql_stmts[] = {
 void mc_stprv_insert_meta_attributes(mc_Store *self)
 {
     char *zSql = sqlite3_mprintf(SQL_CODE(META),
-            mpd_stats_get_db_update_time(self->client->stats),
-            mpd_status_get_queue_version(self->client->status),
+            mc_stats_get_db_update_time(self->client),
+            mc_status_get_queue_version(self->client),
             MC_DB_SCHEMA_VERSION,
             self->client->_port,
             self->client->_host
@@ -751,8 +753,7 @@ void mc_stprv_deserialize_songs(mc_Store *self)
         mc_stack_append(self->stack, song);
 
         if (++progress_counter % 50 == 0) {
-            int total_count = (self->client->stats != NULL) ?
-                              (int)mpd_stats_get_number_of_songs(self->client->stats) : -666;
+            int total_count = mc_stats_get_number_of_songs(self->client);
             mc_shelper_report_progress(self->client, false,
                                        "database: deserializing songs from db ... [%d/%d]",
                                        progress_counter, total_count);

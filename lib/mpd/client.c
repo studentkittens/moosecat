@@ -1,7 +1,7 @@
 #include "client.h"
 #include "signal-helper.h"
 #include "outputs.h"
-
+#include "current-song.h"
 
 static bool mc_client_command_list_begin(mc_Client *self);
 static void mc_client_command_list_append(mc_Client *self, const char *command);
@@ -539,8 +539,9 @@ static bool handle_seekcur(mc_Client *self, struct mpd_connection *conn, const c
 
     /* there is 'seekcur' in newer mpd versions,
      * but we can emulate it easily */
-    if (self->song != NULL) {
-        int curr_id = mpd_song_get_id(self->song);
+    if(mc_proto_is_connected(self))
+    {
+        int curr_id = mc_current_song_get_id(self);
         COMMAND(
             mpd_run_seek_id(conn, curr_id, seconds),
             mpd_send_seek_id(conn, curr_id, seconds)

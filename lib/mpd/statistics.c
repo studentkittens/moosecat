@@ -3,7 +3,7 @@
 
 
 #define STATISTIC_FUNC(NAME, RTYPE)                    \
-    RTYPE mc_status_get_  ## NAME (mc_Client *self)    \
+    RTYPE mc_stats_get_  ## NAME (mc_Client *self)     \
     {                                                  \
         RTYPE rc = 0;                                  \
         if(self && self->stats) {                      \

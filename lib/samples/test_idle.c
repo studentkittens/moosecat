@@ -11,14 +11,10 @@ static void signal_event(
     (void) u_conn;
     (void) user_data;
 
-    g_print("%p %p %p\n", conn->status, conn->song, conn->stats);
-
     g_print("event = %d\n", event);
-    g_print("status = %d\n", mpd_status_get_song_id(conn->status));
-    g_print("statis = %d\n", mpd_stats_get_number_of_artists(conn->stats));
-
-    if (conn->song)
-        g_print("ctsong = %s\n", mpd_song_get_tag(conn->song, MPD_TAG_ARTIST, 0));
+    g_print("status = %d\n", mc_status_get_song_id(conn));
+    g_print("statis = %d\n", mc_stats_get_number_of_artists(conn));
+    g_print("ctsong = %s\n", mc_current_song_get_tag(conn, MPD_TAG_ARTIST, 0));
 }
 
 /////////////////////////////

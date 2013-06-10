@@ -71,8 +71,10 @@ void mc_proto_update_context_info_cb(
 
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
+                        mc_lock_status(self);
                         free_if_not_null(self->status, mpd_status_free);
                         self->status = tmp_status;
+                        mc_unlock_status(self);
                     }
 
                     mpd_response_next(conn);
@@ -85,8 +87,10 @@ void mc_proto_update_context_info_cb(
                     tmp_stats = mpd_recv_stats(conn);
 
                     if (tmp_stats) {
+                        mc_lock_stats(self);
                         free_if_not_null(self->stats, mpd_stats_free);
                         self->stats = tmp_stats;
+                        mc_unlock_stats(self);
                     }
 
                     mpd_response_next(conn);
@@ -99,7 +103,10 @@ void mc_proto_update_context_info_cb(
                     struct mpd_pair *mode = mpd_recv_pair_named(conn, "replay_gain_mode");
 
                     if (mode != NULL) {
+                        mc_lock_status(self);
                         self->replay_gain_status = g_strdup(mode->value);
+                        mc_unlock_status(self);
+
                         mpd_return_pair(conn, mode);
                     }
 
@@ -109,8 +116,11 @@ void mc_proto_update_context_info_cb(
 
                 /* Try to receive the current song */
                 if (update_song) {
+                    struct mpd_song * new_song = mpd_recv_song(conn);
+
+                    mc_lock_current_song(self);
                     free_if_not_null(self->song, mpd_song_free);
-                    self->song = mpd_recv_song(conn);
+                    self->song = new_song;
 
                     /* We need to call recv() one more time
                      * so we end the songlist,
@@ -121,6 +131,7 @@ void mc_proto_update_context_info_cb(
                         g_assert(empty == NULL);
                     }
 
+                    mc_unlock_current_song(self);
                     mc_shelper_report_error(self, conn);
                 }
 
@@ -230,7 +241,7 @@ void mc_lock_status(struct mc_Client *self)
 
 void mc_unlock_status(struct mc_Client *self)
 {
-    g_mutex_unlock(&self->update_mtx.stats);
+    g_mutex_unlock(&self->update_mtx.status);
 }
 
 ////////////////////////

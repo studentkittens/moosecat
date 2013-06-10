@@ -34,22 +34,31 @@ static const char *etable[] = {
 static void mc_proto_reset(mc_Client *self)
 {
     /* Free status/song/stats */
+    mc_lock_status(self);
     if (self->status != NULL)
         mpd_status_free(self->status);
+    self->status = NULL;
 
-    if (self->stats != NULL)
-        mpd_stats_free(self->stats);
-
-    if (self->song != NULL)
-        mpd_song_free(self->song);
-
+    /* Replay gain status is handled as part of status */
     if (self->replay_gain_status != NULL)
         g_free((char *)self->replay_gain_status);
-
-    self->song = NULL;
-    self->stats = NULL;
-    self->status = NULL;
     self->replay_gain_status = NULL;
+
+    mc_unlock_status(self);
+
+    mc_lock_stats(self);
+    if (self->stats != NULL)
+        mpd_stats_free(self->stats);
+    self->stats = NULL;
+    mc_unlock_stats(self);
+
+    mc_lock_current_song(self);
+    if (self->song != NULL)
+        mpd_song_free(self->song);
+    self->song = NULL;
+    mc_unlock_current_song(self);
+
+
 }
 
 ///////////////////
