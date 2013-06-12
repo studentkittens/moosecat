@@ -130,6 +130,7 @@ def draw_status_icon(state, col_insens, col_active, col_middle, segments=5, perc
     ctx.set_source_rgb(*col_middle)
     DRAW_STATE_MAP[state](ctx, width, height, mx, my)
 
+    # Good for debugging (uncomment)
     surface.write_to_png('/tmp/test.png')
 
     # Convert the surface to an actual Gdk.Pixbuf we can set to the StatusIcon
@@ -149,6 +150,7 @@ class TrayIcon(Gtk.StatusIcon):
         self.set_visible(True)
         self.connect('popup-menu', self.on_showpopup)
         self.connect('scroll-event', self.on_default_scroll_event)
+        self.connect('size-changed', self.on_size_changed)
 
         # Colors - fixed, not from theme
         self._col_active = (0.91, 0.43, 0.16)
@@ -178,13 +180,19 @@ class TrayIcon(Gtk.StatusIcon):
 
     def _redraw(self):
         'Redraw the Icon in the bar'
+        # Only render the size needed.
+        # get_size() only returns sensitive
+        size = self.get_size() if self.is_embedded() else 64
+
         pixbuf = draw_status_icon(
                 self._state,
                 col_active=self._col_active,
                 col_insens=self._col_insens,
                 col_middle=self._col_middle,
                 segments=self._segments,
-                percent=self._percent
+                percent=self._percent,
+                width=size,
+                height=size
         )
         self.set_from_pixbuf(pixbuf)
 
@@ -216,6 +224,9 @@ class TrayIcon(Gtk.StatusIcon):
 
         if sign is not 0:
             self.percent += sign * (50 / self._segments)
+
+    def on_size_changed(self, tray, new_size):
+        self._redraw()
 
     ################
     #  Properties  #

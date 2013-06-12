@@ -10,6 +10,13 @@
 /* Only prototype needed */
 struct mc_Client;
 
+typedef enum mc_OpFinishedEnum {
+    MC_OP_DB_UPDATED,
+    MC_OP_QUEUE_UPDATED,
+    MC_OP_SPL_UPDATED,
+    MC_OP_SPL_LIST_UPDATED
+} mc_OpFinishedEnum;
+
 ///////////////////////////////
 
 /**

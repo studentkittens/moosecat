@@ -743,8 +743,6 @@ static bool mc_client_execute(
     /* find out what handler to call */
     const mc_HandlerField *handler = mc_client_find_handler(g_strstrip(parts[0]));
 
-    g_printerr("Process: %s\n", input);
-
     if(handler != NULL) {
         /* Count arguments */
         int arguments = 0;
@@ -753,13 +751,14 @@ static bool mc_client_execute(
         if((arguments - 2) >= handler->num_args) {
             result = handler->handler(self, conn, (const char **)&parts[1]);
         } else {
-            g_print("Too many arguments to %s: Expected %d, Got %d\n", 
-                    parts[0], handler->num_args, arguments - 2);
+            mc_shelper_report_error_printf(self,
+                    "API-Misuse: Too many arguments to %s: Expected %d, Got %d\n", 
+                    parts[0], handler->num_args, arguments - 2
+            );
         }
     }
 
     g_strfreev(parts);
-    g_print("Processing done \n");
     return result;
 }
 

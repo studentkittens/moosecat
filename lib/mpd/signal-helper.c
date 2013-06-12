@@ -21,8 +21,11 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
-            mc_proto_signal_dispatch(self, "error", self, MPD_ERROR_CLOSED,
-                                     "Not connected. (That is no real error)", true);
+            mc_proto_signal_dispatch(
+                    self, "logging", self,
+                    "Connection to MPD was closed (IsFatal=maybe?)",
+                    true
+            );
         }
 
         return true;
@@ -52,7 +55,13 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
         }
 
         /* Dispatch the error to the users */
-        mc_proto_signal_dispatch(self, "error", self, error, self->error_buffer, is_fatal);
+        mc_shelper_report_error_printf(
+                self,
+                "ErrID=%d: %s (IsFatal=%s)",
+                error,
+                self->error_buffer,
+                is_fatal ? "True" : "False"
+        );
         return true;
     }
 
@@ -84,7 +93,7 @@ void mc_shelper_report_error_printf(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch(self, "error", self, 0, full_string, false);
+        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR);
     }
 
     va_end(list_ptr);
@@ -102,7 +111,7 @@ void mc_shelper_report_progress(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch(self, "progress", self, print_newline, full_string);
+        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO);
         g_free(full_string);
     }
 
@@ -141,10 +150,23 @@ void mc_shelper_report_client_event(
 
 ///////////////////////////////
 
+static const char *signal_to_name_table[] = {
+    [MC_OP_DB_UPDATED]       = "Finished: Database Updated",
+    [MC_OP_QUEUE_UPDATED]    = "Finished: Queue Updated",
+    [MC_OP_SPL_UPDATED]      = "Finished: Stored Playlist Updated",
+    [MC_OP_SPL_LIST_UPDATED] = "Finished: List of Playlists Updated"
+};
+
+static const unsigned signal_to_name_table_size = sizeof(signal_to_name_table) / sizeof(const char *) / 2;
+
 void mc_shelper_report_operation_finished(
     struct mc_Client *self,
     mc_OpFinishedEnum op)
 {
     g_assert(self);
-    mc_proto_signal_dispatch(self, "op-finished", self, op);
+    const char *operation;
+    if(op >= 0 && op < signal_to_name_table_size) {
+        operation = signal_to_name_table[op];
+        mc_proto_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO);
+    }
 }

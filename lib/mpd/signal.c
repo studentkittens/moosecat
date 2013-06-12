@@ -15,12 +15,19 @@ typedef struct {
 
 static const char *signal_to_name_table[] = {
     [MC_SIGNAL_CLIENT_EVENT] = "client-event",
-    [MC_SIGNAL_ERROR]        = "error",
     [MC_SIGNAL_CONNECTIVITY] = "connectivity",
-    [MC_SIGNAL_PROGRESS]     = "progress",
-    [MC_SIGNAL_OP_FINISHED]  = "op-finished",
+    [MC_SIGNAL_LOGGING]      = "logging",
     [MC_SIGNAL_UNKNOWN]      = NULL
 };
+
+/*
+ * client-event
+ * connectivity
+ * logging
+ *   - error
+ *   - progress
+ *   - op-finished
+ */
 
 static mc_SignalType mc_convert_name_to_signal(const char *signame)
 {
@@ -159,7 +166,7 @@ void mc_signal_report_event_v(mc_SignalList   *list, const char *signal_name, va
 
     switch (sig_type) {
     case MC_SIGNAL_CLIENT_EVENT: {
-        enum mpd_idle event = va_arg(args, enum mpd_idle);
+        enum mpd_idle event = va_arg(args, int);
         DISPATCH_START {
             if (tag->mask & event) {
                 ((mc_ClientEventCallback) tag->callback)(client, event, tag->user_data);
@@ -169,12 +176,11 @@ void mc_signal_report_event_v(mc_SignalList   *list, const char *signal_name, va
         break;
     }
 
-    case MC_SIGNAL_ERROR: {
-        enum mpd_error error = va_arg(args, enum mpd_error);
+    case MC_SIGNAL_LOGGING: {
         const char *error_msg = va_arg(args, const char *);
-        int is_fatal = va_arg(args, int);
+        mc_LogLevel level = va_arg(args, int);
         DISPATCH_START {
-            ((mc_ErrorCallback) tag->callback)(client, error, error_msg, is_fatal, tag->user_data);
+            ((mc_LoggingCallback) tag->callback)(client,  error_msg, level, tag->user_data);
         }
         DISPATCH_END
         break;
@@ -189,24 +195,6 @@ void mc_signal_report_event_v(mc_SignalList   *list, const char *signal_name, va
         break;
     }
 
-    case MC_SIGNAL_PROGRESS: {
-        int print_newline = va_arg(args, int);
-        const char *progress = va_arg(args, const char *);
-        DISPATCH_START {
-            ((mc_ProgressCallback) tag->callback)(client, print_newline, progress, tag->user_data);
-        }
-        DISPATCH_END
-        break;
-    }
-
-    case MC_SIGNAL_OP_FINISHED: {
-        mc_OpFinishedEnum op = va_arg(args, mc_OpFinishedEnum);
-        DISPATCH_START {
-            ((mc_OpFinishedCallback) tag->callback)(client, op, tag->user_data);
-        } DISPATCH_END;
-        break;
-    }
-
     default:
         /* Should not happen */
         break;
@@ -215,7 +203,7 @@ void mc_signal_report_event_v(mc_SignalList   *list, const char *signal_name, va
 
 ///////////////////////////////
 
-void mc_signal_report_event(mc_SignalList   *list, const char *signal_name, ...)
+void mc_signal_report_event(mc_SignalList *list, const char *signal_name, ...)
 {
     va_list args;
     va_start(args, signal_name);

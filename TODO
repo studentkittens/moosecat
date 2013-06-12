@@ -15,6 +15,5 @@ Near-Term:
 - Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 
   kills the startup time more than I'd accept (especially since that's a very
   easy patch...).
-- rethink signals. really.
 - Split Queue in seperate table. Fixes problem with duplicate songs in Queue...
   (Same algorithm with stored playlist, just more lightweight)

@@ -12,10 +12,8 @@ struct mc_Client;
 
 typedef enum {
     MC_SIGNAL_CLIENT_EVENT = 0,
-    MC_SIGNAL_ERROR,
     MC_SIGNAL_CONNECTIVITY,
-    MC_SIGNAL_PROGRESS,
-    MC_SIGNAL_OP_FINISHED,
+    MC_SIGNAL_LOGGING,
     /* -> Add new callbacks here <- */
     MC_SIGNAL_VALID_COUNT,
     MC_SIGNAL_UNKNOWN
@@ -35,29 +33,24 @@ typedef struct {
 
 ///////////////////////////////
 
-typedef enum mc_OpFinishedEnum {
-    MC_OP_DB_UPDATED,
-    MC_OP_QUEUE_UPDATED,
-    MC_OP_SPL_UPDATED,
-    MC_OP_SPL_LIST_UPDATED
-} mc_OpFinishedEnum;
+typedef enum mc_LogLevels {
+    MC_LOG_CRITICAL = 1 << 0,
+    MC_LOG_ERROR    = 1 << 1,
+    MC_LOG_WARNING  = 1 << 2,
+    MC_LOG_INFO     = 1 << 3,
+    MC_LOG_DEBUG    = 1 << 4
+} mc_LogLevel;
 
 ///////////////////////////////
 
 /* Event callback */
 typedef void (* mc_ClientEventCallback)(struct mc_Client *, enum mpd_idle, void *user_data);
 
-/* Error callback */
-typedef void (* mc_ErrorCallback)(struct mc_Client *, enum mpd_error, const char *err_msg, bool is_fatal, void *user_data);
+/* Logging callback */
+typedef void (* mc_LoggingCallback)(struct mc_Client *, const char *err_msg, mc_LogLevel level, void *user_data);
 
 /* Connection change callback */
 typedef void (* mc_ConnectivityCallback)(struct mc_Client *, bool server_changed, void *user_data);
-
-/* Progress callback (for display&debug) */
-typedef void (* mc_ProgressCallback)(struct mc_Client *, bool print_newline, const char *progress, void *user_data);
-
-/* Operation Finished callback */
-typedef void (* mc_OpFinishedCallback)(struct mc_Client *, mc_OpFinishedEnum operation, void *user_data);
 
 ///////////////////////////////
 
