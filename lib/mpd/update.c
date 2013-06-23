@@ -1,5 +1,6 @@
 #include "update.h"
 #include "protocol.h"
+#include "outputs.h"
 #include "signal-helper.h"
 #include "../compiler.h"
 
@@ -22,13 +23,11 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 ////////////////////////
 
 #define free_if_not_null(var, func) if(var != NULL) func((void*)var)
+#define THREAD_TERMINATOR 0xDEADBEEF
 
 ////////////////////////
 
-void mc_proto_update_context_info_cb(
-    struct mc_Client *self,
-    enum mpd_idle events,
-    mc_cc_unused void *user_data)
+static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_idle events)
 {
     if (self != NULL && events != 0 && mc_proto_is_connected(self)) {
         struct mpd_connection *conn = mc_proto_get(self);
@@ -149,6 +148,24 @@ void mc_proto_update_context_info_cb(
 
 ////////////////////////
 
+gpointer mc_proto_update_thread(gpointer user_data)
+{
+    g_assert(user_data);
+
+    mc_UpdateData *data = user_data;
+    
+    enum mpd_idle event_mask = 0;
+
+    while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
+        mc_proto_update_context_info_cb(data->client, event_mask);
+        mc_proto_outputs_update(data->client, event_mask);
+    }
+
+    return NULL;
+}
+
+////////////////////////
+
 static gboolean mc_proto_update_status_timer_cb(gpointer data)
 {
     g_assert(data);
@@ -160,6 +177,7 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
 
     if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) {
 
+        /* TODO: Is this still valid? */
         /* Substract a small amount to include the network latency - a bit of a hack
          * but worst thing that could happen: you miss one status update.
          * */
@@ -171,7 +189,7 @@ static gboolean mc_proto_update_status_timer_cb(gpointer data)
             enum mpd_idle on_status_only = MPD_IDLE_MIXER;
 
             self->status_timer.reset_timer = false;
-            mc_proto_update_context_info_cb(self, on_status_only, NULL);
+            mc_proto_update_data_push(self->_update_data, on_status_only);
             self->status_timer.reset_timer = true;
 
             if (self->status_timer.trigger_event) {
@@ -270,4 +288,59 @@ void mc_lock_current_song(struct mc_Client *self)
 void mc_unlock_current_song(struct mc_Client *self)
 {
     g_mutex_unlock(&self->update_mtx.song);
+}
+
+////////////////////////
+////////////////////////
+////////////////////////
+
+mc_UpdateData * mc_proto_update_data_new(struct mc_Client * self)
+{
+    g_assert(self);
+
+    g_printerr("Creating Update Data\n");
+
+    mc_UpdateData *data = g_slice_new0(mc_UpdateData);
+    data->client = self;
+    data->event_queue = g_async_queue_new();
+
+    data->update_thread = g_thread_new(
+            "StatusUpdateThread",
+            mc_proto_update_thread,
+            data
+    );
+    return data;
+}
+
+////////////////////////
+
+void mc_proto_update_data_destroy(mc_UpdateData * data)
+{
+    g_assert(data);
+
+    /* Push the termination sign to the Queue */
+    g_async_queue_push(data->event_queue, GINT_TO_POINTER(THREAD_TERMINATOR));
+
+    /* Wait for the thread to finish */
+    g_thread_join(data->update_thread);
+
+    /* Destroy the Queue */
+    g_async_queue_unref(data->event_queue);
+
+    data->event_queue = NULL;
+    data->update_thread = NULL;
+
+    g_slice_free(mc_UpdateData, data);
+}
+
+////////////////////////
+
+void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event)
+{
+    g_assert(data);
+
+    /* We may not push 0 - that would cause the event_queue to shutdown */
+    if(event != 0) {
+        g_async_queue_push(data->event_queue, GINT_TO_POINTER(event));
+    }
 }

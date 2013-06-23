@@ -14,12 +14,14 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#define _MC_PROTO_MAX_ERR_LEN 512
-
 typedef enum {
     MC_PM_IDLE = 0,
     MC_PM_COMMAND
 } mc_PmType;
+
+/* Prototype Update struct */
+struct mc_UpdateData;
+
 
 /**
  * @brief Structure representing a connection handle,
@@ -97,9 +99,6 @@ typedef struct mc_Client {
      */
     mc_SignalList _signals;
 
-    /* Buffer for the last happened error */
-    char error_buffer[_MC_PROTO_MAX_ERR_LEN];
-
     /* Outputs of MPD */
     struct {
         struct mpd_output **list;
@@ -120,12 +119,9 @@ typedef struct mc_Client {
     struct mpd_stats *stats;
     struct mpd_status *status;
     const char *replay_gain_status;
-
-    /* Thread in which the status updating runs in. */
-    GThread * update_thread;
-
-    /* Jobs are sended to the update queue via this */
-    GAsyncQueue * update_queue;
+    
+    /* Data Used by the Status/Song/Stats Update Module */
+    struct mc_UpdateData *_update_data;
 
     /* Locking for updating song/status/stats */
     struct {
@@ -237,11 +233,10 @@ void mc_proto_free(mc_Client *self);
 /**
  * @brief Add a function that shall be called on a certain event.
  *
- * There are currently 4 valid signal names:
+ * There are currently 3 valid signal names:
  * - "client-event", See mc_ClientEventCallback
- * - "error", See mc_ErrorCallback
- * - "progress", See mc_ProgressCallback
  * - "connectivity", See mc_ConnectivityCallback
+ * - "logging",      See mc_LoggingCallback
  *
  * Callback Order
  * --------------

@@ -15,9 +15,8 @@ void mc_proto_outputs_init(mc_Client *self);
  *
  * @param self the client to operate on
  * @param event an idle event. Will do only stmth. with MPD_IDLE_OUTPUT
- * @param ununsed pass NULL
  */
-void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event, void *ununsed);
+void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event);
 
 /**
  * @brief Convert a name of an output (e.g. "AlsaOutput") to MPD's output id

@@ -47,17 +47,19 @@ class CellRendererArrow(Gtk.CellRenderer):
             # Draw a simple arrow (a rectangle with a right sharp ending)
             # stop_point is the point where the rectangle ends and the arrow starts
             stop_point = width - 20
-            ctx.move_to(x, y + line_width)
-            ctx.line_to(x + stop_point, y + line_width)
-            ctx.line_to(x + width - line_width, y + height / 2)
-            ctx.line_to(x + stop_point, y + height - line_width)
-            ctx.line_to(x, y + height - line_width)
+            lw2 = line_width / 2
+            ctx.move_to(x, y + lw2)
+            ctx.line_to(x + stop_point, y + lw2)
+            ctx.line_to(x + width, y + height / 2)
+            ctx.line_to(x + stop_point, y + height - lw2)
+            ctx.line_to(x, y + height - lw2)
+            ctx.close_path()
 
             # Draw a small black line around it
             set_source_from_col(ctx, style.get_border_color(Gtk.StateFlags.SELECTED))
             ctx.set_line_width(line_width)
 
-            # But dont delte the context
+            # But dont delete the context
             ctx.stroke_preserve()
 
             # Fill the arrow with the selection color used in the theme

@@ -1,7 +1,20 @@
 #include <mpd/client.h>
+#include <glib.h>
 
 /* Prototype because of cyclic dependency */
 struct mc_Client;
+
+
+typedef struct mc_UpdateData {
+    GAsyncQueue *event_queue;
+    GThread *update_thread;
+    struct mc_Client *client;
+} mc_UpdateData;
+
+
+mc_UpdateData * mc_proto_update_data_new(struct mc_Client *self);
+void mc_proto_update_data_destroy(mc_UpdateData *data);
+void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event);
 
 /**
  * @brief Update status/stats/song.
@@ -11,7 +24,7 @@ struct mc_Client;
  * @param events the happenene event. Use INT_MAX to update all events.
  * @param user_data not used. pass NULL.
  */
-void mc_proto_update_context_info_cb(struct mc_Client *self, enum mpd_idle events, void *user_data);
+//void mc_proto_update_context_info_cb(struct mc_Client *self, enum mpd_idle events, void *user_data);
 
 void mc_proto_update_register_status_timer(
     struct mc_Client *self,

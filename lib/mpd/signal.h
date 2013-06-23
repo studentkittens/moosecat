@@ -14,6 +14,10 @@ typedef enum {
     MC_SIGNAL_CLIENT_EVENT = 0,
     MC_SIGNAL_CONNECTIVITY,
     MC_SIGNAL_LOGGING,
+    /* This signal is used internally 
+     * to propagate fatal errors
+     */
+    MC_SIGNAL_FATAL_ERROR,
     /* -> Add new callbacks here <- */
     MC_SIGNAL_VALID_COUNT,
     MC_SIGNAL_UNKNOWN
@@ -25,10 +29,21 @@ typedef struct {
      */
     GList *signals[MC_SIGNAL_VALID_COUNT];
 
-    /* This is locked when a signal is dispatched.
-     * We do not want to have to dispatch signals in parallel.
+    /* Signals are send to this queue if they are not dispatched
+     * in the mainthread.
      */
-    GRecMutex dispatch_mutex;
+    GAsyncQueue * dispatch_queue;
+
+    /* ID of a GAsyncQueueWatch that transfers signals from any 
+     * thread to the initial mainthread 
+     */
+    guint signal_watch_id;
+
+    /* The Thread mc_signal_list_init() was called in.
+     * This is the Thread signals are dispatched to.
+     */
+    GThread *initial_thread;
+
 } mc_SignalList;
 
 ///////////////////////////////
@@ -84,7 +99,7 @@ void mc_signal_report_event_v(
 void mc_signal_report_event(
     mc_SignalList   *list,
     const char *signal_name,
-    ...);;
+    ...);
 
 void mc_signal_list_destroy(
     mc_SignalList *list);

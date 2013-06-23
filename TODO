@@ -1,19 +1,15 @@
 libmoosecat 
 -----------
 
-Near-Term:
-    - update.c (Very tricky)
-    - Update cython wrapper (Oof)
-
-
-- Make libmoosecat fully threadsafe. (Although it should be already.)
+- Make libmoosecat fully threadsafe -- DONE. Well, almost.
 - Make client/store failsafe in case of connection loss
 
-- Fix the f@@king buildsystem.. why does it keep compiling moose.c always?
+- Clean up API, make some sphinx documentation
+- Split Queue in seperate table. Fixes problem with duplicate songs in Queue...
+  (Same algorithm with stored playlist, just more lightweight)
+- Update cython wrapper (Oof)
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.
 - Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 
   kills the startup time more than I'd accept (especially since that's a very
   easy patch...).
-- Split Queue in seperate table. Fixes problem with duplicate songs in Queue...
-  (Same algorithm with stored playlist, just more lightweight)

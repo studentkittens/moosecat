@@ -11,9 +11,8 @@ void mc_proto_outputs_init(mc_Client *self)
 
 ///////////////////
 
-void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event, void *unused)
+void mc_proto_outputs_update(mc_Client *self, enum mpd_idle event)
 {
-    (void) unused;
     g_assert(self);
 
     if ((event & MPD_IDLE_OUTPUT) == 0)

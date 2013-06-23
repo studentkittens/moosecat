@@ -749,7 +749,9 @@ static bool mc_client_execute(
         while(parts[arguments++]);
 
         if((arguments - 2) >= handler->num_args) {
-            result = handler->handler(self, conn, (const char **)&parts[1]);
+            if(mc_proto_is_connected(self)) {
+                result = handler->handler(self, conn, (const char **)&parts[1]);
+            }
         } else {
             mc_shelper_report_error_printf(self,
                     "API-Misuse: Too many arguments to %s: Expected %d, Got %d\n", 
@@ -796,7 +798,10 @@ static void * mc_client_command_dispatcher(
 
         /* Free input (since it was strdrup'd) */
         bool free_input = true;
-
+        if(mc_proto_is_connected(self) == false) {
+            result = false;
+        }
+        else
         if(mc_client_command_list_is_start_or_end(input) == -1) {
             g_printerr("Command list commit\n");
             result = mc_client_command_list_commit(self);
@@ -816,7 +821,7 @@ static void * mc_client_command_dispatcher(
         }
         else {
             struct mpd_connection * conn = mc_proto_get(self);
-            if(conn != NULL) {
+            if(conn != NULL && mc_proto_is_connected(self)) {
                 result = mc_client_execute(self, input, conn);
                 if (mpd_response_finish(conn) == false) {       
                     mc_shelper_report_error(self, conn);        
@@ -847,11 +852,12 @@ static void * mc_client_command_dispatcher(
  * Currently libmoosecat buffers command list commandos.
  * Instead of sending them actually to the server they are stored in a List.
  * Once command_list_end is found, the list is executed as once. 
- *
+ * (Sending all commandoes at once, and calling mpd_response_finish to wait for
+ * the OK or ACK)
  *
  * This has been decided after testing this (with MPD 0.17.0):
  *  
- *   Terminal #1                    Terminal #2
+ *   Telnet Session #1              Telnet Session #2
  *  
  *   > status                       > command_list_begin
  *   repeat 0                       > repeat 1

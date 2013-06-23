@@ -81,11 +81,19 @@ mc_Client *mc_proto_create(mc_PmType pm)
 
     if (client != NULL) {
         client->_pm = pm;
-        memset(client->error_buffer, 0, _MC_PROTO_MAX_ERR_LEN);
         mc_signal_list_init(&client->_signals);
     }
 
     mc_proto_outputs_init(client);
+    client->_update_data = mc_proto_update_data_new(client);
+
+    g_mutex_init(&client->update_mtx.song);
+    g_mutex_init(&client->update_mtx.stats);
+    g_mutex_init(&client->update_mtx.status);
+
+    /* init the getput mutex */
+    g_rec_mutex_init(&client->_getput_mutex);
+
     return client;
 }
 
@@ -106,9 +114,6 @@ char *mc_proto_connect(
     /* Some progress! */
     mc_shelper_report_progress(self, true, "Attempting to connect…");
 
-    /* init the getput mutex */
-    g_rec_mutex_init(&self->_getput_mutex);
-
     mc_client_init(self);
 
     /* Actual implementation of the connection in respective protcolmachine */
@@ -116,8 +121,7 @@ char *mc_proto_connect(
 
     if (err == NULL && mc_proto_is_connected(self)) {
         /* Force updating of status/stats/song on connect */
-        mc_proto_update_context_info_cb(self, INT_MAX, NULL);
-        mc_proto_outputs_update(self, INT_MAX, NULL);
+        mc_proto_force_sss_update(self, INT_MAX);
 
         /* For bugreports only */
         self->_timeout = timeout;
@@ -136,7 +140,11 @@ char *mc_proto_connect(
 
 bool mc_proto_is_connected(mc_Client *self)
 {
-    return self && self->do_is_connected(self);
+    g_assert(self);
+
+    bool result = (self && self->do_is_connected(self));
+
+    return result;
 }
 
 ///////////////////
@@ -183,6 +191,9 @@ char *mc_proto_disconnect(
     mc_Client *self)
 {
     if (self && mc_proto_is_connected(self)) {
+        /* Lock the connection while destroying it */
+        g_rec_mutex_lock(&self->_getput_mutex);
+
         /* Finish current running command */
         mc_client_destroy(self);
 
@@ -198,7 +209,11 @@ char *mc_proto_disconnect(
         /* Free output list */
         mc_proto_outputs_free(self);
 
-        g_rec_mutex_clear(&self->_getput_mutex);
+        /* Unlock the mutex - we can use it now again
+         * e.g. - queued commands would wake up now
+         *        and notice they are not connected anymore
+         */
+        g_rec_mutex_unlock(&self->_getput_mutex);
 
         if (error_happenend)
             return g_strdup(etable[ERR_UNKNOWN]);
@@ -230,8 +245,15 @@ void mc_proto_free(mc_Client *self)
     /* Forget any signals */
     mc_signal_list_destroy(&self->_signals);
 
+    mc_proto_update_data_destroy(self->_update_data);
+
     /* Free SSS data */
     mc_proto_reset(self);
+
+    g_mutex_clear(&self->update_mtx.song);
+    g_mutex_clear(&self->update_mtx.stats);
+    g_mutex_clear(&self->update_mtx.status);
+    g_rec_mutex_clear(&self->_getput_mutex);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)
@@ -312,13 +334,14 @@ int mc_proto_signal_length(
 
 ///////////////////
 
+/* TODO: Rename this in force_sync() */
 void mc_proto_force_sss_update(
     mc_Client *self,
     enum mpd_idle events)
 {
     g_assert(self);
-    mc_proto_update_context_info_cb(self, events, NULL);
-    mc_proto_outputs_update(self, events, NULL);
+    //mc_proto_update_context_info_cb(self, events, NULL);
+    mc_proto_update_data_push(self->_update_data, events);
 }
 
 ///////////////////

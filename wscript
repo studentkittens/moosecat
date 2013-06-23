@@ -254,6 +254,7 @@ def build(bld):
     #build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
     build_test_program('lib/samples/test_command_list.c', 'test_command_list')
     build_test_program('lib/samples/test_client.c', 'test_client')
+    build_test_program('lib/samples/test_list_genre.c', 'test_list_genre')
     #build_test_program('lib/samples/test_playlist.c', 'time_playlist')
     #build_test_program('lib/samples/test_db.c', 'test_db')
     #build_test_program('lib/samples/test_outputs.c', 'test_outputs')

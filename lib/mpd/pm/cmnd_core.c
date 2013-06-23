@@ -41,10 +41,6 @@ typedef struct {
 
     /* Queue used to communicte between
      * listener_thread and mainloop-thread */
-    GAsyncQueue *event_queue;
-
-    /* ID of the GAsyncQueueWatch */
-    glong watch_source_id;
 
     /* Indicates that the listener runs,
      * if false it may still run, but will
@@ -118,25 +114,6 @@ static void cmnder_set_run_listener(mc_CmndClient * self, volatile bool state)
     g_mutex_unlock(&self->flagmtx_run_listener);
 }
 
-//////////////////////
-
-static mc_cc_hot gboolean cmnder_event_callback(
-    GAsyncQueue *queue,
-    gpointer user_data)
-{
-    mc_Client *self = user_data;
-    enum mpd_idle events = 0;
-    gpointer item = NULL;
-
-    /* Pop all items from the queue that are in,
-     * and b'or them into one single event. */
-    while ((item = g_async_queue_try_pop(queue)))
-        events |= GPOINTER_TO_INT(item);
-
-    mc_shelper_report_client_event(self, events);
-    return TRUE;
-}
-
 ///////////////////
 
 static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
@@ -144,19 +121,19 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
     mc_CmndClient *self = child(data);
     enum mpd_idle events = 0;
 
-    /*
-     * We may not use mc_shelper_report_error here.
-     * Why? It may call disconnect() on fatal errors.
-     * This would lead to joining this thread with itself,
-     * which is deadly. */
     while (cmnder_get_run_listener(self)) {
+        /* TODO: Possible Race Condition when 
+         * calling disonnect while being in mpd_run_idle?
+         *
+         * Lock new mutex before calling mpd_run_idle,
+         * wait for it to be release before disconnect.
+         */ 
         if ((events = mpd_run_idle(self->idle_con)) == 0) {
-            mc_shelper_report_error_without_handling((mc_Client *) self, self->idle_con);
+            mc_shelper_report_error((mc_Client *) self, self->idle_con);
             break;
         }
 
-        g_async_queue_push(self->event_queue, GINT_TO_POINTER(events));
-        mc_shelper_report_error_without_handling((mc_Client *) self, self->idle_con);
+        mc_shelper_report_client_event((mc_Client *) self, events);
     }
 
     return NULL;
@@ -168,15 +145,9 @@ static void cmnder_create_glib_adapter(
     mc_CmndClient *self,
     GMainContext *context)
 {
-    if (self->watch_source_id == -1) {
+    if (self->listener_thread == NULL) {
         /* Start the listener thread and set the Queue Watcher on it */
         self->listener_thread = g_thread_new("listener", cmnder_listener_thread, self);
-        self->watch_source_id = mc_async_queue_watch_new(
-                                    self->event_queue,
-                                    -1,
-                                    cmnder_event_callback,
-                                    self,
-                                    context);
     }
 }
 
@@ -188,22 +159,18 @@ static void cmnder_shutdown_listener(mc_CmndClient *self)
     cmnder_set_run_listener(self, FALSE);
     mpd_send_noidle(self->idle_con);
 
-    if (self->watch_source_id != -1) {
-        if (self->watch_source_id > 0) {
-            g_source_remove(self->watch_source_id);
-        }
 
-        /* join the idle thread.
-         * This is a very good argument, to not call disconnect
-         * (especially implicitely!) in the idle thread.
-         *
-         * Ever seen a thread that joins itself?
-         */
+    /* join the idle thread.
+     * This is a very good argument, to not call disconnect
+     * (especially implicitely!) in the idle thread.
+     *
+     * Ever seen a thread that joins itself?
+     */
+    if (self->listener_thread != NULL) {
         g_thread_join(self->listener_thread);
     }
 
     self->listener_thread = NULL;
-    self->watch_source_id = -1;
 }
 
 ///////////////////////
@@ -216,11 +183,6 @@ static void cmnder_reset(mc_CmndClient *self)
         if (self->idle_con) {
             mpd_connection_free(self->idle_con);
             self->idle_con = NULL;
-        }
-
-        if (self->event_queue) {
-            g_async_queue_unref(self->event_queue);
-            self->event_queue = NULL;
         }
 
         if (self->cmnd_con) {
@@ -325,8 +287,6 @@ static char *cmnder_do_connect(
 
     /* listener */
     cmnder_set_run_listener(self, TRUE);
-    self->watch_source_id = -1;
-    self->event_queue = g_async_queue_new();
     cmnder_create_glib_adapter(self, context);
 
     /* start ping thread */

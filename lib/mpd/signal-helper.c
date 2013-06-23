@@ -8,10 +8,12 @@
 
 ///////////////////////////////
 
-static void compose_error_msg(const char *topic, char *dest, const char *src)
+static char * compose_error_msg(const char *topic, const char *src)
 {
     if (src && topic) {
-        g_snprintf(dest, _MC_PROTO_MAX_ERR_LEN, "%s: ,,%s''", topic, src);
+        return g_strdup_printf("%s: ,,%s''", topic, src);
+    } else {
+        return NULL;
     }
 }
 
@@ -24,25 +26,37 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
             mc_proto_signal_dispatch(
                     self, "logging", self,
                     "Connection to MPD was closed (IsFatal=maybe?)",
-                    true
+                    MC_LOG_WARNING,
+                    FALSE 
             );
         }
 
         return true;
     }
 
+    char *error_message = NULL;
     enum mpd_error error = mpd_connection_get_error(cconn);
 
     if (error != MPD_ERROR_SUCCESS) {
-        if (MPD_ERROR_SYSTEM == error) {
-            compose_error_msg("System-Error", self->error_buffer,
-                              g_strerror(mpd_connection_get_system_error(cconn)));
-        } else if (MPD_ERROR_SERVER == error) {
-            compose_error_msg("Server-Error", self->error_buffer,
-                              mpd_connection_get_error_message(cconn));
-        } else {
-            compose_error_msg("Client-Error", self->error_buffer,
-                              mpd_connection_get_error_message(cconn));
+        switch(error) {
+            case MPD_ERROR_SYSTEM:
+                error_message = compose_error_msg(
+                        "System-Error",
+                        g_strerror(mpd_connection_get_system_error(cconn))
+                );
+                break;
+            case MPD_ERROR_SERVER:
+                error_message = compose_error_msg(
+                        "Server-Error",
+                        mpd_connection_get_error_message(cconn)
+                );
+                break;
+            default:
+                error_message = compose_error_msg(
+                        "Client-Error",
+                        mpd_connection_get_error_message(cconn)
+                );
+                break;
         }
 
         /* Try to clear the error */
@@ -51,7 +65,7 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
         /* On really fatal error we better disconnect,
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
-            mc_proto_disconnect(self);
+            mc_signal_report_event(&self->_signals, "_fatal_error", self);
         }
 
         /* Dispatch the error to the users */
@@ -59,9 +73,10 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
                 self,
                 "ErrID=%d: %s (IsFatal=%s)",
                 error,
-                self->error_buffer,
+                error_message,
                 is_fatal ? "True" : "False"
         );
+        g_free(error_message);
         return true;
     }
 
@@ -93,7 +108,7 @@ void mc_shelper_report_error_printf(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR);
+        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR, FALSE);
     }
 
     va_end(list_ptr);
@@ -111,8 +126,7 @@ void mc_shelper_report_progress(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO);
-        g_free(full_string);
+        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO, TRUE);
     }
 
     va_end(list_ptr);
@@ -167,6 +181,6 @@ void mc_shelper_report_operation_finished(
     const char *operation;
     if(op >= 0 && op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
-        mc_proto_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO);
+        mc_proto_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
     }
 }

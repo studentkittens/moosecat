@@ -70,7 +70,7 @@ static void idler_report_error(mc_IdleClient *self, enum mpd_error error, const 
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        mc_proto_signal_dispatch((mc_Client *) self, "error", self, error, error_msg, TRUE);
+        mc_proto_signal_dispatch((mc_Client *) self, "logging", self, error_msg, MC_LOG_ERROR, FALSE);
     }
     self->is_running_extern = FALSE;
 }
@@ -203,7 +203,8 @@ static bool idler_process_received(mc_IdleClient *self)
         case MPD_PARSER_MALFORMED:
             idler_report_error(self,
                                MPD_ERROR_MALFORMED,
-                               "cannot parse malformed response");
+                               "cannot parse malformed response"
+            );
             return false;
 
         case MPD_PARSER_SUCCESS:
@@ -236,8 +237,15 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
 {
     g_assert(source);
     g_assert(data);
+
     mc_IdleClient *self = (mc_IdleClient *) data;
     enum mpd_async_event events = gio_to_mpd_async(condition);
+
+    /* We need to lock here because in the meantime a get/put 
+     * could happen from another thread. This could alter the state
+     * of the client while we're processing
+     */
+    g_rec_mutex_lock(&self->logic._getput_mutex);
 
     if (mpd_async_io(self->async_mpd_conn, events) == FALSE) {
         /* Failure during IO */
@@ -252,22 +260,29 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
 
     events = mpd_async_events(self->async_mpd_conn);
 
+    bool keep_notify = FALSE;
     if (events == 0) {
         /* No events need to be polled - so disable the watch
          * (I've never seen this happen though.
          * */
         self->watch_source_id = 0;
         self->last_io_events = 0;
-        return FALSE;
+        keep_notify = FALSE;
     } else if (events != self->last_io_events) {
         /* different event-mask, so we cannot reuse the current watch */
         idler_remove_watch_kitten(self);
         idler_add_watch_kitten(self);
-        return FALSE;
+        keep_notify = FALSE;
     } else {
         /* Keep the old watch */
-        return TRUE;
+        keep_notify = TRUE;
     }
+    
+    /* Unlock again - We're now ready to take other
+     * get/puts again 
+     */
+    g_rec_mutex_unlock(&self->logic._getput_mutex);
+    return keep_notify;
 }
 
 ///////////////////////////////////////////
@@ -316,6 +331,7 @@ static char *idler_do_connect(mc_Client *parent, GMainContext *context, const ch
     idler_reset_struct(self);
     /* Enter initial 'idle' loop */
     idler_enter(self);
+
 failure:
     return g_strdup(error);
 }

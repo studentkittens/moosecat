@@ -1,7 +1,7 @@
-#include <glib.h>
-
 #ifndef GASYNCQUEUE_WATCH_H_GUARD
 #define GASYNCQUEUE_WATCH_H_GUARD
+
+#include <glib.h>
 
 /**
  * @brief Callback that is called once an item is pushed into the associated GAsyncQueue
