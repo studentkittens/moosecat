@@ -550,7 +550,7 @@ int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const cha
      * ids = sort('select id from spl_xzy_1234')
      * songs = queue_search(match_clause)
      * for song in songs:
-     *     if bsearch(, song.id) == FOUND:
+     *     if bsearch(songs, song.id) == FOUND:
      *          results.append(song)
      *          
      * return len(songs)

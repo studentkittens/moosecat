@@ -308,6 +308,7 @@ static char *idler_do_connect(mc_Client *parent, GMainContext *context, const ch
 {
     (void) context;
     g_assert(parent);
+
     mc_IdleClient *self = child(parent);
     char *error = NULL;
     self->con = mpd_connect(parent, host, port, timeout, &error);

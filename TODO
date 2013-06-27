@@ -1,8 +1,22 @@
 libmoosecat 
 -----------
 
+- Implement mc_data_open()/mc_data_close() // DONE
+- Make outputs.c use a HashMap for gods sake.. // DONE
+- Think about locking Songs 
+
+    - Introduce mc_store_data_open() and mc_store_data_close()
+    - Make user lock when needed. Only sane way without loosing performance.
+
+- Look a lot at the section marked with TODO
+- mc_proto_ -> mc_ ?
+- revert introduction of currentsong.c/status.c/statistics.c
 - Make libmoosecat fully threadsafe -- DONE. Well, almost.
+  - status timer stuff / connect()?
+ 
 - Make client/store failsafe in case of connection loss
+  - Chances are getting better, 
+    but lots of testing needed with store
 
 - Clean up API, make some sphinx documentation
 - Split Queue in seperate table. Fixes problem with duplicate songs in Queue...

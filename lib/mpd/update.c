@@ -70,10 +70,12 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
 
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
+                        mc_update_data_open(self);
                         mc_lock_status(self);
                         free_if_not_null(self->status, mpd_status_free);
                         self->status = tmp_status;
                         mc_unlock_status(self);
+                        mc_update_data_close(self);
                     }
 
                     mpd_response_next(conn);
@@ -86,10 +88,12 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                     tmp_stats = mpd_recv_stats(conn);
 
                     if (tmp_stats) {
+                        mc_update_data_open(self);
                         mc_lock_stats(self);
                         free_if_not_null(self->stats, mpd_stats_free);
                         self->stats = tmp_stats;
                         mc_unlock_stats(self);
+                        mc_update_data_close(self);
                     }
 
                     mpd_response_next(conn);
@@ -102,9 +106,11 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                     struct mpd_pair *mode = mpd_recv_pair_named(conn, "replay_gain_mode");
 
                     if (mode != NULL) {
+                        mc_update_data_open(self);
                         mc_lock_status(self);
                         self->replay_gain_status = g_strdup(mode->value);
                         mc_unlock_status(self);
+                        mc_update_data_close(self);
 
                         mpd_return_pair(conn, mode);
                     }
@@ -117,6 +123,7 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                 if (update_song) {
                     struct mpd_song * new_song = mpd_recv_song(conn);
 
+                    mc_update_data_open(self);
                     mc_lock_current_song(self);
                     free_if_not_null(self->song, mpd_song_free);
                     self->song = new_song;
@@ -131,6 +138,7 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                     }
 
                     mc_unlock_current_song(self);
+                    mc_update_data_close(self);
                     mc_shelper_report_error(self, conn);
                 }
 
@@ -158,7 +166,7 @@ gpointer mc_proto_update_thread(gpointer user_data)
 
     while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
         mc_proto_update_context_info_cb(data->client, event_mask);
-        mc_proto_outputs_update(data->client, event_mask);
+        mc_proto_outputs_update(data->client->_outputs, event_mask);
     }
 
     return NULL;
@@ -304,6 +312,8 @@ mc_UpdateData * mc_proto_update_data_new(struct mc_Client * self)
     data->client = self;
     data->event_queue = g_async_queue_new();
 
+    g_rec_mutex_init(&data->data_set_mutex);
+
     data->update_thread = g_thread_new(
             "StatusUpdateThread",
             mc_proto_update_thread,
@@ -329,6 +339,7 @@ void mc_proto_update_data_destroy(mc_UpdateData * data)
 
     data->event_queue = NULL;
     data->update_thread = NULL;
+    g_rec_mutex_clear(&data->data_set_mutex);
 
     g_slice_free(mc_UpdateData, data);
 }
@@ -343,4 +354,20 @@ void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event)
     if(event != 0) {
         g_async_queue_push(data->event_queue, GINT_TO_POINTER(event));
     }
+}
+
+////////////////////////
+
+void mc_update_data_open(struct mc_Client *self)
+{
+    g_assert(self);
+    g_rec_mutex_lock(&self->_update_data->data_set_mutex);
+}
+
+////////////////////////
+
+void mc_update_data_close(struct mc_Client *self)
+{
+    g_assert(self);
+    g_rec_mutex_unlock(&self->_update_data->data_set_mutex);
 }

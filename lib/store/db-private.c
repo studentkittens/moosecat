@@ -148,7 +148,6 @@ static const char *_sql_stmts[] = {
     "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                         \n"
     "CREATE INDEX IF NOT EXISTS queue_pos_index ON songs_content(c20queue_pos);                         \n"
     "                                                                                                   \n"
-    "-- Directory table only contains path of the directory and the path-depth (no '/' == 0)            \n"
     "CREATE VIRTUAL TABLE IF NOT EXISTS dirs USING fts4(path TEXT NOT NULL, depth INTEGER NOT NULL);    \n" ,
     [STMT_SQL_META_DUMMY] =
     "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
@@ -494,8 +493,8 @@ static gint mc_stprv_select_impl_sort_func_noud(gconstpointer a, gconstpointer b
 
         /* pos_a > pos_b */
         return +1;
-    } else return 1 /* to sort NULL at the end */;
-}
+    } else return +1 /* to sort NULL at the end */;
+    } else return +1 /* to sort NULL at the end */;
 
 ////////////////////////////////
 

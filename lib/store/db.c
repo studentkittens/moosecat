@@ -512,6 +512,7 @@ long mc_store_playlist_load(mc_Store *self, const char *playlist_name)
 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_LOAD;
+    // TODO: g_strdup
     data->playlist_name = playlist_name;
 
     return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_LOAD], data);
@@ -527,6 +528,7 @@ long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const ch
 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_QUERY;
+    // TODO: g_strdup
     data->playlist_name = playlist_name;
     data->match_clause = match_clause;
     data->out_stack = stack;
@@ -540,6 +542,7 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *d
 { 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DIR_SEARCH;
+    // TODO: g_strdup
     data->dir_directory = directory;
     data->dir_depth = depth;
     data->out_stack = stack;
@@ -562,6 +565,7 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 
 const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self)
 {
+    // TODO: lock? Rather outputs.c like..
     return self->spl.stack;
 }
 
@@ -574,6 +578,8 @@ long mc_store_search_to_stack(
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DB_SEARCH;
+
+    // TODO: I think one should g_strdup here.
     data->match_clause = match_clause;
     data->queue_only = queue_only;
     data->length_limit = limit_len;

@@ -21,6 +21,7 @@ typedef enum {
 
 /* Prototype Update struct */
 struct mc_UpdateData;
+struct mc_OutputsData;
 
 
 /**
@@ -31,13 +32,6 @@ struct mc_UpdateData;
  *    - change hosts (connecting/disconnecting) (without loosing registered callbacks)
  *    - Notifying you on events / errors / connection-changes
  *    - Send commands to the server.
- *
- *  Note: There is no method to create this struct,
- *        but there are two options you can choose from:
- *          2Connection-ProtocolMachine: mpd/pm/cmnd_core.h
- *          IdleBusy-ProtocolMachine:    mpd/pm/idle_core.h
- *
- *        Read their respective docs.
  */
 typedef struct mc_Client {
     /*
@@ -100,12 +94,10 @@ typedef struct mc_Client {
     mc_SignalList _signals;
 
     /* Outputs of MPD */
-    struct {
-        struct mpd_output **list;
-        int size;
-    } outputs;
+    struct mc_OutputsData * _outputs;
 
     /* Support for timed status retrieval */
+    /* TODO: Move this to Update Data? */
     struct {
         int timeout_id;
         int interval;
@@ -115,6 +107,7 @@ typedef struct mc_Client {
     } status_timer;
 
     /* Up-to-date infos. */
+    /* TODO: Move this to update Data? */
     struct mpd_song *song;
     struct mpd_stats *stats;
     struct mpd_status *status;
@@ -390,37 +383,20 @@ void mc_proto_status_timer_unregister(
 bool mc_proto_status_timer_is_active(mc_Client *self);
 
 /**
- * @brief Retrieve a list of AudioOutputs (enabled or disabled)
+ * @brief Make sure any data (status/stats/currentsong/outputs) cannot be 
+ *        changed while you didn't close it with mc_data_close()
  *
- * @param self the client to operate on
- * @param size OUT param. the size of the output list (not NULL terminated)
- *
- * @return a list of outputs.
+ * @param self the Client where the data is stored.
  */
-inline struct mpd_output **mc_proto_get_outputs(mc_Client *self, /* OUT */ int *size) {
-    if (size != NULL) {
-        *size = self->outputs.size;
-    }
+void mc_data_open(mc_Client *self);
 
-    return self->outputs.list;
-}
 
 /**
- * @brief Get the currently set replay gain mode
+ * @brief Release the lock created mc_data_open()
  *
- * It will be updated on the MPD_IDLE_OPTIONS event.
- *
- * @param self the client to operate on
- *
- * @return a const string ("off", "album", "title", "auto")
+ * @param self the Client where the data is stored
  */
-inline const char *mc_proto_get_replay_gain_status(mc_Client *self)
-{
-    if (self != NULL) {
-        return self->replay_gain_status;
-    } else {
-        return NULL;
-    }
-}
+void mc_data_close(mc_Client *self);
+
 
 #endif /* end of include guard: PROTOCOL_H */
