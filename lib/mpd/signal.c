@@ -67,8 +67,6 @@ void mc_signal_list_report_event_v(mc_SignalList *list, const char *signal_name,
 
     GList *cb_list = list->signals[sig_type];
 
-    g_printerr("GOT: %s\n", signal_name);
-
     /* All callbacks get a client as first param */
     switch (sig_type) {
         case MC_SIGNAL_CLIENT_EVENT: {

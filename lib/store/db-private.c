@@ -44,11 +44,9 @@ enum {
     STMT_SQL_NEED_TO_PREPARE_COUNT,
     /* ======================================================= */
     /* update queue_pos / queue_idx */
-    STMT_SQL_QUEUE_UPDATE_ROW,
+    STMT_SQL_QUEUE_INSERT_ROW,
     /* clear the pos/id fields */
     STMT_SQL_QUEUE_CLEAR,
-    /* clear the pos/id fields by filename */
-    STMT_SQL_QUEUE_CLEAR_ROW,
     /* select using match */
     STMT_SQL_SELECT_MATCHED,
     STMT_SQL_SELECT_MATCHED_ALL,
@@ -101,8 +99,6 @@ enum {
     SQL_COL_MUSICBRAINZ_ALBUM_ID,
     SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID,
     SQL_COL_MUSICBRAINZ_TRACK_ID,
-    SQL_COL_QUEUE_POS,
-    SQL_COL_QUEUE_IDX,
     SQL_COL_ALWAYS_DUMMY
 };
 
@@ -134,9 +130,6 @@ static const char *_sql_stmts[] = {
     "    musicbrainz_album_id        TEXT,                                                              \n"
     "    musicbrainz_albumartist_id  TEXT,                                                              \n"
     "    musicbrainz_track           TEXT,                                                              \n"
-    "    -- Queue Data:                                                                                 \n"
-    "    queue_pos INTEGER,             -- Position of the song in the Queue                            \n"
-    "    queue_idx INTEGER,             -- Index of the song in the Queue, does not change on moves     \n"
     "    -- Constant Value. Useful for a MATCH clause that selects everything.                          \n"
     "    always_dummy INTEGER,                                                                          \n"
     "    -- Depth of uri:                                                                               \n"
@@ -146,7 +139,10 @@ static const char *_sql_stmts[] = {
     ");                                                                                                 \n"
     "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                         \n"
     "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                         \n"
-    "CREATE INDEX IF NOT EXISTS queue_pos_index ON songs_content(c20queue_pos);                         \n"
+    "                                                                                                   \n"
+    "-- A list of Queue contents (similar to a stored playlist, but not dynamic)                        \n"
+    "CREATE TABLE IF NOT EXISTS queue(song_idx INTEGER, pos INTEGER UNIQUE, idx INTEGER UNIQUE);        \n"
+    "CREATE INDEX IF NOT EXISTS queue_pos_index ON queue(pos);                                          \n"
     "                                                                                                   \n"
     "CREATE VIRTUAL TABLE IF NOT EXISTS dirs USING fts4(path TEXT NOT NULL, depth INTEGER NOT NULL);    \n" ,
     [STMT_SQL_META_DUMMY] =
@@ -178,13 +174,11 @@ static const char *_sql_stmts[] = {
     [STMT_SQL_COUNT] =
     "SELECT count(*) FROM songs;",
     [STMT_SQL_INSERT] =
-    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
-    [STMT_SQL_QUEUE_UPDATE_ROW] =
-    "UPDATE songs_content SET c20queue_pos = ?, c21queue_idx = ? WHERE c0uri = ?;",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    [STMT_SQL_QUEUE_INSERT_ROW] =
+    "INSERT INTO queue(song_idx, pos, idx) VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?), ?, ?);",
     [STMT_SQL_QUEUE_CLEAR] =
-    "UPDATE songs_content SET c20queue_pos = -1, c21queue_idx = -1 WHERE c20queue_pos > ?;",
-    [STMT_SQL_QUEUE_CLEAR_ROW] =
-    "UPDATE songs_content SET c20queue_pos = -1, c21queue_idx = -1 WHERE c20queue_pos = ?;",
+    "DELETE FROM queue WHERE pos > ?;",
     [STMT_SQL_SELECT_MATCHED] =
     "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
     [STMT_SQL_SELECT_MATCHED_ALL] =
@@ -192,7 +186,7 @@ static const char *_sql_stmts[] = {
     [STMT_SQL_SELECT_ALL] =
     "SELECT * FROM songs;",
     [STMT_SQL_SELECT_ALL_QUEUE] =
-    "SELECT rowid, queue_pos, queue_idx FROM songs;",
+    "SELECT song_idx, pos, idx FROM queue;",
     [STMT_SQL_DELETE_ALL] =
     "DELETE FROM songs;",
     [STMT_SQL_BEGIN] =
@@ -449,12 +443,6 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMID, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_TRACKID, error_id);
-    /* Since we retrieve songs from mpd's db,
-     * these attributes are unset in the mpd_song.
-     * -1 will indicate this.
-     */
-    bind_int(db, INSERT, pos_idx, -1, error_id);
-    bind_int(db, INSERT, pos_idx, -1, error_id);
 
     /* Constant Value. See Create statement. */
     bind_int(db, INSERT, pos_idx,  0, error_id);
@@ -493,8 +481,8 @@ static gint mc_stprv_select_impl_sort_func_noud(gconstpointer a, gconstpointer b
 
         /* pos_a > pos_b */
         return +1;
-    } else return +1 /* to sort NULL at the end */;
-    } else return +1 /* to sort NULL at the end */;
+    } else return +1; /* to sort NULL at the end */
+}
 
 ////////////////////////////////
 
@@ -676,9 +664,6 @@ void mc_stprv_deserialize_songs(mc_Store *self)
     /* range parsing */
     int start = 0, end = 0;
 
-    /* queue pos */
-    char *pos_text = NULL;
-    
     /* progress */
     int progress_counter = 0;
     GTimer *timer = g_timer_new();
@@ -725,14 +710,7 @@ void mc_stprv_deserialize_songs(mc_Store *self)
         strftime(val_buf, val_buf_size, "%Y-%m-%dT%H:%M:%SZ", lm_tm);
         pair.value = val_buf;
         mpd_song_feed(song, &pair);
-        pair.name = "Pos";
-        pos_text = (char *) sqlite3_column_text(stmt, SQL_COL_QUEUE_POS);
 
-        if (pos_text != NULL)
-            mpd_song_set_pos(song, strtol(pos_text, NULL, 10));
-
-        pair.name = "Id";
-        pair.value = (char *) sqlite3_column_text(stmt, SQL_COL_QUEUE_IDX);
         /* Now feed the tags */
         feed_tag(MPD_TAG_ARTIST, SQL_COL_ARTIST, stmt, song, pair);
         feed_tag(MPD_TAG_ALBUM, SQL_COL_ALBUM, stmt, song, pair);
@@ -843,18 +821,19 @@ char *mc_stprv_get_mpd_host(mc_Store *self)
 int mc_stprv_queue_clip(mc_Store *self, int since_pos)
 {
     g_assert(self);
+
     int pos_idx = 1;
     int error_id = SQLITE_OK;
     sqlite3_stmt *clear_stmt = SQL_STMT(self, QUEUE_CLEAR);
     bind_int(self, QUEUE_CLEAR, pos_idx, MAX(-1, since_pos - 1), error_id);
 
     if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR(self, "Cannot bind stuff to clear statement");
+        REPORT_SQL_ERROR(self, "Cannot bind stuff to clip statement");
         return -1;
     }
 
     if (sqlite3_step(clear_stmt) != SQLITE_DONE) {
-        REPORT_SQL_ERROR(self, "Cannot clear Queue contents");
+        REPORT_SQL_ERROR(self, "Cannot clip Queue contents");
     }
 
     /* Make sure bindings are ready for the next insert */
@@ -869,6 +848,7 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
     g_assert(self);
     int error_id = SQLITE_OK;
     sqlite3_stmt *select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
+
     /* Set the ID by parsing the ID */
     struct mpd_pair parse_pair;
     parse_pair.name = "Id";
@@ -891,27 +871,21 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
 
 ///////////////////
 
-void mc_stprv_queue_update_posid(mc_Store *self, int pos, int idx, const char *file)
+void mc_stprv_queue_insert_posid(mc_Store *self, int pos, int idx, const char *file)
 {
     int pos_idx = 1, error_id = SQLITE_OK;
-    bind_int(self, QUEUE_UPDATE_ROW, pos_idx, pos, error_id);
-    bind_int(self, QUEUE_UPDATE_ROW, pos_idx, idx, error_id);
-    bind_txt(self, QUEUE_UPDATE_ROW, pos_idx, file, error_id);
+    bind_txt(self, QUEUE_INSERT_ROW, pos_idx, file, error_id);
+    bind_int(self, QUEUE_INSERT_ROW, pos_idx, pos, error_id);
+    bind_int(self, QUEUE_INSERT_ROW, pos_idx, idx, error_id);
     pos_idx = 1;
-    bind_int(self, QUEUE_CLEAR_ROW, pos_idx, pos, error_id);
 
     if (error_id != SQLITE_OK) {
-        REPORT_SQL_ERROR(self, "Cannot bind stuff to UPDATE statement");
+        REPORT_SQL_ERROR(self, "Cannot bind stuff to INSERT statement");
         return;
     }
 
-    /* First reset the song at that position to -1/-1 */
-    if (sqlite3_step(SQL_STMT(self, QUEUE_CLEAR_ROW)) != SQLITE_DONE)
-        REPORT_SQL_ERROR(self, "Unable to clear song in playlist.");
+    if (sqlite3_step(SQL_STMT(self, QUEUE_INSERT_ROW)) != SQLITE_DONE)
+        REPORT_SQL_ERROR(self, "Unable to INSERT song into queue.");
 
-    if (sqlite3_step(SQL_STMT(self, QUEUE_UPDATE_ROW)) != SQLITE_DONE)
-        REPORT_SQL_ERROR(self, "Unable to UPDATE song in playlist.");
-
-    CLEAR_BINDS_BY_NAME(self, QUEUE_UPDATE_ROW);
-    CLEAR_BINDS_BY_NAME(self, QUEUE_CLEAR_ROW);
+    CLEAR_BINDS_BY_NAME(self, QUEUE_INSERT_ROW);
 }

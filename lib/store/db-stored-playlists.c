@@ -216,6 +216,10 @@ static void mc_stprv_spl_listplaylists(mc_Store *store)
         if (mpd_response_finish(conn) == false) {       
             mc_shelper_report_error(self, conn);        
         }                                               
+    } else {
+        mc_shelper_report_error_printf(store->client,
+                "Cannot get connection to get listplaylists (not connected?)"
+        );
     }
     mc_proto_put(self);
 }

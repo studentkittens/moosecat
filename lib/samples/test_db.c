@@ -7,37 +7,9 @@
 
 ///////////////////////////////
 
-static void print_opfinished(mc_Client *self, mc_OpFinishedEnum op, void *userdata)
+static void print_logging(mc_Client *self, const char * message, mc_LogLevel level, gpointer user_data)
 {
-    (void) userdata;
-    (void) self;
-    static const char *op2str[] = {
-        [MC_OP_DB_UPDATED]     = "Database",
-        [MC_OP_SPL_UPDATED]    = "Stored Playlists",
-        [MC_OP_SPL_LIST_UPDATED] = "Stored Playlists Cache",
-        [MC_OP_QUEUE_UPDATED]  = "Queue"
-    };
-    g_print("op-finished-signal: ,,%s'' (#%d) updated!\n", op2str[op], op);
-}
-
-///////////////////////////////
-
-static void print_progress(mc_Client *self, bool print_newline, const char *msg, void *userdata)
-{
-    (void) self;
-    (void) userdata;
-    g_print("%s                                     %c", msg, print_newline ? '\n' : '\r');
-}
-
-///////////////////////////////
-
-static void print_error(mc_Client *self, enum mpd_error err,  const char *err_msg, bool is_fatal, void *userdata)
-{
-    (void) self;
-    (void) userdata;
-    (void) err;
-    (void) is_fatal;
-    g_print("error-signal: %s\n", err_msg);
+    g_printerr("Logging(%d): %s\n", level, message);
 }
 
 ///////////////////////////////
@@ -59,11 +31,9 @@ int main(int argc, char *argv[])
     mc_Client *client = mc_proto_create(MC_PM_IDLE);
 
     mc_proto_connect(client, NULL, "localhost", 6600, 10.0);
-    mc_proto_signal_add(client, "progress", print_progress, NULL);
-    mc_proto_signal_add(client, "error", print_error, NULL);
-    mc_proto_signal_add(client, "op-finished", print_opfinished, NULL);
-    mc_misc_register_posix_signal(client);
+    mc_proto_signal_add(client, "logging", print_logging, NULL);
     mc_proto_signal_add(client, "client-event", print_event, NULL);
+    mc_misc_register_posix_signal(client);
 
     mc_StoreSettings *settings = mc_store_settings_new();
     settings->use_memory_db = FALSE;

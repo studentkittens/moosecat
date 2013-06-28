@@ -163,7 +163,6 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
                 mc_shelper_report_progress(
                         self, false, "database: listallinfo cancelled!"
                 );
-
                 break;
             }
 
@@ -208,6 +207,8 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
     mc_Store *self = tag->store;
     GAsyncQueue *queue = tag->queue;
 
+    int clipped = 0;
+    bool first_song_passed = false;
     struct mpd_song *song = NULL;
     GTimer *timer = g_timer_new();
     gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
@@ -216,7 +217,19 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
     mc_stprv_begin(self);
 
     while ((gpointer)(song = g_async_queue_pop(queue)) != queue) {
-        mc_stprv_queue_update_posid(
+        if(first_song_passed == false) {
+            g_timer_start(timer);
+            clipped = mc_stprv_queue_clip(
+                    self,
+                    mpd_song_get_pos(song)
+            );
+            clip_time = g_timer_elapsed(timer, NULL);
+            g_timer_start(timer);
+
+            first_song_passed = true;
+        }
+
+        mc_stprv_queue_insert_posid(
                 self,
                 mpd_song_get_pos(song),
                 mpd_song_get_id(song),
@@ -227,14 +240,6 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
 
     posid_time = g_timer_elapsed(timer, NULL);
 
-    g_timer_start(timer);
-
-    /* Clip off songs that were deleted at the end of the queue */
-    int clipped = mc_stprv_queue_clip(
-            self,
-            mc_status_get_queue_length(self->client)
-    );
-
     if (clipped > 0) {
         mc_shelper_report_progress(
                 self->client,
@@ -244,14 +249,11 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
         );
     }
 
-    clip_time = g_timer_elapsed(timer, NULL);
-
     /* Commit all those update statements */
     mc_stprv_commit(self);
 
     /* Update the pos/id data in the song stack (=> sync with db) */
     g_timer_start(timer);
-
     mc_stprv_queue_update_stack_posid(self);
     stack_time = g_timer_elapsed(timer, NULL);
     g_timer_destroy(timer);
@@ -361,4 +363,3 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
     g_async_queue_unref(queue);
     g_timer_destroy(timer);
 }
-

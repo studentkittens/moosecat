@@ -265,8 +265,13 @@ void *mc_store_job_execute_callback(
     mc_Store *self = user_data;
     mc_JobData *data = job_data;
 
+    mc_shelper_report_progress(self->client, true, "Processing: %d\n", data->op);
+
     if(data->op & MC_OPER_DESERIALIZE) {
         mc_stprv_deserialize_songs(self);
+
+        /* We need to read the pos/id info from the queue table */
+        mc_stprv_queue_update_stack_posid(self);
         data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
         self->force_update_listallinfo = false;
     }
@@ -335,6 +340,8 @@ void *mc_store_job_execute_callback(
     ) {
         self->write_to_disk = TRUE;
     }
+
+    mc_shelper_report_progress(self->client, true, "Processing done: %d\n", data->op);
 
     /* Free the data pack */
     g_free(data);
@@ -443,7 +450,6 @@ void mc_store_close(mc_Store *self)
 {
     if (self == NULL)
         return;
-
 
     mc_proto_signal_rm(self->client, "client-event", mc_store_update_callback);
     mc_proto_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);

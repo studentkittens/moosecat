@@ -142,11 +142,6 @@ int mc_stprv_get_song_count(mc_Store *self);
 char *mc_stprv_get_mpd_host(mc_Store *self);
 
 /**
- * @brief Clear the update flag in the whole table.
- */
-void mc_stprv_queue_clear_update_flag(mc_Store *self);
-
-/**
  * @brief Clear pos/id in the songs table (to -1)
  */
 int mc_stprv_queue_clip(mc_Store *self, int since_pos);
@@ -154,7 +149,7 @@ int mc_stprv_queue_clip(mc_Store *self, int since_pos);
 /**
  * @brief Update a song, identified by file's pos/id to pos/idx
  */
-void mc_stprv_queue_update_posid(mc_Store *self, int pos, int idx, const char *file);
+void mc_stprv_queue_insert_posid(mc_Store *self, int pos, int idx, const char *file);
 
 /**
  * @brief Update the song's stack songs pos/id according to the songs table.
