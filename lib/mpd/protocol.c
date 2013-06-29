@@ -1,8 +1,8 @@
 #include "protocol.h"
 #include "update.h"
 
-#include "pm/cmnd_core.h"
-#include "pm/idle_core.h"
+#include "pm/cmnd-core.h"
+#include "pm/idle-core.h"
 
 #include "signal-helper.h"
 #include "outputs.h"
@@ -11,6 +11,10 @@
 
 /* memset */
 #include <string.h>
+
+///////////////////
+////  PRIVATE /////
+///////////////////
 
 enum {
     ERR_OK,
@@ -26,53 +30,6 @@ static const char *etable[] = {
     [ERR_UNKNOWN] = "Operation failed for unknow reason."
 };
 
-
-///////////////////
-////  PRIVATE /////
-///////////////////
-
-static void mc_proto_reset(mc_Client *self)
-{
-    /* Free status/song/stats */
-    mc_update_data_open(self);
-
-    mc_lock_status(self);
-    {
-        if (self->status != NULL) {
-            mpd_status_free(self->status);
-        }
-        self->status = NULL;
-
-        /* Replay gain status is handled as part of status */
-        if (self->replay_gain_status != NULL) {
-            g_free((char *)self->replay_gain_status);
-        }
-        self->replay_gain_status = NULL;
-
-    }
-    mc_unlock_status(self);
-
-    mc_lock_stats(self);
-    {
-       if (self->stats != NULL) {
-            mpd_stats_free(self->stats);
-       }
-        self->stats = NULL;
-    }
-    mc_unlock_stats(self);
-
-    mc_lock_current_song(self);
-    {
-        if (self->song != NULL) {
-            mpd_song_free(self->song);
-        }
-        self->song = NULL;
-    }
-    mc_unlock_current_song(self);
-
-    mc_update_data_close(self);
-}
-
 ///////////////////
 ////  PUBLIC //////
 ///////////////////
@@ -86,7 +43,7 @@ mc_Client *mc_proto_create(mc_PmType pm)
         client = mc_proto_create_idler();
         break;
 
-    case MC_PM_COMMAND: // TODO: pass arguments.
+    case MC_PM_COMMAND: 
         client = mc_proto_create_cmnder(-1);
         break;
     }
@@ -98,11 +55,6 @@ mc_Client *mc_proto_create(mc_PmType pm)
 
     client->_update_data = mc_proto_update_data_new(client);
     client->_outputs = mc_proto_outputs_new(client);
-
-    /* TODO: Move this to update data */
-    g_mutex_init(&client->update_mtx.song);
-    g_mutex_init(&client->update_mtx.stats);
-    g_mutex_init(&client->update_mtx.status);
 
     /* init the getput mutex */
     g_rec_mutex_init(&client->_getput_mutex);
@@ -134,7 +86,7 @@ char *mc_proto_connect(
 
     if (err == NULL && mc_proto_is_connected(self)) {
         /* Force updating of status/stats/song on connect */
-        mc_proto_force_sss_update(self, INT_MAX);
+        mc_proto_force_sync(self, INT_MAX);
 
         /* For bugreports only */
         self->_timeout = timeout;
@@ -214,7 +166,7 @@ char *mc_proto_disconnect(
         bool error_happenend = !self->do_disconnect(self);
 
         /* Reset status/song/stats to NULL */
-        mc_proto_reset(self);
+        mc_proto_update_reset(self->_update_data);
 
         /* Notify user of the disconnect */
         mc_proto_signal_dispatch(self, "connectivity", self, false);
@@ -258,14 +210,10 @@ void mc_proto_free(mc_Client *self)
     /* Forget any signals */
     mc_signal_list_destroy(&self->_signals);
 
+    /* Free SSS data */
+    mc_proto_update_reset(self->_update_data);
     mc_proto_update_data_destroy(self->_update_data);
 
-    /* Free SSS data */
-    mc_proto_reset(self);
-
-    g_mutex_clear(&self->update_mtx.song);
-    g_mutex_clear(&self->update_mtx.stats);
-    g_mutex_clear(&self->update_mtx.status);
     g_rec_mutex_clear(&self->_getput_mutex);
 
     /* Allow special connector to cleanup */
@@ -347,13 +295,11 @@ int mc_proto_signal_length(
 
 ///////////////////
 
-/* TODO: Rename this in force_sync() */
-void mc_proto_force_sss_update(
+void mc_proto_force_sync(
     mc_Client *self,
     enum mpd_idle events)
 {
     g_assert(self);
-    //mc_proto_update_context_info_cb(self, events, NULL);
     mc_proto_update_data_push(self->_update_data, events);
 }
 
@@ -402,18 +348,4 @@ void mc_proto_status_timer_register(
     bool trigger_event)
 {
     mc_proto_update_register_status_timer(self, repeat_ms, trigger_event);
-}
-
-///////////////////
-
-void mc_data_open(mc_Client *self)
-{
-    mc_update_data_open(self);
-}
-
-///////////////////
-
-void mc_data_close(mc_Client *self)
-{
-    mc_update_data_close(self);
 }

@@ -134,7 +134,6 @@ int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *di
         while (sqlite3_step(select_stmt) == SQLITE_ROW) {
             const char *rowid = (const char *) sqlite3_column_text(select_stmt, 0);
             const char *path = (const char *) sqlite3_column_text(select_stmt, 1);
-            g_print("%s:%s\n", rowid, path);
             mc_stack_append(stack, g_strjoin(":", rowid, path, NULL));
             ++returned;
         }

@@ -1,7 +1,6 @@
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
-#include "../mpd/status.h"
-#include "../mpd/statistics.h"
+#include "../mpd/update.h"
 #include "../util/gzip.h"
 
 #include "db-stored-playlists.h"
@@ -157,7 +156,14 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
 
     /* check #4 */
     size_t cached_db_version = mc_stprv_get_db_version(self);
-    if(cached_db_version != mc_stats_get_db_update_time(self->client))
+    size_t current_db_version = 0;
+    struct mpd_stats * stats = mc_lock_statistics(self->client);
+    if(stats != NULL) { 
+        current_db_version = mpd_stats_get_db_update_time(stats);
+    }
+    mc_unlock_statistics(self->client);
+
+    if(cached_db_version != current_db_version)
         goto close_handle;
 
     size_t cached_sc_version = mc_stprv_get_sc_version(self);
@@ -207,6 +213,8 @@ static void mc_store_update_callback(
         mc_Store *self)
 {
     g_assert(self && client && self->client == client);
+
+    g_printerr("GOT EVENT: %d\n", events);
 
     if (events & MPD_IDLE_DATABASE) {
         mc_store_send_job_no_args(self,
@@ -264,6 +272,12 @@ void *mc_store_job_execute_callback(
     void * result = NULL;
     mc_Store *self = user_data;
     mc_JobData *data = job_data;
+
+    if(data->op == 0) {
+        goto cleanup;
+    }
+
+    mc_stprv_lock_attributes(self);
 
     mc_shelper_report_progress(self->client, true, "Processing: %d\n", data->op);
 
@@ -341,9 +355,15 @@ void *mc_store_job_execute_callback(
         self->write_to_disk = TRUE;
     }
 
+    mc_stprv_unlock_attributes(self);
+
     mc_shelper_report_progress(self->client, true, "Processing done: %d\n", data->op);
 
+cleanup:
     /* Free the data pack */
+    g_free((char *)data->match_clause);
+    g_free((char *)data->playlist_name);
+    g_free((char *)data->dir_directory);
     g_free(data);
 
     return result;
@@ -361,6 +381,9 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 
     /* allocated memory for the mc_Store struct */
     mc_Store *store = g_new0(mc_Store, 1);
+
+    /* Initialize the Attribute mutex early */
+    g_rec_mutex_init(&store->attr_set_mtx);
 
     /* Initialize the job manager used to background jobs */
     store->jm = mc_jm_create(mc_store_job_execute_callback, store);
@@ -477,6 +500,8 @@ void mc_store_close(mc_Store *self)
     if (self->settings->use_memory_db == false)
         g_unlink(MC_STORE_TMP_DB_PATH);
 
+    g_rec_mutex_clear(&self->attr_set_mtx);
+
     /* NOTE: Settings should be destroyed by caller,
      *       Since it should be valid to call close()
      *       several times.
@@ -518,8 +543,7 @@ long mc_store_playlist_load(mc_Store *self, const char *playlist_name)
 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_LOAD;
-    // TODO: g_strdup
-    data->playlist_name = playlist_name;
+    data->playlist_name = g_strdup(playlist_name);
 
     return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_LOAD], data);
 }
@@ -534,9 +558,9 @@ long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const ch
 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_QUERY;
-    // TODO: g_strdup
-    data->playlist_name = playlist_name;
-    data->match_clause = match_clause;
+
+    data->playlist_name = g_strdup(playlist_name);
+    data->match_clause = g_strdup(match_clause);
     data->out_stack = stack;
 
     return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_QUERY], data);
@@ -548,8 +572,7 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *d
 { 
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DIR_SEARCH;
-    // TODO: g_strdup
-    data->dir_directory = directory;
+    data->dir_directory = g_strdup(directory);
     data->dir_depth = depth;
     data->out_stack = stack;
 
@@ -571,7 +594,6 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 
 const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self)
 {
-    // TODO: lock? Rather outputs.c like..
     return self->spl.stack;
 }
 
@@ -585,8 +607,7 @@ long mc_store_search_to_stack(
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DB_SEARCH;
 
-    // TODO: I think one should g_strdup here.
-    data->match_clause = match_clause;
+    data->match_clause = g_strdup(match_clause);
     data->queue_only = queue_only;
     data->length_limit = limit_len;
     data->out_stack = stack;
@@ -621,4 +642,22 @@ mc_Stack *mc_store_gw(mc_Store *self, int job_id)
 {
     mc_store_wait_for_job(self, job_id);
     return mc_store_get_result(self, job_id);
+}
+
+//////////////////////////////
+
+void mc_store_lock(mc_Store *self)
+{
+    g_assert(self);
+
+    mc_stprv_lock_attributes(self);
+}
+
+//////////////////////////////
+
+void mc_store_release(mc_Store *self)
+{
+    g_assert(self);
+
+    mc_stprv_unlock_attributes(self);
 }

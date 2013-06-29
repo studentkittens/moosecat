@@ -40,7 +40,7 @@ typedef struct mc_Store {
 
     /* Support for stored playlists */
     struct {
-        /* A stack of mpd_playlists (all of them) */
+        /* A stack of mpd_playlists (all of them, loaded or not) */
         mc_Stack *stack;
 
         /* Sql statements for stored playlists */
@@ -59,6 +59,16 @@ typedef struct mc_Store {
 
     /* Job manager used to process database tasks in the background */
     struct mc_JobManager *jm;
+
+    /* Locked when setting an attribute, or reading from one 
+     * Attributes are:
+     *    - stack
+     *    - spl.stack
+     *
+     * db-dirs.c append copied data onto the stack. 
+     *  
+     * */
+    GRecMutex attr_set_mtx;
 
 } mc_Store;
 

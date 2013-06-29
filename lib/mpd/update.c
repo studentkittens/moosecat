@@ -31,6 +31,7 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
 {
     if (self != NULL && events != 0 && mc_proto_is_connected(self)) {
         struct mpd_connection *conn = mc_proto_get(self);
+        mc_UpdateData * data = self->_update_data;
 
         if (conn != NULL) {
             const bool update_status = (events & on_status_update);
@@ -63,19 +64,17 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                     struct mpd_status *tmp_status;
                     tmp_status = mpd_recv_status(conn);
 
-                    if (self->status_timer.last_update != NULL && self->status_timer.reset_timer) {
+                    if (data->status_timer.last_update != NULL && data->status_timer.reset_timer) {
                         /* Reset the status timer to 0 */
-                        g_timer_start(self->status_timer.last_update);
+                        g_timer_start(data->status_timer.last_update);
                     }
 
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
-                        mc_update_data_open(self);
                         mc_lock_status(self);
-                        free_if_not_null(self->status, mpd_status_free);
-                        self->status = tmp_status;
+                        free_if_not_null(data->status, mpd_status_free);
+                        data->status = tmp_status;
                         mc_unlock_status(self);
-                        mc_update_data_close(self);
                     }
 
                     mpd_response_next(conn);
@@ -88,12 +87,10 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                     tmp_stats = mpd_recv_stats(conn);
 
                     if (tmp_stats) {
-                        mc_update_data_open(self);
-                        mc_lock_stats(self);
-                        free_if_not_null(self->stats, mpd_stats_free);
-                        self->stats = tmp_stats;
-                        mc_unlock_stats(self);
-                        mc_update_data_close(self);
+                        mc_lock_statistics(self);
+                        free_if_not_null(data->statistics, mpd_stats_free);
+                        data->statistics= tmp_stats;
+                        mc_unlock_statistics(self);
                     }
 
                     mpd_response_next(conn);
@@ -102,15 +99,14 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
 
                 /* Read the current replay gain status */
                 if (update_rg) {
-                    free_if_not_null(self->replay_gain_status, g_free);
+                    free_if_not_null(data->replay_gain_status, g_free);
+                    data->replay_gain_status = NULL;
                     struct mpd_pair *mode = mpd_recv_pair_named(conn, "replay_gain_mode");
 
                     if (mode != NULL) {
-                        mc_update_data_open(self);
                         mc_lock_status(self);
-                        self->replay_gain_status = g_strdup(mode->value);
+                        data->replay_gain_status = g_strdup(mode->value);
                         mc_unlock_status(self);
-                        mc_update_data_close(self);
 
                         mpd_return_pair(conn, mode);
                     }
@@ -123,22 +119,20 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                 if (update_song) {
                     struct mpd_song * new_song = mpd_recv_song(conn);
 
-                    mc_update_data_open(self);
                     mc_lock_current_song(self);
-                    free_if_not_null(self->song, mpd_song_free);
-                    self->song = new_song;
+                    free_if_not_null(data->current_song, mpd_song_free);
+                    data->current_song = new_song;
 
                     /* We need to call recv() one more time
                      * so we end the songlist,
                      * it should only return  NULL
                      * */
-                    if (self->song != NULL) {
+                    if (data->current_song != NULL) {
                         struct mpd_song *empty = mpd_recv_song(conn);
                         g_assert(empty == NULL);
                     }
 
                     mc_unlock_current_song(self);
-                    mc_update_data_close(self);
                     mc_shelper_report_error(self, conn);
                 }
 
@@ -156,7 +150,7 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
 
 ////////////////////////
 
-gpointer mc_proto_update_thread(gpointer user_data)
+static gpointer mc_proto_update_thread(gpointer user_data)
 {
     g_assert(user_data);
 
@@ -173,35 +167,46 @@ gpointer mc_proto_update_thread(gpointer user_data)
 }
 
 ////////////////////////
+// STATUS TIMER STUFF //
+////////////////////////
 
-static gboolean mc_proto_update_status_timer_cb(gpointer data)
+static gboolean mc_proto_update_status_timer_cb(gpointer user_data)
 {
-    g_assert(data);
-    struct mc_Client *self = data;
+    g_assert(user_data);
+    struct mc_Client *self = user_data;
+    mc_UpdateData * data = self->_update_data;
 
     if (mc_proto_is_connected(self) == false) {
         return false;
     }
 
-    if (mpd_status_get_state(self->status) == MPD_STATE_PLAY) {
+    enum mpd_state state = MPD_STATE_UNKNOWN;
+    struct mpd_status * status = mc_lock_status(self);
+    if(status != NULL) {
+        state = mpd_status_get_state(status);
+    } 
+    mc_unlock_status(self);
 
-        /* TODO: Is this still valid? */
-        /* Substract a small amount to include the network latency - a bit of a hack
-         * but worst thing that could happen: you miss one status update.
-         * */
-        float compare = MAX(self->status_timer.interval - self->status_timer.interval / 10, 0);
-        float elapsed = g_timer_elapsed(self->status_timer.last_update, NULL) * 1000;
+    if(status != NULL) {
+        if (state == MPD_STATE_PLAY) {
 
-        if (elapsed >= compare) {
-            /* MIXER is a harmless event, but it causes status to update */
-            enum mpd_idle on_status_only = MPD_IDLE_MIXER;
+            /* Substract a small amount to include the network latency - a bit of a hack
+            * but worst thing that could happen: you miss one status update.
+            * */
+            float compare = MAX(data->status_timer.interval - data->status_timer.interval / 10, 0);
+            float elapsed = g_timer_elapsed(data->status_timer.last_update, NULL) * 1000;
 
-            self->status_timer.reset_timer = false;
-            mc_proto_update_data_push(self->_update_data, on_status_only);
-            self->status_timer.reset_timer = true;
+            if (elapsed >= compare) {
+                /* MIXER is a harmless event, but it causes status to update */
+                enum mpd_idle on_status_only = MPD_IDLE_MIXER;
 
-            if (self->status_timer.trigger_event) {
-                mc_shelper_report_client_event(self, on_status_only);
+                data->status_timer.reset_timer = false;
+                mc_proto_update_data_push(self->_update_data, on_status_only);
+                data->status_timer.reset_timer = true;
+
+                if (data->status_timer.trigger_event) {
+                    mc_shelper_report_client_event(self, on_status_only);
+                }
             }
         }
     }
@@ -218,12 +223,16 @@ void mc_proto_update_register_status_timer(
 {
     g_assert(self);
 
-    self->status_timer.trigger_event = trigger_event;
-    self->status_timer.last_update = g_timer_new();
-    self->status_timer.reset_timer = true;
-    self->status_timer.interval = repeat_ms;
-    self->status_timer.timeout_id =
+    mc_UpdateData *data = self->_update_data;
+
+    g_mutex_lock(&data->status_timer.mutex);
+    data->status_timer.trigger_event = trigger_event;
+    data->status_timer.last_update = g_timer_new();
+    data->status_timer.reset_timer = true;
+    data->status_timer.interval = repeat_ms;
+    data->status_timer.timeout_id =
         g_timeout_add(repeat_ms, mc_proto_update_status_timer_cb, self);
+    g_mutex_unlock(&data->status_timer.mutex);
 }
 
 ////////////////////////
@@ -234,17 +243,21 @@ void mc_proto_update_unregister_status_timer(
     g_assert(self);
 
     if (mc_proto_update_status_timer_is_active(self)) {
-        if (self->status_timer.timeout_id > 0) {
-            g_source_remove(self->status_timer.timeout_id);
+        mc_UpdateData *data = self->_update_data;
+        g_mutex_lock(&data->status_timer.mutex);
+
+        if (data->status_timer.timeout_id > 0) {
+            g_source_remove(data->status_timer.timeout_id);
         }
 
-        self->status_timer.timeout_id = -1;
-        self->status_timer.interval = 0;
-        self->status_timer.reset_timer = true;
+        data->status_timer.timeout_id = -1;
+        data->status_timer.interval = 0;
+        data->status_timer.reset_timer = true;
 
-        if (self->status_timer.last_update != NULL) {
-            g_timer_destroy(self->status_timer.last_update);
+        if (data->status_timer.last_update != NULL) {
+            g_timer_destroy(data->status_timer.last_update);
         }
+        g_mutex_unlock(&data->status_timer.mutex);
     }
 }
 
@@ -253,72 +266,100 @@ void mc_proto_update_unregister_status_timer(
 bool mc_proto_update_status_timer_is_active(struct mc_Client *self)
 {
     g_assert(self);
-    return (self->status_timer.timeout_id != -1);
+
+    mc_UpdateData *data = self->_update_data;
+    g_mutex_lock(&data->status_timer.mutex);
+    bool result = (self->_update_data->status_timer.timeout_id != -1);
+    g_mutex_unlock(&data->status_timer.mutex);
+    
+    return result;
 }
 
 ////////////////////////
+//    LOCKING STUFF   //
+////////////////////////
 
-void mc_lock_status(struct mc_Client *self)
+struct mpd_status *mc_lock_status(struct mc_Client *self)
 {
-    g_mutex_lock(&self->update_mtx.status);
+    g_rec_mutex_lock(&self->_update_data->mtx_status);
+    return self->_update_data->status;
 }
 
 ////////////////////////
 
 void mc_unlock_status(struct mc_Client *self)
 {
-    g_mutex_unlock(&self->update_mtx.status);
+    g_rec_mutex_unlock(&self->_update_data->mtx_status);
 }
 
 ////////////////////////
 
-void mc_lock_stats(struct mc_Client *self)
+struct mpd_stats * mc_lock_statistics(struct mc_Client *self)
 {
-    g_mutex_lock(&self->update_mtx.stats);
+    g_rec_mutex_lock(&self->_update_data->mtx_statistics);
+    return self->_update_data->statistics;
 }
 
 ////////////////////////
 
-void mc_unlock_stats(struct mc_Client *self)
+void mc_unlock_statistics(struct mc_Client *self)
 {
-    g_mutex_unlock(&self->update_mtx.stats);
+    g_rec_mutex_unlock(&self->_update_data->mtx_statistics);
 }
 
 ////////////////////////
 
-void mc_lock_current_song(struct mc_Client *self)
+struct mpd_song * mc_lock_current_song(struct mc_Client *self)
 {
-    g_mutex_lock(&self->update_mtx.song);
+    g_rec_mutex_lock(&self->_update_data->mtx_current_song);
+    return self->_update_data->current_song;
 }
 
 ////////////////////////
 
 void mc_unlock_current_song(struct mc_Client *self)
 {
-    g_mutex_unlock(&self->update_mtx.song);
+    g_rec_mutex_unlock(&self->_update_data->mtx_current_song);
 }
 
 ////////////////////////
+
+void mc_lock_outputs(struct mc_Client *self)
+{
+    g_rec_mutex_lock(&self->_update_data->mtx_outputs);
+}
+
 ////////////////////////
+
+void mc_unlock_outputs(struct mc_Client *self)
+{
+    g_rec_mutex_unlock(&self->_update_data->mtx_outputs);
+}
+
+////////////////////////
+//     PUBLIC API     //
 ////////////////////////
 
 mc_UpdateData * mc_proto_update_data_new(struct mc_Client * self)
 {
     g_assert(self);
 
-    g_printerr("Creating Update Data\n");
-
     mc_UpdateData *data = g_slice_new0(mc_UpdateData);
     data->client = self;
     data->event_queue = g_async_queue_new();
 
-    g_rec_mutex_init(&data->data_set_mutex);
+    g_mutex_init(&data->status_timer.mutex);
+    g_rec_mutex_init(&data->mtx_current_song);
+    g_rec_mutex_init(&data->mtx_statistics);
+    g_rec_mutex_init(&data->mtx_status);
+    g_rec_mutex_init(&data->mtx_outputs);
 
     data->update_thread = g_thread_new(
             "StatusUpdateThread",
             mc_proto_update_thread,
             data
     );
+
     return data;
 }
 
@@ -339,7 +380,12 @@ void mc_proto_update_data_destroy(mc_UpdateData * data)
 
     data->event_queue = NULL;
     data->update_thread = NULL;
-    g_rec_mutex_clear(&data->data_set_mutex);
+
+    g_rec_mutex_clear(&data->mtx_current_song);
+    g_rec_mutex_clear(&data->mtx_statistics);
+    g_rec_mutex_clear(&data->mtx_status);
+    g_rec_mutex_clear(&data->mtx_outputs);
+    g_mutex_clear(&data->status_timer.mutex);
 
     g_slice_free(mc_UpdateData, data);
 }
@@ -358,16 +404,39 @@ void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event)
 
 ////////////////////////
 
-void mc_update_data_open(struct mc_Client *self)
+void mc_proto_update_reset(mc_UpdateData *data)
 {
-    g_assert(self);
-    g_rec_mutex_lock(&self->_update_data->data_set_mutex);
-}
+    mc_lock_status(data->client);
+    {
+        if (data->status != NULL) {
+            mpd_status_free(data->status);
+        }
+        data->status = NULL;
 
-////////////////////////
+        /* Replay gain status is handled as part of status */
+        if (data->replay_gain_status != NULL) {
+            g_free((char *)data->replay_gain_status);
+        }
+        data->replay_gain_status = NULL;
 
-void mc_update_data_close(struct mc_Client *self)
-{
-    g_assert(self);
-    g_rec_mutex_unlock(&self->_update_data->data_set_mutex);
+    }
+    mc_unlock_status(data->client);
+
+    mc_lock_statistics(data->client);
+    {
+       if (data->statistics!= NULL) {
+            mpd_stats_free(data->statistics);
+       }
+        data->statistics= NULL;
+    }
+    mc_unlock_statistics(data->client);
+
+    mc_lock_current_song(data->client);
+    {
+        if (data->current_song!= NULL) {
+            mpd_song_free(data->current_song);
+        }
+        data->current_song= NULL;
+    }
+    mc_unlock_current_song(data->client);
 }

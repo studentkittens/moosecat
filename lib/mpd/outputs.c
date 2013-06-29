@@ -54,14 +54,14 @@ void mc_proto_outputs_update(mc_OutputsData *data, enum mpd_idle event)
             }
     
             /* Lock before setting the actual data
-             * (in case someone is reading it right now
+             * (in case someone is reading it right now)
              */
-            mc_update_data_open(data->client);
+            mc_lock_outputs(data->client);
             {
                 g_hash_table_destroy(data->outputs);
                 data->outputs = new_table;
             }
-            mc_update_data_close(data->client);
+            mc_unlock_outputs(data->client);
         }
 
         if(mpd_response_finish(conn) == false) {
@@ -180,11 +180,14 @@ void mc_proto_outputs_destroy(mc_OutputsData *data)
 {
     g_assert(data);
 
-    mc_update_data_open(data->client);
     g_mutex_lock(&data->output_lock);
+    mc_lock_outputs(data->client);
 
     g_hash_table_destroy(data->outputs);
+    data->outputs = NULL;
 
+    mc_unlock_outputs(data->client);
     g_mutex_unlock(&data->output_lock);
-    mc_update_data_close(data->client);
+
+    g_slice_free(mc_OutputsData, data);
 }

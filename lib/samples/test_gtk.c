@@ -138,7 +138,15 @@ static EntryTag *setup_client(void)
             rc->client = client;
             rc->store = store;
             rc->profile_timer = g_timer_new();
-            rc->song_buf = mc_stack_create(mc_stats_get_number_of_songs(client) + 1, NULL);
+
+            int number_of_songs = 1000;
+            struct mpd_stats * stats = mc_lock_statistics(client);
+            if(stats != NULL) {
+                number_of_songs = mpd_stats_get_number_of_songs(stats);
+            }
+            mc_unlock_statistics(client);
+
+            rc->song_buf = mc_stack_create(number_of_songs + 1, NULL);
         }
 
         mc_proto_signal_add_masked(client, "client-event",

@@ -1,7 +1,7 @@
 #include "client.h"
 #include "signal-helper.h"
 #include "outputs.h"
-#include "current-song.h"
+#include "update.h"
 
 static bool mc_client_command_list_begin(mc_Client *self);
 static void mc_client_command_list_append(mc_Client *self, const char *command);
@@ -541,7 +541,16 @@ static bool handle_seekcur(mc_Client *self, struct mpd_connection *conn, const c
      * but we can emulate it easily */
     if(mc_proto_is_connected(self))
     {
-        int curr_id = mc_current_song_get_id(self);
+        int curr_id = 0;
+        struct mpd_song * current_song = mc_lock_current_song(self);
+        if(current_song != NULL) {
+            curr_id = mpd_song_get_id(current_song);
+            mc_unlock_current_song(self);
+        } else {
+            mc_unlock_current_song(self);
+            return false;
+        }
+
         COMMAND(
             mpd_run_seek_id(conn, curr_id, seconds),
             mpd_send_seek_id(conn, curr_id, seconds)
@@ -803,19 +812,16 @@ static void * mc_client_command_dispatcher(
         }
         else
         if(mc_client_command_list_is_start_or_end(input) == -1) {
-            g_printerr("Command list commit\n");
             result = mc_client_command_list_commit(self);
         }
         else
         if(mc_client_command_list_is_active(self)) {
-            g_printerr("Appending: %s\n", input);
             mc_client_command_list_append(self, input);
             result = true;
             free_input = false;
         }
         else 
         if(mc_client_command_list_is_start_or_end(input) == +1) {
-            g_printerr("Command List begin\n");
             mc_client_command_list_begin(self);
             result = true;
         }
@@ -841,7 +847,7 @@ static void * mc_client_command_dispatcher(
 
 //////////////////////////////////////
 //                                  //
-//Code Pretending to be Command List//
+//Code Pretending to do Command List//
 //                                  //
 //////////////////////////////////////
 
@@ -934,7 +940,6 @@ static bool mc_client_command_list_commit(mc_Client *self)
     self->command_list.is_active = 0;
     g_mutex_unlock(&self->command_list.is_active_mtx);
 
-    g_print("Committed.\n");
 
     return !mc_client_command_list_is_active(self);
 }
@@ -981,9 +986,7 @@ bool mc_client_recv(mc_Client *self, long job_id)
 {
     g_assert(self);
 
-    g_print("BEFORE WAIT\n");
     mc_jm_wait_for_id(self->jm, job_id);
-    g_print("AFTER WAIT\n");
     return GPOINTER_TO_INT(mc_jm_get_result(self->jm, job_id));
 }
 

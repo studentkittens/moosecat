@@ -1,4 +1,4 @@
-#include "idle_core.h"
+#include "cmnd-core.h"
 #include "common.h"
 #include "../../util/gasyncqueue-watch.h"
 #include "../../util/sleep-grained.h"
@@ -38,9 +38,6 @@ typedef struct {
 
     /* Thread that polls idle_con */
     GThread *listener_thread;
-
-    /* Queue used to communicte between
-     * listener_thread and mainloop-thread */
 
     /* Indicates that the listener runs,
      * if false it may still run, but will
@@ -122,18 +119,31 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
     enum mpd_idle events = 0;
 
     while (cmnder_get_run_listener(self)) {
-        /* TODO: Possible Race Condition when 
-         * calling disonnect while being in mpd_run_idle?
+        /* Well, let's just be honest. This is retarted. 
+         * 
+         * This works fine when most of the time, 
+         * but when disconnection we have to wake up this cinderella.
+         * We currently do this in a bit of a retarted way. 
          *
-         * Lock new mutex before calling mpd_run_idle,
-         * wait for it to be release before disconnect.
-         */ 
+         * We send this over cmnd_con:
+         *
+         *      command_list_begin
+         *      repeat !$(current_state)
+         *      repeat $(current_state)
+         *      command_list_end
+         *
+         * This triggers an event that is waking up mpd_run_idle().
+         * Yes, really. I wanted to be honest with you, dear reader.
+         */
+
         if ((events = mpd_run_idle(self->idle_con)) == 0) {
             mc_shelper_report_error((mc_Client *) self, self->idle_con);
             break;
         }
 
-        mc_shelper_report_client_event((mc_Client *) self, events);
+        if(cmnder_get_run_listener(self)) {
+            mc_shelper_report_client_event((mc_Client *) self, events);
+        }
     }
 
     return NULL;
@@ -151,14 +161,40 @@ static void cmnder_create_glib_adapter(
     }
 }
 
+//////////////////////////
+
+static void cmnder_shutdown_pinger(mc_CmndClient *self)
+{
+    g_assert(self);
+
+    if (self->pinger_thread != NULL) {
+        cmnder_set_run_pinger(self, FALSE);
+        g_thread_join(self->pinger_thread);
+        self->pinger_thread = NULL;
+    }
+}
+
 ///////////////////////
 
 static void cmnder_shutdown_listener(mc_CmndClient *self)
 {
     /* Interrupt the idling, and tell the idle thread to die. */
     cmnder_set_run_listener(self, FALSE);
-    mpd_send_noidle(self->idle_con);
 
+    /* Ugly hack, see cmnder_listener_thread() */
+    struct mpd_status * status =  mpd_run_status(self->cmnd_con);
+    if(status != NULL) {
+        mpd_command_list_begin(self->cmnd_con, false);
+        mpd_send_repeat(self->cmnd_con, !mpd_status_get_repeat(status));
+        mpd_send_repeat(self->cmnd_con, mpd_status_get_repeat(status));
+        mpd_command_list_end(self->cmnd_con);
+        mpd_status_free(status);
+    } 
+
+    /* This hack takes a bit time to have a effect. 
+     * in the meantime we can wait for the ping thread 
+     * to close */
+    cmnder_shutdown_pinger(self);
 
     /* join the idle thread.
      * This is a very good argument, to not call disconnect
@@ -243,19 +279,6 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
 }
 
 //////////////////////////
-
-static void cmnder_shutdown_pinger(mc_CmndClient *self)
-{
-    g_assert(self);
-
-    if (self->pinger_thread != NULL) {
-        cmnder_set_run_pinger(self, FALSE);
-        g_thread_join(self->pinger_thread);
-        self->pinger_thread = NULL;
-    }
-}
-
-//////////////////////////
 //// Public Callbacks ////
 //////////////////////////
 
@@ -292,8 +315,11 @@ static char *cmnder_do_connect(
     /* start ping thread */
     if (self->pinger_thread == NULL) {
         cmnder_set_run_pinger(self, TRUE);
-        self->pinger_thread = g_thread_new("cmnd-core-pinger",
-                                           (GThreadFunc) cmnder_ping_server, self);
+        self->pinger_thread = g_thread_new(
+                "cmnd-core-pinger",
+                (GThreadFunc) cmnder_ping_server,
+                self
+        );
     }
 
 failure:
@@ -314,7 +340,6 @@ static bool cmnder_do_disconnect(mc_Client *parent)
 {
     if (cmnder_do_is_connected(parent)) {
         mc_CmndClient *self = child(parent);
-        cmnder_shutdown_pinger(self);
         cmnder_reset(self);
         return true;
     } else {

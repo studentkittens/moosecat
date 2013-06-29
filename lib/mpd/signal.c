@@ -108,7 +108,6 @@ void mc_signal_list_report_event_v(mc_SignalList *list, const char *signal_name,
             break;
         }
         case MC_SIGNAL_FATAL_ERROR: {
-            g_print("Calling disconnect on main thread. %p %p\n", data, data->client);
             mc_proto_disconnect(data->client);
         }
         default:  {
@@ -126,7 +125,6 @@ mc_DispatchTag * mc_signal_list_unpack_valist(const char *signal_name, va_list a
     mc_SignalType sig_type = mc_convert_name_to_signal(signal_name);
 
     if (sig_type == MC_SIGNAL_UNKNOWN) {
-        g_print("Signal Name: '%s' is unknown.\n", signal_name);
         return NULL;
     }
     
@@ -178,7 +176,6 @@ static gboolean mc_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_da
             if(client_event_buffer == NULL) {
                 client_event_buffer = tag;
             } 
-            g_printerr("Merging %d on %d\n", client_event_buffer->client_event, tag->client_event);
             client_event_buffer->client_event |= tag->client_event;
         } else {
             /* Other signals can be reported immediately */
@@ -192,7 +189,6 @@ static gboolean mc_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_da
          
     /* Report only one client event - if one actually happened */
     if(client_event_buffer != NULL) {
-        g_printerr("Client event with %d\n", client_event_buffer->client_event);
         mc_signal_list_report_event_v(
                 list, client_event_buffer->signal_name, client_event_buffer
         );

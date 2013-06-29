@@ -1,12 +1,7 @@
 libmoosecat 
 -----------
 
-- Think about locking Songs 
-
-    - Introduce mc_store_data_open() and mc_store_data_close()
-    - Make user lock when needed. Only sane way without loosing performance.
-
-- Look a lot at the section marked with TODO
+- remove print messages while createing store
 - mc_proto_ -> mc_ ?
 - revert introduction of currentsong.c/status.c/statistics.c
   - status timer stuff / connect()?
@@ -25,7 +20,9 @@ libmoosecat
 
 
 - Make libmoosecat fully threadsafe // DONE
-- Implement mc_data_open()/mc_data_close() // DONE
+- Implement mc_data_open()/mc_data_close() // DONE (Reverted...)
 - Make outputs.c use a HashMap for gods sake.. // DONE
 - Split Queue in seperate table. Fixes problem with duplicate songs in Queue...
   (Same algorithm with stored playlist, just more lightweight) // DONE
+- remove g_print messages // DONE
+- Look a lot at the section marked with TODO // DONE

@@ -177,17 +177,18 @@ static void mc_stprv_spl_delete_content(mc_Store *self, const char *table_name)
 static struct mpd_playlist *mc_stprv_spl_name_to_playlist(mc_Store *store, const char *playlist_name) {
     g_assert(store);
 
+    struct mpd_playlist * playlist_result = NULL;
     unsigned length = mc_stack_length(store->spl.stack);
 
     for (unsigned i = 0; i < length; ++i) {
         struct mpd_playlist *playlist = mc_stack_at(store->spl.stack, i);
 
         if (playlist && g_strcmp0(playlist_name, mpd_playlist_get_path(playlist)) == 0) {
-            return playlist;
+            playlist_result = playlist;
         }
     }
 
-    return NULL;
+    return playlist_result;
 }
 
 ///////////////////
@@ -287,6 +288,7 @@ static int mc_stprv_spl_get_song_count(mc_Store *self, struct mpd_playlist *play
 void mc_stprv_spl_update(mc_Store *self)
 {
     g_assert(self);
+
     mc_stprv_spl_listplaylists(self);
     GList *table_name_list = mc_stprv_spl_get_loaded_list(self);
 
@@ -365,9 +367,10 @@ void mc_stprv_spl_update(mc_Store *self)
         }
     }
 
-    mc_shelper_report_operation_finished(self->client, MC_OP_SPL_LIST_UPDATED);
     /* table names were dyn. allocated. */
     g_list_free_full(table_name_list, g_free);
+
+    mc_shelper_report_operation_finished(self->client, MC_OP_SPL_LIST_UPDATED);
 }
 
 ///////////////////
@@ -614,6 +617,7 @@ int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const cha
                 rc = mc_stprv_spl_filter_id_list(store, song_ptr_array, match_clause, out_stack);
             }
         }
+
         g_ptr_array_free(song_ptr_array, true);
     }
 

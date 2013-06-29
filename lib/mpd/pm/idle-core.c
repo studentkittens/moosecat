@@ -1,4 +1,4 @@
-#include "idle_core.h"
+#include "idle-core.h"
 
 #include <glib.h>
 #include <string.h>

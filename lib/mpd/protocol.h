@@ -96,30 +96,8 @@ typedef struct mc_Client {
     /* Outputs of MPD */
     struct mc_OutputsData * _outputs;
 
-    /* Support for timed status retrieval */
-    /* TODO: Move this to Update Data? */
-    struct {
-        int timeout_id;
-        int interval;
-        bool trigger_event;
-        GTimer *last_update;
-        bool reset_timer;
-    } status_timer;
-
-    /* Up-to-date infos. */
-    /* TODO: Move this to update Data? */
-    struct mpd_song *song;
-    struct mpd_stats *stats;
-    struct mpd_status *status;
-    const char *replay_gain_status;
-    
     /* Data Used by the Status/Song/Stats Update Module */
     struct mc_UpdateData *_update_data;
-
-    /* Locking for updating song/status/stats */
-    struct {
-        GMutex song, status, stats;
-    } update_mtx;
 
     /* Job Dispatcher */
     struct mc_JobManager *jm;
@@ -314,7 +292,7 @@ int mc_proto_signal_length(
  * @param self the client to operate on.
  * @param events an eventmask. Pass INT_MAX to update all.
  */
-void mc_proto_force_sss_update(
+void mc_proto_force_sync(
     mc_Client *self,
     enum mpd_idle events);
 
@@ -381,22 +359,6 @@ void mc_proto_status_timer_unregister(
  * @return false on inactive status timer
  */
 bool mc_proto_status_timer_is_active(mc_Client *self);
-
-/**
- * @brief Make sure any data (status/stats/currentsong/outputs) cannot be 
- *        changed while you didn't close it with mc_data_close()
- *
- * @param self the Client where the data is stored.
- */
-void mc_data_open(mc_Client *self);
-
-
-/**
- * @brief Release the lock created mc_data_open()
- *
- * @param self the Client where the data is stored
- */
-void mc_data_close(mc_Client *self);
 
 
 #endif /* end of include guard: PROTOCOL_H */

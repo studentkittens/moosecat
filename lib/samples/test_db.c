@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
                     break;
 
                 if (g_strcmp0(line_buf, ":u") == 0) {
-                    mc_proto_force_sss_update(client, INT_MAX);
+                    mc_proto_force_sync(client, INT_MAX);
                     mc_proto_signal_dispatch(client, "client-event", client,
                                              MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST);
                     continue;

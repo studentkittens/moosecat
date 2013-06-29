@@ -6,9 +6,7 @@
 #include "../mpd/client.h"
 #include "../mpd/signal-helper.h"
 #include "../mpd/signal.h"
-#include "../mpd/status.h"
-#include "../mpd/statistics.h"
-
+#include "../mpd/update.h"
 
 typedef struct {
     mc_Store *store;
@@ -98,21 +96,29 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
 
     mc_Client *self = store->client;
     int progress_counter = 0;
-    int number_of_songs = mc_stats_get_number_of_songs(self);
     size_t db_version = 0;
-    
-    GTimer *timer = NULL;
-    GAsyncQueue *queue = g_async_queue_new();
-    GThread *sql_thread = NULL;
+    struct mpd_stats * stats = mc_lock_statistics(store->client);
 
-    mc_StoreQueueTag tag;
-    tag.queue = queue;
-    tag.store = store;
+    if(stats == NULL) {
+        mc_unlock_statistics(store->client);
+        return;
+    }
+    
+    int number_of_songs = mpd_stats_get_number_of_songs(stats);
+    mc_unlock_statistics(store->client);
 
     db_version = mc_stprv_get_db_version(store);
 
     if(store->force_update_listallinfo == false) {
-        if (mc_stats_get_db_update_time(self) == db_version) {
+        struct mpd_stats * stats = mc_lock_statistics(store->client);
+        if(stats == NULL) {
+            return;
+        }
+
+        size_t db_update_time = mpd_stats_get_db_update_time(stats);
+        mc_unlock_statistics(store->client);
+
+        if (db_update_time  == db_version) {
             mc_shelper_report_progress(
                     self, true,
                     "database: Will not update database, timestamp didn't change."
@@ -120,6 +126,14 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
             return;
         }
     }
+
+    GTimer *timer = NULL;
+    GAsyncQueue *queue = g_async_queue_new();
+    GThread *sql_thread = NULL;
+
+    mc_StoreQueueTag tag;
+    tag.queue = queue;
+    tag.store = store;
 
     /* We're building the whole table new,
      * so throw away old data */
@@ -136,7 +150,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
     }
 
     store->stack = mc_stack_create(
-            mc_stats_get_number_of_songs(self) + 1,
+            number_of_songs + 1,
             (GDestroyNotify) mpd_song_free
     );
 
@@ -166,12 +180,13 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
                 break;
             }
 
+            /*
             if (++progress_counter % 50 == 0) {
                 mc_shelper_report_progress(
                         self, false, "database: retrieving entities from mpd ... [%d/%d]",
                         progress_counter, number_of_songs
                 );
-            }
+            }*/
 
             g_async_queue_push(queue, ent);
         }
@@ -275,16 +290,8 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
 
     mc_Client *self = store->client;
 
-    GAsyncQueue *queue = g_async_queue_new();
-    GThread *sql_thread = NULL;
-    GTimer *timer = NULL;
-
     int progress_counter = 0;
     size_t last_pl_version = 0;
-
-    mc_StoreQueueTag tag;
-    tag.queue = queue;
-    tag.store = store;
 
     /* get last version of the queue (which we're having already. 
      * (in case full queue is wanted take first version) */
@@ -293,16 +300,33 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
     }
 
     if(store->force_update_plchanges == false) {
-        if (last_pl_version == mc_status_get_queue_version(store->client)) {
+        size_t current_pl_version = -1;
+        struct mpd_status * status = mc_lock_status(store->client);
+        if(status != NULL) {
+            current_pl_version = mpd_status_get_queue_version(status);
+        } else {
+            current_pl_version = last_pl_version;
+        }
+        mc_unlock_status(store->client);
+
+        if (last_pl_version == current_pl_version) {
             mc_shelper_report_progress(
                     self, true,
                     "database: Will not update queue, version didn't change (%d == %d)",
-                    (int) last_pl_version, mc_status_get_queue_version(store->client)
+                    (int) last_pl_version, (int) current_pl_version
             );
             return;
         }
     }
     
+    GAsyncQueue *queue = g_async_queue_new();
+    GThread *sql_thread = NULL;
+    GTimer *timer = NULL;
+
+    mc_StoreQueueTag tag;
+    tag.queue = queue;
+    tag.store = store;
+
     /* needs to be started after inserting meta attributes, since it calls 'begin;' */
     sql_thread = g_thread_new("queue-update", mc_store_do_plchanges_sql_thread, &tag);
 
@@ -323,6 +347,13 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
         if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
             struct mpd_song *song = NULL;
 
+            int queue_length = 0;
+            struct mpd_status * status = mc_lock_status(store->client);
+            if(status != NULL) {
+                queue_length = mpd_status_get_queue_length(status);
+            }
+            mc_unlock_status(store->client);
+
             while ((song = mpd_recv_song(conn)) != NULL) {
                 if(mc_jm_check_cancel(store->jm, cancel)) {
                     mc_shelper_report_progress(
@@ -333,11 +364,13 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
                 }
 
                 g_async_queue_push(queue, song);
+                /*
                 if (progress_counter++ % 50 == 0)
                     mc_shelper_report_progress(
                             self, false,
                             "database: receiving queue contents ... [%d/%d]",
-                            progress_counter, mc_status_get_queue_length(store->client));
+                            progress_counter, queue_length);
+                */
             }
         }
 

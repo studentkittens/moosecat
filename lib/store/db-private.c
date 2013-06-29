@@ -2,8 +2,7 @@
 #include "db-macros.h"
 
 #include "../mpd/signal-helper.h"
-#include "../mpd/statistics.h"
-#include "../mpd/status.h"
+#include "../mpd/update.h"
 #include "../util/paths.h"
 
 /* strlen() */
@@ -198,6 +197,26 @@ static const char *_sql_stmts[] = {
 };
 
 ////////////////////////////////
+//     ATTRIBUTE LOCKING      //
+////////////////////////////////
+
+void mc_stprv_lock_attributes(mc_Store *self)
+{
+    g_assert(self);
+
+    g_rec_mutex_lock(&self->attr_set_mtx);
+}
+
+////////////////////////////////
+
+void mc_stprv_unlock_attributes(mc_Store *self)
+{
+    g_assert(self);
+
+    g_rec_mutex_unlock(&self->attr_set_mtx);
+}
+
+////////////////////////////////
 
 /*
  * Fill information into the meta-table.
@@ -212,19 +231,39 @@ static const char *_sql_stmts[] = {
  */
 void mc_stprv_insert_meta_attributes(mc_Store *self)
 {
-    char *zSql = sqlite3_mprintf(SQL_CODE(META),
-            mc_stats_get_db_update_time(self->client),
-            mc_status_get_queue_version(self->client),
-            MC_DB_SCHEMA_VERSION,
-            self->client->_port,
-            self->client->_host
-    );
+    char *insert_meta_sql = NULL;
+    int queue_version = -1;
+    struct mpd_status * status = mc_lock_status(self->client);
 
-    if (zSql != NULL) {
-        if (sqlite3_exec(self->handle, zSql, NULL, NULL, NULL) != SQLITE_OK)
+    if(status != NULL) {
+        queue_version = mpd_status_get_queue_version(status);
+    }
+    mc_unlock_status(self->client);
+
+    if(status != NULL) {
+        time_t db_update_time = 0;
+        struct mpd_stats * stats = mc_lock_statistics(self->client);
+        if(stats != NULL) {
+            db_update_time = mpd_stats_get_db_update_time(stats);
+        }
+        mc_unlock_statistics(self->client);
+
+        if(stats != NULL) {
+            insert_meta_sql = sqlite3_mprintf(SQL_CODE(META),
+                    db_update_time,
+                    queue_version,
+                    MC_DB_SCHEMA_VERSION,
+                    self->client->_port,
+                    self->client->_host
+            );
+        }
+    }
+
+    if (insert_meta_sql != NULL) {
+        if (sqlite3_exec(self->handle, insert_meta_sql, NULL, NULL, NULL) != SQLITE_OK)
             REPORT_SQL_ERROR(self, "Cannot INSERT META Atrributes.");
 
-        sqlite3_free(zSql);
+        sqlite3_free(insert_meta_sql);
     }
 }
 
@@ -533,7 +572,10 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
 
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
-         * Therefore we filter here the queue songs ourselves. */
+         * Therefore we filter here the queue songs ourselves.
+         * 
+         * We can do that a lot faster anyways;
+         * */
         if (queue_only == false || ((int) mpd_song_get_pos(selected) > -1)) {
             mc_stack_append(stack, selected);
         }
@@ -668,6 +710,13 @@ void mc_stprv_deserialize_songs(mc_Store *self)
     int progress_counter = 0;
     GTimer *timer = g_timer_new();
  
+    int number_of_songs = -1;
+    struct mpd_stats *stats = mc_lock_statistics(self->client);
+    if(stats != NULL) {
+        number_of_songs = mpd_stats_get_number_of_songs(stats);
+    }
+    mc_unlock_statistics(self->client);
+
     /* loop over all rows in the songs table */
     while ((error_id = sqlite3_step(stmt)) == SQLITE_ROW) {
         pair.name = "file";
@@ -729,16 +778,23 @@ void mc_stprv_deserialize_songs(mc_Store *self)
         feed_tag(MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
         mc_stack_append(self->stack, song);
 
+        /*
         if (++progress_counter % 50 == 0) {
-            int total_count = mc_stats_get_number_of_songs(self->client);
-            mc_shelper_report_progress(self->client, false,
-                                       "database: deserializing songs from db ... [%d/%d]",
-                                       progress_counter, total_count);
+            mc_shelper_report_progress(
+                    self->client, false,
+                    "database: deserializing songs from db ... [%d/%d]",
+                    progress_counter, number_of_songs
+            );
         }
+        */
     }
 
-    mc_shelper_report_progress(self->client, true, "database: deserialized %d songs from local db. (took %2.3f)",
-                               progress_counter, g_timer_elapsed(timer, NULL));
+    /* Tell the user we're so happy, we shat a database */
+    mc_shelper_report_progress(
+            self->client, true,
+            "database: deserialized %d songs from local db. (took %2.3f)",
+            progress_counter, g_timer_elapsed(timer, NULL)
+    );
     mc_shelper_report_operation_finished(self->client, MC_OP_DB_UPDATED);
     mc_shelper_report_operation_finished(self->client, MC_OP_QUEUE_UPDATED);
     g_timer_destroy(timer);

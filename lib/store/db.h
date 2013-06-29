@@ -118,6 +118,8 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
  * This is updated internally, and will change when the user changes it.
  * You will be notified with a stored-playlist signal.
  *
+ * IMPORTANT NOTE: Call mc_store_release() when done using the list.
+ *
  * Do not modify the returned value.
  *
  * @param self the store to operate on.
@@ -134,6 +136,22 @@ const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self);
  * @param queue_only restrict search to queue only?
  * @param stack the stack to select the songs too
  * @param limit_len limit the length of the return. negative numbers dont limit.
+ *
+ * Direclty after calling this function you will have no results yet in the stack.
+ * You should call mc_store_wait_for_job() to wait for it to be filled.
+ *
+ * Example:
+ *
+ *      mc_Stack * stack = mc_stack_create(50, NULL);
+ *      int job_id = mc_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
+ *      // You can other things than waiting here.
+ *      mc_store_wait_for_job(store, job_id);
+ *      mc_store_lock(store);
+ *      for(int i = 0; i < mc_stack_length(stack); ++i) {
+ *          printf("%s\n", mpd_song_tag(mc_stack_at(i), MPD_TAG_TITLE, 0));
+ *      }
+ *      mc_store_unlock(store);
+ *      
  *
  * @return a Job id
  */
@@ -185,5 +203,33 @@ mc_Stack *mc_store_get_result(mc_Store *self, int job_id);
  */
 mc_Stack *mc_store_gw(mc_Store *self, int job_id);
 
+
+/**
+ * @brief 
+ *
+ * Note: Calling mc_store_lock like this is okay:
+ *
+ *       mc_store_lock(self);
+ *       mc_store_lock(self);
+ *       ...
+ *       mc_store_unlock(self);
+ *       mc_store_unlock(self);
+ *
+ * Ensure only that you unlock as often as you lock.
+ *
+ * @param self the store to lock
+ */
+void mc_store_lock(mc_Store *self);
+
+/**
+ * @brief Tells store that you done using a ressource.
+ *
+ *
+ * Bad things will happen if you don't release the ressources.
+ * libmoosecat will likely deadlock.
+ *
+ * @param self the store you had the ressources from
+ */
+void mc_store_release(mc_Store *self);
 
 #endif /* end of include guard: DB_GUARD_H */

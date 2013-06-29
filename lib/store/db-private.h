@@ -161,4 +161,14 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self);
  */
 void mc_stprv_close_handle(mc_Store *self);
 
+/**
+ * @brief Lock self->stack and self->spl.stack for change
+ */
+void mc_stprv_lock_attributes(mc_Store *self);
+
+/**
+ * @brief Unlock previous lock by mc_stprv_lock_attributes()
+ */
+void mc_stprv_unlock_attributes(mc_Store *self);
+
 #endif /* end of include guard: MC_DB_PRIVATE_H */
