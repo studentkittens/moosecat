@@ -25,6 +25,10 @@ typedef struct {
 } mc_JobData;
 
 
+/* List of Priorities for all Operations.
+ *
+ *
+ */ 
 int mc_JobPrios[] = {
     [MC_OPER_DESERIALIZE] = -1,
     [MC_OPER_LISTALLINFO] = -1,
@@ -50,6 +54,8 @@ static long mc_store_send_job_no_args(
         mc_Store *self,
         mc_StoreOperation op)
 {
+    g_assert(0 <= op && op <= MC_OPER_ENUM_MAX);
+
     mc_JobData *data = g_new0(mc_JobData, 1);
     data->op = op;
 
@@ -277,85 +283,106 @@ void *mc_store_job_execute_callback(
         goto cleanup;
     }
 
+    /* Lock the whole Processing once. more. Why?
+     *
+     * In case of searching something from the database 
+     * we return a result. This result is passed to the user of the API.
+     * When selecting for example something from the Query we just 
+     * create a new stack and append pointers to songs in store->stack to it.
+     * Now during a client-update these songs could be freed at any time. 
+     * (The curse of multithreaded programs) 
+     *
+     * So we lock a mutex here, and let the user unlock it. 
+     * What happens if the user does not unlock it? Bad things like deadlocks.
+     * */
     mc_stprv_lock_attributes(self);
+    {
+        mc_shelper_report_progress(self->client, true, "Processing: %d\n", data->op);
 
-    mc_shelper_report_progress(self->client, true, "Processing: %d\n", data->op);
+        if(data->op & MC_OPER_DESERIALIZE) {
+            mc_stprv_deserialize_songs(self);
 
-    if(data->op & MC_OPER_DESERIALIZE) {
-        mc_stprv_deserialize_songs(self);
+            /* We need to read the pos/id info from the queue table */
+            mc_stprv_queue_update_stack_posid(self);
+            data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
+            self->force_update_listallinfo = false;
+        }
 
-        /* We need to read the pos/id info from the queue table */
-        mc_stprv_queue_update_stack_posid(self);
-        data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
-        self->force_update_listallinfo = false;
-    }
+        if(data->op & MC_OPER_LISTALLINFO) {
+            mc_store_oper_listallinfo(self, cancel_op);
+            data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
+            self->force_update_listallinfo = false;
+        }
+        
+        if(data->op & MC_OPER_PLCHANGES) {
+            mc_store_oper_plchanges(self, cancel_op);
+            data->op |= (MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
+            self->force_update_plchanges = false;
+        }
+        
+        if(data->op & MC_OPER_UPDATE_META) {
+            mc_stprv_insert_meta_attributes(self);
+        }
 
-    if(data->op & MC_OPER_LISTALLINFO) {
-        mc_store_oper_listallinfo(self, cancel_op);
-        data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
-        self->force_update_listallinfo = false;
-    }
-    
-    if(data->op & MC_OPER_PLCHANGES) {
-        mc_store_oper_plchanges(self, cancel_op);
-        data->op |= (MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
-        self->force_update_plchanges = false;
-    }
-    
-    if(data->op & MC_OPER_UPDATE_META) {
-        mc_stprv_insert_meta_attributes(self);
-    }
+        if(data->op & MC_OPER_SPL_UPDATE) {
+            mc_stprv_spl_update(self);
+        }
+        
+        if(data->op & MC_OPER_SPL_LOAD) {
+            mc_stprv_spl_load_by_playlist_name(self, data->playlist_name);
+        }
+        
+        if(data->op & MC_OPER_SPL_LIST) {
+            mc_stprv_spl_get_loaded_playlists(self, data->out_stack);
+        }
 
-    if(data->op & MC_OPER_SPL_UPDATE) {
-        mc_stprv_spl_update(self);
-    }
-    
-    if(data->op & MC_OPER_SPL_LOAD) {
-        mc_stprv_spl_load_by_playlist_name(self, data->playlist_name);
-    }
-    
-    if(data->op & MC_OPER_SPL_LIST) {
-        mc_stprv_spl_get_loaded_playlists(self, data->out_stack);
-    }
+        if(data->op & MC_OPER_DB_SEARCH) {
+            mc_stprv_select_to_stack(
+                    self, data->match_clause, data->queue_only,
+                    data->out_stack, data->length_limit
+            );
+            result = data->out_stack;
+        }
 
-    if(data->op & MC_OPER_DB_SEARCH) {
-        mc_stprv_select_to_stack(
-                self, data->match_clause, data->queue_only,
-                data->out_stack, data->length_limit
-        );
-        result = data->out_stack;
-    }
+        if(data->op & MC_OPER_DIR_SEARCH) {
+            mc_stprv_dir_select_to_stack(
+                    self, data->out_stack,
+                    data->dir_directory, data->dir_depth
+            );
+            result = data->out_stack;
+        }
 
-    if(data->op & MC_OPER_DIR_SEARCH) {
-        mc_stprv_dir_select_to_stack(
-                self, data->out_stack,
-                data->dir_directory, data->dir_depth
-        );
-        result = data->out_stack;
-    }
+        if(data->op & MC_OPER_SPL_QUERY) {
+            mc_stprv_spl_select_playlist(
+                    self, data->out_stack, 
+                    data->playlist_name, data->match_clause
+            );
+            result = data->out_stack;
+        }
 
-    if(data->op & MC_OPER_SPL_QUERY) {
-        mc_stprv_spl_select_playlist(
-                self, data->out_stack, 
-                data->playlist_name, data->match_clause
-        );
-        result = data->out_stack;
-    }
+        /* If the operation includes writing stuff,
+         * we need to remember to save the database to
+         * disk */
+        if(data->op & (0
+                    | MC_OPER_LISTALLINFO 
+                    | MC_OPER_PLCHANGES 
+                    | MC_OPER_SPL_UPDATE 
+                    | MC_OPER_SPL_LOAD 
+                    | MC_OPER_UPDATE_META)) {
+            self->write_to_disk = TRUE;
+        }
 
-    /* If the operation includes writing stuff,
-     * we need to remember to save the database to
-     * disk */
-    if(data->op & (0
-                | MC_OPER_LISTALLINFO 
-                | MC_OPER_PLCHANGES 
-                | MC_OPER_SPL_UPDATE 
-                | MC_OPER_SPL_LOAD 
-                | MC_OPER_UPDATE_META)
-    ) {
-        self->write_to_disk = TRUE;
+    } 
+    /* ATTENTION: 
+     * We only unlock if we have an operation that does not deliver a result.
+     * Otherwise the user has to unlock it. 
+     */
+    if((data->op & (0 
+                | MC_OPER_DB_SEARCH 
+                | MC_OPER_SPL_QUERY 
+                | MC_OPER_DIR_SEARCH)) == 0) {
+        mc_stprv_unlock_attributes(self);
     }
-
-    mc_stprv_unlock_attributes(self);
 
     mc_shelper_report_progress(self->client, true, "Processing done: %d\n", data->op);
 
@@ -383,7 +410,7 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
     mc_Store *store = g_new0(mc_Store, 1);
 
     /* Initialize the Attribute mutex early */
-    g_rec_mutex_init(&store->attr_set_mtx);
+    g_mutex_init(&store->attr_set_mtx);
 
     /* Initialize the job manager used to background jobs */
     store->jm = mc_jm_create(mc_store_job_execute_callback, store);
@@ -476,7 +503,9 @@ void mc_store_close(mc_Store *self)
 
     mc_proto_signal_rm(self->client, "client-event", mc_store_update_callback);
     mc_proto_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);
-    
+
+    mc_stprv_lock_attributes(self);
+
     /* Close the job pool (still finishes current operation) */
     mc_jm_close(self->jm);
 
@@ -500,7 +529,8 @@ void mc_store_close(mc_Store *self)
     if (self->settings->use_memory_db == false)
         g_unlink(MC_STORE_TMP_DB_PATH);
 
-    g_rec_mutex_clear(&self->attr_set_mtx);
+    mc_stprv_unlock_attributes(self);
+    g_mutex_clear(&self->attr_set_mtx);
 
     /* NOTE: Settings should be destroyed by caller,
      *       Since it should be valid to call close()
@@ -642,15 +672,6 @@ mc_Stack *mc_store_gw(mc_Store *self, int job_id)
 {
     mc_store_wait_for_job(self, job_id);
     return mc_store_get_result(self, job_id);
-}
-
-//////////////////////////////
-
-void mc_store_lock(mc_Store *self)
-{
-    g_assert(self);
-
-    mc_stprv_lock_attributes(self);
 }
 
 //////////////////////////////

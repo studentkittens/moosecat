@@ -76,6 +76,8 @@ static void update_view(EntryTag *tag, const char *search_text)
                            -1);
     }
 
+    mc_store_release(tag->store);
+
     gtk_tree_view_set_model(GTK_TREE_VIEW(tag->view), model); /* Re-attach model to view */
     g_object_unref(model);
 

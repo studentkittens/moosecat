@@ -1,10 +1,8 @@
 libmoosecat 
 -----------
 
-- remove print messages while createing store
 - mc_proto_ -> mc_ ?
-- revert introduction of currentsong.c/status.c/statistics.c
-  - status timer stuff / connect()?
+- status timer stuff / connect(), threadsafety?
  - valgrind it
 - Make client/store failsafe in case of connection loss
   - Chances are getting better, 
@@ -26,3 +24,5 @@ libmoosecat
   (Same algorithm with stored playlist, just more lightweight) // DONE
 - remove g_print messages // DONE
 - Look a lot at the section marked with TODO // DONE
+- remove print messages while createing store // DONE
+- revert introduction of currentsong.c/status.c/statistics.c // DONE

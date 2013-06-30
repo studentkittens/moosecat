@@ -68,7 +68,7 @@ typedef struct mc_Store {
      * db-dirs.c append copied data onto the stack. 
      *  
      * */
-    GRecMutex attr_set_mtx;
+    GMutex attr_set_mtx;
 
 } mc_Store;
 

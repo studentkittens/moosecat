@@ -205,23 +205,6 @@ mc_Stack *mc_store_gw(mc_Store *self, int job_id);
 
 
 /**
- * @brief 
- *
- * Note: Calling mc_store_lock like this is okay:
- *
- *       mc_store_lock(self);
- *       mc_store_lock(self);
- *       ...
- *       mc_store_unlock(self);
- *       mc_store_unlock(self);
- *
- * Ensure only that you unlock as often as you lock.
- *
- * @param self the store to lock
- */
-void mc_store_lock(mc_Store *self);
-
-/**
  * @brief Tells store that you done using a ressource.
  *
  *

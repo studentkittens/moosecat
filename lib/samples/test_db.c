@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
                                 g_print("%s\n", mpd_song_get_uri(song));
                             }
                         }
+                        mc_store_release(db);
 
                         mc_stack_free(stack);
                         g_strfreev(args);
@@ -132,6 +133,7 @@ int main(int argc, char *argv[])
                                 g_print("%s\n", (char *) mc_stack_at(stack, i));
                             }
                         }
+                        mc_store_release(db);
 
                         mc_stack_free(stack);
                         g_strfreev(args);
@@ -160,6 +162,8 @@ int main(int argc, char *argv[])
                 } else {
                     g_print("=> No results.\n");
                 }
+
+                mc_store_release(db);
             }
 
             mc_stack_free(song_buf);

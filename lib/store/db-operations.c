@@ -29,39 +29,39 @@ static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
 
     while ((gpointer)(ent = g_async_queue_pop(queue)) != queue) {
         switch (mpd_entity_get_type(ent)) {
-        case MPD_ENTITY_TYPE_SONG: {
+            case MPD_ENTITY_TYPE_SONG: {
 
-            struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent) ;
-            mc_stack_append(self->stack, (struct mpd_song *) song);
-            mc_stprv_insert_song(self, (struct mpd_song *) song);
+                struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent);
+                mc_stack_append(self->stack, song);
+                mc_stprv_insert_song(self, song);
 
-            /* Not sure if this is a nice way,
-            * but for now it works. There might be a proper way:
-            * duplicate the song with mpd_song_dup, and use mpd_entity_free,
-            * but that adds extra memory usage, and costs about 0.2 seconds.
-            * on my setup here - I think this will work fine.
-            * */
-            g_free(ent);
+                /* Not sure if this is a nice way,
+                * but for now it works. There might be a proper way:
+                * duplicate the song with mpd_song_dup, and use mpd_entity_free,
+                * but that adds extra memory usage, and costs about 0.2 seconds.
+                * on my setup here - I think this will work fine.
+                * */
+                g_free(ent);
 
-            break;
-        }
-
-        case MPD_ENTITY_TYPE_DIRECTORY: {
-            const struct mpd_directory *dir = mpd_entity_get_directory(ent);
-
-            if (dir != NULL) {
-                mc_stprv_dir_insert(self, mpd_directory_get_path(dir));
-                mpd_entity_free(ent);
+                break;
             }
 
-            break;
-        }
+            case MPD_ENTITY_TYPE_DIRECTORY: {
+                const struct mpd_directory *dir = mpd_entity_get_directory(ent);
 
-        case MPD_ENTITY_TYPE_PLAYLIST:
-        default: {
-            mpd_entity_free(ent);
-            ent = NULL;
-        }
+                if (dir != NULL) {
+                    mc_stprv_dir_insert(self, mpd_directory_get_path(dir));
+                    mpd_entity_free(ent);
+                }
+
+                break;
+            }
+
+            case MPD_ENTITY_TYPE_PLAYLIST:
+            default: {
+                mpd_entity_free(ent);
+                ent = NULL;
+            }
         }
     }
 
@@ -180,13 +180,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
                 break;
             }
 
-            /*
-            if (++progress_counter % 50 == 0) {
-                mc_shelper_report_progress(
-                        self, false, "database: retrieving entities from mpd ... [%d/%d]",
-                        progress_counter, number_of_songs
-                );
-            }*/
+            ++progress_counter;
 
             g_async_queue_push(queue, ent);
         }
@@ -347,11 +341,6 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
         if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
             struct mpd_song *song = NULL;
 
-            int queue_length = 0;
-            struct mpd_status * status = mc_lock_status(store->client);
-            if(status != NULL) {
-                queue_length = mpd_status_get_queue_length(status);
-            }
             mc_unlock_status(store->client);
 
             while ((song = mpd_recv_song(conn)) != NULL) {
@@ -363,14 +352,9 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
                     break;
                 }
 
+                ++progress_counter;
+
                 g_async_queue_push(queue, song);
-                /*
-                if (progress_counter++ % 50 == 0)
-                    mc_shelper_report_progress(
-                            self, false,
-                            "database: receiving queue contents ... [%d/%d]",
-                            progress_counter, queue_length);
-                */
             }
         }
 

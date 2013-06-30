@@ -13,6 +13,7 @@ typedef enum {
     MC_OPER_SPL_LIST      = 1 << 7, /* List the names of all playlists         */
     MC_OPER_SPL_QUERY     = 1 << 8, /* Query a stored playlist                 */
     MC_OPER_UPDATE_META   = 1 << 9, /* Update meta information about the table */
+    MC_OPER_ENUM_MAX      = 1 << 10,/* Highest Value in this Enum              */
 } mc_StoreOperation;
 
 void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel);

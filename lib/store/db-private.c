@@ -204,7 +204,7 @@ void mc_stprv_lock_attributes(mc_Store *self)
 {
     g_assert(self);
 
-    g_rec_mutex_lock(&self->attr_set_mtx);
+    g_mutex_lock(&self->attr_set_mtx);
 }
 
 ////////////////////////////////
@@ -213,7 +213,7 @@ void mc_stprv_unlock_attributes(mc_Store *self)
 {
     g_assert(self);
 
-    g_rec_mutex_unlock(&self->attr_set_mtx);
+    g_mutex_unlock(&self->attr_set_mtx);
 }
 
 ////////////////////////////////
@@ -710,13 +710,6 @@ void mc_stprv_deserialize_songs(mc_Store *self)
     int progress_counter = 0;
     GTimer *timer = g_timer_new();
  
-    int number_of_songs = -1;
-    struct mpd_stats *stats = mc_lock_statistics(self->client);
-    if(stats != NULL) {
-        number_of_songs = mpd_stats_get_number_of_songs(stats);
-    }
-    mc_unlock_statistics(self->client);
-
     /* loop over all rows in the songs table */
     while ((error_id = sqlite3_step(stmt)) == SQLITE_ROW) {
         pair.name = "file";
