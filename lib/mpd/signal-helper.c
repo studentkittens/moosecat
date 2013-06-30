@@ -139,7 +139,11 @@ void mc_shelper_report_connectivity(
     const char *new_host,
     int new_port)
 {
-    bool server_changed = (g_strcmp0(new_host, self->_host) != 0) || (new_port != self->_port);
+    bool server_changed = self->is_virgin == false &&
+        ((g_strcmp0(new_host, self->_host) != 0) || (new_port != self->_port));
+
+    /* Defloreate the Client (Wheeeh!) */
+    self->is_virgin = false;
 
     if (self->_host != NULL)
         g_free(self->_host);

@@ -71,7 +71,7 @@ void *mc_stack_at(mc_Stack *self, unsigned at)
     if(at < mc_stack_length(self)) {
         return g_ptr_array_index(self->stack, at);
     } else {
-        g_warning("Invalid index for stack %p: %d\n", self, at);
+        g_error("Invalid index for stack %p: %d\n", self, at);
         return NULL;
     }
 }

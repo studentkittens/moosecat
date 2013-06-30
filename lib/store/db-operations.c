@@ -124,7 +124,15 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
                     "database: Will not update database, timestamp didn't change."
             );
             return;
+        } else {
+            mc_shelper_report_progress(
+                    self, true,
+                    "database: Will update database (%u != %u)",
+                    (unsigned)db_update_time, (unsigned)db_version
+            );
         }
+    } else {
+        mc_shelper_report_progress(self, true, "database: Doing forced listallinfo");
     }
 
     GTimer *timer = NULL;
@@ -222,6 +230,8 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
     GTimer *timer = g_timer_new();
     gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
 
+    g_printerr("Debug.\n");
+
     /* start a transaction */
     mc_stprv_begin(self);
 
@@ -253,7 +263,7 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
         mc_shelper_report_progress(
                 self->client,
                 true,
-                "database: Clipped %d songs at end of playlist.",
+                "database: Clipped %d songs.",
                 clipped
         );
     }

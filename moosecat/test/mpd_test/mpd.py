@@ -10,10 +10,11 @@ It is similar to QBall's AutoMPD, but simpler and only used for testing for now.
 
 import os
 import sys
-import shutil
-import subprocess
 import json
 import time
+import shutil
+import telnetlib
+import subprocess
 
 
 # Import the tagging library
@@ -172,6 +173,38 @@ def create_dirstruct(root_path='/tmp'):
         return top_dir
 
 
+class MpdDummyClient:
+    def __init__(self):
+        self._telnet = None
+
+    def connect(self, host='localhost', port=6666):
+        self._telnet = telnetlib.Telnet(host, port)
+
+    def is_connected(self):
+        return self._telnet is not None
+
+    def disconnect(self):
+        if self.is_connected():
+            self._telnet.write('close\n'.encode('utf-8'))
+            self._telnet.close()
+        else:
+            raise ValueError('Not connected!')
+
+    def add(self, path='/'):
+        if self.is_connected():
+            self._telnet.write(('add ' + path + '\n').encode('utf-8'))
+            self._telnet.read_until(b'\n')
+        else:
+            raise ValueError('Not connected!')
+
+    def create_playlist(self, name):
+        if self.is_connected():
+            self._telnet.write(('save ' + name + '\n').encode('utf-8'))
+            self._telnet.read_until(b'\n')
+        else:
+            raise ValueError('Not connected!')
+
+
 class MpdTestProcess:
     def __init__(self, root='/tmp'):
         self._top_dir = None
@@ -179,13 +212,26 @@ class MpdTestProcess:
         self._pid = 0
 
     def _spawn(self):
-        command = 'mpd --no-daemon {conf_path}'.format(
+        command = 'mpd --no-daemon --stdout --verbose {conf_path}'.format(
                 conf_path=os.path.join(self._top_dir, CONFIG_NAME)
         )
-        self._pipe = subprocess.Popen(command, shell=True, stderr=subprocess.PIPE)
+        self._pipe = subprocess.Popen(
+                command, shell=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+        )
 
         # this is silly - but well.
+        # There's no way to find out when MPD fully booted
         time.sleep(1)
+
+        # Create a dummy playlist witha dummy queue
+        client = MpdDummyClient()
+        client.connect()
+        client.add('/')
+        client.create_playlist('test1')
+        client.create_playlist('test2')
+        client.disconnect()
 
     def start(self):
         self._top_dir = create_dirstruct(root_path=self._root)

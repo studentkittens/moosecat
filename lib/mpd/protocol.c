@@ -50,6 +50,7 @@ mc_Client *mc_create(mc_PmType pm)
 
     if (client != NULL) {
         client->_pm = pm;
+        client->is_virgin = true;
         mc_priv_signal_list_init(&client->_signals);
     }
 
@@ -95,7 +96,7 @@ char *mc_connect(
         mc_shelper_report_connectivity(self, host, port);
 
         /* Report some progress */
-        mc_shelper_report_progress(self, true, "…Fully connected!");
+        mc_shelper_report_progress(self, true, "...Fully connected!");
     }
 
     return err;
@@ -171,9 +172,6 @@ char *mc_disconnect(
         /* Notify user of the disconnect */
         mc_signal_dispatch(self, "connectivity", self, false);
 
-        /* Free output list */
-        mc_outputs_destroy(self->_outputs);
-
         /* Unlock the mutex - we can use it now again
          * e.g. - queued commands would wake up now
          *        and notice they are not connected anymore
@@ -202,6 +200,9 @@ void mc_free(mc_Client *self)
 
     /* Disconnect if not done yet */
     mc_disconnect(self);
+
+    /* Free output list */
+    mc_outputs_destroy(self->_outputs);
 
     /* Kill any previously connected host info */
     if (self->_host != NULL)

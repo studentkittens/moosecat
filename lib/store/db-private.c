@@ -771,15 +771,7 @@ void mc_stprv_deserialize_songs(mc_Store *self)
         feed_tag(MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
         mc_stack_append(self->stack, song);
 
-        /*
-        if (++progress_counter % 50 == 0) {
-            mc_shelper_report_progress(
-                    self->client, false,
-                    "database: deserializing songs from db ... [%d/%d]",
-                    progress_counter, number_of_songs
-            );
-        }
-        */
+        ++progress_counter;
     }
 
     /* Tell the user we're so happy, we shat a database */

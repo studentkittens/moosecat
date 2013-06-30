@@ -292,6 +292,8 @@ void mc_stprv_spl_update(mc_Store *self)
     mc_stprv_spl_listplaylists(self);
     GList *table_name_list = mc_stprv_spl_get_loaded_list(self);
 
+    mc_shelper_report_progress(self->client, true, "database: Updating stored playlists...");
+
     /* Filter all Playlist Tables that do not exist anymore in the current playlist stack.
      * i.e. those that were deleted, or accidentally created. */
     for (GList *iter = table_name_list; iter;) {
@@ -385,6 +387,7 @@ bool mc_stprv_spl_is_loaded(mc_Store *store, struct mpd_playlist *playlist)
 
     for(GList *iter = table_names; iter != NULL; iter = iter->next) {
         char *comp_table_name = iter->data;
+        g_printerr("Loaded: %s (candidate: %s)\n", comp_table_name, table_name);
         if(g_ascii_strcasecmp(comp_table_name, table_name) == 0) {
 
             /* Get the actual playlist name from the table name and the last_mod date */
@@ -419,9 +422,15 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
     if(mc_stprv_spl_is_loaded(store, playlist)) {
         mc_shelper_report_progress(
                 self, true,
-                "database: Stored playlist already loaded - skipping."
+                "database: Stored playlist '%s' already loaded - skipping.",
+                mpd_playlist_get_path(playlist)
         );
         return;
+    } else {
+        mc_shelper_report_progress(self, true, 
+                "database: Loading stored playlist '%s'...",
+                mpd_playlist_get_path(playlist)
+        );
     }
 
     sqlite3_stmt *insert_stmt = NULL;
@@ -477,7 +486,6 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
         mc_stprv_commit(store);
         g_free(table_name);
     }
-
 }
 
 ///////////////////

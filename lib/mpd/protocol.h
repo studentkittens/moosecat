@@ -84,6 +84,11 @@ typedef struct mc_Client {
     char *_host;
     int _port;
 
+    /* Indicates if store was not connected yet.
+     * This if
+     * */
+    bool is_virgin;
+
     /* Only used for bug_report.c */
     float _timeout;
     mc_PmType _pm;

@@ -189,5 +189,6 @@ void mc_outputs_destroy(mc_OutputsData *data)
     mc_unlock_outputs(data->client);
     g_mutex_unlock(&data->output_lock);
 
+    g_mutex_clear(&data->output_lock);
     g_slice_free(mc_OutputsData, data);
 }

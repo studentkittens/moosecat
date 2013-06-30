@@ -13,6 +13,13 @@
 /* g_unlink() */
 #include <glib/gstdio.h>
 
+/* log2() */
+#include <math.h>
+
+/* memset() */
+#include <string.h>
+
+
 typedef struct {
     mc_StoreOperation op;
     const char *match_clause;
@@ -43,6 +50,19 @@ int mc_JobPrios[] = {
     [MC_OPER_UNDEFINED]   = 10
 };
 
+const char * mc_JobNames[] = {
+    [MC_OPER_DESERIALIZE] = "DESERIALIZE", 
+    [MC_OPER_LISTALLINFO] = "LISTALLINFO", 
+    [MC_OPER_PLCHANGES]   = "PLCHANGES", 
+    [MC_OPER_SPL_LOAD]    = "SPL_LOAD", 
+    [MC_OPER_SPL_UPDATE]  = "SPL_UPDATE", 
+    [MC_OPER_UPDATE_META] = "UPDATE_META", 
+    [MC_OPER_DB_SEARCH]   = "DB_SEARCH", 
+    [MC_OPER_DIR_SEARCH]  = "DIR_SEARCH", 
+    [MC_OPER_SPL_LIST]    = "SPL_LIST", 
+    [MC_OPER_SPL_QUERY]   = "SPL_QUERY", 
+    [MC_OPER_UNDEFINED]   = "[Unknown]" 
+};
 
 //////////////////////////////
 //                          //
@@ -60,6 +80,31 @@ static long mc_store_send_job_no_args(
     data->op = op;
 
     return mc_jm_send(self->jm, mc_JobPrios[data->op], data);
+}
+
+//////////////////////////////
+
+static char * mc_store_op_to_string(mc_StoreOperation op)
+{
+    g_assert(0 <= op && op <= MC_OPER_ENUM_MAX);
+    if(op == 0) {
+        return NULL;
+    }
+
+    unsigned name_index = 0;
+    unsigned base = (unsigned)log2(MC_OPER_ENUM_MAX);
+
+    const char * names[base + 1];
+    memset(names, 0, base + 1);
+
+    for(unsigned i = 0; i < base; ++i) {
+        if(op & (1 << i)) {
+            names[name_index++] = mc_JobNames[1 << i];
+            names[name_index] = NULL;
+        }
+    }
+
+    return g_strjoinv(", ", (char **)names);
 }
 
 //////////////////////////////
@@ -220,8 +265,6 @@ static void mc_store_update_callback(
 {
     g_assert(self && client && self->client == client);
 
-    g_printerr("GOT EVENT: %d\n", events);
-
     if (events & MPD_IDLE_DATABASE) {
         mc_store_send_job_no_args(self,
                 MC_OPER_LISTALLINFO
@@ -297,7 +340,7 @@ void *mc_store_job_execute_callback(
      * */
     mc_stprv_lock_attributes(self);
     {
-        mc_shelper_report_progress(self->client, true, "Processing: %d\n", data->op);
+        mc_shelper_report_progress(self->client, true, "Processing: %s", mc_JobNames[data->op]);
 
         if(data->op & MC_OPER_DESERIALIZE) {
             mc_stprv_deserialize_songs(self);
@@ -384,7 +427,9 @@ void *mc_store_job_execute_callback(
         mc_stprv_unlock_attributes(self);
     }
 
-    mc_shelper_report_progress(self->client, true, "Processing done: %d\n", data->op);
+    char * processed_ops = mc_store_op_to_string(data->op);
+    mc_shelper_report_progress(self->client, true, "Processing done: %s", processed_ops);
+    g_free(processed_ops);
 
 cleanup:
     /* Free the data pack */

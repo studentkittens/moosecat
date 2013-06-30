@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
     mc_Client *client = mc_create(MC_PM_IDLE);
 
-    mc_connect(client, NULL, "localhost", 6600, 10.0);
+    mc_connect(client, NULL, "localhost", 6666, 10.0);
     mc_signal_add(client, "logging", print_logging, NULL);
     mc_signal_add(client, "client-event", print_event, NULL);
     mc_misc_register_posix_signal(client);
@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
     settings->use_memory_db = FALSE;
     settings->use_compression = FALSE;
     mc_Store *db = mc_store_create(client, settings);
+
+    mc_store_playlist_load(db, "test1");
 
     if (db != NULL) {
         if (g_strcmp0(argv[1], "search") == 0) {
