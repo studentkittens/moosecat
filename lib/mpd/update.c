@@ -27,10 +27,10 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 ////////////////////////
 
-static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_idle events)
+static void mc_update_context_info_cb( struct mc_Client *self, enum mpd_idle events)
 {
-    if (self != NULL && events != 0 && mc_proto_is_connected(self)) {
-        struct mpd_connection *conn = mc_proto_get(self);
+    if (self != NULL && events != 0 && mc_is_connected(self)) {
+        struct mpd_connection *conn = mc_get(self);
         mc_UpdateData * data = self->_update_data;
 
         if (conn != NULL) {
@@ -143,14 +143,14 @@ static void mc_proto_update_context_info_cb( struct mc_Client *self, enum mpd_id
                 }
             }
 
-            mc_proto_put(self);
+            mc_put(self);
         }
     }
 }
 
 ////////////////////////
 
-static gpointer mc_proto_update_thread(gpointer user_data)
+static gpointer mc_update_thread(gpointer user_data)
 {
     g_assert(user_data);
 
@@ -159,8 +159,8 @@ static gpointer mc_proto_update_thread(gpointer user_data)
     enum mpd_idle event_mask = 0;
 
     while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
-        mc_proto_update_context_info_cb(data->client, event_mask);
-        mc_proto_outputs_update(data->client->_outputs, event_mask);
+        mc_update_context_info_cb(data->client, event_mask);
+        mc_outputs_update(data->client->_outputs, event_mask);
     }
 
     return NULL;
@@ -170,13 +170,13 @@ static gpointer mc_proto_update_thread(gpointer user_data)
 // STATUS TIMER STUFF //
 ////////////////////////
 
-static gboolean mc_proto_update_status_timer_cb(gpointer user_data)
+static gboolean mc_update_status_timer_cb(gpointer user_data)
 {
     g_assert(user_data);
     struct mc_Client *self = user_data;
     mc_UpdateData * data = self->_update_data;
 
-    if (mc_proto_is_connected(self) == false) {
+    if (mc_is_connected(self) == false) {
         return false;
     }
 
@@ -201,7 +201,7 @@ static gboolean mc_proto_update_status_timer_cb(gpointer user_data)
                 enum mpd_idle on_status_only = MPD_IDLE_MIXER;
 
                 data->status_timer.reset_timer = false;
-                mc_proto_update_data_push(self->_update_data, on_status_only);
+                mc_update_data_push(self->_update_data, on_status_only);
                 data->status_timer.reset_timer = true;
 
                 if (data->status_timer.trigger_event) {
@@ -211,12 +211,12 @@ static gboolean mc_proto_update_status_timer_cb(gpointer user_data)
         }
     }
 
-    return mc_proto_update_status_timer_is_active(self);
+    return mc_update_status_timer_is_active(self);
 }
 
 ////////////////////////
 
-void mc_proto_update_register_status_timer(
+void mc_update_register_status_timer(
     struct mc_Client *self,
     int repeat_ms,
     bool trigger_event)
@@ -231,18 +231,18 @@ void mc_proto_update_register_status_timer(
     data->status_timer.reset_timer = true;
     data->status_timer.interval = repeat_ms;
     data->status_timer.timeout_id =
-        g_timeout_add(repeat_ms, mc_proto_update_status_timer_cb, self);
+        g_timeout_add(repeat_ms, mc_update_status_timer_cb, self);
     g_mutex_unlock(&data->status_timer.mutex);
 }
 
 ////////////////////////
 
-void mc_proto_update_unregister_status_timer(
+void mc_update_unregister_status_timer(
     struct mc_Client *self)
 {
     g_assert(self);
 
-    if (mc_proto_update_status_timer_is_active(self)) {
+    if (mc_update_status_timer_is_active(self)) {
         mc_UpdateData *data = self->_update_data;
         g_mutex_lock(&data->status_timer.mutex);
 
@@ -263,7 +263,7 @@ void mc_proto_update_unregister_status_timer(
 
 ////////////////////////
 
-bool mc_proto_update_status_timer_is_active(struct mc_Client *self)
+bool mc_update_status_timer_is_active(struct mc_Client *self)
 {
     g_assert(self);
 
@@ -340,7 +340,7 @@ void mc_unlock_outputs(struct mc_Client *self)
 //     PUBLIC API     //
 ////////////////////////
 
-mc_UpdateData * mc_proto_update_data_new(struct mc_Client * self)
+mc_UpdateData * mc_update_data_new(struct mc_Client * self)
 {
     g_assert(self);
 
@@ -356,7 +356,7 @@ mc_UpdateData * mc_proto_update_data_new(struct mc_Client * self)
 
     data->update_thread = g_thread_new(
             "StatusUpdateThread",
-            mc_proto_update_thread,
+            mc_update_thread,
             data
     );
 
@@ -365,7 +365,7 @@ mc_UpdateData * mc_proto_update_data_new(struct mc_Client * self)
 
 ////////////////////////
 
-void mc_proto_update_data_destroy(mc_UpdateData * data)
+void mc_update_data_destroy(mc_UpdateData * data)
 {
     g_assert(data);
 
@@ -392,7 +392,7 @@ void mc_proto_update_data_destroy(mc_UpdateData * data)
 
 ////////////////////////
 
-void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event)
+void mc_update_data_push(mc_UpdateData *data, enum mpd_idle event)
 {
     g_assert(data);
 
@@ -404,7 +404,7 @@ void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event)
 
 ////////////////////////
 
-void mc_proto_update_reset(mc_UpdateData *data)
+void mc_update_reset(mc_UpdateData *data)
 {
     mc_lock_status(data->client);
     {

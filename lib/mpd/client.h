@@ -16,7 +16,7 @@
 /**
  * @brief Initialize client.
  *
- * This is called for you by mc_proto_create()
+ * This is called for you by mc_create()
  *
  * @param self the client to operate on
  */
@@ -25,7 +25,7 @@ void mc_client_init(mc_Client *self);
 /**
  * @brief Destroy client internal structures.
  *
- * This is called for you by mc_proto_free()
+ * This is called for you by mc_free()
  *
  * @param self the client to operate on
  */

@@ -28,11 +28,11 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    mc_Client *client = mc_proto_create(MC_PM_IDLE);
+    mc_Client *client = mc_create(MC_PM_IDLE);
 
-    mc_proto_connect(client, NULL, "localhost", 6600, 10.0);
-    mc_proto_signal_add(client, "logging", print_logging, NULL);
-    mc_proto_signal_add(client, "client-event", print_event, NULL);
+    mc_connect(client, NULL, "localhost", 6600, 10.0);
+    mc_signal_add(client, "logging", print_logging, NULL);
+    mc_signal_add(client, "client-event", print_event, NULL);
     mc_misc_register_posix_signal(client);
 
     mc_StoreSettings *settings = mc_store_settings_new();
@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
                     break;
 
                 if (g_strcmp0(line_buf, ":u") == 0) {
-                    mc_proto_force_sync(client, INT_MAX);
-                    mc_proto_signal_dispatch(client, "client-event", client,
+                    mc_force_sync(client, INT_MAX);
+                    mc_signal_dispatch(client, "client-event", client,
                                              MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST);
                     continue;
                 }
@@ -81,12 +81,12 @@ int main(int argc, char *argv[])
                 }
 
                 if (g_strcmp0(line_buf, ":disconnect") == 0) {
-                    mc_proto_disconnect(client);
+                    mc_disconnect(client);
                     continue;
                 }
 
                 if (g_strcmp0(line_buf, ":connect") == 0) {
-                    mc_proto_connect(client, NULL, "localhost", 6600, 10.0);
+                    mc_connect(client, NULL, "localhost", 6600, 10.0);
                     continue;
                 }
 
@@ -178,5 +178,5 @@ int main(int argc, char *argv[])
 
     mc_store_close(db);
     mc_store_settings_destroy(settings);
-    mc_proto_free(client);
+    mc_free(client);
 }

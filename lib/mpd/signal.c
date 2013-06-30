@@ -59,7 +59,7 @@ static mc_SignalType mc_convert_name_to_signal(const char *signame)
         }                                                  \
     }                                                      \
  
-void mc_signal_list_report_event_v(mc_SignalList *list, const char *signal_name, mc_DispatchTag *data)
+void mc_priv_signal_list_report_event_v(mc_SignalList *list, const char *signal_name, mc_DispatchTag *data)
 {
     mc_SignalType sig_type = mc_convert_name_to_signal(signal_name);
     if (sig_type == MC_SIGNAL_UNKNOWN)
@@ -108,7 +108,7 @@ void mc_signal_list_report_event_v(mc_SignalList *list, const char *signal_name,
             break;
         }
         case MC_SIGNAL_FATAL_ERROR: {
-            mc_proto_disconnect(data->client);
+            mc_disconnect(data->client);
         }
         default:  {
             /* Should not happen */
@@ -120,7 +120,7 @@ void mc_signal_list_report_event_v(mc_SignalList *list, const char *signal_name,
 ///////////////////////////////
 
 
-mc_DispatchTag * mc_signal_list_unpack_valist(const char *signal_name, va_list args)
+mc_DispatchTag * mc_priv_signal_list_unpack_valist(const char *signal_name, va_list args)
 {
     mc_SignalType sig_type = mc_convert_name_to_signal(signal_name);
 
@@ -160,7 +160,7 @@ mc_DispatchTag * mc_signal_list_unpack_valist(const char *signal_name, va_list a
 
 ///////////////////////////////
 
-static gboolean mc_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_data)
+static gboolean mc_priv_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_data)
 {
     mc_SignalList * list = user_data;
     
@@ -179,7 +179,7 @@ static gboolean mc_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_da
             client_event_buffer->client_event |= tag->client_event;
         } else {
             /* Other signals can be reported immediately */
-            mc_signal_list_report_event_v(list, tag->signal_name, tag);
+            mc_priv_signal_list_report_event_v(list, tag->signal_name, tag);
         }
 
         if(client_event_buffer != tag) {
@@ -189,7 +189,7 @@ static gboolean mc_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_da
          
     /* Report only one client event - if one actually happened */
     if(client_event_buffer != NULL) {
-        mc_signal_list_report_event_v(
+        mc_priv_signal_list_report_event_v(
                 list, client_event_buffer->signal_name, client_event_buffer
         );
         g_slice_free(mc_DispatchTag, client_event_buffer);
@@ -202,7 +202,7 @@ static gboolean mc_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_da
 ////////// PUBLIC /////////////
 ///////////////////////////////
 
-void  mc_signal_list_init(mc_SignalList *list)
+void  mc_priv_signal_list_init(mc_SignalList *list)
 {
     if (list == NULL)
         return;
@@ -213,7 +213,7 @@ void  mc_signal_list_init(mc_SignalList *list)
     list->signal_watch_id = mc_async_queue_watch_new(
             list->dispatch_queue,       /* Queue to watch                             */
             -1,                         /* Let GAsyncQueueWatch determine the timeout */
-            mc_signal_list_dispatch_cb, /* Callback to be called                      */
+            mc_priv_signal_list_dispatch_cb, /* Callback to be called                      */
             list,                       /* User data                                  */
             NULL                        /* Default MainLoop Context                   */
     );
@@ -225,7 +225,7 @@ void  mc_signal_list_init(mc_SignalList *list)
 
 ///////////////////////////////
 
-void mc_signal_add_masked(
+void mc_priv_signal_add_masked(
     mc_SignalList   *list,
     const char *signal_name,
     bool call_first,
@@ -255,19 +255,19 @@ void mc_signal_add_masked(
 
 ///////////////////////////////
 
-void mc_signal_add(
+void mc_priv_signal_add(
     mc_SignalList   *list,
     const char *signal_name,
     bool call_first,
     void *callback_func,
     void *user_data)
 {
-    mc_signal_add_masked(list, signal_name, call_first, callback_func, user_data, INT_MAX);
+    mc_priv_signal_add_masked(list, signal_name, call_first, callback_func, user_data, INT_MAX);
 }
 
 ///////////////////////////////
 
-int mc_signal_length(
+int mc_priv_signal_length(
     mc_SignalList *list,
     const char *signal_name)
 {
@@ -281,7 +281,7 @@ int mc_signal_length(
 
 ///////////////////////////////
 
-void mc_signal_rm(
+void mc_priv_signal_rm(
     mc_SignalList   *list,
     const char *signal_name,
     void *callback_addr)
@@ -307,11 +307,11 @@ void mc_signal_rm(
 
 ///////////////////////////////
 
-void mc_signal_report_event_v(mc_SignalList *list, const char *signal_name, va_list args)
+void mc_priv_signal_report_event_v(mc_SignalList *list, const char *signal_name, va_list args)
 {
     g_assert(list);
 
-    mc_DispatchTag *data_tag = mc_signal_list_unpack_valist(signal_name, args);
+    mc_DispatchTag *data_tag = mc_priv_signal_list_unpack_valist(signal_name, args);
     if(data_tag == NULL)
         return;
 
@@ -330,17 +330,17 @@ void mc_signal_report_event_v(mc_SignalList *list, const char *signal_name, va_l
 
 ///////////////////////////////
 
-void mc_signal_report_event(mc_SignalList *list, const char *signal_name, ...)
+void mc_priv_signal_report_event(mc_SignalList *list, const char *signal_name, ...)
 {
     va_list args;
     va_start(args, signal_name);
-    mc_signal_report_event_v(list, signal_name, args);
+    mc_priv_signal_report_event_v(list, signal_name, args);
     va_end(args);
 }
 
 ///////////////////////////////
 
-void mc_signal_list_destroy(mc_SignalList *list)
+void mc_priv_signal_list_destroy(mc_SignalList *list)
 {
     if (list != NULL) {
         for (int i = 0; i < MC_SIGNAL_VALID_COUNT; i++) {

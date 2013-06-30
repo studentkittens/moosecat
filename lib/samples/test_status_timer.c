@@ -30,16 +30,16 @@ int main(void)
 {
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
-    conn = mc_proto_create(MC_PM_COMMAND);
-    mc_proto_signal_add(conn, "client-event", signal_event, loop);
-    mc_proto_status_timer_register(conn, 50, true);
+    conn = mc_create(MC_PM_COMMAND);
+    mc_signal_add(conn, "client-event", signal_event, loop);
+    mc_status_timer_register(conn, 50, true);
     mc_misc_register_posix_signal(conn);
-    mc_proto_connect(conn, NULL, "localhost", 6600, 2.0);
+    mc_connect(conn, NULL, "localhost", 6600, 2.0);
 
     g_main_loop_run(loop);
 
 
-    mc_proto_free(conn);
+    mc_free(conn);
     g_main_loop_quit(loop);
 
     return EXIT_SUCCESS;

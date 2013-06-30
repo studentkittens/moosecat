@@ -11,8 +11,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    mc_Client *client = mc_proto_create(MC_PM_IDLE);
-    char *err = mc_proto_connect(client, NULL, "localhost", 6600, 2);
+    mc_Client *client = mc_create(MC_PM_IDLE);
+    char *err = mc_connect(client, NULL, "localhost", 6600, 2);
 
     if (err != NULL) {
         g_print("Err: %s\n", err);
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    if (mc_proto_is_connected(client) == FALSE) {
+    if (mc_is_connected(client) == FALSE) {
         g_print("Not connected.\n");
         return EXIT_FAILURE;
     }
@@ -52,8 +52,8 @@ int main(int argc, char **argv)
     g_timer_destroy(pl_timer);
     mc_stack_clear(songs);
 
-    mc_proto_disconnect(client);
-    mc_proto_free(client);
+    mc_disconnect(client);
+    mc_free(client);
 
     return 0;
 }

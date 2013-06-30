@@ -163,7 +163,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
             &tag
     );
 
-    struct mpd_connection *conn = mc_proto_get(store->client);
+    struct mpd_connection *conn = mc_get(store->client);
     if(conn != NULL) {
         struct mpd_entity *ent = NULL;
 
@@ -190,7 +190,7 @@ void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel)
             mc_shelper_report_error(store->client, conn);        
         }                                               
     }
-    mc_proto_put(store->client);
+    mc_put(store->client);
 
     /* tell SQL thread kindly to die, but wait for him to bleed */
     g_async_queue_push(queue, queue);
@@ -329,7 +329,7 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
 
     /* Now do the actual hard work, send the actual plchanges command,
      * loop over the retrieved contents, and push them to the SQL Thread */
-    struct mpd_connection *conn = mc_proto_get(store->client);
+    struct mpd_connection *conn = mc_get(store->client);
     if(conn != NULL) {
         g_timer_start(timer);
 
@@ -362,7 +362,7 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
             mc_shelper_report_error(store->client, conn);        
         }                                               
     }
-    mc_proto_put(store->client);
+    mc_put(store->client);
 
     /* Killing the SQL thread softly. */
     g_async_queue_push(queue, queue);

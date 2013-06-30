@@ -5,10 +5,10 @@
 
 int main(void)
 {
-    mc_Client *client = mc_proto_create(MC_PM_IDLE);
-    mc_proto_connect(client, NULL, "localhost", 6600, 2);
+    mc_Client *client = mc_create(MC_PM_IDLE);
+    mc_connect(client, NULL, "localhost", 6600, 2);
 
-    if (mc_proto_is_connected(client)) {
+    if (mc_is_connected(client)) {
 
         long job_id = 0;
 
@@ -39,6 +39,6 @@ int main(void)
 
     puts("-- Freeing client.");
 
-    mc_proto_free(client);
+    mc_free(client);
     return 0;
 }

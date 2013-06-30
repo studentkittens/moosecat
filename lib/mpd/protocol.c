@@ -34,27 +34,27 @@ static const char *etable[] = {
 ////  PUBLIC //////
 ///////////////////
 
-mc_Client *mc_proto_create(mc_PmType pm)
+mc_Client *mc_create(mc_PmType pm)
 {
     mc_Client *client = NULL;
 
     switch (pm) {
     case MC_PM_IDLE:
-        client = mc_proto_create_idler();
+        client = mc_create_idler();
         break;
 
     case MC_PM_COMMAND: 
-        client = mc_proto_create_cmnder(-1);
+        client = mc_create_cmnder(-1);
         break;
     }
 
     if (client != NULL) {
         client->_pm = pm;
-        mc_signal_list_init(&client->_signals);
+        mc_priv_signal_list_init(&client->_signals);
     }
 
-    client->_update_data = mc_proto_update_data_new(client);
-    client->_outputs = mc_proto_outputs_new(client);
+    client->_update_data = mc_update_data_new(client);
+    client->_outputs = mc_outputs_new(client);
 
     /* init the getput mutex */
     g_rec_mutex_init(&client->_getput_mutex);
@@ -64,7 +64,7 @@ mc_Client *mc_proto_create(mc_PmType pm)
 
 ///////////////////
 
-char *mc_proto_connect(
+char *mc_connect(
     mc_Client *self,
     GMainContext *context,
     const char *host,
@@ -84,9 +84,9 @@ char *mc_proto_connect(
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup(self->do_connect(self, context, host, port, ABS(timeout)));
 
-    if (err == NULL && mc_proto_is_connected(self)) {
+    if (err == NULL && mc_is_connected(self)) {
         /* Force updating of status/stats/song on connect */
-        mc_proto_force_sync(self, INT_MAX);
+        mc_force_sync(self, INT_MAX);
 
         /* For bugreports only */
         self->_timeout = timeout;
@@ -103,7 +103,7 @@ char *mc_proto_connect(
 
 ///////////////////
 
-bool mc_proto_is_connected(mc_Client *self)
+bool mc_is_connected(mc_Client *self)
 {
     g_assert(self);
 
@@ -114,12 +114,12 @@ bool mc_proto_is_connected(mc_Client *self)
 
 ///////////////////
 
-void mc_proto_put(mc_Client *self)
+void mc_put(mc_Client *self)
 {
     g_assert(self);
 
     /* Put connection back to event listening. */
-    if (mc_proto_is_connected(self) && self->do_put != NULL) {
+    if (mc_is_connected(self) && self->do_put != NULL) {
         self->do_put(self);
 
         /* Make the connection accesible to other threads */
@@ -130,14 +130,14 @@ void mc_proto_put(mc_Client *self)
 
 ///////////////////
 
-struct mpd_connection *mc_proto_get(mc_Client *self) {
+struct mpd_connection *mc_get(mc_Client *self) {
     g_assert(self);
 
     /* Return the readily sendable connection */
     struct mpd_connection *cconn = NULL;
 
 
-    if (mc_proto_is_connected(self)) {
+    if (mc_is_connected(self)) {
         /* lock the connection to make sure, only one thread
         * can use it. This prevents us from relying on
         * the user to lock himself. */
@@ -152,10 +152,10 @@ struct mpd_connection *mc_proto_get(mc_Client *self) {
 
 ///////////////////
 
-char *mc_proto_disconnect(
+char *mc_disconnect(
     mc_Client *self)
 {
-    if (self && mc_proto_is_connected(self)) {
+    if (self && mc_is_connected(self)) {
         /* Lock the connection while destroying it */
         g_rec_mutex_lock(&self->_getput_mutex);
 
@@ -166,13 +166,13 @@ char *mc_proto_disconnect(
         bool error_happenend = !self->do_disconnect(self);
 
         /* Reset status/song/stats to NULL */
-        mc_proto_update_reset(self->_update_data);
+        mc_update_reset(self->_update_data);
 
         /* Notify user of the disconnect */
-        mc_proto_signal_dispatch(self, "connectivity", self, false);
+        mc_signal_dispatch(self, "connectivity", self, false);
 
         /* Free output list */
-        mc_proto_outputs_destroy(self->_outputs);
+        mc_outputs_destroy(self->_outputs);
 
         /* Unlock the mutex - we can use it now again
          * e.g. - queued commands would wake up now
@@ -191,28 +191,28 @@ char *mc_proto_disconnect(
 
 ///////////////////
 
-void mc_proto_free(mc_Client *self)
+void mc_free(mc_Client *self)
 {
     if (self == NULL)
         return;
 
-    if (mc_proto_status_timer_is_active(self)) {
-        mc_proto_status_timer_unregister(self);
+    if (mc_status_timer_is_active(self)) {
+        mc_status_timer_unregister(self);
     }
 
     /* Disconnect if not done yet */
-    mc_proto_disconnect(self);
+    mc_disconnect(self);
 
     /* Kill any previously connected host info */
     if (self->_host != NULL)
         g_free(self->_host);
 
     /* Forget any signals */
-    mc_signal_list_destroy(&self->_signals);
+    mc_priv_signal_list_destroy(&self->_signals);
 
     /* Free SSS data */
-    mc_proto_update_reset(self->_update_data);
-    mc_proto_update_data_destroy(self->_update_data);
+    mc_update_reset(self->_update_data);
+    mc_update_data_destroy(self->_update_data);
 
     g_rec_mutex_clear(&self->_getput_mutex);
 
@@ -225,7 +225,7 @@ void mc_proto_free(mc_Client *self)
 //// SIGNALS //////
 ///////////////////
 
-void mc_proto_signal_add(
+void mc_signal_add(
     mc_Client *self,
     const char *signal_name,
     void *callback_func,
@@ -234,12 +234,12 @@ void mc_proto_signal_add(
     if (self == NULL)
         return;
 
-    mc_signal_add(&self->_signals, signal_name, false, callback_func, user_data);
+    mc_priv_signal_add(&self->_signals, signal_name, false, callback_func, user_data);
 }
 
 ///////////////////
 
-void mc_proto_signal_add_masked(
+void mc_signal_add_masked(
     mc_Client *self,
     const char *signal_name,
     void *callback_func,
@@ -249,12 +249,12 @@ void mc_proto_signal_add_masked(
     if (self == NULL)
         return;
 
-    mc_signal_add_masked(&self->_signals, signal_name, false, callback_func, user_data, mask);
+    mc_priv_signal_add_masked(&self->_signals, signal_name, false, callback_func, user_data, mask);
 }
 
 ///////////////////
 
-void mc_proto_signal_rm(
+void mc_signal_rm(
     mc_Client *self,
     const char *signal_name,
     void *callback_addr)
@@ -262,12 +262,12 @@ void mc_proto_signal_rm(
     if (self == NULL)
         return;
 
-    mc_signal_rm(&self->_signals, signal_name, callback_addr);
+    mc_priv_signal_rm(&self->_signals, signal_name, callback_addr);
 }
 
 ///////////////////
 
-void mc_proto_signal_dispatch(
+void mc_signal_dispatch(
     mc_Client *self,
     const char *signal_name,
     ...)
@@ -277,35 +277,35 @@ void mc_proto_signal_dispatch(
 
     va_list args;
     va_start(args, signal_name);
-    mc_signal_report_event_v(&self->_signals, signal_name, args);
+    mc_priv_signal_report_event_v(&self->_signals, signal_name, args);
     va_end(args);
 }
 
 ///////////////////
 
-int mc_proto_signal_length(
+int mc_signal_length(
     mc_Client *self,
     const char *signal_name)
 {
     if (self != NULL)
-        return mc_signal_length(&self->_signals, signal_name);
+        return mc_priv_signal_length(&self->_signals, signal_name);
     else
         return -1;
 }
 
 ///////////////////
 
-void mc_proto_force_sync(
+void mc_force_sync(
     mc_Client *self,
     enum mpd_idle events)
 {
     g_assert(self);
-    mc_proto_update_data_push(self->_update_data, events);
+    mc_update_data_push(self->_update_data, events);
 }
 
 ///////////////////
 
-const char *mc_proto_get_host(mc_Client *self)
+const char *mc_get_host(mc_Client *self)
 {
     g_assert(self);
 
@@ -314,38 +314,38 @@ const char *mc_proto_get_host(mc_Client *self)
 
 ///////////////////
 
-int mc_proto_get_port(mc_Client *self)
+int mc_get_port(mc_Client *self)
 {
     return self->_port;
 }
 
 ///////////////////
 
-bool mc_proto_status_timer_is_active(mc_Client *self)
+bool mc_status_timer_is_active(mc_Client *self)
 {
-    return mc_proto_update_status_timer_is_active(self);
+    return mc_update_status_timer_is_active(self);
 }
 
 ///////////////////
 
-void mc_proto_status_timer_unregister(mc_Client *self)
+void mc_status_timer_unregister(mc_Client *self)
 {
-    mc_proto_update_unregister_status_timer(self);
+    mc_update_unregister_status_timer(self);
 }
 
 ///////////////////
 
-int mc_proto_get_timeout(mc_Client *self)
+int mc_get_timeout(mc_Client *self)
 {
     return self->_timeout;
 }
 
 ///////////////////
 
-void mc_proto_status_timer_register(
+void mc_status_timer_register(
     mc_Client *self,
     int repeat_ms,
     bool trigger_event)
 {
-    mc_proto_update_register_status_timer(self, repeat_ms, trigger_event);
+    mc_update_register_status_timer(self, repeat_ms, trigger_event);
 }

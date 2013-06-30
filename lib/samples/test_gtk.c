@@ -122,10 +122,10 @@ static EntryTag *setup_client(void)
     EntryTag *rc = NULL;
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer *setup_timer = g_timer_new();
-    mc_Client *client = mc_proto_create(MC_PM_COMMAND);
-    mc_proto_connect(client, NULL, "localhost", 6600, 2.0);
+    mc_Client *client = mc_create(MC_PM_COMMAND);
+    mc_connect(client, NULL, "localhost", 6600, 2.0);
 
-    if (client && mc_proto_is_connected(client)) {
+    if (client && mc_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
         mc_StoreSettings *settings = mc_store_settings_new();
@@ -151,7 +151,7 @@ static EntryTag *setup_client(void)
             rc->song_buf = mc_stack_create(number_of_songs + 1, NULL);
         }
 
-        mc_proto_signal_add_masked(client, "client-event",
+        mc_signal_add_masked(client, "client-event",
                                    on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
     }
 

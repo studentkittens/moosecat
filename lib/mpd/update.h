@@ -39,23 +39,23 @@ typedef struct mc_UpdateData {
  *
  * @param self The client to associate this structure to.
  *
- * @return a newly allocated structure, free with mc_proto_update_data_destroy
+ * @return a newly allocated structure, free with mc_update_data_destroy
  */
-mc_UpdateData * mc_proto_update_data_new(struct mc_Client *self);
+mc_UpdateData * mc_update_data_new(struct mc_Client *self);
 
 /**
- * @brief Free the ressources allocated by mc_proto_update_data_new
+ * @brief Free the ressources allocated by mc_update_data_new
  *
  * @param data the allocated data
  */
-void mc_proto_update_data_destroy(mc_UpdateData *data);
+void mc_update_data_destroy(mc_UpdateData *data);
 
 /**
  * @brief Delete currentsong/status/stats and set them to NULL
  *
  * @param data UpdateData to do this on 
  */
-void mc_proto_update_reset(mc_UpdateData *data);
+void mc_update_reset(mc_UpdateData *data);
 
 /**
  * @brief Push a new event to the Update Thread.
@@ -65,7 +65,7 @@ void mc_proto_update_reset(mc_UpdateData *data);
  * @param data the UpdateData to operate on 
  * @param event a bitmask of mpd_idle events 
  */
-void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event);
+void mc_update_data_push(mc_UpdateData *data, enum mpd_idle event);
 
 /**
  * @brief Activate the Status Timer.
@@ -77,7 +77,7 @@ void mc_proto_update_data_push(mc_UpdateData *data, enum mpd_idle event);
  * @param repeat_ms Interval in ms
  * @param trigger_event If true the client-event callbacks are invoked 
  */
-void mc_proto_update_register_status_timer(
+void mc_update_register_status_timer(
     struct mc_Client *self,
     int repeat_ms,
     bool trigger_event);
@@ -87,7 +87,7 @@ void mc_proto_update_register_status_timer(
  *
  * @param self the client to operate on
  */
-void mc_proto_update_unregister_status_timer(struct mc_Client *self);
+void mc_update_unregister_status_timer(struct mc_Client *self);
 
 /**
  * @brief Check if the status timer is registered 
@@ -96,7 +96,7 @@ void mc_proto_update_unregister_status_timer(struct mc_Client *self);
  *
  * @return True if active.
  */
-bool mc_proto_update_status_timer_is_active(struct mc_Client *self);
+bool mc_update_status_timer_is_active(struct mc_Client *self);
 
 
 /* LOCKING */

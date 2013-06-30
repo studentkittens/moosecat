@@ -34,15 +34,15 @@ static void print_event(mc_Client *self, enum mpd_idle event, void *user_data)
 
 int main(void)
 {
-    mc_Client *client = mc_proto_create(MC_PM_IDLE);
-    mc_proto_connect(client, NULL, "localhost", 6600, 10.0);
-    mc_proto_signal_add(client, "progress", print_progress, NULL);
-    mc_proto_signal_add(client, "error", print_error, NULL);
+    mc_Client *client = mc_create(MC_PM_IDLE);
+    mc_connect(client, NULL, "localhost", 6600, 10.0);
+    mc_signal_add(client, "progress", print_progress, NULL);
+    mc_signal_add(client, "error", print_error, NULL);
     mc_misc_register_posix_signal(client);
-    mc_proto_signal_add(client, "client-event", print_event, NULL);
+    mc_signal_add(client, "client-event", print_event, NULL);
     GMainLoop *loop = g_main_loop_new(NULL, true);
     g_main_loop_run(loop);
     g_main_loop_unref(loop);
-    mc_proto_disconnect(client);
-    mc_proto_free(client);
+    mc_disconnect(client);
+    mc_free(client);
 }

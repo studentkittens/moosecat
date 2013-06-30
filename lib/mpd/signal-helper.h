@@ -25,7 +25,7 @@ typedef enum mc_OpFinishedEnum {
  * Checks the connection for error, checks
  * if the error is fatal (if any), and also handles
  * it by calling mpd_connection_clear_error,
- * and, if it's fatal, mc_proto_disconnect.
+ * and, if it's fatal, mc_disconnect.
  *
  * The callback is called **after** cleaning up,
  * which allows the callee to reconnect if it desires too.

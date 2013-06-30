@@ -235,7 +235,7 @@ static void cmnder_reset(mc_CmndClient *self)
  * (in the mainloop) the whole thing:
  *   a) would only work with the mainloop attached. (not to serious, but still)
  *   b) may interfer with other threads using the connection
- *   c) mc_proto_get() may deadlock, if the connection hasn't been previously unlocked.
+ *   c) mc_get() may deadlock, if the connection hasn't been previously unlocked.
  *      (this might happen if an client operation invokes the mainloop)
  *
  *
@@ -254,8 +254,8 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
             break;
         }
 
-        if (mc_proto_is_connected((mc_Client *) self)) {
-            mpd_connection *con = mc_proto_get((mc_Client *) self);
+        if (mc_is_connected((mc_Client *) self)) {
+            mpd_connection *con = mc_get((mc_Client *) self);
 
             if (con != NULL) {
                 if (mpd_send_command(con, "ping", NULL) == false)
@@ -265,7 +265,7 @@ static gpointer cmnder_ping_server(mc_CmndClient *self)
                     mc_shelper_report_error((mc_Client *) self, con);
             }
 
-            mc_proto_put((mc_Client *) self);
+            mc_put((mc_Client *) self);
         }
 
         if (cmnder_get_run_pinger(self)) {
@@ -379,7 +379,7 @@ static void cmnder_do_free(mc_Client *parent)
 // Public Interface //
 //////////////////////
 
-mc_Client *mc_proto_create_cmnder(long connection_timeout_ms)
+mc_Client *mc_create_cmnder(long connection_timeout_ms)
 {
     /* Only fill callbacks here, no
      * actual data relied to mc_CmndClient

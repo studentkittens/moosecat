@@ -23,7 +23,7 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
-            mc_proto_signal_dispatch(
+            mc_signal_dispatch(
                     self, "logging", self,
                     "Connection to MPD was closed (IsFatal=maybe?)",
                     MC_LOG_WARNING,
@@ -65,7 +65,7 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
         /* On really fatal error we better disconnect,
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
-            mc_signal_report_event(&self->_signals, "_fatal_error", self);
+            mc_priv_signal_report_event(&self->_signals, "_fatal_error", self);
         }
 
         /* Dispatch the error to the users */
@@ -108,7 +108,7 @@ void mc_shelper_report_error_printf(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR, FALSE);
+        mc_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR, FALSE);
     }
 
     va_end(list_ptr);
@@ -126,7 +126,7 @@ void mc_shelper_report_progress(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_proto_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO, TRUE);
+        mc_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO, TRUE);
     }
 
     va_end(list_ptr);
@@ -147,7 +147,7 @@ void mc_shelper_report_connectivity(
     self->_host = g_strdup(new_host);
     self->_port = new_port;
     /* Dispatch *after* host being set */
-    mc_proto_signal_dispatch(self, "connectivity", self, server_changed);
+    mc_signal_dispatch(self, "connectivity", self, server_changed);
 }
 
 ///////////////////////////////
@@ -157,8 +157,8 @@ void mc_shelper_report_client_event(
     enum mpd_idle event)
 {
     if (event != 0) {
-        mc_proto_force_sync(self, event);
-        mc_proto_signal_dispatch(self, "client-event", self, event);
+        mc_force_sync(self, event);
+        mc_signal_dispatch(self, "client-event", self, event);
     }
 }
 
@@ -181,6 +181,6 @@ void mc_shelper_report_operation_finished(
     const char *operation;
     if(op >= 0 && op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
-        mc_proto_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
+        mc_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
     }
 }

@@ -17,6 +17,6 @@
  *
  * @return a newly allocated connector
  */
-mc_Client *mc_proto_create_idler(void);
+mc_Client *mc_create_idler(void);
 
 #endif /* end of include guard: IDLE_CORE_H */

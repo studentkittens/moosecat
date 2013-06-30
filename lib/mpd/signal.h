@@ -1,5 +1,5 @@
-#ifndef mc_signal_H
-#define mc_signal_H
+#ifndef mc_priv_signal_H
+#define mc_priv_signal_H
 
 #include <glib.h>
 #include <mpd/client.h>
@@ -39,7 +39,7 @@ typedef struct {
      */
     guint signal_watch_id;
 
-    /* The Thread mc_signal_list_init() was called in.
+    /* The Thread mc_priv_signal_list_init() was called in.
      * This is the Thread signals are dispatched to.
      */
     GThread *initial_thread;
@@ -69,16 +69,16 @@ typedef void (* mc_ConnectivityCallback)(struct mc_Client *, bool server_changed
 
 ///////////////////////////////
 
-void  mc_signal_list_init(mc_SignalList *list);
+void  mc_priv_signal_list_init(mc_SignalList *list);
 
-void mc_signal_add(
+void mc_priv_signal_add(
     mc_SignalList *list,
     const char *signal_name,
     bool call_first,
     void *callback_func,
     void *user_data);
 
-void mc_signal_add_masked(
+void mc_priv_signal_add_masked(
     mc_SignalList *list,
     const char *signal_name,
     bool call_first,
@@ -86,27 +86,27 @@ void mc_signal_add_masked(
     void *user_data,
     enum mpd_idle mask);
 
-void mc_signal_rm(
+void mc_priv_signal_rm(
     mc_SignalList *list,
     const char *signal_name,
     void *callback_addr);
 
-void mc_signal_report_event_v(
+void mc_priv_signal_report_event_v(
     mc_SignalList   *list,
     const char *signal_name,
     va_list args);
 
-void mc_signal_report_event(
+void mc_priv_signal_report_event(
     mc_SignalList   *list,
     const char *signal_name,
     ...);
 
-void mc_signal_list_destroy(
+void mc_priv_signal_list_destroy(
     mc_SignalList *list);
 
-int mc_signal_length(
+int mc_priv_signal_length(
     mc_SignalList *list,
     const char *signal_name);
 
-#endif /* end of include guard: mc_signal_H */
+#endif /* end of include guard: mc_priv_signal_H */
 

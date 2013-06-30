@@ -17,9 +17,9 @@ char *mc_misc_bug_report(mc_Client *client)
     mc_PmType pm = 0;
 
     if (client != NULL) {
-        if (mc_proto_is_connected(client)) {
+        if (mc_is_connected(client)) {
             is_connected = true;
-            struct mpd_connection *connection = mc_proto_get(client);
+            struct mpd_connection *connection = mc_get(client);
 
             if (connection != NULL) {
                 server_version = mpd_connection_get_server_version(connection);
@@ -30,7 +30,7 @@ char *mc_misc_bug_report(mc_Client *client)
         host = client->_host;
         port = client->_port;
         pm = client->_pm;
-        mc_proto_put(client);
+        mc_put(client);
     }
 
     return g_strdup_printf(

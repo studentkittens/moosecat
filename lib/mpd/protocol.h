@@ -128,9 +128,9 @@ typedef struct mc_Client {
  *
  * @param protocol_machine the name of the protocol machine
  *
- * @return a newly allocated mc_Client, free with mc_proto_free()
+ * @return a newly allocated mc_Client, free with mc_free()
  */
-mc_cc_malloc mc_Client *mc_proto_create(mc_PmType pm);
+mc_cc_malloc mc_Client *mc_create(mc_PmType pm);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
@@ -149,7 +149,7 @@ mc_cc_malloc mc_Client *mc_proto_create(mc_PmType pm);
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-char *mc_proto_connect(
+char *mc_connect(
     mc_Client *self,
     GMainContext *context,
     const char *host,
@@ -163,14 +163,14 @@ char *mc_proto_connect(
  *
  * @return a working mpd_connection or NULL
  */
-struct mpd_connection *mc_proto_get(mc_Client *self);
+struct mpd_connection *mc_get(mc_Client *self);
 
 /**
  * @brief Put conenction back to event listening
  *
  * @param self the connector to operate on
  */
-void mc_proto_put(mc_Client *self);
+void mc_put(mc_Client *self);
 
 /**
  * @brief Checks if the connector is connected.
@@ -179,7 +179,7 @@ void mc_proto_put(mc_Client *self);
  *
  * @return true when connected
  */
-bool mc_proto_is_connected(mc_Client *self);
+bool mc_is_connected(mc_Client *self);
 
 /**
  * @brief Disconnect connection and free all.
@@ -188,16 +188,16 @@ bool mc_proto_is_connected(mc_Client *self);
  *
  * @return a error string, or NULL if no error happened
  */
-char *mc_proto_disconnect(mc_Client *self);
+char *mc_disconnect(mc_Client *self);
 
 /**
  * @brief Free all data associated with this connector.
  *
- * You have to call mc_proto_disconnect beforehand!
+ * You have to call mc_disconnect beforehand!
  *
  * @param self the connector to operate on
  */
-void mc_proto_free(mc_Client *self);
+void mc_free(mc_Client *self);
 
 ///////////////////////////////
 
@@ -221,14 +221,14 @@ void mc_proto_free(mc_Client *self);
  * @param callback_func the function to call. Prototype depends on signal_name.
  * @param user_data optional user_data to pass to the function.
  */
-void mc_proto_signal_add(
+void mc_signal_add(
     mc_Client *self,
     const char *signal_name,
     void *callback_func,
     void *user_data);
 
 /**
- * @brief Same as mc_proto_signal_add, but only
+ * @brief Same as mc_signal_add, but only
  *
  * The mask param has only effect on the client-event.
  *
@@ -238,7 +238,7 @@ void mc_proto_signal_add(
  * @param user_data
  * @param mask
  */
-void mc_proto_signal_add_masked(
+void mc_signal_add_masked(
     mc_Client *self,
     const char *signal_name,
     void *callback_func,
@@ -252,7 +252,7 @@ void mc_proto_signal_add_masked(
  * @param signal_name the signal name this function was registered on.
  * @param callback_addr the addr. of the registered function.
  */
-void mc_proto_signal_rm(
+void mc_signal_rm(
     mc_Client *self,
     const char *signal_name,
     void *callback_addr);
@@ -264,7 +264,7 @@ void mc_proto_signal_rm(
  * @param signal_name the name of the signal to dispatch.
  * @param ... variable args. See above.
  */
-void mc_proto_signal_dispatch(
+void mc_signal_dispatch(
     mc_Client *self,
     const char *signal_name,
     ...);
@@ -279,7 +279,7 @@ void mc_proto_signal_dispatch(
  *
  * @return 0 - inf
  */
-int mc_proto_signal_length(
+int mc_signal_length(
     mc_Client *self,
     const char *signal_name);
 
@@ -292,7 +292,7 @@ int mc_proto_signal_length(
  * @param self the client to operate on.
  * @param events an eventmask. Pass INT_MAX to update all.
  */
-void mc_proto_force_sync(
+void mc_force_sync(
     mc_Client *self,
     enum mpd_idle events);
 
@@ -305,7 +305,7 @@ void mc_proto_force_sync(
  *
  * @return the hostname, do not free or change it!
  */
-const char *mc_proto_get_host(mc_Client *self);
+const char *mc_get_host(mc_Client *self);
 
 /**
  * @brief Get the Port being currently connected to.
@@ -314,7 +314,7 @@ const char *mc_proto_get_host(mc_Client *self);
  *
  * @return the port or -1 on error.
  */
-int mc_proto_get_port(mc_Client *self);
+int mc_get_port(mc_Client *self);
 
 /**
  * @brief Get the currently set timeout.
@@ -323,13 +323,13 @@ int mc_proto_get_port(mc_Client *self);
  *
  * @return the timeout in seconds, or -1 on error.
  */
-int mc_proto_get_timeout(mc_Client *self);
+int mc_get_timeout(mc_Client *self);
 
 /**
  * @brief Activate a status timer
  *
  * This will cause moosecat to schedule status update every repeat_ms ms.
- * Call mc_proto_status_timer_unregister to deactivate it.
+ * Call mc_status_timer_unregister to deactivate it.
  *
  * This is useful for kbit rate changes which will only be update when
  * an idle event requires it.
@@ -338,7 +338,7 @@ int mc_proto_get_timeout(mc_Client *self);
  * @param repeat_ms repeat interval
  * @param trigger_event
  */
-void mc_proto_status_timer_register(
+void mc_status_timer_register(
     mc_Client *self,
     int repeat_ms,
     bool trigger_event);
@@ -348,7 +348,7 @@ void mc_proto_status_timer_register(
  *
  * @param self the client to operate on.
  */
-void mc_proto_status_timer_unregister(
+void mc_status_timer_unregister(
     mc_Client *self);
 
 /**
@@ -358,7 +358,7 @@ void mc_proto_status_timer_unregister(
  *
  * @return false on inactive status timer
  */
-bool mc_proto_status_timer_is_active(mc_Client *self);
+bool mc_status_timer_is_active(mc_Client *self);
 
 
 #endif /* end of include guard: PROTOCOL_H */

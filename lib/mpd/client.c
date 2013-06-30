@@ -137,7 +137,7 @@ static bool handle_queue_delete_range(mc_Client *self, struct mpd_connection *co
 static bool handle_output_switch(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
     const char *output_name = argv[0];
-    int output_id = mc_proto_outputs_name_to_id(self->_outputs, output_name);
+    int output_id = mc_outputs_name_to_id(self->_outputs, output_name);
 
     intarg_named(argv[1], mode);
 
@@ -539,7 +539,7 @@ static bool handle_seekcur(mc_Client *self, struct mpd_connection *conn, const c
 
     /* there is 'seekcur' in newer mpd versions,
      * but we can emulate it easily */
-    if(mc_proto_is_connected(self))
+    if(mc_is_connected(self))
     {
         int curr_id = 0;
         struct mpd_song * current_song = mc_lock_current_song(self);
@@ -758,7 +758,7 @@ static bool mc_client_execute(
         while(parts[arguments++]);
 
         if((arguments - 2) >= handler->num_args) {
-            if(mc_proto_is_connected(self)) {
+            if(mc_is_connected(self)) {
                 result = handler->handler(self, conn, (const char **)&parts[1]);
             }
         } else {
@@ -807,7 +807,7 @@ static void * mc_client_command_dispatcher(
 
         /* Free input (since it was strdrup'd) */
         bool free_input = true;
-        if(mc_proto_is_connected(self) == false) {
+        if(mc_is_connected(self) == false) {
             result = false;
         }
         else
@@ -826,14 +826,14 @@ static void * mc_client_command_dispatcher(
             result = true;
         }
         else {
-            struct mpd_connection * conn = mc_proto_get(self);
-            if(conn != NULL && mc_proto_is_connected(self)) {
+            struct mpd_connection * conn = mc_get(self);
+            if(conn != NULL && mc_is_connected(self)) {
                 result = mc_client_execute(self, input, conn);
                 if (mpd_response_finish(conn) == false) {       
                     mc_shelper_report_error(self, conn);        
                 }                                               
             }
-            mc_proto_put(self);
+            mc_put(self);
         }
 
         if(free_input) {
@@ -909,7 +909,7 @@ static bool mc_client_command_list_commit(mc_Client *self)
     /* Elements were prepended, so we'll just reverse the list */
     self->command_list.commands = g_list_reverse(self->command_list.commands);
 
-    struct mpd_connection * conn = mc_proto_get(self);  
+    struct mpd_connection * conn = mc_get(self);  
     if(conn != NULL) {
         if(mpd_command_list_begin(conn, false) != false) {
             for(GList *iter = self->command_list.commands; iter != NULL; iter = iter->next) {
@@ -934,7 +934,7 @@ static bool mc_client_command_list_commit(mc_Client *self)
     self->command_list.commands = NULL;
 
     /* Put mutex back */
-    mc_proto_put(self);                                 
+    mc_put(self);                                 
 
     g_mutex_lock(&self->command_list.is_active_mtx);
     self->command_list.is_active = 0;

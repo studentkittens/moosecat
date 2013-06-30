@@ -57,7 +57,7 @@ static void signal_connectivity(
     (void) user_data;
 
     g_print("CONNECTION: is %s and server %s.\n",
-            mc_proto_is_connected(client) ? "connected" : "disconnected",
+            mc_is_connected(client) ? "connected" : "disconnected",
             server_changed ? "changed" : "is still the same");
 }
 
@@ -67,14 +67,14 @@ static gboolean register_all_the_things(gpointer user_data)
 {
     //GMainLoop * loop = (GMainLoop *) user_data;
 
-    mc_proto_signal_add(conn, "client-event", signal_event, NULL);
-    mc_proto_signal_add(conn, "error", signal_error, NULL);
-    mc_proto_signal_add(conn, "progress", signal_progress, NULL);
-    mc_proto_signal_add(conn, "connectivity", signal_connectivity, NULL);
+    mc_signal_add(conn, "client-event", signal_event, NULL);
+    mc_signal_add(conn, "error", signal_error, NULL);
+    mc_signal_add(conn, "progress", signal_progress, NULL);
+    mc_signal_add(conn, "connectivity", signal_connectivity, NULL);
 
     mc_misc_register_posix_signal(conn);
 
-    char *err = mc_proto_connect(conn, NULL, "localhost", 6600, 2);
+    char *err = mc_connect(conn, NULL, "localhost", 6600, 2);
 
     if (err != NULL) {
         g_print("Error: %s\n", err);
@@ -93,7 +93,7 @@ static gboolean disconnect_client(gpointer user_data)
     (void) user_data;
 
     g_print("DISCONNECT\n");
-    mc_proto_disconnect(conn);
+    mc_disconnect(conn);
     g_print("DISCONNECT DONE\n");
     return FALSE;
 }
@@ -118,7 +118,7 @@ static gboolean unregister_all_the_things(gpointer user_data)
     g_print("Making the disconnect thing.\n");
     g_main_loop_quit(loop);
     g_print("Free diz!\n");
-    mc_proto_free(conn);
+    mc_free(conn);
 
     return FALSE;
 }
@@ -127,7 +127,7 @@ static gboolean unregister_all_the_things(gpointer user_data)
 
 int main(void)
 {
-    conn = mc_proto_create(MC_PM_IDLE);
+    conn = mc_create(MC_PM_IDLE);
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     /* Init with already running mainloop */

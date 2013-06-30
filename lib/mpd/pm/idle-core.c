@@ -70,7 +70,7 @@ static void idler_report_error(mc_IdleClient *self, enum mpd_error error, const 
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        mc_proto_signal_dispatch((mc_Client *) self, "logging", self, error_msg, MC_LOG_ERROR, FALSE);
+        mc_signal_dispatch((mc_Client *) self, "logging", self, error_msg, MC_LOG_ERROR, FALSE);
     }
     self->is_running_extern = FALSE;
 }
@@ -414,7 +414,7 @@ static void idler_do_free(mc_Client *parent)
 // Public Interface //
 //////////////////////
 
-mc_Client *mc_proto_create_idler(void)
+mc_Client *mc_create_idler(void)
 {
     mc_IdleClient *self = g_new0(mc_IdleClient, 1);
     /* Define the logic of this connector */

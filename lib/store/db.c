@@ -252,7 +252,7 @@ static void mc_store_connectivity_callback(
 {
     g_assert(self && client && self->client == client);
 
-    if (mc_proto_is_connected(client)) {
+    if (mc_is_connected(client)) {
         if (server_changed) {
             self->force_update_listallinfo = true;
             self->force_update_plchanges = true;
@@ -465,7 +465,7 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
     }
 
     /* Register for client events */
-    mc_signal_add_masked(
+    mc_priv_signal_add_masked(
         &store->client->_signals,
         "client-event", true, /* call first */
         (mc_ClientEventCallback) mc_store_update_callback, store,
@@ -473,7 +473,7 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
     );
 
     /* Register to be notifed when the connection status changes */
-    mc_signal_add(
+    mc_priv_signal_add(
         &store->client->_signals,
         "connectivity", true, /* call first */
         (mc_ConnectivityCallback) mc_store_connectivity_callback, store
@@ -501,8 +501,8 @@ void mc_store_close(mc_Store *self)
     if (self == NULL)
         return;
 
-    mc_proto_signal_rm(self->client, "client-event", mc_store_update_callback);
-    mc_proto_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);
+    mc_signal_rm(self->client, "client-event", mc_store_update_callback);
+    mc_signal_rm(self->client, "connectivity", mc_store_connectivity_callback);
 
     mc_stprv_lock_attributes(self);
 

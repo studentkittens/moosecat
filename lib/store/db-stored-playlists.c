@@ -205,7 +205,7 @@ static void mc_stprv_spl_listplaylists(mc_Store *store)
     store->spl.stack = mc_stack_create(10, (GDestroyNotify) mpd_playlist_free);
 
 
-    struct mpd_connection *conn = mc_proto_get(self);
+    struct mpd_connection *conn = mc_get(self);
     if(conn != NULL) {
         struct mpd_playlist *playlist = NULL;
         mpd_send_list_playlists(conn);
@@ -222,7 +222,7 @@ static void mc_stprv_spl_listplaylists(mc_Store *store)
                 "Cannot get connection to get listplaylists (not connected?)"
         );
     }
-    mc_proto_put(self);
+    mc_put(self);
 }
 ///////////////////
 
@@ -442,7 +442,7 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
             sqlite3_free(sql);
 
             /* Acquire the connection (this locks the connection for others) */
-            struct mpd_connection *conn = mc_proto_get(self);
+            struct mpd_connection *conn = mc_get(self);
             if(conn != NULL) {
 
                 if (mpd_send_list_playlist(conn, mpd_playlist_get_path(playlist))) {
@@ -468,7 +468,7 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
             }
 
             /* Release the connection mutex */
-            mc_proto_put(self);
+            mc_put(self);
 
             if (sqlite3_finalize(insert_stmt) != SQLITE_OK)
                 REPORT_SQL_ERROR(store, "Cannot finalize INSERT stmt");

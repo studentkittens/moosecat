@@ -5,10 +5,10 @@
 
 int main(void)
 {
-    mc_Client *client = mc_proto_create(MC_PM_IDLE);
-    mc_proto_connect(client, NULL, "localhost", 6600, 2);
+    mc_Client *client = mc_create(MC_PM_IDLE);
+    mc_connect(client, NULL, "localhost", 6600, 2);
     int op_size = 0;
-    struct mpd_output **op_list = mc_proto_get_outputs(client, &op_size);
+    struct mpd_output **op_list = mc_get_outputs(client, &op_size);
 
     for (int i = 0; i < op_size; ++i) {
         struct mpd_output *output = op_list[i];
@@ -18,7 +18,7 @@ int main(void)
                mpd_output_get_name(output));
     }
 
-    mc_proto_disconnect(client);
-    mc_proto_free(client);
+    mc_disconnect(client);
+    mc_free(client);
     return 0;
 }

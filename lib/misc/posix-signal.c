@@ -42,7 +42,7 @@ static void mc_print_backtrace(void)
 
 ///////////////////////////////
 
-static void mc_signal_handler(int signal)
+static void mc_priv_signal_handler(int signal)
 {
     switch (signal) {
     case SIGFPE:
@@ -70,5 +70,5 @@ void mc_misc_register_posix_signal(mc_Client *client)
     int catch_signals[] = {SIGSEGV, SIGABRT, SIGFPE};
 
     for (int i = 0; i < (int)(sizeof(catch_signals) / sizeof(int)); i++)
-        signal(catch_signals[i], mc_signal_handler);
+        signal(catch_signals[i], mc_priv_signal_handler);
 }
