@@ -184,6 +184,7 @@ static void cmnder_shutdown_listener(mc_CmndClient *self)
     /* Ugly hack, see cmnder_listener_thread() */
     struct mpd_status * status =  mpd_run_status(self->cmnd_con);
     if(status != NULL) {
+        // TODO: This is embarassing.
         mpd_command_list_begin(self->cmnd_con, false);
         mpd_send_repeat(self->cmnd_con, !mpd_status_get_repeat(status));
         mpd_send_repeat(self->cmnd_con, mpd_status_get_repeat(status));

@@ -1,6 +1,9 @@
 libmoosecat 
 -----------
 
+- self->con mutex idle-core.c deadlocks // DONE
+- bettern db loading in store (different dbs with different host:ports)
+
 - valgrind it
 - Make client/store failsafe in case of connection loss
   - Chances are getting better, 

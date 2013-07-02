@@ -230,8 +230,6 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
     GTimer *timer = g_timer_new();
     gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
 
-    g_printerr("Debug.\n");
-
     /* start a transaction */
     mc_stprv_begin(self);
 

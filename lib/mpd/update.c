@@ -143,8 +143,8 @@ static void mc_update_context_info_cb( struct mc_Client *self, enum mpd_idle eve
                 }
             }
 
-            mc_put(self);
         }
+        mc_put(self);
     }
 }
 

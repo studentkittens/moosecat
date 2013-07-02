@@ -16,10 +16,12 @@
 /* log2() */
 #include <math.h>
 
-/* memset() */
-#include <string.h>
 
-
+/**
+ * Data passed along a Job. 
+ * Not all fields are filled, only "op" is always filled,
+ * and most of the time "out_stack".t
+ */
 typedef struct {
     mc_StoreOperation op;
     const char *match_clause;
@@ -33,7 +35,6 @@ typedef struct {
 
 
 /* List of Priorities for all Operations.
- *
  *
  */ 
 int mc_JobPrios[] = {
@@ -50,6 +51,9 @@ int mc_JobPrios[] = {
     [MC_OPER_UNDEFINED]   = 10
 };
 
+/**
+ * Map mc_OpFinishedEnum members to meaningful strings
+ */
 const char * mc_JobNames[] = {
     [MC_OPER_DESERIALIZE] = "DESERIALIZE", 
     [MC_OPER_LISTALLINFO] = "LISTALLINFO", 
@@ -95,7 +99,6 @@ static char * mc_store_op_to_string(mc_StoreOperation op)
     unsigned base = (unsigned)log2(MC_OPER_ENUM_MAX);
 
     const char * names[base + 1];
-    memset(names, 0, base + 1);
 
     for(unsigned i = 0; i < base; ++i) {
         if(op & (1 << i)) {

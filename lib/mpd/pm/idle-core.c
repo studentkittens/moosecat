@@ -55,6 +55,9 @@ typedef struct {
     /* true if being in the outside world */
     bool is_running_extern;
 
+    /* Mutex with descriptive name */
+    GMutex one_thread_only_mtx;
+
 } mc_IdleClient;
 
 ///////////////////////////////////////////
@@ -245,6 +248,7 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
+    // TODO: Needed?
     g_rec_mutex_lock(&self->logic._getput_mutex);
 
     if (mpd_async_io(self->async_mpd_conn, events) == FALSE) {
@@ -310,6 +314,9 @@ static char *idler_do_connect(mc_Client *parent, GMainContext *context, const ch
     g_assert(parent);
 
     mc_IdleClient *self = child(parent);
+
+    g_mutex_lock(&self->one_thread_only_mtx);
+
     char *error = NULL;
     self->con = mpd_connect(parent, host, port, timeout, &error);
 
@@ -328,20 +335,29 @@ static char *idler_do_connect(mc_Client *parent, GMainContext *context, const ch
 
     /* the parser object needs to be instantiated only once */
     self->parser = mpd_parser_new();
+
     /* Set all required flags */
     idler_reset_struct(self);
+
     /* Enter initial 'idle' loop */
     idler_enter(self);
 
 failure:
+
+    g_mutex_unlock(&self->one_thread_only_mtx);
     return g_strdup(error);
 }
 
 ///////////////////////
 
-static bool idler_do_is_connected(mc_Client *self)
+static bool idler_do_is_connected(mc_Client * client)
 {
-    return (self && child(self)->con);
+    mc_IdleClient * self = child(client);
+
+    g_mutex_lock(&self->one_thread_only_mtx);
+    bool result = (self && self->con);
+    g_mutex_unlock(&self->one_thread_only_mtx);
+    return result;
 }
 
 ///////////////////////
@@ -373,8 +389,12 @@ static bool idler_do_disconnect(mc_Client *parent)
 {
     if (idler_do_is_connected(parent)) {
         mc_IdleClient *self = child(parent);
+
+        g_mutex_lock(&self->one_thread_only_mtx);
+
         /* Be nice and send a final noidle if needed */
         idler_leave(self);
+
         /* Underlying async connection is free too */
         mpd_connection_free(self->con);
         self->con = NULL;
@@ -393,6 +413,8 @@ static bool idler_do_disconnect(mc_Client *parent)
 
         /* Make the struct reconnect-able */
         idler_reset_struct(self);
+        g_mutex_unlock(&self->one_thread_only_mtx);
+
         return TRUE;
     } else {
         return FALSE;
@@ -404,8 +426,11 @@ static bool idler_do_disconnect(mc_Client *parent)
 static void idler_do_free(mc_Client *parent)
 {
     g_assert(parent);
+
     /* Make sure wrong acces gets punished */
     mc_IdleClient *self = child(parent);
+    g_mutex_clear(&self->one_thread_only_mtx);
+
     memset(self, 0, sizeof(mc_IdleClient));
     g_free(self);
 }
@@ -417,6 +442,7 @@ static void idler_do_free(mc_Client *parent)
 mc_Client *mc_create_idler(void)
 {
     mc_IdleClient *self = g_new0(mc_IdleClient, 1);
+
     /* Define the logic of this connector */
     self->logic.do_disconnect = idler_do_disconnect;
     self->logic.do_get = idler_do_get;
@@ -424,5 +450,7 @@ mc_Client *mc_create_idler(void)
     self->logic.do_free = idler_do_free;
     self->logic.do_connect = idler_do_connect;
     self->logic.do_is_connected = idler_do_is_connected;
+
+    g_mutex_init(&self->one_thread_only_mtx);
     return (mc_Client *) self;
 }

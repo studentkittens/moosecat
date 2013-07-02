@@ -9,7 +9,7 @@
 
 #include "client.h"
 
-/* memset */
+/* memset() */
 #include <string.h>
 
 ///////////////////
@@ -39,26 +39,27 @@ mc_Client *mc_create(mc_PmType pm)
     mc_Client *client = NULL;
 
     switch (pm) {
-    case MC_PM_IDLE:
-        client = mc_create_idler();
-        break;
+        case MC_PM_IDLE:
+            client = mc_create_idler();
+            break;
 
-    case MC_PM_COMMAND: 
-        client = mc_create_cmnder(-1);
-        break;
+        case MC_PM_COMMAND: 
+            client = mc_create_cmnder(-1);
+            break;
     }
 
     if (client != NULL) {
         client->_pm = pm;
         client->is_virgin = true;
+
+        /* init the getput mutex */
+        g_rec_mutex_init(&client->_getput_mutex);
+
         mc_priv_signal_list_init(&client->_signals);
+
+        client->_update_data = mc_update_data_new(client);
+        client->_outputs = mc_outputs_new(client);
     }
-
-    client->_update_data = mc_update_data_new(client);
-    client->_outputs = mc_outputs_new(client);
-
-    /* init the getput mutex */
-    g_rec_mutex_init(&client->_getput_mutex);
 
     return client;
 }
@@ -122,11 +123,10 @@ void mc_put(mc_Client *self)
     /* Put connection back to event listening. */
     if (mc_is_connected(self) && self->do_put != NULL) {
         self->do_put(self);
-
-        /* Make the connection accesible to other threads */
-        g_rec_mutex_unlock(&self->_getput_mutex);
-
     }
+
+    /* Make the connection accesible to other threads */
+    g_rec_mutex_unlock(&self->_getput_mutex);
 }
 
 ///////////////////
@@ -137,13 +137,12 @@ struct mpd_connection *mc_get(mc_Client *self) {
     /* Return the readily sendable connection */
     struct mpd_connection *cconn = NULL;
 
+    /* lock the connection to make sure, only one thread
+    * can use it. This prevents us from relying on
+    * the user to lock himself. */
+    g_rec_mutex_lock(&self->_getput_mutex);
 
     if (mc_is_connected(self)) {
-        /* lock the connection to make sure, only one thread
-        * can use it. This prevents us from relying on
-        * the user to lock himself. */
-        g_rec_mutex_lock(&self->_getput_mutex);
-
         cconn = self->do_get(self);
         mc_shelper_report_error(self, cconn);
     }

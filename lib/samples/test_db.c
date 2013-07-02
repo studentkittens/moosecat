@@ -21,6 +21,13 @@ static void print_event(mc_Client *self, enum mpd_idle event, void *user_data)
 
 ///////////////////////////////
 
+static void print_connectivity(mc_Client *self, bool server_changed, void *user_data)
+{
+    g_print("connectivity-signal: %p %d %d\n", self, server_changed, mc_is_connected(self));
+}
+
+///////////////////////////////
+
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
@@ -30,10 +37,18 @@ int main(int argc, char *argv[])
 
     mc_Client *client = mc_create(MC_PM_IDLE);
 
+    /* Trigger some bugs */
+    for(int i = 0; i < 10; i++) {
+        mc_connect(client, NULL, "localhost", 6666, 10.0);
+        mc_disconnect(client);
+    }
+
     mc_connect(client, NULL, "localhost", 6666, 10.0);
     mc_signal_add(client, "logging", print_logging, NULL);
     mc_signal_add(client, "client-event", print_event, NULL);
+    mc_signal_add(client, "connectivity", print_connectivity, NULL);
     mc_misc_register_posix_signal(client);
+
 
     mc_StoreSettings *settings = mc_store_settings_new();
     settings->use_memory_db = FALSE;
