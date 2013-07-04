@@ -62,12 +62,12 @@ enum {
 };
 
 const char *spl_sql_stmts[] = {
-    [STMT_SELECT_TABLES] = "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;",
-    [STMT_DROP_SPLTABLE] = "DROP TABLE IF EXISTS %q;",
-    [STMT_CREATE_SPLTABLE] = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
-    [STMT_INSERT_SONG_IDX] = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?));",
-    [STMT_PLAYLIST_GETIDS] = "SELECT song_idx FROM %q;",
-    [STMT_PLAYLIST_SCOUNT] = "SELECT count(*) FROM %q;"
+    [STMT_SELECT_TABLES]    = "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;",
+    [STMT_DROP_SPLTABLE]    = "DROP TABLE IF EXISTS %q;",
+    [STMT_CREATE_SPLTABLE]  = "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);",
+    [STMT_INSERT_SONG_IDX]  = "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri  = ?));",
+    [STMT_PLAYLIST_GETIDS]  = "SELECT song_idx FROM %q;",
+    [STMT_PLAYLIST_SCOUNT]  = "SELECT count(*) FROM %q;"
 };
 
 void mc_stprv_spl_init(mc_Store *self)
@@ -387,7 +387,6 @@ bool mc_stprv_spl_is_loaded(mc_Store *store, struct mpd_playlist *playlist)
 
     for(GList *iter = table_names; iter != NULL; iter = iter->next) {
         char *comp_table_name = iter->data;
-        g_printerr("Loaded: %s (candidate: %s)\n", comp_table_name, table_name);
         if(g_ascii_strcasecmp(comp_table_name, table_name) == 0) {
 
             /* Get the actual playlist name from the table name and the last_mod date */
@@ -669,4 +668,14 @@ int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack)
     }
 
     return rc;
+}
+
+///////////////////
+
+int mc_stprv_spl_get_known_playlists(mc_Store *store, mc_Stack *stack)
+{
+    for(unsigned i = 0; i < mc_stack_length(store->spl.stack); ++i) { 
+        mc_stack_append(stack, mc_stack_at(store->spl.stack, i));
+    }
+    return mc_stack_length(store->spl.stack);
 }

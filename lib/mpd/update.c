@@ -355,7 +355,7 @@ mc_UpdateData * mc_update_data_new(struct mc_Client * self)
     g_rec_mutex_init(&data->mtx_outputs);
 
     data->update_thread = g_thread_new(
-            "StatusUpdateThread",
+            "data-update-thread",
             mc_update_thread,
             data
     );

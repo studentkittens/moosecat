@@ -46,9 +46,11 @@ const char *dirs_sql_stmts[] = {
 void mc_stprv_dir_prepare_statemtents(mc_Store *self)
 {
     g_assert(self);
+
     self->sql_dir_stmts = mc_stprv_prepare_all_statements_listed(
-                              self, dirs_sql_stmts,
-                              0, SQL_DIR_STMT_COUNT);
+            self, dirs_sql_stmts,
+            0, SQL_DIR_STMT_COUNT
+    );
 }
 
 ///////////////////

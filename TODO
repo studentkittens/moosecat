@@ -1,21 +1,14 @@
 libmoosecat 
 -----------
 
-- self->con mutex idle-core.c deadlocks // DONE
-- bettern db loading in store (different dbs with different host:ports)
-
 - valgrind it
 - Make client/store failsafe in case of connection loss
   - Chances are getting better, 
     but lots of testing needed with store
-
-- Clean up API, make some sphinx documentation
-
+- Clean up API, Make README.docs
 - Update cython wrapper (Oof)
-
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.
-
 - Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 
   kills the startup time more than I'd accept (especially since that's a very
   easy patch...).
@@ -32,3 +25,6 @@ libmoosecat
 - remove print messages while createing store // DONE
 - revert introduction of currentsong.c/status.c/statistics.c // DONE
 - mc_proto_ -> mc_ ? // DONE
+- self->con mutex idle-core.c deadlocks // DONE
+- QueryParser Integration? // DONE
+- bettern db loading in store (different dbs with different host:ports) // DONE

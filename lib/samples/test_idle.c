@@ -51,10 +51,12 @@ static void signal_progress(
 static void signal_connectivity(
     mc_Client *client,
     bool server_changed,
+    bool was_connected,
     void *user_data
 )
 {
     (void) user_data;
+    (void) was_connected;
 
     g_print("CONNECTION: is %s and server %s.\n",
             mc_is_connected(client) ? "connected" : "disconnected",

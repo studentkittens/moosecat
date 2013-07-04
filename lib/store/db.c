@@ -38,34 +38,38 @@ typedef struct {
  *
  */ 
 int mc_JobPrios[] = {
-    [MC_OPER_DESERIALIZE] = -1,
-    [MC_OPER_LISTALLINFO] = -1,
-    [MC_OPER_PLCHANGES]   = +0,
-    [MC_OPER_SPL_LOAD]    = +1,
-    [MC_OPER_SPL_UPDATE]  = +1,
-    [MC_OPER_UPDATE_META] = +1,
-    [MC_OPER_DB_SEARCH]   = +2,
-    [MC_OPER_DIR_SEARCH]  = +2,
-    [MC_OPER_SPL_LIST]    = +2,
-    [MC_OPER_SPL_QUERY]   = +2,
-    [MC_OPER_UNDEFINED]   = 10
+    [MC_OPER_DESERIALIZE]    = -1,
+    [MC_OPER_LISTALLINFO]    = -1,
+    [MC_OPER_PLCHANGES]      = +0,
+    [MC_OPER_SPL_LOAD]       = +1,
+    [MC_OPER_SPL_UPDATE]     = +1,
+    [MC_OPER_UPDATE_META]    = +1,
+    [MC_OPER_DB_SEARCH]      = +2,
+    [MC_OPER_DIR_SEARCH]     = +2,
+    [MC_OPER_SPL_LIST]       = +2,
+    [MC_OPER_SPL_LIST_ALL]   = +2,
+    [MC_OPER_SPL_QUERY]      = +2,
+    [MC_OPER_WRITE_DATABASE] = +3,
+    [MC_OPER_UNDEFINED]      = 10
 };
 
 /**
  * Map mc_OpFinishedEnum members to meaningful strings
  */
 const char * mc_JobNames[] = {
-    [MC_OPER_DESERIALIZE] = "DESERIALIZE", 
-    [MC_OPER_LISTALLINFO] = "LISTALLINFO", 
-    [MC_OPER_PLCHANGES]   = "PLCHANGES", 
-    [MC_OPER_SPL_LOAD]    = "SPL_LOAD", 
-    [MC_OPER_SPL_UPDATE]  = "SPL_UPDATE", 
-    [MC_OPER_UPDATE_META] = "UPDATE_META", 
-    [MC_OPER_DB_SEARCH]   = "DB_SEARCH", 
-    [MC_OPER_DIR_SEARCH]  = "DIR_SEARCH", 
-    [MC_OPER_SPL_LIST]    = "SPL_LIST", 
-    [MC_OPER_SPL_QUERY]   = "SPL_QUERY", 
-    [MC_OPER_UNDEFINED]   = "[Unknown]" 
+    [MC_OPER_DESERIALIZE]    = "DESERIALIZE",
+    [MC_OPER_LISTALLINFO]    = "LISTALLINFO",
+    [MC_OPER_PLCHANGES]      = "PLCHANGES",
+    [MC_OPER_SPL_LOAD]       = "SPL_LOAD",
+    [MC_OPER_SPL_UPDATE]     = "SPL_UPDATE",
+    [MC_OPER_UPDATE_META]    = "UPDATE_META",
+    [MC_OPER_DB_SEARCH]      = "DB_SEARCH",
+    [MC_OPER_DIR_SEARCH]     = "DIR_SEARCH",
+    [MC_OPER_SPL_LIST]       = "SPL_LIST",
+    [MC_OPER_SPL_LIST_ALL]   = "SPL_LIST_ALL",
+    [MC_OPER_SPL_QUERY]      = "SPL_QUERY",
+    [MC_OPER_WRITE_DATABASE] = "WRITE_DATABASE",
+    [MC_OPER_UNDEFINED]      = "[Unknown]"
 };
 
 //////////////////////////////
@@ -74,6 +78,14 @@ const char * mc_JobNames[] = {
 //                          //
 //////////////////////////////
 
+/**
+ * @brief Send a job to the JobProcessor, with only necessary fields filled.
+ *
+ * @param self send it to the JobProcess of this Store
+ * @param op What operation.
+ *
+ * @return a job id.
+ */
 static long mc_store_send_job_no_args(
         mc_Store *self,
         mc_StoreOperation op)
@@ -88,16 +100,29 @@ static long mc_store_send_job_no_args(
 
 //////////////////////////////
 
+/**
+ * @brief Convert a mc_StoreOperation mask to a string.
+ *
+ *
+ * >>> printf(mc_store_op_to_string(MC_OPER_LISTALLINFO | MC_OPER_SPL_QUERY));
+ * LISTALLINFO, SPL_QUERY
+ *
+ * This function is used for debugging only currently.
+ *
+ * @param op a bitmask of operations
+ *
+ * @return a newly allocated string. Free it when done with g_free
+ */
 static char * mc_store_op_to_string(mc_StoreOperation op)
 {
     g_assert(0 <= op && op <= MC_OPER_ENUM_MAX);
+
     if(op == 0) {
         return NULL;
     }
 
     unsigned name_index = 0;
     unsigned base = (unsigned)log2(MC_OPER_ENUM_MAX);
-
     const char * names[base + 1];
 
     for(unsigned i = 0; i < base; ++i) {
@@ -159,6 +184,8 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
     /* result of check #1 */
     bool exist_check = FALSE;
 
+    bool is_valid = false;
+
     char *actual_db_path = (char *) db_path;
     char *cached_hostname = NULL;
 
@@ -190,6 +217,11 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
     if (exist_check == false)
         return -1;
 
+    /* We modify use self->handle here, 
+     * so let's better lock
+     */
+    sqlite3 *current_handle = self->handle;
+
     /* check #2 */
     if (sqlite3_open(actual_db_path, &self->handle) != SQLITE_OK)
         goto close_handle;
@@ -200,12 +232,11 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
 
     /* check #3 */
     int cached_port = mc_stprv_get_mpd_port(self);
-
-    if (cached_port != self->client->_port)
+    if (cached_port != mc_get_port(self->client))
         goto close_handle;
 
     cached_hostname = mc_stprv_get_mpd_host(self);
-    if(g_strcmp0(cached_hostname, self->client->_host) != 0)
+    if(g_strcmp0(cached_hostname, mc_get_host(self->client)) != 0)
         goto close_handle;
 
     /* check #4 */
@@ -227,14 +258,112 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
     /* All okay! we can use the old database */
     song_count = mc_stprv_get_song_count(self);
 
+    is_valid = true;
+
 close_handle:
 
+    if(is_valid) {
+        mc_shelper_report_progress(self->client, true, "database: %s exists already.", db_path);
+    } else {
+        mc_shelper_report_progress(self->client, true, "database: %s not found, creating new.", db_path);
+    }
+
     /* clean up */
-    mc_stprv_close_handle(self);
+    mc_stprv_close_handle(self, true);
     g_free(cached_hostname);
-    self->handle = NULL;
+    self->handle = current_handle;
 
     return song_count;
+}
+
+//////////////////////////////
+
+static void mc_store_shutdown(mc_Store * self) 
+{
+    g_assert(self);
+
+    /* Free the song stack */
+    mc_stack_free(self->stack);
+    self->stack = NULL;
+
+    /* Free list of stored playlists */
+    mc_stprv_spl_destroy(self);
+
+    char *db_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
+
+    if (self->write_to_disk)
+        mc_stprv_load_or_save(self, true, db_path);
+
+    if (self->settings->use_compression && mc_gzip(db_path) == false)
+        mc_shelper_report_progress(self->client, true, "Note: Nothing to zip.\n");
+
+    mc_stprv_dir_finalize_statements(self);
+    mc_stprv_close_handle(self, true);
+
+    if (self->settings->use_memory_db == false)
+        g_unlink(MC_STORE_TMP_DB_PATH);
+
+    g_free(db_path);
+}
+
+//////////////////////////////
+
+static void mc_store_buildup(mc_Store * self) 
+{
+    /* either number of songs in 'songs' table or -1 on error */
+    int song_count = -1;
+
+    char *db_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
+
+    if ((song_count = mc_store_check_if_db_is_still_valid(self, db_path)) < 0) {
+        mc_shelper_report_progress(self->client, true, "database: will fetch stuff from mpd.");
+
+        /* open a sqlite handle, pointing to a database, either a new one will be created,
+         * or an backup will be loaded into memory */
+        mc_strprv_open_memdb(self);
+        mc_stprv_prepare_all_statements(self);
+        mc_stprv_dir_prepare_statemtents(self);
+
+        /* make sure we inserted the meta info at least once */
+        mc_stprv_insert_meta_attributes(self);
+        
+        /* Forces updates (even if queue version seems to be the same) */
+        self->force_update_listallinfo = true;
+        self->force_update_plchanges = true;
+
+        /* the database is new, so no pos/id information is there yet
+         * we need to query mpd, update db && queue info */
+        mc_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
+    } else {
+        /* open a sqlite handle, pointing to a database, either a new one will be created,
+         * or an backup will be loaded into memory */
+        mc_strprv_open_memdb(self);
+        mc_stprv_prepare_all_statements(self);
+        mc_stprv_dir_prepare_statemtents(self);
+
+        /* stack is allocated to the old size */
+        self->stack = mc_stack_create(song_count + 1, (GDestroyNotify) mpd_song_free);
+
+        /* load the old database into memory */
+        mc_stprv_load_or_save(self, false, db_path);
+
+        mc_store_send_job_no_args(self, MC_OPER_DESERIALIZE);
+    }
+
+    /* Playlist support */
+    mc_stprv_spl_init(self);
+
+    g_free(db_path);
+}
+
+//////////////////////////////
+
+static void mc_store_rebuild(mc_Store * self) 
+{
+    mc_stprv_lock_attributes(self);
+    mc_store_shutdown(self);
+    mc_store_buildup(self);
+    mc_stprv_unlock_attributes(self);
 }
 
 //////////////////////////////
@@ -269,16 +398,11 @@ static void mc_store_update_callback(
     g_assert(self && client && self->client == client);
 
     if (events & MPD_IDLE_DATABASE) {
-        mc_store_send_job_no_args(self,
-                MC_OPER_LISTALLINFO
-        );
+        mc_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
     } else if (events & MPD_IDLE_QUEUE) {
-        mc_store_send_job_no_args(self,
-                MC_OPER_PLCHANGES
-        );
+        mc_store_send_job_no_args(self, MC_OPER_PLCHANGES);
     } else if (events & MPD_IDLE_STORED_PLAYLIST) {
-        mc_store_send_job_no_args(self,
-                MC_OPER_SPL_LIST);
+        mc_store_send_job_no_args(self, MC_OPER_SPL_LIST);
     }
 }
 
@@ -294,19 +418,22 @@ static void mc_store_update_callback(
 static void mc_store_connectivity_callback(
     mc_Client *client,
     bool server_changed,
+    bool was_connected,
     mc_Store *self)
 {
     g_assert(self && client && self->client == client);
 
     if (mc_is_connected(client)) {
         if (server_changed) {
-            self->force_update_listallinfo = true;
-            self->force_update_plchanges = true;
+            mc_store_rebuild(self);
+        } else {
+            /* Important to send those two seperate (different priorities */
+            mc_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
+            mc_store_send_job_no_args(self, MC_OPER_WRITE_DATABASE);
         }
-
-        mc_store_update_callback(client, MPD_IDLE_DATABASE, self);
     }
 }
+
 
 //////////////////////////////
 //                          //
@@ -345,10 +472,18 @@ void *mc_store_job_execute_callback(
     {
         mc_shelper_report_progress(self->client, true, "Processing: %s", mc_JobNames[data->op]);
 
+        /* NOTE:
+         * 
+         * The order of the operations is important here.
+         * Operations with highest priority are on top and may include
+         * dependencies by binary OR'ing them to data->op. 
+         *
+         * The order here loosely models the on on mc_JobPrios,
+         * but is not restricted to that.
+         */
+
         if(data->op & MC_OPER_DESERIALIZE) {
             mc_stprv_deserialize_songs(self);
-
-            /* We need to read the pos/id info from the queue table */
             mc_stprv_queue_update_stack_posid(self);
             data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
             self->force_update_listallinfo = false;
@@ -382,6 +517,10 @@ void *mc_store_job_execute_callback(
             mc_stprv_spl_get_loaded_playlists(self, data->out_stack);
         }
 
+        if(data->op & MC_OPER_SPL_LIST_ALL) {
+            mc_stprv_spl_get_known_playlists(self, data->out_stack);
+        }
+
         if(data->op & MC_OPER_DB_SEARCH) {
             mc_stprv_select_to_stack(
                     self, data->match_clause, data->queue_only,
@@ -404,6 +543,14 @@ void *mc_store_job_execute_callback(
                     data->playlist_name, data->match_clause
             );
             result = data->out_stack;
+        }
+
+        if(data->op & MC_OPER_WRITE_DATABASE) {
+            if (self->write_to_disk) {
+                char *full_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
+                mc_stprv_load_or_save(self, true, full_path);
+                g_free(full_path);
+            }
         }
 
         /* If the operation includes writing stuff,
@@ -466,51 +613,14 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
     /* Settings */
     store->settings = (settings) ? settings : mc_store_settings_new();
 
-    /* either number of songs in 'songs' table or -1 on error */
-    int song_count = -1;
-
-    /* create the full path to the db */
-    store->db_directory = g_strdup(store->settings->db_directory);
-    char *db_path = mc_store_construct_full_dbpath(client, store->db_directory);
-
     /* client is used to keep the db content updated */
     store->client = client;
 
-    if ((song_count = mc_store_check_if_db_is_still_valid(store, db_path)) < 0) {
-        mc_shelper_report_progress(store->client, true, "database: will fetch stuff from mpd.");
+    /* create the full path to the db */
+    store->db_directory = g_strdup(store->settings->db_directory);
 
-        /* open a sqlite handle, pointing to a database, either a new one will be created,
-         * or an backup will be loaded into memory */
-        mc_strprv_open_memdb(store);
-        mc_stprv_prepare_all_statements(store);
-        mc_stprv_dir_prepare_statemtents(store);
-
-        /* make sure we inserted the meta info at least once */
-        mc_stprv_insert_meta_attributes(store);
-        
-        /* Forces updates (even if queue version seems to be the same) */
-        store->force_update_listallinfo = true;
-        store->force_update_plchanges = true;
-
-        /* the database is new, so no pos/id information is there yet
-         * we need to query mpd, update db && queue info */
-        mc_store_send_job_no_args(store, MC_OPER_LISTALLINFO);
-    } else {
-        /* open a sqlite handle, pointing to a database, either a new one will be created,
-         * or an backup will be loaded into memory */
-        mc_strprv_open_memdb(store);
-        mc_stprv_prepare_all_statements(store);
-        mc_stprv_dir_prepare_statemtents(store);
-        mc_shelper_report_progress(store->client, true, "database: %s exists already.", db_path);
-
-        /* stack is allocated to the old size */
-        store->stack = mc_stack_create(song_count + 1, (GDestroyNotify) mpd_song_free);
-
-        /* load the old database into memory */
-        mc_stprv_load_or_save(store, false, db_path);
-
-        mc_store_send_job_no_args(store, MC_OPER_DESERIALIZE);
-    }
+    /* Do the actual hard work */
+    mc_store_buildup(store);
 
     /* Register for client events */
     mc_priv_signal_add_masked(
@@ -527,10 +637,6 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
         (mc_ConnectivityCallback) mc_store_connectivity_callback, store
     );
 
-    /* Playlist support */
-    mc_stprv_spl_init(store);
-
-    g_free(db_path);
     return store;
 }
 
@@ -557,25 +663,7 @@ void mc_store_close(mc_Store *self)
     /* Close the job pool (still finishes current operation) */
     mc_jm_close(self->jm);
 
-    /* Free the song stack */
-    mc_stack_free(self->stack);
-
-    /* Free list of stored playlists */
-    mc_stprv_spl_destroy(self);
-
-    char *full_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
-
-    if (self->write_to_disk)
-        mc_stprv_load_or_save(self, true, full_path);
-
-    if (self->settings->use_compression && mc_gzip(full_path) == false)
-        g_print("Note: Nothing to zip.\n");
-
-    mc_stprv_dir_finalize_statements(self);
-    mc_stprv_close_handle(self);
-
-    if (self->settings->use_memory_db == false)
-        g_unlink(MC_STORE_TMP_DB_PATH);
+    mc_store_shutdown(self);
 
     mc_stprv_unlock_attributes(self);
     g_mutex_clear(&self->attr_set_mtx);
@@ -586,7 +674,6 @@ void mc_store_close(mc_Store *self)
      * mc_store_settings_destroy (self->settings);
      */
     g_free(self->db_directory);
-    g_free(full_path);
     g_free(self);
 }
 
@@ -670,9 +757,13 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 
 //////////////////////////////
 
-const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self)
+long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack)
 {
-    return self->spl.stack;
+    mc_JobData * data = g_new0(mc_JobData, 1);
+    data->op = MC_OPER_SPL_LIST_ALL;
+    data->out_stack = stack;
+
+    return mc_jm_send(self->jm, mc_JobPrios[MC_OPER_SPL_LIST_ALL], data);
 }
 
 //////////////////////////////

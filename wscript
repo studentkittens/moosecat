@@ -256,6 +256,7 @@ def build(bld):
     build_test_program('lib/samples/test_client.c', 'test_client')
     #build_test_program('lib/samples/test_playlist.c', 'time_playlist')
     build_test_program('lib/samples/test_db.c', 'test_db')
+    build_test_program('lib/samples/test_store_change.c', 'test_store_change')
     #build_test_program('lib/samples/test_outputs.c', 'test_outputs')
     #build_test_program('lib/samples/test_event.c', 'test_event')
     build_test_program('lib/samples/test_gtk.c', 'test_gtk',

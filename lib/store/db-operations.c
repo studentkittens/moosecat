@@ -349,8 +349,6 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
         if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
             struct mpd_song *song = NULL;
 
-            mc_unlock_status(store->client);
-
             while ((song = mpd_recv_song(conn)) != NULL) {
                 if(mc_jm_check_cancel(store->jm, cancel)) {
                     mc_shelper_report_progress(

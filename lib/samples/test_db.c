@@ -21,9 +21,11 @@ static void print_event(mc_Client *self, enum mpd_idle event, void *user_data)
 
 ///////////////////////////////
 
-static void print_connectivity(mc_Client *self, bool server_changed, void *user_data)
+static void print_connectivity(mc_Client *self, bool server_changed, bool was_connected, void *user_data)
 {
-    g_print("connectivity-signal: %p %d %d\n", self, server_changed, mc_is_connected(self));
+    g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
+            server_changed, was_connected, mc_is_connected(self)
+    );
 }
 
 ///////////////////////////////

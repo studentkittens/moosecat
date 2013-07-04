@@ -23,6 +23,7 @@ typedef struct {
     const char *error_msg;
     int client_event;
     int log_level;
+    int is_connected;
     int server_changed;
     bool free_log_message;
 } mc_DispatchTag;
@@ -101,6 +102,7 @@ void mc_priv_signal_list_report_event_v(mc_SignalList *list, const char *signal_
                 ((mc_ConnectivityCallback) tag->callback)(
                     data->client,
                     data->server_changed, 
+                    data->is_connected,
                     tag->user_data
                 );
             }
@@ -147,6 +149,7 @@ mc_DispatchTag * mc_priv_signal_list_unpack_valist(const char *signal_name, va_l
         }
         case MC_SIGNAL_CONNECTIVITY: {
             tag->server_changed = va_arg(args, int);
+            tag->is_connected = va_arg(args, int);
             break;
         }
         default: {

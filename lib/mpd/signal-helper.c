@@ -151,7 +151,10 @@ void mc_shelper_report_connectivity(
     self->_host = g_strdup(new_host);
     self->_port = new_port;
     /* Dispatch *after* host being set */
-    mc_signal_dispatch(self, "connectivity", self, server_changed);
+    mc_signal_dispatch(self, "connectivity", 
+            self, server_changed,
+            mc_is_connected(self)
+    );
 }
 
 ///////////////////////////////

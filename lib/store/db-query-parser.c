@@ -45,9 +45,9 @@ typedef struct {
 
 ///////////////////
 
-#define WARNING(data, pmsg) \
-    if(data->warning.msg != NULL) *data->warning.msg = pmsg;  \
-    if(data->warning.pos != NULL) *data->warning.pos = (data->iter - data->query);  \
+#define WARNING(data, pmsg)                                                        \
+    if(data->warning.msg != NULL) *data->warning.msg = pmsg;                       \
+    if(data->warning.pos != NULL) *data->warning.pos = (data->iter - data->query); \
  
 ///////////////////
 
@@ -156,7 +156,7 @@ void mc_store_qp_process_single_word(mc_StoreParseData *data, const char *text, 
         return;
     }
 
-#define TAG(name, last)                        \
+#define TAG(name, last)                            \
         g_string_append(data->output, name);       \
         mc_store_qp_write_string(data, text, len); \
         if(text[len-1] != '*') {                   \
@@ -228,14 +228,11 @@ static const char *mc_store_qp_special_char_to_full(char c)
     switch (c) {
     case '+':
         return " AND ";
-
     case '|':
         return " OR ";
         break;
-
     case '!':
         return " NOT ";
-
     default:
         return "";
     }

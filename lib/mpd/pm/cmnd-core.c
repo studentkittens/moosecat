@@ -33,16 +33,20 @@ typedef struct {
     /* Connection to send commands */
     mpd_connection *cmnd_con;
 
-    /* Connection to recv. events */
-    mpd_connection *idle_con;
-
     /* Thread that polls idle_con */
     GThread *listener_thread;
 
-    /* Indicates that the listener runs,
-     * if false it may still run, but will
-     * terminate on next iteration */
-    volatile gboolean run_listener;
+    /* Table of listener threads in the format:
+     *  
+     *  <GThread* 1>: [true|false]
+     *  <GThread* 2>: [true|false]
+     *  ...
+     *
+     *  Indicates if the key-thread should be running.
+     *  There's at last one active thread. (The one in listener_thread or NULL)
+     *  All other references are invalid and shall not be accessed.
+     */
+    GHashTable * run_listener_table;
 
     /* Indicates if the ping thread is supposed to run.
      * We need to ping the server because of the connection-timeout ,,feature'',
@@ -94,20 +98,20 @@ static void cmnder_set_run_pinger(mc_CmndClient * self, volatile bool state)
     g_mutex_unlock(&self->flagmtx_run_pinger);
 }
 
-static bool cmnder_get_run_listener(mc_CmndClient * self)
+static bool cmnder_get_run_listener(mc_CmndClient * self, GThread * thread)
 {
     volatile bool result = false;
     g_mutex_lock(&self->flagmtx_run_listener);
-    result = self->run_listener;    
+    result = GPOINTER_TO_INT(g_hash_table_lookup(self->run_listener_table, thread));
     g_mutex_unlock(&self->flagmtx_run_listener);
 
     return result;
 }
 
-static void cmnder_set_run_listener(mc_CmndClient * self, volatile bool state)
+static void cmnder_set_run_listener(mc_CmndClient * self, GThread *thread, volatile bool state)
 {
     g_mutex_lock(&self->flagmtx_run_listener);
-    self->run_listener = state;
+    g_hash_table_insert(self->run_listener_table, thread, GINT_TO_POINTER(state));
     g_mutex_unlock(&self->flagmtx_run_listener);
 }
 
@@ -118,34 +122,49 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
     mc_CmndClient *self = child(data);
     enum mpd_idle events = 0;
 
-    while (cmnder_get_run_listener(self)) {
-        /* Well, let's just be honest. This is retarted. 
-         * 
-         * This works fine when most of the time, 
-         * but when disconnection we have to wake up this cinderella.
-         * We currently do this in a bit of a retarted way. 
-         *
-         * We send this over cmnd_con:
-         *
-         *      command_list_begin
-         *      repeat !$(current_state)
-         *      repeat $(current_state)
-         *      command_list_end
-         *
-         * This triggers an event that is waking up mpd_run_idle().
-         * Yes, really. I wanted to be honest with you, dear reader.
-         */
+    char *error_message = NULL;
+    struct mpd_connection * idle_con = mpd_connect((mc_Client *) self,
+            mc_get_host((mc_Client*)self),
+            mc_get_port((mc_Client*)self),
+            mc_get_timeout((mc_Client*)self),
+            &error_message
+    );
+    
+    if(idle_con && error_message == NULL) {
+        while (cmnder_get_run_listener(self, g_thread_self())) {
+            if(mpd_send_idle(idle_con) == false) {
+                if(mpd_connection_get_error(idle_con) == MPD_ERROR_TIMEOUT) {
+                    mpd_connection_clear_error(idle_con);
+                } else {
+                    mc_shelper_report_error((mc_Client *) self, idle_con);
+                }
+            } else {
+                if(cmnder_get_run_listener(self, g_thread_self()) == false) {
+                    break;
+                }
 
-        if ((events = mpd_run_idle(self->idle_con)) == 0) {
-            mc_shelper_report_error((mc_Client *) self, self->idle_con);
-            break;
+                if ((events = mpd_recv_idle(idle_con, false)) == 0) {
+                    mc_shelper_report_error((mc_Client *) self, idle_con);
+                    break;
+                }
+
+                if(cmnder_get_run_listener(self, g_thread_self())) {
+                    mc_shelper_report_client_event((mc_Client *) self, events);
+                }
+            }
         }
 
-        if(cmnder_get_run_listener(self)) {
-            mc_shelper_report_client_event((mc_Client *) self, events);
-        }
+        mpd_connection_free(idle_con);
+        idle_con = NULL;
+
+    } else {
+        mc_shelper_report_error_printf((mc_Client *)self,
+                "listener_thread: cannot connect: %s",
+                error_message
+        );
     }
 
+    g_thread_unref(g_thread_self());
     return NULL;
 }
 
@@ -156,6 +175,8 @@ static void cmnder_create_glib_adapter(
     GMainContext *context)
 {
     if (self->listener_thread == NULL) {
+        cmnder_set_run_listener(self, self->listener_thread, TRUE);
+
         /* Start the listener thread and set the Queue Watcher on it */
         self->listener_thread = g_thread_new("listener", cmnder_listener_thread, self);
     }
@@ -179,34 +200,13 @@ static void cmnder_shutdown_pinger(mc_CmndClient *self)
 static void cmnder_shutdown_listener(mc_CmndClient *self)
 {
     /* Interrupt the idling, and tell the idle thread to die. */
-    cmnder_set_run_listener(self, FALSE);
+    cmnder_set_run_listener(self, self->listener_thread, FALSE);
 
-    /* Ugly hack, see cmnder_listener_thread() */
-    struct mpd_status * status =  mpd_run_status(self->cmnd_con);
-    if(status != NULL) {
-        // TODO: This is embarassing.
-        mpd_command_list_begin(self->cmnd_con, false);
-        mpd_send_repeat(self->cmnd_con, !mpd_status_get_repeat(status));
-        mpd_send_repeat(self->cmnd_con, mpd_status_get_repeat(status));
-        mpd_command_list_end(self->cmnd_con);
-        mpd_status_free(status);
-    } 
-
-    /* This hack takes a bit time to have a effect. 
-     * in the meantime we can wait for the ping thread 
-     * to close */
-    cmnder_shutdown_pinger(self);
-
-    /* join the idle thread.
-     * This is a very good argument, to not call disconnect
-     * (especially implicitely!) in the idle thread.
-     *
-     * Ever seen a thread that joins itself?
+    /* Note: Idle thread is not joined.
+     *       It frees itself when it exits,
+     *       and we told it to exit by calling
+     *       cmnder_set_run_listener() avbove
      */
-    if (self->listener_thread != NULL) {
-        g_thread_join(self->listener_thread);
-    }
-
     self->listener_thread = NULL;
 }
 
@@ -216,11 +216,6 @@ static void cmnder_reset(mc_CmndClient *self)
 {
     if (self != NULL) {
         cmnder_shutdown_listener(self);
-
-        if (self->idle_con) {
-            mpd_connection_free(self->idle_con);
-            self->idle_con = NULL;
-        }
 
         if (self->cmnd_con) {
             mpd_connection_free(self->cmnd_con);
@@ -298,8 +293,6 @@ static char *cmnder_do_connect(
         goto failure;
     }
 
-    self->idle_con = mpd_connect((mc_Client *) self, host, port, timeout, &error_message);
-
     if (error_message != NULL) {
         if (self->cmnd_con) {
             mpd_connection_free(self->cmnd_con);
@@ -310,7 +303,6 @@ static char *cmnder_do_connect(
     }
 
     /* listener */
-    cmnder_set_run_listener(self, TRUE);
     cmnder_create_glib_adapter(self, context);
 
     /* start ping thread */
@@ -332,7 +324,7 @@ failure:
 static bool cmnder_do_is_connected(mc_Client *parent)
 {
     mc_CmndClient *self = child(parent);
-    return (self->idle_con && self->cmnd_con);
+    return (self->cmnd_con);
 }
 
 ///////////////////////
@@ -370,6 +362,11 @@ static void cmnder_do_free(mc_Client *parent)
     g_assert(parent);
     mc_CmndClient *self = child(parent);
     cmnder_do_disconnect(parent);
+
+    /* Close the ping thread */
+    cmnder_shutdown_pinger(self);
+
+    g_hash_table_destroy(self->run_listener_table);
     g_mutex_clear(&self->flagmtx_run_pinger);
     g_mutex_clear(&self->flagmtx_run_listener);
     memset(self, 0, sizeof(mc_CmndClient));
@@ -393,6 +390,8 @@ mc_Client *mc_create_cmnder(long connection_timeout_ms)
     self->logic.do_free = cmnder_do_free;
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;
+
+    self->run_listener_table = g_hash_table_new(g_direct_hash, g_int_equal);
 
     g_mutex_init(&self->flagmtx_run_pinger);
     g_mutex_init(&self->flagmtx_run_listener);

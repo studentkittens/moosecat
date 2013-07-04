@@ -1,5 +1,6 @@
 #include "db-private.h"
 #include "db-macros.h"
+#include "db-query-parser.h"
 
 #include "../mpd/signal-helper.h"
 #include "../mpd/update.h"
@@ -410,10 +411,12 @@ void mc_stprv_finalize_statements(mc_Store *self, sqlite3_stmt **stmts, int offs
 
 ////////////////////////////////
 
-void mc_stprv_close_handle(mc_Store *self)
+void mc_stprv_close_handle(mc_Store *self, bool free_statements)
 {
-    mc_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
-    self->sql_prep_stmts = NULL;
+    if(free_statements) {
+        mc_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
+        self->sql_prep_stmts = NULL;
+    }
 
     if (sqlite3_close(self->handle) != SQLITE_OK)
         REPORT_SQL_ERROR(self, "Warning: Unable to close db connection");
@@ -542,9 +545,17 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
 {
     int error_id = SQLITE_OK, pos_id = 1;
     limit_len = (limit_len < 0) ? INT_MAX : limit_len;
-    /* Duplicate this, in order to strip it.
-     * We do not want to modify caller's stuff. He would hate us. */
-    gchar *match_clause_dup = g_strdup(match_clause);
+
+    const char * warning = NULL;
+    int warning_pos = -1;
+    gchar *match_clause_dup = mc_store_qp_parse(match_clause, &warning, &warning_pos);
+
+    if(warning != NULL) {
+        mc_shelper_report_error_printf(
+                self->client,
+                "database: Query Parse Error: %d:%s", warning, warning_pos
+        );
+    }
 
     /* emits a warning if NULL is passed *sigh* */
     if (match_clause_dup != NULL)

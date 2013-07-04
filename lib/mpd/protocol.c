@@ -169,7 +169,7 @@ char *mc_disconnect(
         mc_update_reset(self->_update_data);
 
         /* Notify user of the disconnect */
-        mc_signal_dispatch(self, "connectivity", self, false);
+        mc_signal_dispatch(self, "connectivity", self, false, false);
 
         /* Unlock the mutex - we can use it now again
          * e.g. - queued commands would wake up now

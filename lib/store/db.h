@@ -113,20 +113,17 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *d
 long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
 
 /**
- * @brief Get a list (i.e. mc_Stack) of available playlist names on server-side.
+ * @brief Returns a stack with mpd_playlists of all KNOWN playlists (not loaded)
  *
- * This is updated internally, and will change when the user changes it.
- * You will be notified with a stored-playlist signal.
+ * Only free the stack with mc_stack_free(). Not the playlists!
+ * 
  *
- * IMPORTANT NOTE: Call mc_store_release() when done using the list.
+ * @param self the store to operate on
+ * @param stack a stack to store the playlists in. 
  *
- * Do not modify the returned value.
- *
- * @param self the store to operate on.
- *
- * @return A mc_Stack. DO NOT MODIFY IT!
+ * @return a job id
  */
-const mc_Stack *mc_store_playlist_get_all_names(mc_Store *self);
+long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack);
 
 /**
  * @brief search the Queue or the whole Database.

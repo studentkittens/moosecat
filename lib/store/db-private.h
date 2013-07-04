@@ -159,7 +159,7 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self);
 /**
  * @brief Close the sqlite3 handle
  */
-void mc_stprv_close_handle(mc_Store *self);
+void mc_stprv_close_handle(mc_Store *self, bool free_statements);
 
 /**
  * @brief Lock self->stack and self->spl.stack for change
