@@ -232,6 +232,7 @@ void mc_stprv_unlock_attributes(mc_Store *self)
  */
 void mc_stprv_insert_meta_attributes(mc_Store *self)
 {
+
     char *insert_meta_sql = NULL;
     int queue_version = -1;
     struct mpd_status * status = mc_lock_status(self->client);
@@ -254,8 +255,8 @@ void mc_stprv_insert_meta_attributes(mc_Store *self)
                     db_update_time,
                     queue_version,
                     MC_DB_SCHEMA_VERSION,
-                    self->client->_port,
-                    self->client->_host
+                    mc_get_port(self->client),
+                    mc_get_host(self->client)
             );
         }
     }
@@ -350,14 +351,17 @@ sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_Store *self, const char
         const char *sql = sql_stmts[i];
 
         if (sql != NULL) {
-            prep_error = sqlite3_prepare_v2(self->handle, sql,
-                                            strlen(sql) + 1, &stmt_list[i], NULL);
+            prep_error = sqlite3_prepare_v2(
+                    self->handle, sql,
+                    strlen(sql) + 1, &stmt_list[i], NULL
+            );
 
-            /* Uh-Oh. Typo? */
+            /* Uh-Oh. Typo in the SQL statements perhaps? */
             if (prep_error != SQLITE_OK)
                 REPORT_SQL_ERROR(self, "WARNING: cannot prepare statement");
 
-            //g_print("Faulty statement: %s\n", sql);
+            /* Left for Debugging */
+            /* g_print("Faulty statement: %s\n", sql); */
         }
     }
 
@@ -382,10 +386,7 @@ bool mc_strprv_open_memdb(mc_Store *self)
         return false;
     }
 
-    if (mc_stprv_create_song_table(self) == false)
-        return false;
-    else
-        return true;
+    return mc_stprv_create_song_table(self);
 }
 
 ////////////////////////////////
@@ -407,7 +408,6 @@ void mc_stprv_finalize_statements(mc_Store *self, sqlite3_stmt **stmts, int offs
 
     g_free(stmts);
 }
-
 
 ////////////////////////////////
 

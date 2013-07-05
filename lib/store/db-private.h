@@ -74,24 +74,6 @@ void mc_stprv_load_or_save(mc_Store *self, bool is_save, const char *db_path);
 void mc_stprv_deserialize_songs(mc_Store *self);
 
 /**
- * @brief Search the songs table.
- *
- * @param self store to operate on
- * @param match_clause an FTS match clause.
- * @param queue_only limit search to queue?
- * @param song_buffer an self allocated buffer
- * @param buffer_len length of song_buffer
- *
- * @return the number of selected songs.
- */
-int mc_stprv_select_to_buf(
-    mc_Store *self,
-    const char *match_clause,
-    bool queue_only,
-    struct mpd_song **song_buffer,
-    int buffer_len);
-
-/**
  * @brief Same as mc_stprv_select_to_buf, but use stack instead of buf.
  *
  * @param self store to operate on

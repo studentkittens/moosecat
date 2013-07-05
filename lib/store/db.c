@@ -145,15 +145,18 @@ static char * mc_store_op_to_string(mc_StoreOperation op)
  *
  * @return a newly allocated path, use free once done.
  */
-static char *mc_store_construct_full_dbpath(mc_Client *client, const char *directory)
+static char *mc_store_construct_full_dbpath(mc_Store *self, const char *directory)
 {
-    return g_strdup_printf(
+    g_mutex_lock(&self->mirrored_mtx);
+    char * path = g_strdup_printf(
             "%s%cmoosecat_%s:%d.sqlite",
             (directory) ? directory : ".",
             G_DIR_SEPARATOR,
-            client->_host,
-            client->_port
+            self->mirrored_host,
+            self->mirrored_port
     );
+    g_mutex_unlock(&self->mirrored_mtx);
+    return path;
 }
 
 //////////////////////////////
@@ -184,9 +187,6 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
     /* result of check #1 */
     bool exist_check = FALSE;
 
-    bool is_valid = false;
-
-    char *actual_db_path = (char *) db_path;
     char *cached_hostname = NULL;
 
     /* check #1 */
@@ -214,17 +214,20 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
         g_free(zip_path);
     }
 
-    if (exist_check == false)
+    if (exist_check == false) {
+        mc_shelper_report_progress(self->client, true,
+                "database: %s does not exist, creating new.", db_path
+        );
         return -1;
-
-    /* We modify use self->handle here, 
-     * so let's better lock
-     */
-    sqlite3 *current_handle = self->handle;
+    }
 
     /* check #2 */
-    if (sqlite3_open(actual_db_path, &self->handle) != SQLITE_OK)
+    if (sqlite3_open(db_path, &self->handle) != SQLITE_OK) {
+        mc_shelper_report_progress(self->client, true,
+                "database: %s cannot be opened (corrupted?), creating new.", db_path
+        );
         goto close_handle;
+    }
 
     /* needed in order to select metadata */
     mc_stprv_create_song_table(self);
@@ -232,12 +235,22 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
 
     /* check #3 */
     int cached_port = mc_stprv_get_mpd_port(self);
-    if (cached_port != mc_get_port(self->client))
+    if (cached_port != mc_get_port(self->client)) {
+        mc_shelper_report_progress(self->client, true,
+                "database: %s's port changed (old=%d, new=%d), creating new.",
+                db_path, cached_port, mc_get_port(self->client)
+        );
         goto close_handle;
+    }
 
     cached_hostname = mc_stprv_get_mpd_host(self);
-    if(g_strcmp0(cached_hostname, mc_get_host(self->client)) != 0)
+    if(g_strcmp0(cached_hostname, mc_get_host(self->client)) != 0) {
+        mc_shelper_report_progress(self->client, true,
+                "database: %s's host changed (old=%s, new=%s), creating new.",
+                db_path, cached_hostname, mc_get_host(self->client)
+        );
         goto close_handle;
+    }
 
     /* check #4 */
     size_t cached_db_version = mc_stprv_get_db_version(self);
@@ -258,20 +271,13 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
     /* All okay! we can use the old database */
     song_count = mc_stprv_get_song_count(self);
 
-    is_valid = true;
+    mc_shelper_report_progress(self->client, true, "database: %s exists already and is valid.", db_path);
 
 close_handle:
-
-    if(is_valid) {
-        mc_shelper_report_progress(self->client, true, "database: %s exists already.", db_path);
-    } else {
-        mc_shelper_report_progress(self->client, true, "database: %s not found, creating new.", db_path);
-    }
 
     /* clean up */
     mc_stprv_close_handle(self, true);
     g_free(cached_hostname);
-    self->handle = current_handle;
 
     return song_count;
 }
@@ -289,7 +295,9 @@ static void mc_store_shutdown(mc_Store * self)
     /* Free list of stored playlists */
     mc_stprv_spl_destroy(self);
 
-    char *db_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
+    char *db_path = mc_store_construct_full_dbpath(self, self->db_directory);
+
+    g_print("Saving database to: %s\n", db_path);
 
     if (self->write_to_disk)
         mc_stprv_load_or_save(self, true, db_path);
@@ -299,6 +307,7 @@ static void mc_store_shutdown(mc_Store * self)
 
     mc_stprv_dir_finalize_statements(self);
     mc_stprv_close_handle(self, true);
+    self->handle = NULL;
 
     if (self->settings->use_memory_db == false)
         g_unlink(MC_STORE_TMP_DB_PATH);
@@ -313,7 +322,7 @@ static void mc_store_buildup(mc_Store * self)
     /* either number of songs in 'songs' table or -1 on error */
     int song_count = -1;
 
-    char *db_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
+    char *db_path = mc_store_construct_full_dbpath(self, self->db_directory);
 
     if ((song_count = mc_store_check_if_db_is_still_valid(self, db_path)) < 0) {
         mc_shelper_report_progress(self->client, true, "database: will fetch stuff from mpd.");
@@ -354,16 +363,6 @@ static void mc_store_buildup(mc_Store * self)
     mc_stprv_spl_init(self);
 
     g_free(db_path);
-}
-
-//////////////////////////////
-
-static void mc_store_rebuild(mc_Store * self) 
-{
-    mc_stprv_lock_attributes(self);
-    mc_store_shutdown(self);
-    mc_store_buildup(self);
-    mc_stprv_unlock_attributes(self);
 }
 
 //////////////////////////////
@@ -425,7 +424,17 @@ static void mc_store_connectivity_callback(
 
     if (mc_is_connected(client)) {
         if (server_changed) {
-            mc_store_rebuild(self);
+
+            mc_stprv_lock_attributes(self);
+
+            mc_store_shutdown(self);
+            g_free(self->mirrored_host);
+            self->mirrored_host = g_strdup(mc_get_host(client));
+            self->mirrored_port = mc_get_port(client);
+            mc_store_buildup(self);
+
+            //mc_store_rebuild(self);
+            mc_stprv_unlock_attributes(self);
         } else {
             /* Important to send those two seperate (different priorities */
             mc_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
@@ -515,10 +524,12 @@ void *mc_store_job_execute_callback(
         
         if(data->op & MC_OPER_SPL_LIST) {
             mc_stprv_spl_get_loaded_playlists(self, data->out_stack);
+            result = data->out_stack;
         }
 
         if(data->op & MC_OPER_SPL_LIST_ALL) {
             mc_stprv_spl_get_known_playlists(self, data->out_stack);
+            result = data->out_stack;
         }
 
         if(data->op & MC_OPER_DB_SEARCH) {
@@ -547,7 +558,7 @@ void *mc_store_job_execute_callback(
 
         if(data->op & MC_OPER_WRITE_DATABASE) {
             if (self->write_to_disk) {
-                char *full_path = mc_store_construct_full_dbpath(self->client, self->db_directory);
+                char *full_path = mc_store_construct_full_dbpath(self, self->db_directory);
                 mc_stprv_load_or_save(self, true, full_path);
                 g_free(full_path);
             }
@@ -573,6 +584,8 @@ void *mc_store_job_execute_callback(
     if((data->op & (0 
                 | MC_OPER_DB_SEARCH 
                 | MC_OPER_SPL_QUERY 
+                | MC_OPER_SPL_LIST 
+                | MC_OPER_SPL_LIST_ALL
                 | MC_OPER_DIR_SEARCH)) == 0) {
         mc_stprv_unlock_attributes(self);
     }
@@ -606,6 +619,7 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 
     /* Initialize the Attribute mutex early */
     g_mutex_init(&store->attr_set_mtx);
+    g_mutex_init(&store->mirrored_mtx);
 
     /* Initialize the job manager used to background jobs */
     store->jm = mc_jm_create(mc_store_job_execute_callback, store);
@@ -615,6 +629,10 @@ mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
 
     /* client is used to keep the db content updated */
     store->client = client;
+
+    /* Remember the host/port */
+    store->mirrored_host = g_strdup(mc_get_host(client));
+    store->mirrored_port = mc_get_port(client);
 
     /* create the full path to the db */
     store->db_directory = g_strdup(store->settings->db_directory);
@@ -667,12 +685,14 @@ void mc_store_close(mc_Store *self)
 
     mc_stprv_unlock_attributes(self);
     g_mutex_clear(&self->attr_set_mtx);
+    g_mutex_clear(&self->mirrored_mtx);
 
     /* NOTE: Settings should be destroyed by caller,
      *       Since it should be valid to call close()
      *       several times.
      * mc_store_settings_destroy (self->settings);
      */
+    g_free(self->mirrored_host);
     g_free(self->db_directory);
     g_free(self);
 }

@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     mc_misc_register_posix_signal(self);
 
     mc_StoreSettings *settings = mc_store_settings_new();
-    settings->use_memory_db = FALSE;
+    settings->use_memory_db = TRUE;
     settings->use_compression = FALSE;
     mc_Store *db = mc_store_create(self, settings);
 

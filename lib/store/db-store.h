@@ -70,6 +70,18 @@ typedef struct mc_Store {
      * */
     GMutex attr_set_mtx;
 
+    /*
+     * The Port of the Server this Store mirrors
+     */
+    int mirrored_port;
+
+    /*
+     * The Host this Store mirrors
+     */
+    char * mirrored_host;
+
+    GMutex mirrored_mtx;
+
 } mc_Store;
 
 #endif /* end of include guard: MC_DB_STORE_HH */
