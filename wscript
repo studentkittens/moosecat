@@ -250,15 +250,13 @@ def build(bld):
 
         EXCLUDE_FILES.append(sources)
 
-    #build_test_program('lib/samples/test_idle.c', 'test_idle')
-    #build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
+    build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
     build_test_program('lib/samples/test_command_list.c', 'test_command_list')
     build_test_program('lib/samples/test_client.c', 'test_client')
-    #build_test_program('lib/samples/test_playlist.c', 'time_playlist')
+    build_test_program('lib/samples/test_playlist.c', 'time_playlist')
     build_test_program('lib/samples/test_db.c', 'test_db')
     build_test_program('lib/samples/test_store_change.c', 'test_store_change')
-    #build_test_program('lib/samples/test_outputs.c', 'test_outputs')
-    #build_test_program('lib/samples/test_event.c', 'test_event')
+    build_test_program('lib/samples/test_outputs.c', 'test_outputs')
     build_test_program('lib/samples/test_gtk.c', 'test_gtk',
             libraries=LIBS + bld.env.LIB_GTK3,
             includes_h=INCLUDES + bld.env.INCLUDES_GTK3

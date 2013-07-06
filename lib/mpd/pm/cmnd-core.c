@@ -149,7 +149,8 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
                 }
 
                 if(cmnder_get_run_listener(self, g_thread_self())) {
-                    mc_shelper_report_client_event((mc_Client *) self, events);
+                    // mc_shelper_report_client_event((mc_Client *) self, events);
+                     mc_force_sync((mc_Client *) self, events);
                 }
             }
         }

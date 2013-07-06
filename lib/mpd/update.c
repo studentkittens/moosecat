@@ -22,8 +22,40 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 ////////////////////////
 
+/* Free a Variable if is not NULL
+ */
 #define free_if_not_null(var, func) if(var != NULL) func((void*)var)
+
+/* This will be sended (as Integer) 
+ * to the Queue to break out of the poll loop
+ */
 #define THREAD_TERMINATOR 0xDEADBEEF
+
+/* Little hack:
+ *
+ * Set a very high bit of the enum bitmask and take it
+ * as a flag to indicate a status timer indcued trigger.
+ *
+ * If so, we may decide to not call the client-event callback.
+ */
+#define IS_STATUS_TIMER_FLAG (1 << 15)
+
+
+////////////////////////
+
+static void mc_update_data_push_full(mc_UpdateData *data, enum mpd_idle event, bool is_status_timer)
+{
+    g_assert(data);
+
+    /* We may not push 0 - that would cause the event_queue to shutdown */
+    if(event != 0) {
+        enum mpd_idle send_event = event;
+        if(is_status_timer) {
+            event |= IS_STATUS_TIMER_FLAG;
+        }
+        g_async_queue_push(data->event_queue, GINT_TO_POINTER(send_event));
+    }
+}
 
 ////////////////////////
 
@@ -64,7 +96,7 @@ static void mc_update_context_info_cb( struct mc_Client *self, enum mpd_idle eve
                     struct mpd_status *tmp_status;
                     tmp_status = mpd_recv_status(conn);
 
-                    if (data->status_timer.last_update != NULL && data->status_timer.reset_timer) {
+                    if (data->status_timer.last_update != NULL) {
                         /* Reset the status timer to 0 */
                         g_timer_start(data->status_timer.last_update);
                     }
@@ -160,7 +192,16 @@ static gpointer mc_update_thread(gpointer user_data)
 
     while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
         mc_update_context_info_cb(data->client, event_mask);
-        mc_outputs_update(data->client->_outputs, event_mask);
+        mc_priv_outputs_update(data->client->_outputs, event_mask);
+
+        bool trigger_it = true;
+        if(event_mask & IS_STATUS_TIMER_FLAG && data->status_timer.trigger_event) {
+            trigger_it = false;
+        }
+
+        if(trigger_it) {
+            mc_signal_dispatch(data->client, "client-event", data->client, event_mask);
+        }
     }
 
     return NULL;
@@ -198,15 +239,7 @@ static gboolean mc_update_status_timer_cb(gpointer user_data)
 
             if (elapsed >= compare) {
                 /* MIXER is a harmless event, but it causes status to update */
-                enum mpd_idle on_status_only = MPD_IDLE_MIXER;
-
-                data->status_timer.reset_timer = false;
-                mc_update_data_push(self->_update_data, on_status_only);
-                data->status_timer.reset_timer = true;
-
-                if (data->status_timer.trigger_event) {
-                    mc_shelper_report_client_event(self, on_status_only);
-                }
+                mc_update_data_push_full(self->_update_data, MPD_IDLE_MIXER, true);
             }
         }
     }
@@ -228,7 +261,6 @@ void mc_update_register_status_timer(
     g_mutex_lock(&data->status_timer.mutex);
     data->status_timer.trigger_event = trigger_event;
     data->status_timer.last_update = g_timer_new();
-    data->status_timer.reset_timer = true;
     data->status_timer.interval = repeat_ms;
     data->status_timer.timeout_id =
         g_timeout_add(repeat_ms, mc_update_status_timer_cb, self);
@@ -252,7 +284,6 @@ void mc_update_unregister_status_timer(
 
         data->status_timer.timeout_id = -1;
         data->status_timer.interval = 0;
-        data->status_timer.reset_timer = true;
 
         if (data->status_timer.last_update != NULL) {
             g_timer_destroy(data->status_timer.last_update);
@@ -273,67 +304,6 @@ bool mc_update_status_timer_is_active(struct mc_Client *self)
     g_mutex_unlock(&data->status_timer.mutex);
     
     return result;
-}
-
-////////////////////////
-//    LOCKING STUFF   //
-////////////////////////
-
-struct mpd_status *mc_lock_status(struct mc_Client *self)
-{
-    g_rec_mutex_lock(&self->_update_data->mtx_status);
-    return self->_update_data->status;
-}
-
-////////////////////////
-
-void mc_unlock_status(struct mc_Client *self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_status);
-}
-
-////////////////////////
-
-struct mpd_stats * mc_lock_statistics(struct mc_Client *self)
-{
-    g_rec_mutex_lock(&self->_update_data->mtx_statistics);
-    return self->_update_data->statistics;
-}
-
-////////////////////////
-
-void mc_unlock_statistics(struct mc_Client *self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_statistics);
-}
-
-////////////////////////
-
-struct mpd_song * mc_lock_current_song(struct mc_Client *self)
-{
-    g_rec_mutex_lock(&self->_update_data->mtx_current_song);
-    return self->_update_data->current_song;
-}
-
-////////////////////////
-
-void mc_unlock_current_song(struct mc_Client *self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_current_song);
-}
-
-////////////////////////
-
-void mc_lock_outputs(struct mc_Client *self)
-{
-    g_rec_mutex_lock(&self->_update_data->mtx_outputs);
-}
-
-////////////////////////
-
-void mc_unlock_outputs(struct mc_Client *self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_outputs);
 }
 
 ////////////////////////
@@ -375,6 +345,11 @@ void mc_update_data_destroy(mc_UpdateData * data)
     /* Wait for the thread to finish */
     g_thread_join(data->update_thread);
 
+    mc_update_reset(data);
+
+    /* Free output list */
+    mc_priv_outputs_destroy(data->client->_outputs);
+
     /* Destroy the Queue */
     g_async_queue_unref(data->event_queue);
 
@@ -390,16 +365,12 @@ void mc_update_data_destroy(mc_UpdateData * data)
     g_slice_free(mc_UpdateData, data);
 }
 
+
 ////////////////////////
 
 void mc_update_data_push(mc_UpdateData *data, enum mpd_idle event)
 {
-    g_assert(data);
-
-    /* We may not push 0 - that would cause the event_queue to shutdown */
-    if(event != 0) {
-        g_async_queue_push(data->event_queue, GINT_TO_POINTER(event));
-    }
+    mc_update_data_push_full(data, event, false);
 }
 
 ////////////////////////

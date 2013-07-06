@@ -16,11 +16,8 @@ static void signal_event(
 
 
     g_print("event = %d\n", event);
-    g_print("status = %d\n", mc_status_get_song_id(conn));
-    g_print("statis = %d\n", mc_stats_get_number_of_artists(conn));
-    g_print("ctsong = %s\n", mc_current_song_get_tag(conn, MPD_TAG_ARTIST, 0));
 
-    if (counter++ == 10)
+    if (counter++ == 15)
         g_main_loop_quit(loop);
 }
 

@@ -90,8 +90,12 @@ void mc_stprv_spl_destroy(mc_Store *self)
     if (sqlite3_finalize(self->spl.select_tables_stmt) != SQLITE_OK)
         REPORT_SQL_ERROR(self, "Cannot finalize SELECT ALL TABLES statement.");
 
-    if (self->spl.stack != NULL)
+    self->spl.select_tables_stmt = NULL;
+
+    if (self->spl.stack != NULL) {
         mc_stack_free(self->spl.stack);
+        self->spl.stack = NULL;
+    }
 }
 
 ///////////////////

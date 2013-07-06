@@ -137,7 +137,7 @@ static bool handle_queue_delete_range(mc_Client *self, struct mpd_connection *co
 static bool handle_output_switch(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
     const char *output_name = argv[0];
-    int output_id = mc_outputs_name_to_id(self->_outputs, output_name);
+    int output_id = mc_priv_outputs_name_to_id(self->_outputs, output_name);
 
     intarg_named(argv[1], mode);
 

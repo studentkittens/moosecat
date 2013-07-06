@@ -85,7 +85,6 @@ typedef struct mc_Client {
     int _port;
 
     /* Indicates if store was not connected yet.
-     * This if
      * */
     bool is_virgin;
 
@@ -93,9 +92,7 @@ typedef struct mc_Client {
     float _timeout;
     mc_PmType _pm;
 
-    /*
-     * Signal functions are stored in here
-     */
+    /* Signal functions are stored in here */
     mc_SignalList _signals;
 
     /* Outputs of MPD */
@@ -365,5 +362,53 @@ void mc_status_timer_unregister(
  */
 bool mc_status_timer_is_active(mc_Client *self);
 
+
+/**
+ * @brief Check if an output is enabled.
+ *
+ * @param self the client to operate on
+ * @param output_name a user defined string of the output (like in mpd.conf)
+ *
+ * @return -1 on "no such name", 0 if disabled, 1 if enabled
+ */
+bool mc_outputs_get_state(mc_Client *self, const char *output_name);
+
+/**
+ * @brief Get a list of known output names
+ *
+ * @param data the client to operate on 
+ *
+ * @return a NULL terminated list of names,
+ *         free the list (not the contents) with free() when done
+ */
+const char ** mc_outputs_get_names(mc_Client *self);
+
+/**
+ * @brief Set the state of a Output (enabled or disabled)
+ *
+ * This can also be accomplished with:
+ *
+ *    mc_client_send("output_switch horst 1"); 
+ *
+ *  to enable the output horst. This is just a convinience command.
+ *
+ * @param data the client to operate on 
+ * @param output_name The name of the output to alter
+ * @param state the state, True means enabled. 
+ *              If nothing would change no command is send.
+ *
+ * @return True if an output with this name could be found.
+ */
+bool mc_outputs_set_state(mc_Client *self, const char *output_name, bool state);
+
+
+struct mpd_status * mc_lock_status(mc_Client *self);
+void mc_unlock_status(mc_Client *self);
+struct mpd_stats * mc_lock_statistics(mc_Client *self);
+void mc_unlock_statistics(mc_Client *self);
+struct mpd_song * mc_lock_current_song(mc_Client *self);
+void mc_unlock_current_song(mc_Client *self);
+void mc_lock_outputs(mc_Client *self);
+void mc_unlock_outputs(mc_Client *self);
 
 #endif /* end of include guard: PROTOCOL_H */

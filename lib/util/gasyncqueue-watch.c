@@ -134,13 +134,10 @@ guint mc_async_queue_watch_new(GAsyncQueue *queue,
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     watch->timeout_min = 1;
     watch->timeout_max = 60;
-    watch->iteration_timeout = 10;
     watch->iteration_timer = g_timer_new();
     watch->queue = g_async_queue_ref(queue);
-    watch->iteration_timeout =
-        (iteration_timeout < 0) ?
-        30 :
-        CLAMP(iteration_timeout, 5, 500);
+    watch->iteration_timeout =(iteration_timeout < 0) ? 20 : CLAMP(iteration_timeout, 5, 500);
+
     g_source_set_callback(source, (GSourceFunc) callback, user_data, NULL);
     guint id = g_source_attach(source, context == NULL ? g_main_context_default() : context);
     g_source_unref(source);

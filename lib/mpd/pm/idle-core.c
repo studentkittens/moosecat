@@ -184,7 +184,8 @@ static void idler_dispatch_events(mc_IdleClient *self, enum mpd_idle events)
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        mc_shelper_report_client_event((mc_Client *)self, events);
+        //mc_shelper_report_client_event((mc_Client *)self, events);
+        mc_force_sync((mc_Client *)self, events);
     }
     self->is_running_extern = FALSE;
     /* reenter idle-mode (we did not leave by calling idler_leave though!) */
@@ -248,7 +249,6 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
-    // TODO: Needed?
     g_rec_mutex_lock(&self->logic._getput_mutex);
 
     if (mpd_async_io(self->async_mpd_conn, events) == FALSE) {

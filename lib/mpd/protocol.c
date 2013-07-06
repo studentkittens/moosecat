@@ -17,7 +17,6 @@
 ///////////////////
 
 enum {
-    ERR_OK,
     ERR_IS_NULL,
     ERR_UNKNOWN
 };
@@ -25,7 +24,6 @@ enum {
 ///////////////////
 
 static const char *etable[] = {
-    [ERR_OK]      = NULL,
     [ERR_IS_NULL] = "NULL is not a valid connector.",
     [ERR_UNKNOWN] = "Operation failed for unknow reason."
 };
@@ -58,7 +56,7 @@ mc_Client *mc_create(mc_PmType pm)
         mc_priv_signal_list_init(&client->_signals);
 
         client->_update_data = mc_update_data_new(client);
-        client->_outputs = mc_outputs_new(client);
+        client->_outputs = mc_priv_outputs_new(client);
     }
 
     return client;
@@ -197,22 +195,18 @@ void mc_free(mc_Client *self)
         mc_status_timer_unregister(self);
     }
 
+    /* Free SSS data */
+    mc_update_data_destroy(self->_update_data);
+
     /* Disconnect if not done yet */
     mc_disconnect(self);
-
-    /* Free output list */
-    mc_outputs_destroy(self->_outputs);
-
-    /* Kill any previously connected host info */
-    if (self->_host != NULL)
-        g_free(self->_host);
 
     /* Forget any signals */
     mc_priv_signal_list_destroy(&self->_signals);
 
-    /* Free SSS data */
-    mc_update_reset(self->_update_data);
-    mc_update_data_destroy(self->_update_data);
+    /* Kill any previously connected host info */
+    if (self->_host != NULL)
+        g_free(self->_host);
 
     g_rec_mutex_clear(&self->_getput_mutex);
 
@@ -348,4 +342,94 @@ void mc_status_timer_register(
     bool trigger_event)
 {
     mc_update_register_status_timer(self, repeat_ms, trigger_event);
+}
+
+///////////////////
+//    OUTPUTS    //
+///////////////////
+
+bool mc_outputs_get_state(mc_Client *self, const char *output_name)
+{
+    g_assert(self);
+
+    return mc_priv_outputs_get_state(self->_outputs, output_name);
+}
+
+///////////////////
+
+const char ** mc_outputs_get_names(mc_Client *self)
+{
+    g_assert(self);
+
+    return mc_priv_outputs_get_names(self->_outputs);
+}
+
+///////////////////
+
+bool mc_outputs_set_state(mc_Client *self, const char *output_name, bool state)
+{
+    g_assert(self);
+
+    return mc_priv_outputs_set_state(self->_outputs, output_name, state);
+}
+
+////////////////////////
+//    LOCKING STUFF   //
+////////////////////////
+
+struct mpd_status *mc_lock_status(struct mc_Client *self)
+{
+    g_rec_mutex_lock(&self->_update_data->mtx_status);
+    return self->_update_data->status;
+}
+
+////////////////////////
+
+void mc_unlock_status(struct mc_Client *self)
+{
+    g_rec_mutex_unlock(&self->_update_data->mtx_status);
+}
+
+////////////////////////
+
+struct mpd_stats * mc_lock_statistics(struct mc_Client *self)
+{
+    g_rec_mutex_lock(&self->_update_data->mtx_statistics);
+    return self->_update_data->statistics;
+}
+
+////////////////////////
+
+void mc_unlock_statistics(struct mc_Client *self)
+{
+    g_rec_mutex_unlock(&self->_update_data->mtx_statistics);
+}
+
+////////////////////////
+
+struct mpd_song * mc_lock_current_song(struct mc_Client *self)
+{
+    g_rec_mutex_lock(&self->_update_data->mtx_current_song);
+    return self->_update_data->current_song;
+}
+
+////////////////////////
+
+void mc_unlock_current_song(struct mc_Client *self)
+{
+    g_rec_mutex_unlock(&self->_update_data->mtx_current_song);
+}
+
+////////////////////////
+
+void mc_lock_outputs(struct mc_Client *self)
+{
+    g_rec_mutex_lock(&self->_update_data->mtx_outputs);
+}
+
+////////////////////////
+
+void mc_unlock_outputs(struct mc_Client *self)
+{
+    g_rec_mutex_unlock(&self->_update_data->mtx_outputs);
 }

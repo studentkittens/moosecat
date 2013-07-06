@@ -7,18 +7,27 @@ int main(void)
 {
     mc_Client *client = mc_create(MC_PM_IDLE);
     mc_connect(client, NULL, "localhost", 6600, 2);
-    int op_size = 0;
-    struct mpd_output **op_list = mc_get_outputs(client, &op_size);
 
-    for (int i = 0; i < op_size; ++i) {
-        struct mpd_output *output = op_list[i];
-        printf("%d\t%d\t%s\n",
-               mpd_output_get_id(output),
-               mpd_output_get_enabled(output),
-               mpd_output_get_name(output));
+    if(mc_is_connected(client)) {
+
+        g_usleep(1000000);
+
+        mc_lock_outputs(client);
+        const char **op_list = mc_outputs_get_names(client);
+
+        for (int i = 0; op_list[i]; ++i) {
+            g_printerr("NAME %s\n", op_list[i]);
+            g_printerr("%20s: %3s\n",
+                    op_list[i],
+                    mc_outputs_get_state(client, op_list[i]) ? "Yes" : " No"
+            );
+        }
+        mc_unlock_outputs(client);
+        
+        g_strfreev((char **) op_list);
+        mc_client_wait(client);
+        mc_disconnect(client);
     }
-
-    mc_disconnect(client);
     mc_free(client);
     return 0;
 }

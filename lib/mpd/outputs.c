@@ -3,7 +3,7 @@
 #include "update.h"
 #include "outputs.h"
 
-mc_OutputsData * mc_outputs_new(mc_Client *self)
+mc_OutputsData * mc_priv_outputs_new(mc_Client *self)
 {
     g_assert(self);
 
@@ -22,7 +22,7 @@ mc_OutputsData * mc_outputs_new(mc_Client *self)
 
 ///////////////////
 
-void mc_outputs_update(mc_OutputsData *data, enum mpd_idle event)
+void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event)
 {
     g_assert(data);
     g_assert(data->client);
@@ -74,7 +74,8 @@ void mc_outputs_update(mc_OutputsData *data, enum mpd_idle event)
 
 ///////////////////
 
-static struct mpd_output *mc_outputs_find(mc_OutputsData *data, const char *output_name) {
+static struct mpd_output *mc_priv_outputs_find(mc_OutputsData *data, const char *output_name) 
+{
     g_assert(data);
 
     return g_hash_table_lookup(data->outputs, output_name);
@@ -82,13 +83,13 @@ static struct mpd_output *mc_outputs_find(mc_OutputsData *data, const char *outp
 
 ///////////////////
 
-int mc_outputs_name_to_id(mc_OutputsData *data, const char *output_name)
+int mc_priv_outputs_name_to_id(mc_OutputsData *data, const char *output_name)
 {
     g_assert(data);
 
     g_mutex_lock(&data->output_lock);
 
-    struct mpd_output *op = mc_outputs_find(data, output_name);
+    struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     int result = -1;
     if (op != NULL) {
         return mpd_output_get_id(op);
@@ -101,13 +102,13 @@ int mc_outputs_name_to_id(mc_OutputsData *data, const char *output_name)
 
 ///////////////////
 
-bool mc_outputs_is_enabled(mc_OutputsData *data, const char *output_name)
+bool mc_priv_outputs_get_state(mc_OutputsData *data, const char *output_name)
 {
     g_assert(data);
 
     g_mutex_lock(&data->output_lock);
 
-    struct mpd_output *op = mc_outputs_find(data, output_name);
+    struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     int result = -1;
 
     if (op != NULL) {
@@ -120,7 +121,7 @@ bool mc_outputs_is_enabled(mc_OutputsData *data, const char *output_name)
 
 ///////////////////
 
-const char ** mc_outputs_get_names(mc_OutputsData *data) 
+const char ** mc_priv_outputs_get_names(mc_OutputsData *data) 
 {
     g_assert(data);
 
@@ -138,7 +139,10 @@ const char ** mc_outputs_get_names(mc_OutputsData *data)
     int output_cursor = 0;
 
     for(GList *iter = keys; iter; iter = iter->next) {
-        outputs[output_cursor++] = mpd_output_get_name(iter->data);
+        struct mpd_output * output = g_hash_table_lookup(data->outputs, iter->data);
+        if(output != NULL) {
+            outputs[output_cursor++] = mpd_output_get_name(output);
+        }
     }
 
     g_list_free(keys);
@@ -149,14 +153,14 @@ const char ** mc_outputs_get_names(mc_OutputsData *data)
 
 ///////////////////
 
-bool mc_outputs_set_state(mc_OutputsData *data, const char *output_name, bool state)
+bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bool state)
 {
     g_assert(data);
 
     bool found = false;
     g_mutex_lock(&data->output_lock);
 
-    struct mpd_output *op = mc_outputs_find(data, output_name);
+    struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     if(op != NULL) {
 
         if(mpd_output_get_enabled(op) == !state) {
@@ -169,14 +173,14 @@ bool mc_outputs_set_state(mc_OutputsData *data, const char *output_name, bool st
         }
     }
 
-    g_mutex_lock(&data->output_lock);
+    g_mutex_unlock(&data->output_lock);
 
     return found;
 }
 
 ///////////////////
 
-void mc_outputs_destroy(mc_OutputsData *data)
+void mc_priv_outputs_destroy(mc_OutputsData *data)
 {
     g_assert(data);
 

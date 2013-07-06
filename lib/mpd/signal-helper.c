@@ -159,18 +159,6 @@ void mc_shelper_report_connectivity(
 
 ///////////////////////////////
 
-void mc_shelper_report_client_event(
-    struct mc_Client *self,
-    enum mpd_idle event)
-{
-    if (event != 0) {
-        mc_force_sync(self, event);
-        mc_signal_dispatch(self, "client-event", self, event);
-    }
-}
-
-///////////////////////////////
-
 static const char *signal_to_name_table[] = {
     [MC_OP_DB_UPDATED]       = "Finished: Database Updated",
     [MC_OP_QUEUE_UPDATED]    = "Finished: Queue Updated",

@@ -15,7 +15,7 @@ typedef struct mc_OutputsData {
  *
  * @param data Client to initialize outputs support on.
  */
-mc_OutputsData *mc_outputs_new(mc_Client *self);
+mc_OutputsData *mc_priv_outputs_new(mc_Client *self);
 
 /**
  * @brief Get a list of outputs from MPD
@@ -23,7 +23,7 @@ mc_OutputsData *mc_outputs_new(mc_Client *self);
  * @param data the client to operate on
  * @param event an idle event. Will do only stmth. with MPD_IDLE_OUTPUT
  */
-void mc_outputs_update(mc_OutputsData *data, enum mpd_idle event);
+void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event);
 
 /**
  * @brief Convert a name of an output (e.g. "AlsaOutput") to MPD's output id
@@ -36,7 +36,7 @@ void mc_outputs_update(mc_OutputsData *data, enum mpd_idle event);
  *
  * @return the id or -1 on resolve-error
  */
-int mc_outputs_name_to_id(mc_OutputsData *data, const char *output_name);
+int mc_priv_outputs_name_to_id(mc_OutputsData *data, const char *output_name);
 
 
 /**
@@ -47,7 +47,7 @@ int mc_outputs_name_to_id(mc_OutputsData *data, const char *output_name);
  *
  * @return -1 on "no such name", 0 if disabled, 1 if enabled
  */
-bool mc_outputs_is_enabled(mc_OutputsData *data, const char *output_name);
+bool mc_priv_outputs_get_state(mc_OutputsData *data, const char *output_name);
 
 /**
  * @brief Get a list of known output names
@@ -57,7 +57,7 @@ bool mc_outputs_is_enabled(mc_OutputsData *data, const char *output_name);
  * @return a NULL terminated list of names,
  *         free the list (not the contents) with free() when done
  */
-const char ** mc_outputs_get_names(mc_OutputsData *data);
+const char ** mc_priv_outputs_get_names(mc_OutputsData *data);
 
 /**
  * @brief Set the state of a Output (enabled or disabled)
@@ -75,14 +75,14 @@ const char ** mc_outputs_get_names(mc_OutputsData *data);
  *
  * @return True if an output with this name could be found.
  */
-bool mc_outputs_set_state(mc_OutputsData *data, const char *output_name, bool state);
+bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bool state);
 
 /**
  * @brief Free the list of outputs
  *
  * @param data the client to operate on
  */
-void mc_outputs_destroy(mc_OutputsData *data);
+void mc_priv_outputs_destroy(mc_OutputsData *data);
 
 #endif /* end of include guard: MC_OUTPUTS_HH */
 

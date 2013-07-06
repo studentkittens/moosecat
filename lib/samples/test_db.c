@@ -82,8 +82,6 @@ int main(int argc, char *argv[])
 
                 if (g_strcmp0(line_buf, ":u") == 0) {
                     mc_force_sync(client, INT_MAX);
-                    mc_signal_dispatch(client, "client-event", client,
-                                             MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST);
                     continue;
                 }
 

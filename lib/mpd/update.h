@@ -28,7 +28,6 @@ typedef struct mc_UpdateData {
         int interval;
         bool trigger_event;
         GTimer *last_update;
-        bool reset_timer;
         GMutex mutex;
     } status_timer;
 
@@ -97,15 +96,3 @@ void mc_update_unregister_status_timer(struct mc_Client *self);
  * @return True if active.
  */
 bool mc_update_status_timer_is_active(struct mc_Client *self);
-
-
-/* LOCKING */
-
-struct mpd_status * mc_lock_status(struct mc_Client *self);
-void mc_unlock_status(struct mc_Client *self);
-struct mpd_stats * mc_lock_statistics(struct mc_Client *self);
-void mc_unlock_statistics(struct mc_Client *self);
-struct mpd_song * mc_lock_current_song(struct mc_Client *self);
-void mc_unlock_current_song(struct mc_Client *self);
-void mc_lock_outputs(struct mc_Client *self);
-void mc_unlock_outputs(struct mc_Client *self);

@@ -418,8 +418,10 @@ void mc_stprv_close_handle(mc_Store *self, bool free_statements)
         self->sql_prep_stmts = NULL;
     }
 
-    if (sqlite3_close(self->handle) != SQLITE_OK)
+    if (sqlite3_close(self->handle) != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Warning: Unable to close db connection");
+        self->handle = NULL;
+    }
 }
 
 ////////////////////////////////

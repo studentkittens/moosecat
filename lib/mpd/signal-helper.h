@@ -96,16 +96,6 @@ void mc_shelper_report_connectivity(
     int new_port);
 
 /**
- * @brief Disptatch the client-event signal
- *
- * @param self the client to operate on.
- * @param event the event to dispatch
- */
-void mc_shelper_report_client_event(
-    struct mc_Client *self,
-    enum mpd_idle event);
-
-/**
  * @brief Dispatch the op-finished signal
  *
  * @param self the client to operate on.
