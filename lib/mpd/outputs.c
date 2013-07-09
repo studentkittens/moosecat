@@ -8,7 +8,6 @@ mc_OutputsData * mc_priv_outputs_new(mc_Client *self)
     g_assert(self);
 
     mc_OutputsData * data = g_slice_new0(mc_OutputsData);
-    g_mutex_init(&data->output_lock);
     data->client = self;
     data->outputs = g_hash_table_new_full(
             g_str_hash,
@@ -31,7 +30,6 @@ void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event)
         return /* because of no relevant event */;
 
     struct mpd_connection *conn = mc_get(data->client);
-    g_mutex_lock(&data->output_lock);
 
     if(conn != NULL) {
         if (mpd_send_outputs(conn) == false) {
@@ -68,7 +66,6 @@ void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event)
             mc_shelper_report_error(data->client, conn);
         }
     }
-    g_mutex_unlock(&data->output_lock);
     mc_put(data->client);
 }
 
@@ -87,15 +84,12 @@ int mc_priv_outputs_name_to_id(mc_OutputsData *data, const char *output_name)
 {
     g_assert(data);
 
-    g_mutex_lock(&data->output_lock);
-
     struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     int result = -1;
     if (op != NULL) {
-        return mpd_output_get_id(op);
+        result = mpd_output_get_id(op);
     }
 
-    g_mutex_unlock(&data->output_lock);
 
     return result;
 }
@@ -106,16 +100,13 @@ bool mc_priv_outputs_get_state(mc_OutputsData *data, const char *output_name)
 {
     g_assert(data);
 
-    g_mutex_lock(&data->output_lock);
-
     struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     int result = -1;
 
     if (op != NULL) {
-        return CLAMP(mpd_output_get_enabled(op), 0, 1);
+        result = CLAMP(mpd_output_get_enabled(op), 0, 1);
     }
 
-    g_mutex_unlock(&data->output_lock);
     return result;
 }
 
@@ -124,8 +115,6 @@ bool mc_priv_outputs_get_state(mc_OutputsData *data, const char *output_name)
 const char ** mc_priv_outputs_get_names(mc_OutputsData *data) 
 {
     g_assert(data);
-
-    g_mutex_lock(&data->output_lock);
 
     /* Get a list of keys in the dictionary (all names) */
     GList *keys = g_hash_table_get_keys(data->outputs);
@@ -147,7 +136,6 @@ const char ** mc_priv_outputs_get_names(mc_OutputsData *data)
 
     g_list_free(keys);
 
-    g_mutex_unlock(&data->output_lock);
     return outputs;
 }
 
@@ -158,8 +146,6 @@ bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bo
     g_assert(data);
 
     bool found = false;
-    g_mutex_lock(&data->output_lock);
-
     struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     if(op != NULL) {
 
@@ -173,8 +159,6 @@ bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bo
         }
     }
 
-    g_mutex_unlock(&data->output_lock);
-
     return found;
 }
 
@@ -184,15 +168,12 @@ void mc_priv_outputs_destroy(mc_OutputsData *data)
 {
     g_assert(data);
 
-    g_mutex_lock(&data->output_lock);
     mc_lock_outputs(data->client);
 
     g_hash_table_destroy(data->outputs);
     data->outputs = NULL;
 
     mc_unlock_outputs(data->client);
-    g_mutex_unlock(&data->output_lock);
 
-    g_mutex_clear(&data->output_lock);
     g_slice_free(mc_OutputsData, data);
 }

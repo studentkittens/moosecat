@@ -31,6 +31,11 @@ typedef struct mc_UpdateData {
         GMutex mutex;
     } status_timer;
 
+    /* Support for blockingtillnextupdate */
+    GCond sync_cond;
+    GMutex sync_mtx;
+    int sync_id;
+
 } mc_UpdateData;
 
 /**
@@ -96,3 +101,12 @@ void mc_update_unregister_status_timer(struct mc_Client *self);
  * @return True if active.
  */
 bool mc_update_status_timer_is_active(struct mc_Client *self);
+
+/**
+ * @brief Block till next update finished. 
+ *
+ * Useful for debugging/testing programs.
+ *
+ * @param data corresponding data
+ */
+void mc_update_block_till_sync(mc_UpdateData * data);

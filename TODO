@@ -1,6 +1,7 @@
 libmoosecat 
 -----------
 
+- fix destroyage of UpdateData (test_status_timer bug)
 - valgrind it
 - Make client/store failsafe in case of connection loss
   - Chances are getting better, 

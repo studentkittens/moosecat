@@ -7,7 +7,6 @@
 typedef struct mc_OutputsData {
     mc_Client *client;
     GHashTable *outputs;
-    GMutex output_lock;
 } mc_OutputsData;
 
 /**

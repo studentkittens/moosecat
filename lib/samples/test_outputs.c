@@ -10,21 +10,24 @@ int main(void)
 
     if(mc_is_connected(client)) {
 
-        g_usleep(1000000);
+        /* Wait till a client update is done. 
+         * This is fired in another thread.
+         * We want to get sure we already have an output available here.
+         */
+        mc_block_till_sync(client);
 
         mc_lock_outputs(client);
         const char **op_list = mc_outputs_get_names(client);
 
         for (int i = 0; op_list[i]; ++i) {
-            g_printerr("NAME %s\n", op_list[i]);
             g_printerr("%20s: %3s\n",
                     op_list[i],
                     mc_outputs_get_state(client, op_list[i]) ? "Yes" : " No"
             );
         }
         mc_unlock_outputs(client);
+        g_free(op_list);
         
-        g_strfreev((char **) op_list);
         mc_client_wait(client);
         mc_disconnect(client);
     }

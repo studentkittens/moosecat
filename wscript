@@ -192,6 +192,12 @@ def configure(conf):
             args='--libs --cflags'
     )
 
+    conf.check_cfg(
+            package='avahi-glib avahi-client',
+            uselib_store='AVAHI_GLIB',
+            args='--libs --cflags'
+    )
+
     # Create lib/config.h. Includes basic Version/Feature Info.
     conf.path.make_node('lib/config.h').write(define_config_h(conf))
 
@@ -210,6 +216,7 @@ def _find_libmoosecat_src(ctx):
     c_files += ctx.path.ant_glob('lib/misc/*.c')
     c_files += ctx.path.ant_glob('lib/util/*.c')
     c_files += ctx.path.ant_glob('lib/store/*.c')
+    c_files += ctx.path.ant_glob('lib/zeroconf/*.c')
 
     for exclude in EXCLUDE_FILES:
         exclude_node = ctx.path.make_node(exclude)
@@ -234,8 +241,8 @@ def _find_cython_src(ctx):
 
 
 def build(bld):
-    LIBS = ['mpdclient', 'dl', 'pthread'] + bld.env.LIB_GLIB + bld.env.LIB_ZLIB
-    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_ZLIB + ['ext/sqlite/inc']
+    LIBS = ['mpdclient', 'dl', 'pthread'] + bld.env.LIB_GLIB + bld.env.LIB_ZLIB + bld.env.LIB_AVAHI_GLIB
+    INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_ZLIB + ['ext/sqlite/inc'] + bld.env.INCLUDES_AVAHI_GLIB
 
     def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
         bld.program(
@@ -255,6 +262,7 @@ def build(bld):
     build_test_program('lib/samples/test_client.c', 'test_client')
     build_test_program('lib/samples/test_playlist.c', 'time_playlist')
     build_test_program('lib/samples/test_db.c', 'test_db')
+    build_test_program('lib/samples/test_zeroconf.c', 'test_zeroconf')
     build_test_program('lib/samples/test_store_change.c', 'test_store_change')
     build_test_program('lib/samples/test_outputs.c', 'test_outputs')
     build_test_program('lib/samples/test_gtk.c', 'test_gtk',

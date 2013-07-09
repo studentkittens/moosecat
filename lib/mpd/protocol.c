@@ -433,3 +433,12 @@ void mc_unlock_outputs(struct mc_Client *self)
 {
     g_rec_mutex_unlock(&self->_update_data->mtx_outputs);
 }
+
+////////////////////////
+
+void mc_block_till_sync(mc_Client *self)
+{
+    g_assert(self);
+
+    mc_update_block_till_sync(self->_update_data);
+}

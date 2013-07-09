@@ -401,14 +401,117 @@ const char ** mc_outputs_get_names(mc_Client *self);
  */
 bool mc_outputs_set_state(mc_Client *self, const char *output_name, bool state);
 
-
+/**
+ * @brief Lock against modification of the current mpd_status object
+ * 
+ * You usually would do this in order to get an attribute of an status object.
+ * If libmoosecat would lock it on every get there might happen things like:
+ *
+ *   // implict lock
+ *   status.get_id() // 70
+ *   // implict unlock
+ *   // implict lock
+ *   status.get_id() // 71
+ *   // implict unlock
+ *
+ *  Therefore you lock the song explicitly and unlock it again when you're done.
+ *
+ *  struct mpd_status * status = mc_lock_status(client);
+ *  if(status != NULL) {
+ *      mpd_status_get_song_id(status);  // 70
+ *      mpd_status_get_song_id(status);  // 70
+ *  }
+ *  mc_unlock_status(client);
+ * 
+ * Unlock always. Even if status is NULL!
+ *
+ * This is the only way to get the status object. 
+ *
+ * @param self the client holding the object
+ *
+ * @return the locked mpd_status
+ */
 struct mpd_status * mc_lock_status(mc_Client *self);
+
+
+/**
+ * @brief The pendant to mc_lock_status()
+ *
+ * See mc_lock_status() for a more detailed description/example.
+ *
+ * @param self the client holding the status
+ */
 void mc_unlock_status(mc_Client *self);
+
+/**
+ * @brief Lock the current statistics. 
+ *
+ * See mc_lock_status() for a detailed description.
+ *
+ * @param self the client that holds the current statistics
+ *
+ * @return a locked struct mpd_stats
+ */
 struct mpd_stats * mc_lock_statistics(mc_Client *self);
+
+
+/**
+ * @brief The pendant to mc_lock_statistics()
+ *
+ * See mc_lock_status() for a more detailed description/example.
+ *
+ * @param self the client holding the statistics
+ */
 void mc_unlock_statistics(mc_Client *self);
+
+/**
+ * @brief Lock the current song. 
+ *
+ * See mc_lock_status() for a detailed description.
+ *
+ * @param self the client that holds the current song
+ *
+ * @return a locked struct mpd_song
+ */
 struct mpd_song * mc_lock_current_song(mc_Client *self);
+
+/**
+ * @brief The pendant to mc_lock_current_song()
+ *
+ * See mc_lock_status() for a more detailed description/example.
+ *
+ * @param self the client holding the current song 
+ */
 void mc_unlock_current_song(mc_Client *self);
+
+/**
+ * @brief Lock the current set of outputs. 
+ *
+ * See mc_lock_status() for a detailed description.
+ *
+ * Use mc_outputs_get_names() to acquire a list of names
+ *
+ * @param self the client that holds the current set of outputs
+ */
 void mc_lock_outputs(mc_Client *self);
+
+/**
+ * @brief The pendant to mc_lock_outputs()
+ *
+ * See mc_lock_status() for a more detailed description/example.
+ *
+ * @param self the client holding the current set of outouts
+ */
 void mc_unlock_outputs(mc_Client *self);
+
+
+/**
+ * @brief Waits for the first sync of status and co.
+ *
+ * This is useful for debugging purpose, not much for real applications.
+ *
+ * @param self client to wait upon on
+ */
+void mc_block_till_sync(mc_Client *self);
 
 #endif /* end of include guard: PROTOCOL_H */

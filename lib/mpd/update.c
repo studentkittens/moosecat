@@ -199,6 +199,12 @@ static gpointer mc_update_thread(gpointer user_data)
             trigger_it = false;
         }
 
+         g_mutex_lock(&data->sync_mtx); {
+             data->sync_id += 1;
+             g_cond_broadcast(&data->sync_cond);
+         }
+         g_mutex_unlock(&data->sync_mtx);
+
         if(trigger_it) {
             mc_signal_dispatch(data->client, "client-event", data->client, event_mask);
         }
@@ -319,6 +325,10 @@ mc_UpdateData * mc_update_data_new(struct mc_Client * self)
     data->event_queue = g_async_queue_new();
 
     g_mutex_init(&data->status_timer.mutex);
+    g_mutex_init(&data->sync_mtx);
+    g_cond_init(&data->sync_cond);
+    data->sync_id = 0;
+
     g_rec_mutex_init(&data->mtx_current_song);
     g_rec_mutex_init(&data->mtx_statistics);
     g_rec_mutex_init(&data->mtx_status);
@@ -360,6 +370,10 @@ void mc_update_data_destroy(mc_UpdateData * data)
     g_rec_mutex_clear(&data->mtx_statistics);
     g_rec_mutex_clear(&data->mtx_status);
     g_rec_mutex_clear(&data->mtx_outputs);
+
+    g_cond_clear(&data->sync_cond);
+
+    g_mutex_clear(&data->sync_mtx);
     g_mutex_clear(&data->status_timer.mutex);
 
     g_slice_free(mc_UpdateData, data);
@@ -411,3 +425,17 @@ void mc_update_reset(mc_UpdateData *data)
     }
     mc_unlock_current_song(data->client);
 }
+
+////////////////////////
+
+void mc_update_block_till_sync(mc_UpdateData * data)
+{
+    g_mutex_lock(&data->sync_mtx); {
+        int old_update_id = data->sync_id;
+        while (data->sync_id == old_update_id) {
+            g_cond_wait (&data->sync_cond, &data->sync_mtx);
+        }
+    }
+    g_mutex_unlock(&data->sync_mtx);
+}
+
