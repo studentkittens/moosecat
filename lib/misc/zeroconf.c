@@ -24,6 +24,7 @@ typedef struct mc_ZeroconfBrowser {
     mc_ZeroconfState state;
     char * last_error;
 
+    char * protocol;
 } mc_ZeroconfBrowser;
 
 ////////////////////////////////
@@ -101,20 +102,6 @@ static void mc_zeroconf_check_client_error(mc_ZeroconfBrowser * self, const gcha
                 prefix_message, avahi_strerror(avahi_client_errno(self->client))
         );
         mc_zeroconf_call_user_callback(self, MC_ZEROCONF_STATE_ERROR);
-    }
-}
-
-////////////////////////////////
-
-static void mc_zeroconf_client_callback(
-        AVAHI_GCC_UNUSED AvahiClient *client,
-        AvahiClientState state,
-        void * user_data)
-{
-    if(state == AVAHI_CLIENT_FAILURE)
-    {
-        mc_ZeroconfBrowser * self = user_data;
-        mc_zeroconf_check_client_error(self, "Disconnected from the Avahi Daemon");
     }
 }
 
@@ -231,43 +218,96 @@ static void mc_zeroconf_service_browser_callback(
 }
 
 ////////////////////////////////
+
+static void mc_zeroconf_register_browser(mc_ZeroconfBrowser * self)
+{
+    g_assert(self);
+    self->state = MC_ZEROCONF_STATE_CONNECTED;
+    avahi_service_browser_new(
+            self->client,
+            AVAHI_IF_UNSPEC,
+            AVAHI_PROTO_UNSPEC,
+            self->protocol,
+            avahi_client_get_domain_name(self->client),
+            (AvahiLookupFlags)0,
+            mc_zeroconf_service_browser_callback,
+            self
+    );
+}
+////////////////////////////////
+
+static void mc_zeroconf_client_callback(
+        AVAHI_GCC_UNUSED AvahiClient *client,
+        AvahiClientState state,
+        void * user_data);
+
+static void mc_zeroconf_create_server(mc_ZeroconfBrowser * self) 
+{
+    if(self->client != NULL) {
+        avahi_client_free(self->client);
+    }
+
+    self->client = avahi_client_new(
+            avahi_glib_poll_get(self->poll),
+            (AvahiClientFlags)AVAHI_CLIENT_NO_FAIL,
+            mc_zeroconf_client_callback,
+            self,
+            NULL 
+    );
+
+    if(self->client != NULL) {
+        if(avahi_client_get_state(self->client) == AVAHI_CLIENT_CONNECTING) {
+            mc_zeroconf_check_client_error(self, "Initializing Avahi");
+        }
+    }
+}
+
+////////////////////////////////
+
+static void mc_zeroconf_client_callback(
+        AVAHI_GCC_UNUSED AvahiClient *client,
+        AvahiClientState state,
+        void * user_data)
+{
+    /* This is called during avahi_client_new,
+     * so at the precise moment there is no client
+     * set yet - be sure it's set from the passed one.
+     */
+    mc_ZeroconfBrowser * self = user_data;
+    self->client = client;
+
+    switch(state) {
+        case AVAHI_CLIENT_S_RUNNING: {
+            mc_zeroconf_register_browser(self);
+            break;
+        }
+        case AVAHI_CLIENT_FAILURE: {
+            mc_zeroconf_check_client_error(self, "Disconnected from the Avahi Daemon");
+            self->state = MC_ZEROCONF_STATE_UNCONNECTED;
+            mc_zeroconf_create_server(self);
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+////////////////////////////////
 //         PUBLIC API         //
 ////////////////////////////////
 
 struct mc_ZeroconfBrowser * mc_zeroconf_new(const char * protocol)
 {
-    int error = 0;
-
     /* Optional: Tell avahi to use g_malloc and g_free */
     avahi_set_allocator(avahi_glib_allocator());
     mc_ZeroconfBrowser * self = g_slice_new0(mc_ZeroconfBrowser);
 
     self->state = MC_ZEROCONF_STATE_UNCONNECTED;
     self->poll = avahi_glib_poll_new(NULL, G_PRIORITY_DEFAULT);
-    self->client = avahi_client_new(
-            avahi_glib_poll_get(self->poll),
-            (AvahiClientFlags)AVAHI_CLIENT_NO_FAIL,
-            mc_zeroconf_client_callback,
-            self,
-            &error
-    );
+    self->protocol = g_strdup((protocol) ? protocol : MPD_AVAHI_SERVICE_TYPE);
 
-    if(self->client != NULL && avahi_client_get_state(self->client) != AVAHI_CLIENT_CONNECTING) {
-        self->state = MC_ZEROCONF_STATE_CONNECTED;
-        avahi_service_browser_new(
-                self->client,
-                AVAHI_IF_UNSPEC,
-                AVAHI_PROTO_UNSPEC,
-                (protocol == NULL) ? MPD_AVAHI_SERVICE_TYPE : protocol,
-                avahi_client_get_domain_name(self->client),
-                (AvahiLookupFlags)0,
-                mc_zeroconf_service_browser_callback,
-                self
-        );
-    } else if(self->client != NULL) {
-        mc_zeroconf_check_client_error(self, "Initializing Avahi");
-    }
-
+    mc_zeroconf_create_server(self);
     return self;
 }
 
@@ -278,10 +318,8 @@ void mc_zeroconf_destroy(struct mc_ZeroconfBrowser * self)
     g_assert(self);
 
     g_list_free_full(self->server_list, (GDestroyNotify)mc_zeroconf_free_server);
-
-    if(self->last_error != NULL) {
-        g_free(self->last_error);
-    }
+    g_free(self->last_error);
+    g_free(self->protocol);
 
     if(self->client != NULL) {
         avahi_client_free(self->client);

@@ -25,7 +25,10 @@ typedef void (* mc_ZeroconfCallback)(struct mc_ZeroconfBrowser *, void *);
  * @brief Instance a new Zeroconf-Browser
  *
  * It will immediately try to connect to avahi and start searching once 
- * a mainloop is available.
+ * a mainloop is available. If the server is not running yet it will wait 
+ * for it patiently to show up. If the server restarts it will reattach once
+ * done. As user of the API you won't notice and can even access the old servers
+ * from the last daemon.
  *
  * @return a newly allocated Browser, free with mc_zeroconf_destroy()
  */

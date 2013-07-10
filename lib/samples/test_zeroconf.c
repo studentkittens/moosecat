@@ -28,7 +28,7 @@ static void zeroconf_callback(struct mc_ZeroconfBrowser * self, void * user_data
             break;
         }
         case MC_ZEROCONF_STATE_ALL_FOR_NOW: {
-            g_printerr("-> These should be all for now, quitting on 10 seconds\n");
+            g_printerr("-> These should be all for now, quitting in 10 seconds\n");
             g_timeout_add(10000, (GSourceFunc)g_main_loop_quit, user_data);
             break;
         }
