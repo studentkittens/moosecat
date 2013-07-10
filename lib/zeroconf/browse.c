@@ -1,3 +1,5 @@
+#include "zeroconf.h"
+
 #include <glib.h>
 #include <glib/gprintf.h>
 
@@ -15,6 +17,13 @@ typedef struct mc_ZeroconfBrowser {
     AvahiClient * client;
     AvahiGLibPoll * poll;
     GList * server_list;
+
+    mc_ZeroconfCallback callback;
+    void * callback_data;
+
+    mc_ZeroconfState state;
+    char * last_error;
+
 } mc_ZeroconfBrowser;
 
 ////////////////////////////////
@@ -31,7 +40,7 @@ typedef struct mc_ZeroconfServer {
 
 ////////////////////////////////
 
-void mc_zeroconf_free_server(mc_ZeroconfServer * server)
+static void mc_zeroconf_free_server(mc_ZeroconfServer * server)
 {
     if(server != NULL) {
         g_free(server->name);
@@ -46,7 +55,19 @@ void mc_zeroconf_free_server(mc_ZeroconfServer * server)
 
 ////////////////////////////////
 
-void mc_zeroconf_drop_server(
+static void mc_zeroconf_call_user_callback(mc_ZeroconfBrowser * self, mc_ZeroconfState state) 
+{
+    g_assert(self);
+
+    self->state = state;
+    if(self->callback) {
+        self->callback(self, self->callback_data);
+    }
+}
+
+////////////////////////////////
+
+static void mc_zeroconf_drop_server(
         mc_ZeroconfBrowser * self,
         const char * name,
         const char * type,
@@ -59,9 +80,9 @@ void mc_zeroconf_drop_server(
                && g_strcmp0(server->type, type)     == 0
                && g_strcmp0(server->domain, domain) == 0
             ) {
-                g_printerr("Deleting %s %s %s\n", name, type, domain);
                 self->server_list = g_list_delete_link(self->server_list, iter);
                 mc_zeroconf_free_server(server);
+                mc_zeroconf_call_user_callback(self, MC_ZEROCONF_STATE_CHANGED);
                 break;
             }
         }
@@ -70,20 +91,22 @@ void mc_zeroconf_drop_server(
 
 ////////////////////////////////
 
-void mc_zeroconf_check_client_error(mc_ZeroconfBrowser * self, const gchar * prefix_message)
+static void mc_zeroconf_check_client_error(mc_ZeroconfBrowser * self, const gchar * prefix_message)
 {
     /* Print just a message for now */
     if(avahi_client_errno(self->client) != AVAHI_OK)
     {
-        const gchar * error_message = avahi_strerror(avahi_client_errno(self->client));
-        g_printerr("%s: %s\n",prefix_message,error_message);
-        //m_signal_error_message.emit(Glib::ustring(prefix_message) + error_message);
+        g_free(self->last_error);
+        self->last_error = g_strdup_printf("%s: %s", 
+                prefix_message, avahi_strerror(avahi_client_errno(self->client))
+        );
+        mc_zeroconf_call_user_callback(self, MC_ZEROCONF_STATE_ERROR);
     }
 }
 
 ////////////////////////////////
 
-void mc_zeroconf_client_callback(
+static void mc_zeroconf_client_callback(
         AVAHI_GCC_UNUSED AvahiClient *client,
         AvahiClientState state,
         void * user_data)
@@ -128,21 +151,18 @@ static void mc_zeroconf_resolve_callback(
             break;
         }
         case AVAHI_RESOLVER_FOUND: {
-            char * addr = g_malloc0(AVAHI_ADDRESS_STR_MAX);
-            avahi_address_snprint(addr, sizeof(addr), address);
-            g_printerr("=> '%s' of type '%s' in domain '%s':\n", name, type, domain);
-            g_printerr("=> %s:%u (%s)\n",host_name, port, addr);
-
             mc_ZeroconfServer * server = g_slice_new0(mc_ZeroconfServer);
+            server->port = port;
             server->name = g_strdup(name);
             server->type = g_strdup(type);
             server->domain = g_strdup(domain);
-
-            server->addr = addr;
-            server->port = port;
             server->host = g_strdup(host_name);
+            server->addr = g_malloc0(AVAHI_ADDRESS_STR_MAX);;
+            avahi_address_snprint(server->addr, AVAHI_ADDRESS_STR_MAX, address);
 
             self->server_list = g_list_prepend(self->server_list, server);
+
+            mc_zeroconf_call_user_callback(self, MC_ZEROCONF_STATE_CHANGED);
         }
     }
     avahi_service_resolver_free(resolver);
@@ -151,7 +171,7 @@ static void mc_zeroconf_resolve_callback(
 ////////////////////////////////
 
 /* SERVICE BROWSER CALLBACK */
-void mc_zeroconf_service_browser_callback(
+static void mc_zeroconf_service_browser_callback(
         AvahiServiceBrowser *browser,
         AvahiIfIndex interface,
         AvahiProtocol protocol,
@@ -171,7 +191,6 @@ void mc_zeroconf_service_browser_callback(
     switch(event) {
         /* The object is new on the network */
         case AVAHI_BROWSER_NEW: {
-            g_printerr("-- NEW: %s %s %s\n",name,type,domain);
             if(avahi_service_resolver_new(
                         full_client, interface, protocol, name, type, domain,
                         (AvahiLookupFlags)AVAHI_PROTO_INET, (AvahiLookupFlags)0,
@@ -188,7 +207,6 @@ void mc_zeroconf_service_browser_callback(
         }
         /* The object has been removed from the network.*/
         case AVAHI_BROWSER_REMOVE: {
-            g_printerr("-- DEL: %s %s %s\n", name, type, domain);
             mc_zeroconf_drop_server(self, name, type, domain);
             break;
         }
@@ -199,12 +217,12 @@ void mc_zeroconf_service_browser_callback(
         /* One-time event, to notify the user that more records will probably not show up in the near future, i.e.
          * all cache entries have been read and all static servers been queried */
         case AVAHI_BROWSER_ALL_FOR_NOW: {
-            // TODO: Notify user.
+            mc_zeroconf_call_user_callback(self, MC_ZEROCONF_STATE_ALL_FOR_NOW);
             break;
         }
         /* Browsing failed due to some reason which can be retrieved using avahi_server_errno()/avahi_client_errno() */
         case AVAHI_BROWSER_FAILURE: {
-            // TODO: Notify user.
+            mc_zeroconf_check_client_error(self, "browser-failure:");
             break;
         }
         default:
@@ -213,16 +231,18 @@ void mc_zeroconf_service_browser_callback(
 }
 
 ////////////////////////////////
+//         PUBLIC API         //
+////////////////////////////////
 
-struct mc_ZeroconfBrowser * mc_zeroconf_new(void)
+struct mc_ZeroconfBrowser * mc_zeroconf_new(const char * protocol)
 {
     int error = 0;
 
     /* Optional: Tell avahi to use g_malloc and g_free */
     avahi_set_allocator(avahi_glib_allocator());
-
     mc_ZeroconfBrowser * self = g_slice_new0(mc_ZeroconfBrowser);
 
+    self->state = MC_ZEROCONF_STATE_UNCONNECTED;
     self->poll = avahi_glib_poll_new(NULL, G_PRIORITY_DEFAULT);
     self->client = avahi_client_new(
             avahi_glib_poll_get(self->poll),
@@ -233,11 +253,12 @@ struct mc_ZeroconfBrowser * mc_zeroconf_new(void)
     );
 
     if(self->client != NULL && avahi_client_get_state(self->client) != AVAHI_CLIENT_CONNECTING) {
+        self->state = MC_ZEROCONF_STATE_CONNECTED;
         avahi_service_browser_new(
                 self->client,
                 AVAHI_IF_UNSPEC,
                 AVAHI_PROTO_UNSPEC,
-                MPD_AVAHI_SERVICE_TYPE,
+                (protocol == NULL) ? MPD_AVAHI_SERVICE_TYPE : protocol,
                 avahi_client_get_domain_name(self->client),
                 (AvahiLookupFlags)0,
                 mc_zeroconf_service_browser_callback,
@@ -256,8 +277,10 @@ void mc_zeroconf_destroy(struct mc_ZeroconfBrowser * self)
 {
     g_assert(self);
 
-    for(GList * iter = self->server_list; iter; iter = iter->next) {
-        mc_zeroconf_free_server(iter->data);
+    g_list_free_full(self->server_list, (GDestroyNotify)mc_zeroconf_free_server);
+
+    if(self->last_error != NULL) {
+        g_free(self->last_error);
     }
 
     if(self->client != NULL) {
@@ -266,4 +289,107 @@ void mc_zeroconf_destroy(struct mc_ZeroconfBrowser * self)
     if(self->poll != NULL) {
         avahi_glib_poll_free(self->poll);
     }
+
+    g_slice_free(mc_ZeroconfBrowser, self);
+}
+
+////////////////////////////////
+
+void mc_zeroconf_register(mc_ZeroconfBrowser * self, mc_ZeroconfCallback callback, void * user_data)
+{
+    g_assert(self);
+
+    self->callback = callback;
+    self->callback_data = user_data;
+}
+
+////////////////////////////////
+
+mc_ZeroconfState mc_zeroconf_get_state(mc_ZeroconfBrowser * self)
+{
+    g_assert(self); 
+
+    return self->state;
+}
+
+////////////////////////////////
+
+const char * mc_zeroconf_get_error(mc_ZeroconfBrowser * self)
+{
+    g_assert(self); 
+
+    return self->last_error;
+}
+
+////////////////////////////////
+
+mc_ZeroconfServer ** mc_zeroconf_get_server(mc_ZeroconfBrowser * self)
+{
+    g_assert(self);
+
+    mc_ZeroconfServer ** buf = NULL;
+
+    if(self->server_list != NULL) {
+        unsigned cursor = 0;
+        buf = g_malloc0(sizeof(mc_ZeroconfServer *) * (g_list_length(self->server_list) + 1));
+        for(GList * iter = self->server_list; iter; iter = iter->next) {
+            buf[cursor++] = iter->data;
+            buf[cursor+0] = NULL;
+        }
+    }
+    return buf;
+}
+
+////////////////////////////////
+
+const char * mc_zeroconf_server_get_host(mc_ZeroconfServer * server)
+{
+    g_assert(server);
+
+    return server->host;
+}
+
+////////////////////////////////
+
+const char * mc_zeroconf_server_get_addr(mc_ZeroconfServer * server)
+{
+    g_assert(server);
+
+    return server->addr;
+}
+
+////////////////////////////////
+
+const char * mc_zeroconf_server_get_name(mc_ZeroconfServer * server)
+{
+    g_assert(server);
+
+    return server->name;
+}
+
+////////////////////////////////
+
+const char * mc_zeroconf_server_get_type(mc_ZeroconfServer * server)
+{
+    g_assert(server);
+
+    return server->type;
+}
+
+////////////////////////////////
+
+const char * mc_zeroconf_server_get_domain(mc_ZeroconfServer * server)
+{
+    g_assert(server);
+
+    return server->domain;
+}
+
+////////////////////////////////
+
+unsigned mc_zeroconf_server_get_port(mc_ZeroconfServer * server)
+{
+    g_assert(server);
+
+    return server->port;
 }

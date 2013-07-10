@@ -4,7 +4,7 @@
 /* All relevant headers are included here */
 #include "misc/posix-signal.h"
 #include "misc/external-logs.h"
-#include "zeroconf/browse.h"
+#include "misc/zeroconf.h"
 
 #include "mpd/protocol.h"
 #include "mpd/client.h"

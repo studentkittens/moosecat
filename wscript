@@ -216,7 +216,6 @@ def _find_libmoosecat_src(ctx):
     c_files += ctx.path.ant_glob('lib/misc/*.c')
     c_files += ctx.path.ant_glob('lib/util/*.c')
     c_files += ctx.path.ant_glob('lib/store/*.c')
-    c_files += ctx.path.ant_glob('lib/zeroconf/*.c')
 
     for exclude in EXCLUDE_FILES:
         exclude_node = ctx.path.make_node(exclude)
