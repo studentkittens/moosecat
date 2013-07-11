@@ -129,9 +129,49 @@ int main(int argc, char *argv[])
                         mc_stack_free(stack);
                         g_strfreev(args);
                     }
+                    continue;
+                }
+
+                if (strncmp(line_buf, ":list-all", 8) == 0) {
+
+                    mc_Stack *stack = mc_stack_create(5, NULL);
+                    mc_store_gw(db, mc_store_playlist_get_all_known(db, stack));
+                    int found = mc_stack_length(stack);
+                    if (found == 0) {
+                        g_print("No playlists found.\n");
+                    } else {
+                        for (int i = 0; i < found; ++i) {
+                            struct mpd_playlist *playlist = mc_stack_at(stack, i);
+                            g_print("%s: %010d\n", mpd_playlist_get_path(playlist), (int)mpd_playlist_get_last_modified(playlist));
+                        }
+                    }
+                    mc_store_release(db);
+
+                    mc_stack_free(stack);
 
                     continue;
                 }
+
+                if (strncmp(line_buf, ":list-loaded", 8) == 0) {
+
+                    mc_Stack *stack = mc_stack_create(5, NULL);
+                    mc_store_gw(db, mc_store_playlist_get_all_loaded(db, stack));
+                    int found = mc_stack_length(stack);
+                    if (found == 0) {
+                        g_print("No playlists found.\n");
+                    } else {
+                        for (int i = 0; i < found; ++i) {
+                            struct mpd_playlist *playlist = mc_stack_at(stack, i);
+                            g_print("%s: %010d\n", mpd_playlist_get_path(playlist), (int)mpd_playlist_get_last_modified(playlist));
+                        }
+                    }
+                    mc_store_release(db);
+
+                    mc_stack_free(stack);
+
+                    continue;
+                }
+
 
                 if (strncmp(line_buf, ":ls ", 4) == 0) {
                     char **args = g_strsplit(line_buf, " ", -1);

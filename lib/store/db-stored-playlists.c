@@ -236,8 +236,12 @@ static GList *mc_stprv_spl_get_loaded_list(mc_Store *self)
 
     /* Select all table names from db that start with spl_ */
     while (sqlite3_step(self->spl.select_tables_stmt) == SQLITE_ROW) {
-        table_name_list = g_list_prepend(table_name_list, g_strdup((char *)
-                                         sqlite3_column_text(self->spl.select_tables_stmt, 0)));
+        table_name_list = g_list_prepend(
+                table_name_list,
+                g_strdup(
+                    (char *) sqlite3_column_text(self->spl.select_tables_stmt, 0)
+                )
+        );
     }
 
     /* Be nice, and always check for errors */
@@ -249,6 +253,7 @@ static GList *mc_stprv_spl_get_loaded_list(mc_Store *self)
         CLEAR_BINDS(self->spl.select_tables_stmt);
     }
 
+    g_list_free(table_name_list);
     return table_name_list;
 }
 

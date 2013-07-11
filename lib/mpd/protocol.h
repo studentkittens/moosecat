@@ -80,6 +80,8 @@ typedef struct mc_Client {
      */
     GRecMutex _getput_mutex;
 
+    GRecMutex _client_attr_mutex;
+
     /* Save last connected host / port */
     char *_host;
     int _port;
@@ -111,6 +113,9 @@ typedef struct mc_Client {
         GList *commands;
     } command_list;
     
+    /* The thread mc_create() was called from */
+    GThread * initial_thread;
+
 } mc_Client;
 
 ///////////////////
@@ -316,7 +321,7 @@ const char *mc_get_host(mc_Client *self);
  *
  * @return the port or -1 on error.
  */
-int mc_get_port(mc_Client *self);
+unsigned mc_get_port(mc_Client *self);
 
 /**
  * @brief Get the currently set timeout.
@@ -325,7 +330,7 @@ int mc_get_port(mc_Client *self);
  *
  * @return the timeout in seconds, or -1 on error.
  */
-int mc_get_timeout(mc_Client *self);
+float mc_get_timeout(mc_Client *self);
 
 /**
  * @brief Activate a status timer

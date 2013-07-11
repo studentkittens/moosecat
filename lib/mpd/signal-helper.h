@@ -89,11 +89,13 @@ mc_cc_printf(3,4) void mc_shelper_report_progress(
  * @param self the client to operate on.
  * @param new_host the new host passed to connect()
  * @param new_port the new port passed to connect()
+ * @param new_timeout the new timeout passed to connect()
  */
 void mc_shelper_report_connectivity(
     struct mc_Client *self,
     const char *new_host,
-    int new_port);
+    int new_port,
+    float new_timeout);
 
 /**
  * @brief Dispatch the op-finished signal

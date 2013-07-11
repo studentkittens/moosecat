@@ -33,6 +33,9 @@ typedef struct {
     /* Connection to send commands */
     mpd_connection *cmnd_con;
 
+    /* Protexct get/set of self->cmnd_con */
+    GMutex cmnd_con_mtx;
+
     /* Thread that polls idle_con */
     GThread *listener_thread;
 
@@ -165,7 +168,7 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
         );
     }
 
-    g_thread_unref(g_thread_self());
+    //g_thread_unref(g_thread_self());
     return NULL;
 }
 
@@ -176,10 +179,9 @@ static void cmnder_create_glib_adapter(
     GMainContext *context)
 {
     if (self->listener_thread == NULL) {
-        cmnder_set_run_listener(self, self->listener_thread, TRUE);
-
-        /* Start the listener thread and set the Queue Watcher on it */
         self->listener_thread = g_thread_new("listener", cmnder_listener_thread, self);
+        g_thread_ref(self->listener_thread);
+        cmnder_set_run_listener(self, self->listener_thread, TRUE);
     }
 }
 
@@ -218,10 +220,12 @@ static void cmnder_reset(mc_CmndClient *self)
     if (self != NULL) {
         cmnder_shutdown_listener(self);
 
+        g_mutex_lock(&self->cmnd_con_mtx);
         if (self->cmnd_con) {
             mpd_connection_free(self->cmnd_con);
             self->cmnd_con = NULL;
         }
+        g_mutex_unlock(&self->cmnd_con_mtx);
     }
 }
 //////////////////////////
@@ -288,17 +292,21 @@ static char *cmnder_do_connect(
 {
     char *error_message = NULL;
     mc_CmndClient *self = child(parent);
+    g_mutex_lock(&self->cmnd_con_mtx);
     self->cmnd_con = mpd_connect((mc_Client *) self, host, port, timeout, &error_message);
+    g_mutex_unlock(&self->cmnd_con_mtx);
 
     if (error_message != NULL) {
         goto failure;
     }
 
     if (error_message != NULL) {
+        g_mutex_lock(&self->cmnd_con_mtx);
         if (self->cmnd_con) {
             mpd_connection_free(self->cmnd_con);
             self->cmnd_con = NULL;
         }
+        g_mutex_unlock(&self->cmnd_con_mtx);
 
         goto failure;
     }
@@ -325,7 +333,12 @@ failure:
 static bool cmnder_do_is_connected(mc_Client *parent)
 {
     mc_CmndClient *self = child(parent);
-    return (self->cmnd_con);
+
+    g_mutex_lock(&self->cmnd_con_mtx);
+    struct mpd_connection * conn = child(self)->cmnd_con;
+    g_mutex_unlock(&self->cmnd_con_mtx);
+
+    return (conn);
 }
 
 ///////////////////////
@@ -343,9 +356,9 @@ static bool cmnder_do_disconnect(mc_Client *parent)
 
 ///////////////////////
 
-static mpd_connection *cmnder_do_get(mc_Client *self)
+static mpd_connection *cmnder_do_get(mc_Client *client)
 {
-    return child(self)->cmnd_con;
+    return child(client)->cmnd_con;
 }
 
 ///////////////////////
@@ -368,6 +381,7 @@ static void cmnder_do_free(mc_Client *parent)
     cmnder_shutdown_pinger(self);
 
     g_hash_table_destroy(self->run_listener_table);
+    g_mutex_clear(&self->cmnd_con_mtx);
     g_mutex_clear(&self->flagmtx_run_pinger);
     g_mutex_clear(&self->flagmtx_run_listener);
     memset(self, 0, sizeof(mc_CmndClient));
@@ -392,8 +406,12 @@ mc_Client *mc_create_cmnder(long connection_timeout_ms)
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;
 
-    self->run_listener_table = g_hash_table_new(g_direct_hash, g_int_equal);
+    self->run_listener_table = g_hash_table_new_full(
+            g_direct_hash, g_int_equal,
+            (GDestroyNotify) g_thread_unref, NULL
+    );
 
+    g_mutex_init(&self->cmnd_con_mtx);
     g_mutex_init(&self->flagmtx_run_pinger);
     g_mutex_init(&self->flagmtx_run_listener);
 

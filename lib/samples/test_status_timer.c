@@ -10,9 +10,9 @@ static void signal_event(
     void *user_data)
 {
     (void) u_conn;
+
     static int counter = 0;
     GMainLoop *loop = user_data;
-
 
     g_print("event = %d\n", event);
 
@@ -36,6 +36,7 @@ int main(void)
     {
         g_main_loop_run(loop);
     }
+    g_main_loop_unref(loop);
 
     mc_free(client);
     return EXIT_SUCCESS;

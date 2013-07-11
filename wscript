@@ -264,6 +264,7 @@ def build(bld):
     build_test_program('lib/samples/test_zeroconf.c', 'test_zeroconf')
     build_test_program('lib/samples/test_store_change.c', 'test_store_change')
     build_test_program('lib/samples/test_outputs.c', 'test_outputs')
+    build_test_program('lib/samples/test_reconnect.c', 'test_reconnect')
     build_test_program('lib/samples/test_gtk.c', 'test_gtk',
             libraries=LIBS + bld.env.LIB_GTK3,
             includes_h=INCLUDES + bld.env.INCLUDES_GTK3

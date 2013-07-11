@@ -212,6 +212,7 @@ void  mc_priv_signal_list_init(mc_SignalList *list)
 
     memset(list, 0, sizeof(mc_SignalList));
 
+    g_rec_mutex_init(&list->api_mtx);
     list->dispatch_queue = g_async_queue_new();
     list->signal_watch_id = mc_async_queue_watch_new(
             list->dispatch_queue,       /* Queue to watch                             */
@@ -220,10 +221,6 @@ void  mc_priv_signal_list_init(mc_SignalList *list)
             list,                       /* User data                                  */
             NULL                        /* Default MainLoop Context                   */
     );
-
-    /* Set the target dispatch thread to the current one.
-     * We need this for later comparasion */
-    list->initial_thread = g_thread_self();
 }
 
 ///////////////////////////////
@@ -239,6 +236,7 @@ void mc_priv_signal_add_masked(
     if (list == NULL || callback_func == NULL)
         return;
 
+    g_rec_mutex_lock(&list->api_mtx);
     mc_SignalTag *tag = g_slice_new0(mc_SignalTag);
     tag->user_data = user_data;
     tag->callback = callback_func;
@@ -254,6 +252,7 @@ void mc_priv_signal_add_masked(
                 list->signals[type] = g_list_append(list->signals[type], tag);
         }
     }
+    g_rec_mutex_unlock(&list->api_mtx);
 }
 
 ///////////////////////////////
@@ -274,12 +273,15 @@ int mc_priv_signal_length(
     mc_SignalList *list,
     const char *signal_name)
 {
-    mc_SignalType type = mc_convert_name_to_signal(signal_name);
+    int result = -1;
 
+    g_rec_mutex_lock(&list->api_mtx);
+    mc_SignalType type = mc_convert_name_to_signal(signal_name);
     if (type != MC_SIGNAL_UNKNOWN)
         return (list) ? (int) g_list_length(list->signals[type]) : -1;
-    else
-        return -1;
+   
+    g_rec_mutex_unlock(&list->api_mtx);
+    return result;
 }
 
 ///////////////////////////////
@@ -289,6 +291,7 @@ void mc_priv_signal_rm(
     const char *signal_name,
     void *callback_addr)
 {
+    g_rec_mutex_lock(&list->api_mtx);
     mc_SignalType type = mc_convert_name_to_signal(signal_name);
 
     if (type != MC_SIGNAL_UNKNOWN) {
@@ -301,11 +304,13 @@ void mc_priv_signal_rm(
                 if (tag->callback == callback_addr) {
                     list->signals[type] = g_list_delete_link(head, iter);
                     g_slice_free(mc_SignalTag, tag);
+                    g_rec_mutex_unlock(&list->api_mtx);
                     return;
                 }
             }
         }
     }
+    g_rec_mutex_unlock(&list->api_mtx);
 }
 
 ///////////////////////////////
@@ -314,21 +319,22 @@ void mc_priv_signal_report_event_v(mc_SignalList *list, const char *signal_name,
 {
     g_assert(list);
 
+    g_rec_mutex_lock(&list->api_mtx);
     mc_DispatchTag *data_tag = mc_priv_signal_list_unpack_valist(signal_name, args);
-    if(data_tag == NULL)
-        return;
-
-    /* All signals are currently pushed into a queue.
-     * even if they are already on the Main-Thread.
-     * This guarantess that the dispatch happens always on the main thread.
-     * 
-     * This decision was done to be able to "buffer" events.
-     * Client-Events are pulled after a timeout or after too many events
-     * out of the queue and are merged into a single one. 
-     *
-     * Sliding the Volume Slider for example causes much less traffic this way.
-     */
-    g_async_queue_push(list->dispatch_queue, data_tag);
+    if(data_tag != NULL) {
+        /* All signals are currently pushed into a queue.
+        * even if they are already on the Main-Thread.
+        * This guarantess that the dispatch happens always on the main thread.
+        * 
+        * This decision was done to be able to "buffer" events.
+        * Client-Events are pulled after a timeout or after too many events
+        * out of the queue and are merged into a single one. 
+        *
+        * Sliding the Volume Slider for example causes much less traffic this way.
+        */
+        g_async_queue_push(list->dispatch_queue, data_tag);
+    }
+    g_rec_mutex_unlock(&list->api_mtx);
 }
 
 ///////////////////////////////
@@ -356,5 +362,6 @@ void mc_priv_signal_list_destroy(mc_SignalList *list)
         }
 
         g_async_queue_unref(list->dispatch_queue);
+        g_rec_mutex_clear(&list->api_mtx);
     }
 }

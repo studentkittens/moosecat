@@ -39,10 +39,10 @@ typedef struct {
      */
     guint signal_watch_id;
 
-    /* The Thread mc_priv_signal_list_init() was called in.
-     * This is the Thread signals are dispatched to.
+    /* Protect signal_add/rm/length/dispatch 
+     * from accessing it simultaneously from serveral threads
      */
-    GThread *initial_thread;
+    GRecMutex api_mtx;
 
 } mc_SignalList;
 

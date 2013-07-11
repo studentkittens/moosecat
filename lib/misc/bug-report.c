@@ -26,10 +26,12 @@ char *mc_misc_bug_report(mc_Client *client)
             }
         }
 
+        g_rec_mutex_lock(&client->_client_attr_mutex);
         timeout = client->_timeout;
         host = client->_host;
         port = client->_port;
         pm = client->_pm;
+        g_rec_mutex_unlock(&client->_client_attr_mutex);
         mc_put(client);
     }
 

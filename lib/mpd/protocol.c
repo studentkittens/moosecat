@@ -12,6 +12,8 @@
 /* memset() */
 #include <string.h>
 
+#define ASSERT_IS_MAINTHREAD(client) g_assert(g_thread_self() == (client)->initial_thread)
+
 ///////////////////
 ////  PRIVATE /////
 ///////////////////
@@ -52,11 +54,13 @@ mc_Client *mc_create(mc_PmType pm)
 
         /* init the getput mutex */
         g_rec_mutex_init(&client->_getput_mutex);
+        g_rec_mutex_init(&client->_client_attr_mutex);
 
         mc_priv_signal_list_init(&client->_signals);
 
         client->_update_data = mc_update_data_new(client);
         client->_outputs = mc_priv_outputs_new(client);
+        client->initial_thread = g_thread_self();
     }
 
     return client;
@@ -76,6 +80,8 @@ char *mc_connect(
     if (self == NULL)
         return g_strdup(etable[ERR_IS_NULL]);
 
+    ASSERT_IS_MAINTHREAD(self);
+
     /* Some progress! */
     mc_shelper_report_progress(self, true, "Attempting to connect…");
 
@@ -88,11 +94,8 @@ char *mc_connect(
         /* Force updating of status/stats/song on connect */
         mc_force_sync(self, INT_MAX);
 
-        /* For bugreports only */
-        self->_timeout = timeout;
-
         /* Check if server changed */
-        mc_shelper_report_connectivity(self, host, port);
+        mc_shelper_report_connectivity(self, host, port, timeout);
 
         /* Report some progress */
         mc_shelper_report_progress(self, true, "...Fully connected!");
@@ -154,6 +157,9 @@ char *mc_disconnect(
     mc_Client *self)
 {
     if (self && mc_is_connected(self)) {
+
+        ASSERT_IS_MAINTHREAD(self);
+
         /* Lock the connection while destroying it */
         g_rec_mutex_lock(&self->_getput_mutex);
 
@@ -191,12 +197,7 @@ void mc_free(mc_Client *self)
     if (self == NULL)
         return;
 
-    if (mc_status_timer_is_active(self)) {
-        mc_status_timer_unregister(self);
-    }
-
-    /* Free SSS data */
-    mc_update_data_destroy(self->_update_data);
+    ASSERT_IS_MAINTHREAD(self);
 
     /* Disconnect if not done yet */
     mc_disconnect(self);
@@ -204,11 +205,21 @@ void mc_free(mc_Client *self)
     /* Forget any signals */
     mc_priv_signal_list_destroy(&self->_signals);
 
+    if (mc_status_timer_is_active(self)) {
+        mc_status_timer_unregister(self);
+    }
+
+    /* Free SSS data */
+    mc_update_data_destroy(self->_update_data);
+
     /* Kill any previously connected host info */
+    g_rec_mutex_lock(&self->_client_attr_mutex);
     if (self->_host != NULL)
         g_free(self->_host);
+    g_rec_mutex_unlock(&self->_client_attr_mutex);
 
     g_rec_mutex_clear(&self->_getput_mutex);
+    g_rec_mutex_clear(&self->_client_attr_mutex);
 
     /* Allow special connector to cleanup */
     if (self->do_free != NULL)
@@ -303,14 +314,21 @@ const char *mc_get_host(mc_Client *self)
 {
     g_assert(self);
 
-    return self->_host;
+    g_rec_mutex_lock(&self->_client_attr_mutex);
+    const char * host = self->_host;
+    g_rec_mutex_unlock(&self->_client_attr_mutex);
+
+    return host;
 }
 
 ///////////////////
 
-int mc_get_port(mc_Client *self)
+unsigned mc_get_port(mc_Client *self)
 {
-    return self->_port;
+    g_rec_mutex_lock(&self->_client_attr_mutex);
+    unsigned port = self->_port;
+    g_rec_mutex_unlock(&self->_client_attr_mutex);
+    return port;
 }
 
 ///////////////////
@@ -329,9 +347,12 @@ void mc_status_timer_unregister(mc_Client *self)
 
 ///////////////////
 
-int mc_get_timeout(mc_Client *self)
+float mc_get_timeout(mc_Client *self)
 {
-    return self->_timeout;
+    g_rec_mutex_lock(&self->_client_attr_mutex);
+    float timeout = self->_timeout;
+    g_rec_mutex_unlock(&self->_client_attr_mutex);
+    return timeout;
 }
 
 ///////////////////

@@ -6,7 +6,7 @@
 int main(void)
 {
     mc_Client *client = mc_create(MC_PM_IDLE);
-    mc_connect(client, NULL, "localhost", 6600, 2);
+    mc_connect(client, NULL, "localhost", 6666, 2);
 
     if (mc_is_connected(client)) {
 

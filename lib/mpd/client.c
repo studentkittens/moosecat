@@ -817,8 +817,10 @@ static void * mc_client_command_dispatcher(
         else
         if(mc_client_command_list_is_active(self)) {
             mc_client_command_list_append(self, input);
-            result = true;
-            free_input = false;
+            if(mc_is_connected(self)) {
+                result = true;
+                free_input = false;
+            }
         }
         else 
         if(mc_client_command_list_is_start_or_end(input) == +1) {
@@ -919,10 +921,10 @@ static bool mc_client_command_list_commit(mc_Client *self)
             }
 
             if(mpd_command_list_end(conn) == false) {
-                g_warning("unable to issue command_list_end");
+                mc_shelper_report_error(self, conn);        
             }
         } else {
-            g_warning("unable to issue command_list_begin");
+            mc_shelper_report_error(self, conn);        
         }
 
         if (mpd_response_finish(conn) == false) {       

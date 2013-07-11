@@ -137,8 +137,11 @@ void mc_shelper_report_progress(
 void mc_shelper_report_connectivity(
     struct mc_Client *self,
     const char *new_host,
-    int new_port)
+    int new_port,
+    float new_timeout)
 {
+
+    g_rec_mutex_lock(&self->_client_attr_mutex);
     bool server_changed = self->is_virgin == false &&
         ((g_strcmp0(new_host, self->_host) != 0) || (new_port != self->_port));
 
@@ -150,6 +153,10 @@ void mc_shelper_report_connectivity(
 
     self->_host = g_strdup(new_host);
     self->_port = new_port;
+    self->_timeout = new_timeout;
+    g_rec_mutex_unlock(&self->_client_attr_mutex);
+
+
     /* Dispatch *after* host being set */
     mc_signal_dispatch(self, "connectivity", 
             self, server_changed,

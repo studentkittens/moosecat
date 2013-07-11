@@ -1,12 +1,7 @@
 libmoosecat 
 -----------
 
-- fix destroyage of UpdateData (test_status_timer bug)
-- valgrind it
-- Make client/store failsafe in case of connection loss
-  - Chances are getting better, 
-    but lots of testing needed with store
-- Clean up API, Make README.docs
+- Clean up API, Make README.docs 
 - Update cython wrapper (Oof)
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.
@@ -29,3 +24,6 @@ libmoosecat
 - self->con mutex idle-core.c deadlocks // DONE
 - QueryParser Integration? // DONE
 - bettern db loading in store (different dbs with different host:ports) // DONE
+- fix destroyage of UpdateData (test_status_timer bug) // DONE
+- valgrind it // DONE
+- Make client/store failsafe in case of connection loss // DONE

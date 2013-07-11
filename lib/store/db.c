@@ -234,7 +234,7 @@ static int mc_store_check_if_db_is_still_valid(mc_Store *self, const char *db_pa
     mc_stprv_prepare_all_statements(self);
 
     /* check #3 */
-    int cached_port = mc_stprv_get_mpd_port(self);
+    unsigned cached_port = mc_stprv_get_mpd_port(self);
     if (cached_port != mc_get_port(self->client)) {
         mc_shelper_report_progress(self->client, true,
                 "database: %s's port changed (old=%d, new=%d), creating new.",

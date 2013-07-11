@@ -1,47 +1,77 @@
 Overview
 ========
 
-The Store is used to save all queried mpd songs into a Database.
-Advantages:
+All source-code related to moosecat's client-side database is located here.
+Moosecat mantains a mirror of MPD's database that is built up on startup. 
+If there's already one on the disk it will use it and deserialize as long it is
+up-to-date.
 
-- Saves network performance.
-- Easier/more intelligent searching (via SQL statements or FTS)
-- Faster Startup (songs can be deserialized from DB, which is faster than slow network)
-
-Disadvantage:
-
-- Bit more work for us, libgda makes this bearable though.
-- More Memory Usage, partly, also more CPU Usage (although not much)
-  => Network is more important anyway. 100 MB of Memory should be tolerable for ~16000 Songs.
+The reason why we do this is simple: Performance. This well indexed local cache
+allows us to search songs in it with a well extended query language that is
+easy to type. 
 
 
-Architecture
-============
+Files
+=====
 
-- The Database is hold in memory, and written to HD on application quit.
+db.c
 
-  * All metadata of a mpd_song is stored (tags, length etc.).
-  * from one row, a mpd_song can be deserialized.
-  * for reducing memory, tags (title, album, artist) are stored in seperate tables.
-  * Additional to the metadata of songs, a index is saved.
-  * The Queue-Version is saved persistent also.
+    Implements the user API, how the store reacts to changes, backups and client-changes.
 
-- A list of mpd_song is held internally (probably a GArray). 
-  
-  * The Database is used for indexing, and searching. 
-  * All Selects return indices to the songlist, which can be used to reference certain songs.
+db-dirs.c
 
-- Startup: 
+    Implements caching and searching through the directory tree of MPD's database.
+    Moosecat support vertical, horizontal and point selection:
 
-  * Read last Queue-Version.
-  * Read Difference to this version from server (plchanges command)
-  * Merge differences to DB.
-  * De-serialize complete songlist from DB.
+        - Vertical Selection: Search the Tree by a Path-Pattern.
+        - Horiztontal Selection: Select a certain depth of the Tree.
+        - Point Selection: Combine both Horizontal and Vertical Selection.
 
-- Searching:
+db-macros.h
 
-  * Do a select, and return a list of pointers. Done.
+    Common Macros used mainly by db-private.c
 
-- Shutdown:
+db-operations.c
+    
+    Operations that are triggered in db.c (runinng plchanges and listallinfo)
 
-  * Save in-memory db to disk.
+db-private.c
+
+    Actual Implementation of the Database. Here lives everything that has to do
+    with SQL and SQLite. All the dirty stuff goes here.
+
+db-query-parser.c
+
+    A parser that enhances SQlite's FTS4 Query Syntax
+    (http://www.sqlite.org/fts3.html#section_3) by an easier to type syntax.
+    
+    Example:
+
+        Instead of: 
+
+            (artist:Akr* OR album:Akr* OR title:Akr*) AND album:Lebenslinie
+
+        You would type:
+
+            Akr + b:Lebenslinie
+
+db-settings.c
+
+    Settings that can be passed to mc_store_create(). 
+
+db-stored-playlists.c
+    
+    Implements everything related to stored playlists. SPLs are stored in a
+    seperate table each on it's own. This code manages this and keeps those
+    tables well updated. It can query Stored Playlists as fast as the normal
+    Queue.
+
+stack.c
+
+    A container for the result. At it's heart this is a GPtrArray that grows 
+    easily to hold many results (e.g. songs or playlists).
+
+    One should note that many result-stacks can contain the same pointers,
+    since moosecat will store a large stack of pointers to mpd_songs. Searching
+    the Database just selects some of them and packs them into a new mc_Stack
+    easily spoken.
