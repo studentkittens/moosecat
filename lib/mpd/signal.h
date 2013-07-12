@@ -65,7 +65,7 @@ typedef void (* mc_ClientEventCallback)(struct mc_Client *, enum mpd_idle, void 
 typedef void (* mc_LoggingCallback)(struct mc_Client *, const char *err_msg, mc_LogLevel level, void *user_data);
 
 /* Connection change callback */
-typedef void (* mc_ConnectivityCallback)(struct mc_Client *, bool server_changed, bool is_connected, void *user_data);
+typedef void (* mc_ConnectivityCallback)(struct mc_Client *, bool server_changed, bool was_connected, void *user_data);
 
 ///////////////////////////////
 

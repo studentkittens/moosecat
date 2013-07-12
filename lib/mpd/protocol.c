@@ -406,6 +406,13 @@ struct mpd_status *mc_lock_status(struct mc_Client *self)
 
 ////////////////////////
 
+const char * mc_get_replay_gain_mode(mc_Client * self)
+{
+    return self->_update_data->replay_gain_status;
+}
+
+////////////////////////
+
 void mc_unlock_status(struct mc_Client *self)
 {
     g_rec_mutex_unlock(&self->_update_data->mtx_status);

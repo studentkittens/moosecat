@@ -16,3 +16,10 @@ cdef stringify(char * bytestring):
 cdef bytify(string):
     'Convert str to bytes, using utf-8'
     return string.encode('UTF-8')
+
+
+cdef client_send(c.mc_Client * client, command):
+    cdef char * b_command
+    b_command = command
+
+    return c.mc_client_send(client, b_command)

@@ -45,6 +45,7 @@
  *      Many.
  *
  * This assumes that SQLite was compiled with -DSQLITE_ENABLE_FTS3_PARENTHESIS
+ * Moosecat comes with it's custom SQLITE bundled, so don't worry.
  *
  * @query: A String with query extensions.
  * @warning: (OUT) If input is invalid a warning is placed (still a result is returned)

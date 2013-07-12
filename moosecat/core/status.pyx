@@ -108,35 +108,35 @@ cdef class Status:
         def __get__(self):
             return c.mpd_status_get_volume(self._p())
         def __set__(self, vol):
-            c.mc_client_setvol(self._c(), vol)
+            client_send(self._c(), 'setvol ' + str(vol))
 
     property repeat:
         'Check if repeat mode is on'
         def __get__(self):
             return c.mpd_status_get_repeat(self._p())
         def __set__(self, state):
-            c.mc_client_repeat(self._c(), state)
+            client_send(self._c(), 'repeat ' + str(1 if state else 0))
 
     property random:
         'Check if random mode is on'
         def __get__(self):
             return c.mpd_status_get_random(self._p())
         def __set__(self, state):
-            c.mc_client_random(self._c(), state)
+            client_send(self._c(), 'random ' + str(1 if state else 0))
 
     property single:
         'Check if single mode is on'
         def __get__(self):
             return c.mpd_status_get_single(self._p())
         def __set__(self, state):
-            c.mc_client_single(self._c(), state)
+            client_send(self._c(), 'single ' + str(1 if state else 0))
 
     property consume:
         'Check if consume mode is on'
         def __get__(self):
             return c.mpd_status_get_consume(self._p())
         def __set__(self, state):
-            c.mc_client_consume(self._c(), state)
+            client_send(self._c(), 'consume ' + str(1 if state else 0))
 
     property queue_length:
         'Return the length of the Queue'
@@ -179,22 +179,22 @@ cdef class Status:
         'Get or Set the Crossfade in seconds or 0 to disable'
         def __get__(self):
             return c.mpd_status_get_crossfade(self._p())
-        def __set__(self, new_crossfade):
-            c.mc_client_crossfade(self._c(), new_crossfade)
+        def __set__(self, crossfade):
+            client_send(self._c(), 'crossfade ' + str(crossfade))
 
     property mixrampdb:
         'Retrieve or Set the mixrampdb value (see mpds documentation)'
         def __get__(self):
             return c.mpd_status_get_mixrampdb(self._p())
         def __set__(self, decibel):
-            c.mc_client_mixramdb(self._c(), decibel)
+            client_send(self._c(), 'mixrampdb ' + str(decibel))
 
     property mixrampdelay:
         'Mixrampdelay (see mpds documentation)'
         def __get__(self):
             return c.mpd_status_get_mixrampdelay(self._p())
         def __set__(self, seconds):
-            c.mc_client_mixramdelay(self._c(), seconds)
+            client_send(self._c(), 'mixrampdelay ' + str(seconds))
 
     property song_pos:
         'Position of the currently playing song within the Queue'
@@ -282,12 +282,12 @@ cdef class Status:
         Possible values: ['off', 'album', 'track', 'auto']
         '''
         def __get__(self):
-            return stringify(<char *>c.mc_proto_get_replay_gain_status(self._c()))
+            return stringify(<char *>c.mc_get_replay_gain_mode(self._c()))
 
         def __set__(self, mode):
             if mode in ['off', 'album', 'track', 'auto']:
                 b_mode = bytify(mode)
-                c.mc_client_replay_gain_mode(self._c(), b_mode)
+                client_send(self._c(), 'replay_gain_mode ' + mode)
             else:
                 raise ValueError('mode must be one of off, track, album, auto')
 

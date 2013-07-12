@@ -518,7 +518,7 @@ static bool handle_seek(mc_Client *self, struct mpd_connection *conn, const char
 
 ///////////////////
 
-static bool handle_seekid(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_seek_id(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
     intarg_named(argv[0], id);
     intarg_named(argv[1], seconds);
@@ -714,7 +714,7 @@ static const mc_HandlerField HandlerTable[] = {
     {"replay_gain_mode",   1,  handle_replay_gain_mode},
     {"seek",               2,  handle_seek},
     {"seekcur",            1,  handle_seekcur},
-    {"seekid",             2,  handle_seekid},
+    {"seek_id",            2,  handle_seek_id},
     {"setvol",             1,  handle_setvol},
     {"single",             1,  handle_single},
     {"stop",               0,  handle_stop},

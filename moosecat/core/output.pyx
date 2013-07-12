@@ -3,7 +3,7 @@ cimport binds as c
 
 cdef class AudioOutput:
     '''
-    AudioOutput is a class that encapusulates an mpd_output.
+    AudioOutput is a class that encapusulates an mpd_output_name.
 
     It only offers three properties, one of which is settable:
 
@@ -12,7 +12,7 @@ cdef class AudioOutput:
         * **oid**: MPD gives AudioOutput some ID. This is it. Not very useful, except for debugging.
 
     It should be instanced only from the Cython-Side, since it needs an pointer to
-    mpd_output to work properly. You can instance it yourself, but you will get only
+    mpd_output_name to work properly. You can instance it yourself, but you will get only
     a ValueError on usage.
 
     .. note::
@@ -29,46 +29,33 @@ cdef class AudioOutput:
         True  # Not set yet on serverside.
         >>> client.sync()
         >>> first.enabled
-        True  # Still! Because it still wraps an old mpd_output instance.
+        True  # Still! Because it still wraps an old mpd_output_name instance.
         >>> first = client.outputs[0]
         >>> first.enabled
         False  # Finally!
     '''
-    cdef c.mpd_output * _output
+    cdef const char * _output_name
     cdef c.mc_Client * _client
 
     def __cinit__(self):
         'You should not instance this yourself'
-        self._output = NULL
+        self._output_name = NULL
         self._client = NULL
 
-    cdef c.mpd_output * _p(self) except NULL:
-        if self._output != NULL:
-            return self._output
-        else:
-            raise ValueError('mpd_output pointer is null for this instance!')
-
-    cdef _init(self, c.mpd_output * output, c.mc_Client * client):
+    cdef _init(self, const char * output, c.mc_Client * client):
         'Meant for the Cython side'
-        self._output = output
+        self._output_name = output
         self._client = client
         return self
 
     property enabled:
         'Getter/Setter: Check if the output is enabled, or make it active.'
         def __get__(self):
-            return c.mpd_output_get_enabled(self._p())
+            return c.mc_outputs_get_state(self._client, self._output_name)
         def __set__(self, state):
-            c.mc_client_output_switch(self._client, c.mpd_output_get_name(self._p()), state)
+            c.mc_outputs_set_state(self._client, self._output_name, 1 if state else 0)
 
     property name:
         'Getter: Get the name of the output like in the mpd.conf.'
         def __get__(self):
-            # byte_opname gets not changed here. Promised.
-            byte_opname = <char*>c.mpd_output_get_name(self._p())
-            return stringify(byte_opname)
-
-    property oid:
-        'Get the MPD-Id of this Output. Probably not very useful.'
-        def __get__(self):
-            return c.mpd_output_get_id(self._p())
+            return stringify(<char *>self._output_name)

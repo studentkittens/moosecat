@@ -25,6 +25,9 @@ property. It will give you a list of strings.
 
 '''
 
+# TODO: mc_store_release all the way.
+
+
 cdef class Store:
     cdef c.mc_Store * _db
     cdef c.mc_StoreSettings * _settings
@@ -273,7 +276,8 @@ cdef class Store:
             # and fill their name in the names list
             while i < length:
                 b_name = <char * > c.mpd_playlist_get_path(
-                        <c.mpd_playlist * ?> c.mc_stack_at(stack, i))
+                        <c.mpd_playlist * ?> c.mc_stack_at(stack, i)
+                )
                 names.append(stringify(b_name))
                 i += 1
 
@@ -287,8 +291,11 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.mc_Stack * pl_names = <c.mc_Stack * >c.mc_store_playlist_get_all_names(self._p())
-            return self._make_playlist_names(pl_names)
+            cdef c.mc_Stack * pl_names = c.mc_stack_create(10, NULL)
+            c.mc_store_playlist_get_all_known(self._p(), pl_names)
+            names = self._make_playlist_names(pl_names)
+            c.mc_store_release(self._p())
+            return names
 
     property loaded_stored_playlists:
         '''
@@ -299,7 +306,9 @@ cdef class Store:
         def __get__(self):
             cdef c.mc_Stack * pl_names = c.mc_stack_create(10, NULL)
             c.mc_store_playlist_get_all_loaded(self._p(), pl_names)
-            return self._make_playlist_names(pl_names)
+            names = self._make_playlist_names(pl_names)
+            c.mc_store_release(self._p())
+            return names
 
     property total_songs:
         'Get the number of total songs in the store'

@@ -161,7 +161,8 @@ char *mc_connect(
     GMainContext *context,
     const char *host,
     int port,
-    float timeout);
+    float timeout
+);
 
 /**
  * @brief Return the "send connection" of the Connector.
@@ -432,12 +433,25 @@ bool mc_outputs_set_state(mc_Client *self, const char *output_name, bool state);
  *
  * This is the only way to get the status object. 
  *
+ * The status lock is also used for mc_get_replay_gain_status()
+ *
  * @param self the client holding the object
  *
  * @return the locked mpd_status
  */
 struct mpd_status * mc_lock_status(mc_Client *self);
 
+
+/**
+ * @brief Get the current replay gain mode ("album", "track", "auto", "off")
+ *
+ * Before calling this you should call mc_lock_status()
+ *
+ * @param self the client to get the replay_gain_mode from .
+ *
+ * @return a const string. Do not free.
+ */
+const char * mc_get_replay_gain_mode(mc_Client * self);
 
 /**
  * @brief The pendant to mc_lock_status()

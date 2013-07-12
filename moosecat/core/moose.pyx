@@ -19,4 +19,4 @@ include "misc.pyx"
 
 
 # Try to register SIGSEGV catching.
-# c.mc_misc_register_posix_signal(NULL)
+c.mc_misc_register_posix_signal(NULL)

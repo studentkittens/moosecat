@@ -281,15 +281,15 @@ def build(bld):
     )
 
     # Compile the cython code into build/moose.something.so
-    #bld(
-    #    features='c cshlib pyext',
-    #    source=_find_cython_src(bld),
-    #    target='moosecython',
-    #    use='moosecat',
-    #    lib=LIBS,
-    #    includes=['moosecat'] + INCLUDES,
-    #    cflags=CFLAGS
-    #)
+    bld(
+        features='c cshlib pyext',
+        source=_find_cython_src(bld),
+        target='moosecython',
+        use='moosecat',
+        lib=LIBS,
+        includes=['moosecat'] + INCLUDES,
+        cflags=CFLAGS
+    )
 
     if bld.options.runtests:
         for path in bld.path.ant_glob('test/lib/**/*.c'):

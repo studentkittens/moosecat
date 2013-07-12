@@ -120,6 +120,38 @@ cdef extern from "mpd/client.h":
         MPD_IDLE_SUBSCRIPTION
         MPD_IDLE_MESSAGE
 
+    ######################
+    #  Status Functions  #
+    ######################
+
+    int mpd_status_get_volume(mpd_status *)
+    bool mpd_status_get_repeat(mpd_status *)
+    bool mpd_status_get_random(mpd_status *)
+    bool mpd_status_get_single(mpd_status *)
+    bool mpd_status_get_consume(mpd_status *)
+    unsigned mpd_status_get_queue_length(mpd_status *)
+    unsigned mpd_status_get_queue_version(mpd_status *)
+    mpd_state mpd_status_get_state(mpd_status *)
+    unsigned mpd_status_get_crossfade(mpd_status *)
+    float mpd_status_get_mixrampdb(mpd_status *)
+    float mpd_status_get_mixrampdelay(mpd_status *)
+    int mpd_status_get_song_pos(mpd_status *)
+    int mpd_status_get_song_id(mpd_status *)
+    int mpd_status_get_next_song_pos(mpd_status *)
+    int mpd_status_get_next_song_id(mpd_status *)
+    unsigned mpd_status_get_elapsed_time(mpd_status *)
+    unsigned mpd_status_get_elapsed_ms(mpd_status *)
+    unsigned mpd_status_get_total_time(mpd_status *)
+    unsigned mpd_status_get_kbit_rate(mpd_status *)
+    mpd_audio_format * mpd_status_get_audio_format(mpd_status *)
+    unsigned mpd_status_get_update_id(mpd_status *)
+    char * mpd_status_get_error(mpd_status *)
+
+    # Useful for testing
+    mpd_status * mpd_status_begin()
+    void mpd_status_feed(mpd_status *status, mpd_pair *pair)
+    void mpd_status_free(mpd_status * status)
+
     ##########################
     #  Statistics Functions  #
     ##########################
@@ -186,125 +218,87 @@ cdef extern from "../../lib/mpd/protocol.h":
         PM_IDLE 'MC_PM_IDLE'
         PM_COMMAND 'MC_PM_COMMAND'
 
-
-    ctypedef enum mc_OpFinishedEnum:
-        MC_OP_DB_UPDATED
-        MC_OP_QUEUE_UPDATED
-        MC_OP_SPL_UPDATED
-        MC_OP_SPL_LIST_UPDATED
-
+    ctypedef enum mc_LogLevel:
+        LOG_CRITICAL 'MC_LOG_CRITICAL'
+        LOG_ERROR    'MC_LOG_ERROR'
+        LOG_WARNING  'MC_LOG_WARNING'
+        LOG_INFO     'MC_LOG_INFO'
+        LOG_DEBUG    'MC_LOG_DEBUG'
 
     ################
     #  Structures  #
     ################
 
     ctypedef struct mc_Client:
-        mpd_status * status
-        mpd_stats * stats
-        mpd_song * song
+        pass
 
     #############
     #  Methods  #
     #############
 
-    # Hiden on purpose. Do not screw with
-    # the connetion on the python layer
-    # mpd_connection * mc_proto_get (mc_Client *)
-    mpd_status * mc_proto_get_status(mc_Client *)
+    # Network:
+    mc_Client *mc_create(mc_PmType)
+    char *mc_connect( mc_Client *, void *, const char *, int, float)
+    bool mc_is_connected(mc_Client *)
+    char *mc_disconnect(mc_Client *)
+    void mc_free(mc_Client *)
 
-    # Networking
-    mc_Client * mc_proto_create (mc_PmType)
-    void mc_proto_put (mc_Client *)
-    bool mc_proto_is_connected (mc_Client *)
-    char * mc_proto_disconnect (mc_Client *)
-    void mc_proto_free (mc_Client *)
-    char * mc_proto_connect (mc_Client *, void *, char *, int, float)
+    # These two shall remain hidden, so the Python layer
+    # is uanableto screw with the connection.
+    # mpd_connection *mc_get(mc_Client *)
+    # void mc_put(mc_Client *)
 
     # Signals:
-    void mc_proto_signal_add (mc_Client * , char *, void *, void *)
-    void mc_proto_signal_add_masked (mc_Client * , char *, void *, void *, mpd_idle)
-    void mc_proto_signal_rm (mc_Client * , char *, void *)
-    void mc_proto_signal_dispatch (mc_Client * , char *, ...)
-    int mc_proto_signal_length (mc_Client * , char *)
-    void mc_proto_force_sss_update (mc_Client * , mpd_idle)
-
-    # Status Timers:
-    void mc_proto_status_timer_register (mc_Client *, int, bool)
-    void mc_proto_status_timer_unregister (mc_Client *)
-    bool mc_proto_status_timer_is_active (mc_Client *)
+    void mc_signal_add(mc_Client *, const char *, void *, void *)
+    void mc_signal_add_masked(mc_Client *, const char *, void *, void *, mpd_idle )
+    void mc_signal_rm(mc_Client *, const char *, void *)
+    void mc_signal_dispatch(mc_Client *, const char *, ...)
+    int mc_signal_length(mc_Client *, const char *)
 
     # Meta:
-    char * mc_proto_get_host (mc_Client *)
-    int mc_proto_get_port (mc_Client *)
-    int mc_proto_get_timeout (mc_Client *)
+    void mc_force_sync(mc_Client *, mpd_idle events)
+    const char *mc_get_host(mc_Client *)
+    unsigned mc_get_port(mc_Client *)
+    float mc_get_timeout(mc_Client *)
 
-    # Getters:
-    mpd_status * mc_proto_get_status(mc_Client *)
-    mpd_song * mc_proto_get_current_song(mc_Client *)
-    mpd_stats * mc_proto_get_statistics(mc_Client *)
-    char * mc_proto_get_replay_gain_status (mc_Client *)
+    # Status Timer
+    void mc_status_timer_register(mc_Client *, int, bool)
+    void mc_status_timer_unregister(mc_Client *)
+    bool mc_status_timer_is_active(mc_Client *)
 
     # Outputs:
-    mpd_output ** mc_proto_get_outputs(mc_Client *, int *)
+    bool mc_outputs_get_state(mc_Client *, const char *)
+    const char ** mc_outputs_get_names(mc_Client *)
+    bool mc_outputs_set_state(mc_Client *, const char *, bool)
 
-    # Command List:
-    bool mc_client_command_list_begin(mc_Client *)
-    bool mc_client_command_list_commit(mc_Client *)
-    bool mc_client_command_list_is_active(mc_Client *)
+    # Locking:
+    mpd_status * mc_lock_status(mc_Client *)
+    mpd_stats * mc_lock_statistics(mc_Client *)
+    mpd_song * mc_lock_current_song(mc_Client *)
+    const char * mc_get_replay_gain_mode(mc_Client *)
+    void mc_unlock_status(mc_Client *)
+    void mc_unlock_statistics(mc_Client *)
+    void mc_unlock_current_song(mc_Client *)
+    void mc_lock_outputs(mc_Client *)
+    void mc_unlock_outputs(mc_Client *)
+    void mc_block_till_sync(mc_Client *) nogil
 
-
-cdef extern from "../../lib/misc/external-logs.h":
-    # External Logs
-    void mc_misc_catch_external_logs(mc_Client *)
 
 ###########################################################################
 #                             Client Commands                             #
 ###########################################################################
 
 cdef extern from "../../lib/mpd/client.h":
-    bool mc_client_output_switch (mc_Client *,  char *, bool)
-    bool mc_client_password (mc_Client *,  char *)
-    void mc_client_consume (mc_Client *, bool)
-    void mc_client_crossfade (mc_Client *, bool)
-    void mc_client_database_rescan (mc_Client *, char *)
-    void mc_client_database_update (mc_Client *, char *)
-    void mc_client_mixramdb (mc_Client *, int)
-    void mc_client_mixramdelay (mc_Client *, int)
-    void mc_client_next (mc_Client *)
-    void mc_client_pause (mc_Client *)
-    void mc_client_play_id (mc_Client *, unsigned)
-    void mc_client_playlist_add (mc_Client *,  char *,  char *)
-    void mc_client_playlist_clear (mc_Client *,  char *)
-    void mc_client_playlist_delete (mc_Client *,  char *, unsigned)
-    void mc_client_playlist_load (mc_Client *,  char *)
-    void mc_client_playlist_move (mc_Client *,  char *, unsigned, unsigned)
-    void mc_client_playlist_rename (mc_Client *,  char *,  char *)
-    void mc_client_playlist_rm (mc_Client *,  char *)
-    void mc_client_playlist_save (mc_Client *,  char *)
-    void mc_client_play (mc_Client *)
-    void mc_client_previous (mc_Client *)
-    void mc_client_prio_id (mc_Client *, unsigned, unsigned)
-    void mc_client_prio (mc_Client *, unsigned, unsigned)
-    void mc_client_prio_range (mc_Client *, unsigned , unsigned , unsigned)
-    void mc_client_queue_add (mc_Client *,  char * uri)
-    void mc_client_queue_clear (mc_Client *)
-    void mc_client_queue_delete_id (mc_Client *, int)
-    void mc_client_queue_delete (mc_Client *, int)
-    void mc_client_queue_delete_range (mc_Client *, int , int)
-    void mc_client_queue_move (mc_Client *, unsigned , unsigned)
-    void mc_client_queue_move_range (mc_Client *, unsigned , unsigned , unsigned)
-    void mc_client_queue_shuffle (mc_Client *)
-    void mc_client_queue_swap_id (mc_Client *, int , int)
-    void mc_client_queue_swap (mc_Client *, int , int)
-    void mc_client_random (mc_Client *, bool)
-    void mc_client_repeat (mc_Client *, bool)
-    void mc_client_replay_gain_mode (mc_Client *,  char *)
-    void mc_client_seekcur (mc_Client *, int)
-    void mc_client_seekid (mc_Client *, int , int)
-    void mc_client_seek (mc_Client *, int , int)
-    void mc_client_setvol (mc_Client *, int)
-    void mc_client_single (mc_Client *, bool)
-    void mc_client_stop (mc_Client *)
+    void mc_client_init(mc_Client *)
+    void mc_client_destroy(mc_Client *)
+    long mc_client_send(mc_Client *, const char *)
+    bool mc_client_recv(mc_Client *, long) nogil
+    bool mc_client_run(mc_Client *, const char *) nogil
+    bool mc_client_command_list_is_active(mc_Client *)
+    void mc_client_wait(mc_Client *) nogil
+    void mc_client_begin(mc_Client *)
+    long mc_client_commit(mc_Client *)
+
 
 ###########################################################################
 #                                Database                                 #
@@ -339,19 +333,23 @@ cdef extern from "../../lib/store/db.h":
     ctypedef struct mc_Store:
         pass
 
-    mc_Store * mc_store_create (mc_Client *, mc_StoreSettings *)
-    void mc_store_close ( mc_Store *)
-    void mc_store_set_wait_mode (mc_Store *, bool)
-    mpd_song * mc_store_song_at (mc_Store *, int)
-    int mc_store_total_songs (mc_Store *)
-    void mc_store_playlist_load (mc_Store *,char *)
-    int mc_store_playlist_select_to_stack (mc_Store *, mc_Stack *, char *, char *)
-    int mc_store_dir_select_to_stack (mc_Store *, mc_Stack *,char *, int)
-    int mc_store_playlist_get_all_loaded (mc_Store *, mc_Stack *)
-    mc_Stack * mc_store_playlist_get_all_names (mc_Store *)
-    int mc_store_search_to_stack (mc_Store *, char *, bool, mc_Stack *, int)
-    bool mc_store_get_wait_mode (mc_Store *)
-    void mc_store_wait (mc_Store *) nogil
+
+    mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
+    void mc_store_close(mc_Store *)
+    mpd_song *mc_store_song_at(mc_Store *, int)
+    int mc_store_total_songs(mc_Store *)
+    long mc_store_playlist_load(mc_Store *, const char *)
+    long mc_store_playlist_select_to_stack(mc_Store *, mc_Stack *, const char *, const char *)
+    long mc_store_dir_select_to_stack(mc_Store *, mc_Stack *, const char *, int)
+    long mc_store_playlist_get_all_loaded(mc_Store *, mc_Stack *)
+    long mc_store_playlist_get_all_known(mc_Store *, mc_Stack *)
+    long mc_store_search_to_stack(mc_Store *, const char *, bool, mc_Stack *, int)
+    void mc_store_wait(mc_Store *) nogil
+    void mc_store_wait_for_job(mc_Store *, int) nogil
+    mc_Stack *mc_store_get_result(mc_Store *, int)
+    mc_Stack *mc_store_gw(mc_Store *, int)
+    void mc_store_release(mc_Store *)
+
 
 cdef extern from "../../lib/store/db-query-parser.h":
     char *mc_store_qp_parse(char *, char **, int *)
@@ -365,6 +363,37 @@ cdef extern from "../../lib/misc/bug-report.h":
 
 cdef extern from "../../lib/misc/posix-signal.h":
     void mc_misc_register_posix_signal (mc_Client * client)
+
+cdef extern from "../../lib/misc/external-logs.h":
+    void mc_misc_catch_external_logs(mc_Client *)
+
+cdef extern from "../../lib/misc/zeroconf.h":
+    ctypedef struct mc_ZeroconfBrowser:
+        pass
+
+    ctypedef struct mc_ZeroconfServer:
+        pass
+
+    ctypedef enum mc_ZeroconfState:
+        ZEROCONF_STATE_UNCONNECTED 'MC_ZEROCONF_STATE_UNCONNECTED'
+        ZEROCONF_STATE_CONNECTED   'MC_ZEROCONF_STATE_CONNECTED'
+        ZEROCONF_STATE_ERROR       'MC_ZEROCONF_STATE_ERROR'
+        ZEROCONF_STATE_CHANGED     'MC_ZEROCONF_STATE_CHANGED'
+        ZEROCONF_STATE_ALL_FOR_NOW 'MC_ZEROCONF_STATE_ALL_FOR_NOW'
+
+    mc_ZeroconfBrowser * mc_zeroconf_new(const char *)
+    void mc_zeroconf_destroy(mc_ZeroconfBrowser *)
+    void mc_zeroconf_register(mc_ZeroconfBrowser *, void *, void *)
+    mc_ZeroconfState mc_zeroconf_get_state(mc_ZeroconfBrowser *)
+    const char * mc_zeroconf_get_error(mc_ZeroconfBrowser *)
+    mc_ZeroconfServer ** mc_zeroconf_get_server(mc_ZeroconfBrowser *)
+    const char * mc_zeroconf_server_get_host(mc_ZeroconfServer *)
+    const char * mc_zeroconf_server_get_addr(mc_ZeroconfServer *)
+    const char * mc_zeroconf_server_get_name(mc_ZeroconfServer *)
+    const char * mc_zeroconf_server_get_type(mc_ZeroconfServer *)
+    const char * mc_zeroconf_server_get_domain(mc_ZeroconfServer *)
+    unsigned mc_zeroconf_server_get_port(mc_ZeroconfServer *)
+
 
 cdef extern from "../../lib/config.h":
     enum:
