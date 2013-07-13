@@ -368,13 +368,13 @@ cdef extern from "../../lib/misc/external-logs.h":
     void mc_misc_catch_external_logs(mc_Client *)
 
 cdef extern from "../../lib/misc/zeroconf.h":
-    ctypedef struct mc_ZeroconfBrowser:
+    cdef struct mc_ZeroconfBrowser:
         pass
 
-    ctypedef struct mc_ZeroconfServer:
+    cdef struct mc_ZeroconfServer:
         pass
 
-    ctypedef enum mc_ZeroconfState:
+    cdef enum mc_ZeroconfState:
         ZEROCONF_STATE_UNCONNECTED 'MC_ZEROCONF_STATE_UNCONNECTED'
         ZEROCONF_STATE_CONNECTED   'MC_ZEROCONF_STATE_CONNECTED'
         ZEROCONF_STATE_ERROR       'MC_ZEROCONF_STATE_ERROR'

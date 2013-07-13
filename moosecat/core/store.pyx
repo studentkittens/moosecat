@@ -1,6 +1,9 @@
 cimport binds as c
 from libcpp cimport bool
 
+# 'with' statement support
+from contextlib import contextmanager
+
 '''
 The Store.
 
@@ -24,9 +27,6 @@ though. You can get a list of avaible playlist-names via the playlist_names
 property. It will give you a list of strings.
 
 '''
-
-# TODO: mc_store_release all the way.
-
 
 cdef class Store:
     cdef c.mc_Store * _db
@@ -95,6 +95,7 @@ cdef class Store:
         with nogil:
             c.mc_store_wait(p)
 
+    @contextmanager
     def query(self, match_clause=None, queue_only=True, limit_length=-1):
         '''
         Query songs being in either the Database or in the Queue.
@@ -112,15 +113,19 @@ cdef class Store:
         result = c.mc_stack_create(stack_size, NULL)
 
         if result != NULL:
-            if match_clause is None or len(match_clause.strip()) is 0:
-                num = c.mc_store_search_to_stack(self._p(), NULL, queue_only, result, limit_length)
-            else:
-                b_match_clause = parse_query_bytes(bytify(match_clause))
-                num = c.mc_store_search_to_stack(self._p(), b_match_clause, queue_only, result, limit_length)
+            try:
+                if match_clause is None or len(match_clause.strip()) is 0:
+                    num = c.mc_store_search_to_stack(self._p(), NULL, queue_only, result, limit_length)
+                else:
+                    b_match_clause = parse_query_bytes(bytify(match_clause))
+                    num = c.mc_store_search_to_stack(self._p(), b_match_clause, queue_only, result, limit_length)
 
-            if num is not 0:
-                return Queue()._init(result, self._c())
+                if num is not 0:
+                    return Queue()._init(result, self._c())
+            finally:
+                c.mc_store_release(self._p())
 
+    @contextmanager
     def query_directories(self, path=None, depth=-1):
         '''
         Get a directory listing for a certain path and/or depth.
@@ -171,32 +176,31 @@ cdef class Store:
         stack = c.mc_stack_create(10, NULL)
         rlist = []
 
-        if stack != NULL:
-            if path is None:
-                num = c.mc_store_dir_select_to_stack(self._p(), stack, NULL, depth)
-            else:
-                b_path = bytify(path) if path else None
-                num = c.mc_store_dir_select_to_stack(self._p(), stack, b_path, depth)
+        if path is None:
+            num = c.mc_store_dir_select_to_stack(self._p(), stack, NULL, depth)
+        else:
+            b_path = bytify(path) if path else None
+            num = c.mc_store_dir_select_to_stack(self._p(), stack, b_path, depth)
 
-            if num > 0:
-                for idx in range(num):
-                    song_id, path = stringify(<char *>c.mc_stack_at(stack, idx)).split(':', maxsplit=1)
+        if num > 0:
+            for idx in range(num):
+                song_id, path = stringify(<char *>c.mc_stack_at(stack, idx)).split(':', maxsplit=1)
 
-                    # No error checking is done here - we rely on libmoosecat.
-                    song_id = int(song_id)
+                # No error checking is done here - we rely on libmoosecat.
+                song_id = int(song_id)
+                if song_id < 0:
+                    # it is a directory
+                    result = (None, path)
+                else:
+                    # it is a song
+                    result = (Song()._init(c.mc_store_song_at(self._p(), song_id)), path)
+                rlist.append(result)
+        c.mc_stack_free(stack)
 
-                    if song_id < 0:
-                        # it is a directory
-                        result = (None, path)
-                    else:
-                        # it is a song
-                        result = (Song()._init(c.mc_store_song_at(self._p(), song_id)), path)
-
-                    rlist.append(result)
-
-            c.mc_stack_free(stack)
-
-        return rlist
+        try:
+            yield rlist
+        finally:
+            c.mc_store_release(self._p())
 
     cdef c.mpd_playlist * _stored_playlist_get_by_name(self, b_name):
         'Find a mpd_playlist by its name'
@@ -227,6 +231,7 @@ cdef class Store:
         b_name = bytify(name)
         c.mc_store_playlist_load(self._p(), b_name)
 
+    @contextmanager
     def stored_playlist_query(self, name, match_clause=None):
         '''
         Search in a stored playlist with a match_clause.
@@ -247,18 +252,20 @@ cdef class Store:
             playlist = self._stored_playlist_get_by_name(b_name)
             if playlist != NULL:
 
-                if match_clause is None:
-                    # Perform the actual search
-                    c.mc_store_playlist_select_to_stack(self._p(), stack, b_name, NULL)
-                else:
-                    b_match_clause = parse_query_bytes(bytify(match_clause))
-                    c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
+                try:
+                    if match_clause is None:
+                        # Perform the actual search
+                        c.mc_store_playlist_select_to_stack(self._p(), stack, b_name, NULL)
+                    else:
+                        b_match_clause = parse_query_bytes(bytify(match_clause))
+                        c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
 
-                    if b_match_clause is not NULL:
-                        free(b_match_clause)
-
-                # Encapuslate the stack into a playlist object
-                return StoredPlaylist()._init_stored_playlist(stack, self._c(), playlist)
+                        if b_match_clause is not NULL:
+                            free(b_match_clause)
+                    # Encapuslate the stack into a playlist object and give it the user
+                    yield StoredPlaylist()._init_stored_playlist(stack, self._c(), playlist)
+                finally:
+                    c.mc_store_release(self._p())
             else:
                 raise ValueError('No such loaded stored playlist with this name: ' + name)
 

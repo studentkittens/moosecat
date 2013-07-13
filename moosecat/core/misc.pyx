@@ -86,3 +86,118 @@ cdef char * parse_query_bytes(b_query) except NULL:
         raise QueryParseException(stringify(<char *>warning), warning_pos)
 
     return result
+
+##################
+# ZEROCONF STUFF #
+##################
+
+# Static callback that gets called from the C-Side.
+# It will only call the registered Python function if any.
+# log_exception() is defined in client.pyx
+cdef void * wrap_ZeroconfCallback(c.mc_ZeroconfBrowser * browser, object data) with gil:
+    try:
+        data[0](data[1])
+    except:
+        log_exception(data[0])
+
+
+cdef class ZeroconfState:
+    '''
+    Possible states of ZeroconfBrowser.
+
+    Details:
+
+        * ``UNCONNECTED`` : Browser is not connected.
+        * ``CONNECTED``   : Browser is connected, but no results yet.
+        * ``ERROR``       : An error occured, use browser.error to find out.
+        * ``CHANGED``     : Server list changed. Use browser.server_list to get them.
+        * ``ALL_FOR_NOW`` : Probably no new Servers in the next while.
+    '''
+    UNCONNECTED = c.ZEROCONF_STATE_UNCONNECTED
+    CONNECTED   = c.ZEROCONF_STATE_CONNECTED
+    ERROR       = c.ZEROCONF_STATE_ERROR
+    CHANGED     = c.ZEROCONF_STATE_CHANGED
+    ALL_FOR_NOW = c.ZEROCONF_STATE_ALL_FOR_NOW
+
+
+cdef class ZeroconfBrowser:
+    '''
+    ZeroconfBrowser that can use Avahi to automatically list MPD servers in reach.
+    '''
+    cdef c.mc_ZeroconfBrowser * _browser
+    cdef object _callback_data_map
+
+    def __cinit__(self, protocol='_mpd._tcp'):
+        '''
+        Instance a new ZeroconfBrowser.
+        Once instanced, and once a mainloop is ready it will start searching
+        and call any registered callback on state change.
+
+        :protocol: Used protocol-type to query for (default: "_mpd._tcp")
+        '''
+        b_protocol = bytify(protocol)
+        self._browser = c.mc_zeroconf_new(b_protocol)
+        self._callback_data_map = {}
+
+    def __dealloc__(self):
+        c.mc_zeroconf_destroy(self._browser)
+
+    def register(self, func):
+        '''
+        Register a callback that is called on every state change of the browser.
+
+        Will raise a ValueError if func is not a callable.
+
+        :func: A callable that is called on each State change.
+        '''
+        if callable(func):
+            data = [func, self]
+            self._callback_data_map[func] = data
+            c.mc_zeroconf_register(self._browser, <void *>wrap_ZeroconfCallback, <void *>data)
+        else:
+            raise ValueError('`func` must be a Callable.')
+
+    property server_list:
+        '''
+        Get a list of available servers. You should call this in the callback
+        to be always sure to have the most current list.
+
+        This will return a list of dicionaries with following string keys:
+
+            * **host**: Hostname of the Server ('localhost')
+            * **addr**: Address of the Server  ('127.0.0.1')
+            * **name**: Name of the Server     ('Grandmas Music Player Daemon')
+            * **type**: Type of the Server     (usually '_mpd._tcp')
+            * **domain**: Domain of the Server ('local')
+            * **port**: Port of the Server     (6600)
+        '''
+        def __get__(self):
+            cdef c.mc_ZeroconfServer ** server = c.mc_zeroconf_get_server(self._browser)
+            cdef c.mc_ZeroconfServer * current
+            cdef int i = 0
+
+            py_server_list = []
+            if server != NULL:
+                while server[i] != NULL:
+                    current = server[i]
+                    py_server_list.append({
+                        'host'   : stringify(<char *>c.mc_zeroconf_server_get_host(current)),
+                        'addr'   : stringify(<char *>c.mc_zeroconf_server_get_addr(current)),
+                        'name'   : stringify(<char *>c.mc_zeroconf_server_get_name(current)),
+                        'type'   : stringify(<char *>c.mc_zeroconf_server_get_type(current)),
+                        'domain' : stringify(<char *>c.mc_zeroconf_server_get_domain(current)),
+                        'port'   : c.mc_zeroconf_server_get_port(current)
+                    })
+                    i += 1
+                free(server)
+            return py_server_list
+
+    property error:
+        'Get the last happended Error or an empty string if none happened lately.'
+        def __get__(self):
+            return stringify(<char *>c.mc_zeroconf_get_error(self._browser))
+
+    property state:
+        'Current state of the Browser. Its one of the values in ZeroconfState.'
+        def __get__(self):
+            return c.mc_zeroconf_get_state(self._browser)

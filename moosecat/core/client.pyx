@@ -38,6 +38,21 @@ Used headers:
 '''
 
 
+cdef object LOG_LEVEL_MAP = {
+    'critical' : c.LOG_CRITICAL,
+    'error'    : c.LOG_ERROR,
+    'warning'  : c.LOG_WARNING,
+    'info'     : c.LOG_INFO,
+    'debug'    : c.LOG_DEBUG
+}
+
+
+cdef loglevel_to_string(c.mc_LogLevel level):
+    for key, value in LOG_LEVEL_MAP.items():
+        if value == level:
+            return key
+    else:
+        raise ValueError('Invalid LogLevel ' + str(level))
 
 ###########################################################################
 #                            Callback Wrapper                             #
@@ -77,7 +92,7 @@ cdef void _wrap_LoggingCallback(
 ) with gil:
     try:
         s_msg = stringify(msg)
-        data[0](data[1], msg, level)
+        data[0](data[1], msg, loglevel_to_string(level))
     except:
         log_exception(data[0])
 
@@ -300,10 +315,10 @@ cdef class Client:
         'Dispatch a signal manually'
         # Somehow this needs to be declared on top.
         cdef c.mpd_idle event
-        cdef int server_changed
-        cdef int was_connected
-        cdef char * error_msg
-        cdef c.mc_LogLevel log_level
+        cdef int server_changed = 0
+        cdef int was_connected = 0
+        cdef char * error_msg = NULL
+        cdef c.mc_LogLevel log_level = c.MC_LOG_INFO
 
         with self._valid_signal_name(signal_name) as b_name:
             # Check the signal-name, and dispatch it differently.
@@ -315,9 +330,8 @@ cdef class Client:
                 was_connected = int(args[1])
                 c.mc_signal_dispatch(self._p(), b_name,self._p(), server_changed, was_connected)
             elif signal_name == 'logging':
-                # TODO: log level translate from string
                 error_msg = args[0]
-                log_level = int(args[0])
+                log_level = LOG_LEVEL_MAP.get(args[1], c.MC_LOG_INFO)
                 c.mc_signal_dispatch(self._p(), b_name, self._p(), error_msg, log_level)
 
     def signal(self, signal_name, mask=None):
@@ -561,14 +575,16 @@ cdef class Client:
         :son_end: If not none, apply the priority to the range [song-song_end]
         '''
         if song_end is None or song.queue_pos == song_end.queue_pos:
-            client_send(self._p(), 'prio_id {prio} {id}'.format(prio, song.queue_id))
+            client_send(self._p(), 'prio_id {prio} {song_id}'.format(
+                prio=prio, song_id=song.queue_id
+            ))
         elif song_end is not None and song.queue_pos > song_end.queue_pos:
             client_send(self._p(), 'prio_range {prio} {start_pos} {end_pos}'.format(
-                prio, song.queue_pos, song_end.queue_pos
+                prio=prio, start_pos=song.queue_pos, end_pos=song_end.queue_pos
             ))
         else:
             client_send(self._p(), 'prio_range {prio} {start_pos} {end_pos}'.format(
-                prio, song_end.queue_pos, song.queue_pos
+                prio=prio, start_pos=song_end.queue_pos, end_pos=song.queue_pos
             ))
 
     #####################
@@ -611,11 +627,11 @@ cdef class Client:
             client_send(self._p(), 'queue_delete_id ' + str(song.queue_id))
         elif song.queue_pos < song_end.queue_pos:
             client_send(self._p(), 'queue_delete_range {start_id} {end_id}'.format(
-                song.queue_id, song_end.queue_id
+                start_id=song.queue_id, end_id=song_end.queue_id
             ))
         else:
             client_send(self._p(), 'queue_delete_range {start_id} {end_id}'.format(
-                song_end.queue_id, song.queue_id
+                start_id=song_end.queue_id, end_id=song.queue_id
             ))
 
     def queue_move(self, song, song_end=None, offset=1):
@@ -630,15 +646,15 @@ cdef class Client:
         if offset is not 0:
             if song_end is None or song.queue_pos == song_end.queue_pos:
                 client_send(self._p(), 'queue_move {old} {new}'.format(
-                    song.queue_pos, song.queue_pos + offset
+                    old=song.queue_pos, new=song.queue_pos + offset
                 ))
             elif song.queue_pos < song_end.queue_pos:
                 client_send(self._p(), 'queue_move_range {start} {end} {new}'.format(
-                    song.queue_pos, song_end.queue_pos, song.queue_pos + offset
+                    start=song.queue_pos, end=song_end.queue_pos, new=song.queue_pos + offset
                 ))
             else:
                 client_send(self._p(), 'queue_move_range {start} {end} {new}'.format(
-                    song_end.queue_pos, song.queue_pos, song_end.queue_pos + offset
+                    start=song_end.queue_pos, end=song.queue_pos, new=song_end.queue_pos + offset
                 ))
 
     def queue_shuffle(self):
@@ -657,7 +673,7 @@ cdef class Client:
         Events: Idle.QUEUE
         '''
         client_send(self._p(), 'queue_swap_id {fst} {snd}'.format(
-            song_fst.queue_id, song_snd.queue_id
+            fst=song_fst.queue_id, snd=song_snd.queue_id
         ))
 
     def queue_save(self, as_name):

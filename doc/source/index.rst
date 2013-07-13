@@ -17,6 +17,7 @@ Developer Documentation:
     api/client.rst
     api/store.rst
     api/client-classes.rst
+    api/misc.rst
     api/bootup.rst
     api/plugin_system.rst
     api/config.rst
