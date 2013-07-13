@@ -5,9 +5,11 @@ MOOSECAT
 It's moosetastic_!
 
 
-.. image:: http://ompldr.org/vZ3l5aQ
-   :scale: 25
+.. figure:: https://raw.github.com/studentkittens/moosecat/master/gfx/mockup3.png
+   :scale: 25%
    :align: center
+   
+   This is a mockup. Don't panic.
 
 #############################
 OH WOW, *ANOTHER* MPD CLIENT?
