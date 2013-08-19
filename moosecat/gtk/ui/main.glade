@@ -137,7 +137,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>
-                              <object class="GtkCheckMenuItem" id="menu_mode_random">
+                              <object class="GtkCheckMenuItem" id="menu_item_random">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Random Track Mode</property>
@@ -146,7 +146,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkCheckMenuItem" id="menu_mode_single">
+                              <object class="GtkCheckMenuItem" id="menu_item_single">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Single Track Mode</property>
@@ -155,7 +155,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkCheckMenuItem" id="menu_mode_repeat">
+                              <object class="GtkCheckMenuItem" id="menu_item_repeat">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Repeat Mode</property>
@@ -164,7 +164,7 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkCheckMenuItem" id="menu_mode_consume">
+                              <object class="GtkCheckMenuItem" id="menu_item_consume">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Consume Mode</property>
@@ -181,17 +181,38 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="help_menuitem">
+              <object class="GtkMenuItem" id="output_menu_parent">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">_Help</property>
-                <property name="use_underline">True</property>
+                <property name="label" translatable="yes">Outputs</property>
+                <child type="submenu">
+                  <object class="GtkMenu" id="menu_output">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menuitem_help">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Help</property>
                 <child type="submenu">
                   <object class="GtkMenu" id="menu3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="menu_about">
+                      <object class="GtkImageMenuItem" id="menu_item_visit_website">
+                        <property name="label">Visit GithubPage</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="image">image2</property>
+                        <property name="use_stock">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menu_item_about">
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -208,6 +229,62 @@
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkInfoBar" id="infobar">
+            <property name="app_paintable">True</property>
+            <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
+            <child internal-child="content_area">
+              <object class="GtkBox" id="infobar-content_area">
+                <property name="can_focus">False</property>
+                <property name="border_width">8</property>
+                <property name="spacing">16</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child internal-child="action_area">
+              <object class="GtkButtonBox" id="infobar-action_area">
+                <property name="can_focus">False</property>
+                <property name="border_width">5</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <property name="layout_style">end</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -384,7 +461,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -424,6 +501,10 @@
                       <object class="GtkImage" id="image1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="margin_left">4</property>
+                        <property name="margin_right">4</property>
+                        <property name="margin_top">4</property>
+                        <property name="margin_bottom">4</property>
                         <property name="pixbuf">example_cover.jpg</property>
                       </object>
                       <packing>
@@ -477,7 +558,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -489,7 +570,7 @@
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="padding">1</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -576,7 +657,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
-                    <property name="yalign">0</property>
                     <property name="xscale">0</property>
                     <property name="yscale">0</property>
                     <property name="left_padding">3</property>
@@ -605,11 +685,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="label1">
+              <object class="GtkLabel" id="next_song_label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="margin_right">3</property>
-                <property name="label" translatable="yes">&lt;small&gt;&lt;b&gt;Next:&lt;/b&gt;  &lt;/small&gt; Akrea - Trugbild</property>
+                <property name="label" translatable="yes">&lt;small&gt;&lt;b&gt;Next:&lt;/b&gt; &lt;small&gt;(( not playing ))&lt;/small&gt;&lt;/small&gt;</property>
                 <property name="use_markup">True</property>
                 <property name="justify">right</property>
               </object>
@@ -636,10 +716,9 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label3">
+                  <object class="GtkLabel" id="statistic_label">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">&lt;small&gt;3:04/4:11 | 32168 Songs in Database (~7 weeks playtime) | 44100 khz | 24bit | 224kbit | Stereo&lt;/small&gt;</property>
                     <property name="use_markup">True</property>
                   </object>
                   <packing>
@@ -656,7 +735,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSpinner" id="spinner1">
+              <object class="GtkSpinner" id="status_spinner">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="active">True</property>
@@ -683,7 +762,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>
@@ -694,29 +773,35 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="xalign">0.44999998807907104</property>
+    <property name="stock">gtk-home</property>
+  </object>
   <object class="GtkImage" id="image_consume">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-indent</property>
-    <property name="icon-size">2</property>
+    <property name="icon-size">1</property>
   </object>
   <object class="GtkImage" id="image_random">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-justify-right</property>
-    <property name="icon-size">2</property>
+    <property name="icon-size">1</property>
   </object>
   <object class="GtkImage" id="image_repeat">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-refresh</property>
-    <property name="icon-size">2</property>
+    <property name="icon-size">1</property>
   </object>
   <object class="GtkImage" id="image_single">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-jump-to</property>
-    <property name="icon-size">2</property>
+    <property name="icon-size">1</property>
   </object>
   <object class="GtkImage" id="next_image">
     <property name="visible">True</property>

@@ -88,3 +88,27 @@ class TestStatus(unittest.TestCase):
 
     def tearDown(self):
         self.status = None
+
+    def test_lockingWithNoConnection(self):
+        with m.Client().lock_status() as status:
+            self.assertTrue(status is None)
+
+    def test_lockingWithConnection(self):
+        from moosecat.test.mpd_test import MpdTestProcess
+        test_mpd = MpdTestProcess()
+        test_mpd.start()
+
+        try:
+            cl = m.Client()
+            cl.connect(port=6666)
+            cl.block_till_sync()
+            self.assertTrue(cl.is_connected)
+
+            with cl.lock_status() as status:
+                self.assertTrue(status is not None)
+                self.assertTrue(status.replay_gain_mode == 'off')
+                self.assertTrue(status.audio_bits == 0)  # Nothing playing
+
+        finally:
+            test_mpd.stop()
+            test_mpd.wait()

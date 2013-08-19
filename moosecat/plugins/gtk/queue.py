@@ -17,7 +17,7 @@ class QueueBrowser(IGtkBrowser):
         scw = Gtk.ScrolledWindow()
         scw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-        self._entry = Gtk.Entry()
+        self._entry = Gtk.SearchEntry()
         self._set_entry_icon('gtk-find', True)
         self._set_entry_icon('gtk-dialog-info')
 
@@ -65,11 +65,14 @@ class QueueBrowser(IGtkBrowser):
             if query_text is None:
                 return True
 
-        songs = []
+        songs_data = []
         try:
-            songs = g.client.store.query(query_text) or []
+            with g.client.store.query(query_text) as songs:
+                for song in songs:
+                    songs_data.append((song.artist, song.album, song.title))
+
         except QueryParseException as e:
-            if len(songs) > 0:
+            if len(songs_data) > 0:
                 self._set_entry_icon('gtk-dialog-warning')
             else:
                 self._set_entry_icon('gtk-dialog-error')
@@ -77,14 +80,14 @@ class QueueBrowser(IGtkBrowser):
         else:
             self._set_entry_icon('gtk-dialog-info')
 
-        current_len = len(songs)
+        current_len = len(songs_data)
         if self._last_length == current_len:
             return True
         else:
             self._last_length = len(songs)
 
-        self._view.set_model(PlaylistTreeModel([]))
-        self._view.set_model(PlaylistTreeModel(songs))
+        #self._view.set_model(PlaylistTreeModel([]))
+        self._view.set_model(PlaylistTreeModel(songs_data))
 
         return True
 

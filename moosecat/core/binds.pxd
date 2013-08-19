@@ -65,6 +65,7 @@ cdef extern from "mpd/client.h":
         MPD_IDLE_STICKER
         MPD_IDLE_SUBSCRIPTION
         MPD_IDLE_MESSAGE
+        MPD_IDLE_SEEK = MPD_IDLE_MESSAGE << 1
 
     # Wrapped as properties:
     cdef enum mpd_tag_type:
@@ -349,6 +350,7 @@ cdef extern from "../../lib/store/db.h":
     mc_Stack *mc_store_get_result(mc_Store *, int)
     mc_Stack *mc_store_gw(mc_Store *, int)
     void mc_store_release(mc_Store *)
+    mpd_song *mc_store_find_song_by_id(mc_Store *, unsigned)
 
 
 cdef extern from "../../lib/store/db-query-parser.h":

@@ -15,6 +15,7 @@ import time
 import shutil
 import telnetlib
 import subprocess
+import socket
 
 
 # Import the tagging library
@@ -178,7 +179,14 @@ class MpdDummyClient:
         self._telnet = None
 
     def connect(self, host='localhost', port=6666):
-        self._telnet = telnetlib.Telnet(host, port)
+        for _ in range(10):
+            try:
+                self._telnet = telnetlib.Telnet(host, port)
+                return True
+            except socket.error as err:
+                time.sleep(0.5)
+        else:
+            return False
 
     def is_connected(self):
         return self._telnet is not None
@@ -206,32 +214,49 @@ class MpdDummyClient:
 
 
 class MpdTestProcess:
-    def __init__(self, root='/tmp'):
+    def __init__(self, root='/tmp', do_print=False):
         self._top_dir = None
         self._root = root
         self._pid = 0
+        self._print = do_print
 
     def _spawn(self):
         command = 'mpd --no-daemon --stdout --verbose {conf_path}'.format(
                 conf_path=os.path.join(self._top_dir, CONFIG_NAME)
         )
-        self._pipe = subprocess.Popen(
-                command, shell=True,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE
-        )
 
-        # this is silly - but well.
-        # There's no way to find out when MPD fully booted
-        time.sleep(1)
+        if self._print:
+            self._pipe = subprocess.Popen(
+                    command, shell=True
+            )
+            print('-- Spawned Server Process.')
+        else:
+            self._pipe = subprocess.Popen(
+                    command, shell=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE
+            )
+
+
+        if self._print:
+            print('-- Server should run now.. Configuring it now: ', end='')
 
         # Create a dummy playlist witha dummy queue
+        # Client will try to connect up to 10 times until server is ready.
         client = MpdDummyClient()
-        client.connect()
-        client.add('/')
-        client.create_playlist('test1')
-        client.create_playlist('test2')
-        client.disconnect()
+        if client.connect():
+            client.add('/')
+            client.create_playlist('test1')
+            client.create_playlist('test2')
+            client.disconnect()
+            if self._print:
+                print('[done]')
+        else:
+            if self._print:
+                print('[fail]')
+
+            self.stop()
+            self.wait()
 
     def start(self):
         self._top_dir = create_dirstruct(root_path=self._root)
@@ -250,7 +275,7 @@ class MpdTestProcess:
 
 if __name__ == '__main__':
     import time
-    m = MpdTestProcess()
+    m = MpdTestProcess(do_print=True)
     m.start()
 
     try:

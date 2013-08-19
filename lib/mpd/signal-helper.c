@@ -181,7 +181,8 @@ void mc_shelper_report_operation_finished(
 {
     g_assert(self);
     const char *operation;
-    if(op >= 0 && op < signal_to_name_table_size) {
+
+    if(op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
         mc_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
     }

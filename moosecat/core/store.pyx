@@ -107,6 +107,7 @@ cdef class Store:
         :returns: a Playlist object with the requested songs. None if nothing found.
         '''
         cdef c.mc_Stack * result = NULL
+        cdef int job_id = 0
 
         # Preallocation strategy
         stack_size = 1000 if limit_length < 0 else limit_length
@@ -114,16 +115,16 @@ cdef class Store:
 
         if result != NULL:
             try:
-                if match_clause is None or len(match_clause.strip()) is 0:
-                    num = c.mc_store_search_to_stack(self._p(), NULL, queue_only, result, limit_length)
-                else:
-                    b_match_clause = parse_query_bytes(bytify(match_clause))
-                    num = c.mc_store_search_to_stack(self._p(), b_match_clause, queue_only, result, limit_length)
+                b_match_clause = bytify(match_clause.strip())
+                job_id = c.mc_store_search_to_stack(self._p(), b_match_clause, queue_only, result, limit_length)
 
-                if num is not 0:
-                    return Queue()._init(result, self._c())
+                c.mc_store_wait_for_job(self._p(), job_id)
+
+                yield Queue()._init(result, self._c())
             finally:
                 c.mc_store_release(self._p())
+        else:
+            yield []
 
     @contextmanager
     def query_directories(self, path=None, depth=-1):
@@ -177,24 +178,27 @@ cdef class Store:
         rlist = []
 
         if path is None:
-            num = c.mc_store_dir_select_to_stack(self._p(), stack, NULL, depth)
+            job_id = c.mc_store_dir_select_to_stack(self._p(), stack, NULL, depth)
         else:
             b_path = bytify(path) if path else None
-            num = c.mc_store_dir_select_to_stack(self._p(), stack, b_path, depth)
+            job_id = c.mc_store_dir_select_to_stack(self._p(), stack, b_path, depth)
 
-        if num > 0:
-            for idx in range(num):
-                song_id, path = stringify(<char *>c.mc_stack_at(stack, idx)).split(':', maxsplit=1)
+        # Wait for the job to finish.
+        c.mc_store_wait_for_job(self._p(), job_id)
 
-                # No error checking is done here - we rely on libmoosecat.
-                song_id = int(song_id)
-                if song_id < 0:
-                    # it is a directory
-                    result = (None, path)
-                else:
-                    # it is a song
-                    result = (Song()._init(c.mc_store_song_at(self._p(), song_id)), path)
-                rlist.append(result)
+        for idx in range(c.mc_stack_length(stack)):
+            song_id, path = stringify(<char *>c.mc_stack_at(stack, idx)).split(':', maxsplit=1)
+
+            # No error checking is done here - we rely on libmoosecat.
+            song_id = int(song_id)
+            if song_id < 0:
+                # it is a directory
+                result = (None, path)
+            else:
+                # it is a song
+                result = (Song()._init(c.mc_store_song_at(self._p(), song_id)), path)
+            rlist.append(result)
+
         c.mc_stack_free(stack)
 
         try:
@@ -248,26 +252,27 @@ cdef class Store:
         if stack != NULL:
             # Convert input to char * compatible bytestrings
             b_name = bytify(name)
-
             playlist = self._stored_playlist_get_by_name(b_name)
             if playlist != NULL:
-
                 try:
-                    if match_clause is None:
-                        # Perform the actual search
-                        c.mc_store_playlist_select_to_stack(self._p(), stack, b_name, NULL)
-                    else:
-                        b_match_clause = parse_query_bytes(bytify(match_clause))
-                        c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
+                    job_id = c.mc_store_playlist_select_to_stack(self._p(), stack,  b_name, b_match_clause)
+                    c.mc_store_wait_for_job(self._p(), job_id)
 
-                        if b_match_clause is not NULL:
-                            free(b_match_clause)
                     # Encapuslate the stack into a playlist object and give it the user
                     yield StoredPlaylist()._init_stored_playlist(stack, self._c(), playlist)
                 finally:
                     c.mc_store_release(self._p())
             else:
                 raise ValueError('No such loaded stored playlist with this name: ' + name)
+
+    # This is private to prevent bad people from screwing up the locking order.
+    @contextmanager
+    def find_song_by_id(self, needle_song_id):
+        try:
+            song = song_from_ptr(c.mc_store_find_song_by_id(self._p(), needle_song_id))
+            yield song
+        finally:
+            c.mc_store_release(self._p())
 
     ################
     #  Properties  #

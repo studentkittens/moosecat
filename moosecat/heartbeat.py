@@ -18,7 +18,11 @@ class Heartbeat:
     def __init__(self, client):
         self._client = client
         self._last_update_tmstp = self._current_time_ms()
-        self._client.signal_add('client-event', self._update, mask=Idle.PLAYER)
+        self._client.signal_add(
+                'client-event',
+                self._on_client_event,
+                mask=(Idle.PLAYER | Idle.SEEK)
+        )
 
     @property
     def elapsed(self):
@@ -29,14 +33,17 @@ class Heartbeat:
         if not self._client.is_connected:
             return 0.0
 
-        if self._client.status.state is Status.Playing:
-            offset = self._current_time_ms() - self._last_update_tmstp
-        else:
-            offset = 0
+        elapsed = 0
+        with self._client.lock_status() as status:
+            if status.state is Status.Playing:
+                offset = self._current_time_ms() - self._last_update_tmstp
+            else:
+                offset = 0
 
-        return (self._client.status.elapsed_ms + offset) / 1000.0
+            elapsed = (status.elapsed_ms + offset) / 1000.0
+        return elapsed
 
-    def _update(self, client, event):
+    def _on_client_event(self, client, event):
         'client-event callback - updates the update timestamp'
         self._last_update_tmstp = self._current_time_ms()
 
@@ -49,16 +56,18 @@ if __name__ == '__main__':
     from gi.repository import GLib
 
     def timeout_callback():
+        #print(g.client.is_connected)
         print(g.heartbeat.elapsed)
         g.client.connect()
         return True
 
-    boot_base()
+    boot_base(protocol_machine='idle')
 
     # additional challenge, make first request disconnected
     g.client.disconnect()
+    g.client.connect()
 
-    GLib.timeout_add(500, timeout_callback)
+    #GLib.timeout_add(500, timeout_callback)
 
     try:
         GLib.MainLoop().run()

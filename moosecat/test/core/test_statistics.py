@@ -39,5 +39,26 @@ class TestStats(unittest.TestCase):
         self.assertRaises(ValueError, lambda: empty.db_update_time)
         self.assertRaises(ValueError, lambda: empty.db_playtime)
 
+    def test_lockingWithConnection(self):
+        from moosecat.test.mpd_test import MpdTestProcess
+        test_mpd = MpdTestProcess()
+        test_mpd.start()
+
+        try:
+            cl = m.Client()
+            cl.connect(port=6666)
+            cl.player_play()
+            cl.block_till_sync()
+            self.assertTrue(cl.is_connected)
+
+            with cl.lock_statistics() as stats:
+                self.assertTrue(stats is not None)
+                self.assertTrue(stats.number_of_artists == 1)
+                self.assertTrue(stats.number_of_albums == 3)
+                self.assertTrue(stats.number_of_songs == 36)
+        finally:
+            test_mpd.stop()
+            test_mpd.wait()
+
     def tearDown(self):
         self.stats = None

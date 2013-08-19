@@ -92,7 +92,7 @@ cdef void _wrap_LoggingCallback(
 ) with gil:
     try:
         s_msg = stringify(msg)
-        data[0](data[1], msg, loglevel_to_string(level))
+        data[0](data[1], stringify(msg), loglevel_to_string(level))
     except:
         log_exception(data[0])
 
@@ -164,7 +164,7 @@ class Idle:
     STICKER = c.MPD_IDLE_STICKER
     SUBSCRIPTION = c.MPD_IDLE_SUBSCRIPTION
     MESSAGE = c.MPD_IDLE_MESSAGE
-
+    SEEK = c.MPD_IDLE_SEEK
 
 cdef class Client:
     cdef c.mc_Client * _cl
@@ -195,15 +195,18 @@ cdef class Client:
         '''
         c.mc_free(self._p())
 
+    def store_is_initialized(self):
+        return not (self._store_wrapper is None)
+
     def connect(self, host='localhost', port=6600, timeout_sec=2.):
         '''Connect this client to a server.
 
         Will trigger the "connectivity" signal.
 
-        :host: the host (might be a IP(v4 or v6) or a DNS name), default: localhost
-        :port: the port number (6600 as in mpd's default)
-        :timeout_sec: timeout in seconds.
-        :returns: None on success, a string describing an error on failure
+        :param host: the host (might be a IP(v4 or v6) or a DNS name), default: localhost
+        :param port: the port number (6600 as in mpd's default)
+        :param timeout_sec: timeout in seconds.
+        :param returns: None on success, a string describing an error on failure
         '''
         cdef char * er = NULL
 
@@ -238,6 +241,8 @@ cdef class Client:
         This is usually not needed, since it happens automatically.
 
         **No callbacks are called.**
+
+        :param event_mask: Bit OR'd combinations of the event you want to emulate
         '''
         cdef c.mpd_idle event = event_mask
         c.mc_force_sync(self._p(), event)
@@ -253,6 +258,9 @@ cdef class Client:
 
         Othwerwise a UnknownSignalName Exception is raised, with the unkown
         signal_name included in the error message.
+
+        :param signal_name: Check if signal is valid.
+        :raises: UnknownSignalName if invalid.
         '''
         if signal_name in self.signal_names:
             b_name = bytify(signal_name)
@@ -264,9 +272,12 @@ cdef class Client:
         '''
         Add a func to be called on certain events.
 
-        :signal_name: A string describing a signal. See signal_names.
-        :func: A callable that is executed upon a event.
-        :mask:
+        Other signal_ functions have a similar API.
+
+        :param signal_name: A string describing a signal. See signal_names.
+        :param func: A callable that is executed upon a event.
+        :param mask: Only emit callback if mask & actual_event != 0
+        :raises: UnknownSignalName if invalid signal_name passed.
         '''
         cdef void * c_func = NULL
 
@@ -283,7 +294,7 @@ cdef class Client:
 
             if signal_name == 'client-event':
                 c_func = <void*>_wrap_ClientEventCallback
-            elif signal_name == 'error':
+            elif signal_name == 'logging':
                 c_func = <void*>_wrap_LoggingCallback
             elif signal_name == 'connectivity':
                 c_func = <void*>_wrap_ConnectivityCallback
@@ -338,7 +349,10 @@ cdef class Client:
         'For use as a decorator over a function.'
         def _signal(function):
             # Register the function
-            self.signal_add(signal_name, function)
+            if mask:
+                self.signal_add(signal_name, function, mask)
+            else:
+                self.signal_add(signal_name, function)
         return _signal
 
     def status_timer_activate(self, repeat_ms=500, trigger_idle=True):
@@ -348,8 +362,8 @@ cdef class Client:
         This is useful to receive changing things like the kbitrate.
         By default, no status timer is active. (status gets only updated on normal events)
 
-        :repeat_ms: Number of seconds to wait betwenn status updates.
-        :trigger_idle: If the idle-signal shall be called.
+        :param repeat_ms: Number of seconds to wait betwenn status updates.
+        :param trigger_idle: If the idle-signal shall be called.
         '''
         c.mc_status_timer_register(self._p(), repeat_ms, trigger_idle)
 
@@ -390,31 +404,59 @@ cdef class Client:
     property signal_names:
         'A list of valid signal names. (May be used to verfiy.)'
         def __get__(self):
-            return ['client-event', 'error', 'connectivity', 'op-finished', 'progress']
+            return ['client-event', 'logging', 'connectivity']
 
     @contextmanager
     def lock_status(self):
         'Get the current :class:`.Status` object and takes care of locking.'
         try:
-            yield status_from_ptr(c.mc_lock_status(self._p()), self._p())
+            status = status_from_ptr(c.mc_lock_status(self._p()), self._p())
+            yield status
         finally:
-            c.mc_unlock_status(self._p())
+            if status:
+                c.mc_unlock_status(self._p())
 
     @contextmanager
     def lock_currentsong(self):
-        'Get the current :class:`.Status` object and takes care of locking.'
+        'Get the current :class:`.Song` object and takes care of locking.'
         try:
-            yield song_from_ptr(c.mc_lock_current_song(self._p()))
+            song = song_from_ptr(c.mc_lock_current_song(self._p()))
+            yield song
         finally:
-            c.mc_unlock_current_song(self._p())
+            if song:
+                c.mc_unlock_current_song(self._p())
+
+    @contextmanager
+    def lock_nextsong(self):
+        'Get the next :class:`.Song` object and takes care of locking (needs initialized store)'
+        if not self.store_is_initialized():
+            raise AttributeError('store is not initialized, but needed for this method (dont ask.)')
+
+        needle_song_id = None
+        with self.lock_status() as status:
+            if status is not None:
+                needle_song_id = status.next_song_id
+
+        if needle_song_id is not None:
+            with self.store.find_song_by_id(needle_song_id) as song:
+               yield song
 
     @contextmanager
     def lock_statistics(self):
-        'Get the current :class:`.Status` object and takes care of locking.'
+        'Get the current :class:`.Statistics` object and takes care of locking.'
         try:
-            yield statistics_from_ptr(c.mc_lock_statistics(self._p()))
+            statistics = statistics_from_ptr(c.mc_lock_statistics(self._p()))
+            yield statistics
         finally:
             c.mc_unlock_statistics(self._p())
+
+    @contextmanager
+    def lock_all(self):
+        'lock all as a tuple of (status, song, statistics) (convienience method)'
+        with self.lock_currentsong() as song:
+            with self.lock_status() as status:
+                with self.lock_statistics() as statistics:
+                    yield (status, song, statistics)
 
     @contextmanager
     def lock_outputs(self):
@@ -422,11 +464,12 @@ cdef class Client:
         Get a list of outputs on serverside.
 
         The retrieved outputs have a name, an ID and a flag indicating if they are enabled.
-        If you want to enable them you could do the following::
+        If you wanted to toggle them you could do the following::
 
-            >>> audios = client.outputs
-            >>> for output in audios:
-            ...     output.enabled = True
+            >>> with x.lock_outputs() as o:
+            ...     for output in o:
+            ...         print(output.name, output.enabled)
+            ...         output.enabled = not output.enabled
 
         :returns: A list of :class:`.AudioOutput` objects.
         '''
@@ -563,6 +606,30 @@ cdef class Client:
             client_send(self._p(), 'seekcur ' + str(seconds))
         else:
             client_send(self._p(), 'seekid ' + str(song.queue_pos) +  str(seconds))
+
+    def player_seek_relative(self, percent, song=None):
+        '''
+        Seek into a specific song.
+
+        Event: Idle.PLAYER
+
+        :raises: ValueError if no current song (only if song=None)
+        :percent: Seekposition from 0.0 (begin) to 1.0 (last position)
+        :song: the song to seek into, if None the current song is used.
+        '''
+        if song is None:
+            with self.lock_currentsong() as current_song:
+                if current_song:
+                    seconds = current_song.duration * percent
+                else:
+                    raise ValueError('No current song!')
+        else:
+            seconds = song.duration * percent
+
+        # Just forward work to the simpler function
+        self.player_seek(seconds, song)
+
+
 
     def set_priority(self, prio, song, song_end=None):
         '''
@@ -720,3 +787,34 @@ cdef class Client:
                     yield
                 finally:
                     c.mc_client_commit(self._p())
+                    return
+        raise Exception('Unable to start command list mode')
+
+    #####################
+    #  Misc Client API  #
+    #####################
+
+    def block_till_sync(self):
+        '''
+        Will block till the next sync.
+
+        This is usefull for testcases and debugging purpose, where one needs
+        to have a valid status first.
+
+        Will only block when connected.
+        '''
+        c.mc_block_till_sync(self._p())
+
+    def raw_send(self, command):
+        '''
+        Send a raw command to the server.
+
+        :returns: Id to wait upon the result
+        '''
+        return client_send(self._p(), command)
+
+    def raw_recv(self, job_id):
+        return c.mc_client_recv(self._p(), job_id)
+
+    def raw_run(self, command):
+        return c.mc_client_recv(self._p(), client_send(self._p(), command))

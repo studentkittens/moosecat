@@ -45,3 +45,21 @@ class TestSong(unittest.TestCase):
 
         self.song.queue_pos = 42
         self.assertTrue(self.song.queue_pos == 42)
+
+    def test_lockingWithConnection(self):
+        from moosecat.test.mpd_test import MpdTestProcess
+        test_mpd = MpdTestProcess()
+        test_mpd.start()
+
+        try:
+            cl = m.Client()
+            cl.connect(port=6666)
+            cl.player_play()
+            cl.block_till_sync()
+            self.assertTrue(cl.is_connected)
+
+            with cl.lock_currentsong() as song:
+                self.assertTrue(song is None)
+        finally:
+            test_mpd.stop()
+            test_mpd.wait()

@@ -23,12 +23,28 @@ class CairoSlider(Gtk.DrawingArea):
                 Gdk.EventMask.SCROLL_MASK
         )
 
+        # No user function by default
+        self._on_percent_change_func = None
+
         # Signals used to know when redrawing is desired
         self.connect('scroll-event', self.on_scroll_event)
         self.connect('button-press-event', self.on_button_press_event)
         self.connect('button-release-event', self.on_button_release_event)
         self.connect('motion-notify-event', self.on_motion_notify)
         self.connect('draw', self.on_draw)
+
+    @property
+    def on_percent_change_func(self):
+        return self._on_percent_change_func
+
+    @on_percent_change_func.setter
+    def on_percent_change_func(self, func):
+        if callable(func):
+            self._on_percent_change_func = func
+
+    def _call_on_percent_change_func(self):
+        if self._on_percent_change_func:
+            self._on_percent_change_func(self)
 
     @property
     def theme_active_color(self):
@@ -46,6 +62,7 @@ class CairoSlider(Gtk.DrawingArea):
     def percent(self, value):
         clamped = min(max(value, 0.0), 1.0)
         self._position = clamped * self.get_allocation().width
+        self.queue_draw()
 
     ####################
     #  Widget Signals  #
@@ -53,12 +70,14 @@ class CairoSlider(Gtk.DrawingArea):
 
     def on_button_press_event(self, widget, event):
         self._position = event.x
+        self._call_on_percent_change_func()
         self.queue_draw()
         self._drag_mode = True
         return True
 
     def on_button_release_event(self, widget, event):
         self._drag_mode = False
+        self._call_on_percent_change_func()
         return True
 
     def on_scroll_event(self, widget, event):
@@ -68,12 +87,14 @@ class CairoSlider(Gtk.DrawingArea):
             offset = -10
 
         self._position = self._position + offset
+        self._call_on_percent_change_func()
         self.queue_draw()
         return True
 
     def on_motion_notify(self, widget, event):
         if self._drag_mode:
             self._position = event.x
+            self._call_on_percent_change_func()
             self.queue_draw()
 
     def on_draw(self, widget, ctx):

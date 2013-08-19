@@ -5,6 +5,7 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
     def __init__(self, data):
         self.data = data
         self._num_rows = len(self.data)
+
         self._num_rows_minus_one = self._num_rows - 1
         if self.data:
             self._n_columns = 3
@@ -19,11 +20,15 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         The implementation returns a 2-tuple (bool, TreeIter|None).
         """
         idx = path.get_indices()[0]
+
+        #import sys; sys.exit(0)
         if idx < self._num_rows:
             iter_ = Gtk.TreeIter()
-            iter_.user_data = [idx]
+            iter_.user_data = idx
+            # import sys; sys.exit(0)
             return (True, iter_)
         else:
+            # import sys; sys.exit(0)
             return (False, None)
 
     def do_iter_next(self, iter_):
@@ -33,10 +38,10 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         """
         ud = iter_.user_data
         if ud is None and self._num_rows is not 0:
-            ud[0] = 0
+            iter_.user_data = 0
             return (True, iter_)
-        elif ud[0] < self._num_rows_minus_one:
-            ud[0] += 1
+        elif ud < self._num_rows_minus_one:
+            iter_.user_data = ud + 1
             return (True, iter_)
         else:
             return (False, None)
@@ -50,14 +55,14 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         # We've got a flat list here, so iter_ is always None and the
         # nth child is the row.
         iter_ = Gtk.TreeIter()
-        iter_.user_data = [n]
+        iter_.user_data = n
         return (True, iter_)
 
     def do_get_path(self, iter_):
         """Returns tree path references by iter."""
         ud = iter_.user_data
         if ud is not None:
-            return Gtk.TreePath((ud[0],))
+            return Gtk.TreePath((ud,))
         else:
             return None
 
@@ -65,15 +70,15 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         """Returns the value for iter and column."""
         ud = iter_.user_data
         if ud is None:
+            # TODO
             return 'xxxx'
         else:
-            idx = ud[0]
             if column is 0:
-                return  self.data[idx].artist
+                return  self.data[ud][0]
             if column is 1:
-                return  self.data[idx].album
+                return  self.data[ud][1]
             if column is 2:
-                return  self.data[idx].title
+                return  self.data[ud][2]
 
     def do_get_n_columns(self):
         """Returns the number of columns."""

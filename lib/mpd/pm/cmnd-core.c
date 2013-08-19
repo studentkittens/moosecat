@@ -133,8 +133,10 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
             &error_message
     );
     
+    cmnder_set_run_listener(self, g_thread_self(), TRUE);
+
     if(idle_con && error_message == NULL) {
-        while (cmnder_get_run_listener(self, g_thread_self())) {
+        while(cmnder_get_run_listener(self, g_thread_self())) {
             if(mpd_send_idle(idle_con) == false) {
                 if(mpd_connection_get_error(idle_con) == MPD_ERROR_TIMEOUT) {
                     mpd_connection_clear_error(idle_con);
@@ -152,7 +154,6 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
                 }
 
                 if(cmnder_get_run_listener(self, g_thread_self())) {
-                    // mc_shelper_report_client_event((mc_Client *) self, events);
                      mc_force_sync((mc_Client *) self, events);
                 }
             }
@@ -168,7 +169,8 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
         );
     }
 
-    //g_thread_unref(g_thread_self());
+    g_thread_unref(g_thread_self());
+    g_thread_exit(NULL);
     return NULL;
 }
 
@@ -180,8 +182,6 @@ static void cmnder_create_glib_adapter(
 {
     if (self->listener_thread == NULL) {
         self->listener_thread = g_thread_new("listener", cmnder_listener_thread, self);
-        g_thread_ref(self->listener_thread);
-        cmnder_set_run_listener(self, self->listener_thread, TRUE);
     }
 }
 
@@ -406,9 +406,8 @@ mc_Client *mc_create_cmnder(long connection_timeout_ms)
     self->logic.do_connect = cmnder_do_connect;
     self->logic.do_is_connected = cmnder_do_is_connected;
 
-    self->run_listener_table = g_hash_table_new_full(
-            g_direct_hash, g_int_equal,
-            (GDestroyNotify) g_thread_unref, NULL
+    self->run_listener_table = g_hash_table_new(
+            g_direct_hash, g_int_equal
     );
 
     g_mutex_init(&self->cmnd_con_mtx);

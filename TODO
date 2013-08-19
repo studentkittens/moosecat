@@ -1,8 +1,8 @@
 libmoosecat 
 -----------
 
-- Clean up API, Make README.docs 
-- Update cython wrapper (Oof)
+
+- Make seek operations not trigger a PLAYER event (or rather delay it)
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.
 - Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 
@@ -27,3 +27,5 @@ libmoosecat
 - fix destroyage of UpdateData (test_status_timer bug) // DONE
 - valgrind it // DONE
 - Make client/store failsafe in case of connection loss // DONE
+- Clean up API, Make README.docs  // DONE
+- Update cython wrapper (Oof) // DONE

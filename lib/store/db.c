@@ -31,6 +31,7 @@ typedef struct {
     int length_limit;
     int dir_depth;
     mc_Stack *out_stack;
+    unsigned needle_song_id;
 } mc_JobData;
 
 
@@ -38,38 +39,40 @@ typedef struct {
  *
  */ 
 int mc_JobPrios[] = {
-    [MC_OPER_DESERIALIZE]    = -1,
-    [MC_OPER_LISTALLINFO]    = -1,
-    [MC_OPER_PLCHANGES]      = +0,
-    [MC_OPER_SPL_LOAD]       = +1,
-    [MC_OPER_SPL_UPDATE]     = +1,
-    [MC_OPER_UPDATE_META]    = +1,
-    [MC_OPER_DB_SEARCH]      = +2,
-    [MC_OPER_DIR_SEARCH]     = +2,
-    [MC_OPER_SPL_LIST]       = +2,
-    [MC_OPER_SPL_LIST_ALL]   = +2,
-    [MC_OPER_SPL_QUERY]      = +2,
-    [MC_OPER_WRITE_DATABASE] = +3,
-    [MC_OPER_UNDEFINED]      = 10
+    [MC_OPER_DESERIALIZE]     = -1,
+    [MC_OPER_LISTALLINFO]     = -1,
+    [MC_OPER_PLCHANGES]       = +0,
+    [MC_OPER_SPL_LOAD]        = +1,
+    [MC_OPER_SPL_UPDATE]      = +1,
+    [MC_OPER_UPDATE_META]     = +1,
+    [MC_OPER_DB_SEARCH]       = +2,
+    [MC_OPER_DIR_SEARCH]      = +2,
+    [MC_OPER_SPL_LIST]        = +2,
+    [MC_OPER_SPL_LIST_ALL]    = +2,
+    [MC_OPER_SPL_QUERY]       = +2,
+    [MC_OPER_WRITE_DATABASE]  = +3,
+    [MC_OPER_FIND_SONG_BY_ID] = +4,
+    [MC_OPER_UNDEFINED]       = 10
 };
 
 /**
  * Map mc_OpFinishedEnum members to meaningful strings
  */
 const char * mc_JobNames[] = {
-    [MC_OPER_DESERIALIZE]    = "DESERIALIZE",
-    [MC_OPER_LISTALLINFO]    = "LISTALLINFO",
-    [MC_OPER_PLCHANGES]      = "PLCHANGES",
-    [MC_OPER_SPL_LOAD]       = "SPL_LOAD",
-    [MC_OPER_SPL_UPDATE]     = "SPL_UPDATE",
-    [MC_OPER_UPDATE_META]    = "UPDATE_META",
-    [MC_OPER_DB_SEARCH]      = "DB_SEARCH",
-    [MC_OPER_DIR_SEARCH]     = "DIR_SEARCH",
-    [MC_OPER_SPL_LIST]       = "SPL_LIST",
-    [MC_OPER_SPL_LIST_ALL]   = "SPL_LIST_ALL",
-    [MC_OPER_SPL_QUERY]      = "SPL_QUERY",
-    [MC_OPER_WRITE_DATABASE] = "WRITE_DATABASE",
-    [MC_OPER_UNDEFINED]      = "[Unknown]"
+    [MC_OPER_DESERIALIZE]     = "DESERIALIZE",
+    [MC_OPER_LISTALLINFO]     = "LISTALLINFO",
+    [MC_OPER_PLCHANGES]       = "PLCHANGES",
+    [MC_OPER_SPL_LOAD]        = "SPL_LOAD",
+    [MC_OPER_SPL_UPDATE]      = "SPL_UPDATE",
+    [MC_OPER_UPDATE_META]     = "UPDATE_META",
+    [MC_OPER_DB_SEARCH]       = "DB_SEARCH",
+    [MC_OPER_DIR_SEARCH]      = "DIR_SEARCH",
+    [MC_OPER_SPL_LIST]        = "SPL_LIST",
+    [MC_OPER_SPL_LIST_ALL]    = "SPL_LIST_ALL",
+    [MC_OPER_SPL_QUERY]       = "SPL_QUERY",
+    [MC_OPER_WRITE_DATABASE]  = "WRITE_DATABASE",
+    [MC_OPER_FIND_SONG_BY_ID] = "FIND_SONG_BY_ID",
+    [MC_OPER_UNDEFINED]       = "[Unknown]"
 };
 
 //////////////////////////////
@@ -157,6 +160,31 @@ static char *mc_store_construct_full_dbpath(mc_Store *self, const char *director
     );
     g_mutex_unlock(&self->mirrored_mtx);
     return path;
+}
+
+//////////////////////////////
+
+/**
+ * @brief See mc_store_find_song_by_id for what this does.
+ *
+ * @return a Stack with one element containg one song or NULL.
+ */
+mc_Stack * mc_store_find_song_by_id_impl(mc_Store *self, unsigned needle_song_id) { 
+    unsigned length = mc_stack_length(self->stack);
+    for(unsigned i = 0; i < length; ++i) {
+        struct mpd_song * song = mc_stack_at(self->stack, i);
+        if(song != NULL && mpd_song_get_id(song) == needle_song_id) {
+            mc_Stack * stack = mc_stack_create(1, NULL);
+            if(stack != NULL) {
+                /* return a stack with one element
+                 * (because that's what the interfaces wants :/)
+                 */
+                mc_stack_append(stack, song);
+                return stack;
+            }
+        }
+    }
+    return NULL;
 }
 
 //////////////////////////////
@@ -296,8 +324,6 @@ static void mc_store_shutdown(mc_Store * self)
     mc_stprv_spl_destroy(self);
 
     char *db_path = mc_store_construct_full_dbpath(self, self->db_directory);
-
-    g_print("Saving database to: %s\n", db_path);
 
     if (self->write_to_disk)
         mc_stprv_load_or_save(self, true, db_path);
@@ -564,6 +590,11 @@ void *mc_store_job_execute_callback(
             }
         }
 
+        if(data->op & MC_OPER_FIND_SONG_BY_ID) { 
+            data->out_stack = mc_store_find_song_by_id_impl(self, data->needle_song_id);
+            result = data->out_stack;
+        }
+
         /* If the operation includes writing stuff,
          * we need to remember to save the database to
          * disk */
@@ -579,7 +610,7 @@ void *mc_store_job_execute_callback(
     } 
     /* ATTENTION: 
      * We only unlock if we have an operation that does not deliver a result.
-     * Otherwise the user has to unlock it. 
+     * Otherwise the user has to unlock it himself! 
      */
     if((data->op & (0 
                 | MC_OPER_DB_SEARCH 
@@ -840,4 +871,24 @@ void mc_store_release(mc_Store *self)
     g_assert(self);
 
     mc_stprv_unlock_attributes(self);
+}
+
+//////////////////////////////
+
+struct mpd_song * mc_store_find_song_by_id(mc_Store * self, unsigned needle_song_id)
+{
+    g_assert(self);
+
+    mc_JobData * data = g_new0(mc_JobData, 1);
+    data->op = MC_OPER_FIND_SONG_BY_ID;
+    data->needle_song_id = needle_song_id;
+
+    unsigned job_id = mc_jm_send(self->jm, mc_JobPrios[MC_OPER_FIND_SONG_BY_ID], data);
+    mc_store_wait_for_job(self, job_id);
+    mc_Stack * stack = mc_store_get_result(self, job_id);
+    if(stack != NULL && mc_stack_length(stack) > 0) {
+        struct mpd_song * song = mc_stack_at(stack, 0);
+        return song;
+    }
+    return NULL;
 }

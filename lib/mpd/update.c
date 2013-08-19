@@ -28,8 +28,10 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 /* This will be sended (as Integer) 
  * to the Queue to break out of the poll loop
+ *
+ * MPD_IDLE_PLAYLIST is deprecated and will not be used otherwise.
  */
-#define THREAD_TERMINATOR 0xDEADBEEF
+#define THREAD_TERMINATOR MPD_IDLE_PLAYLIST
 
 /* Little hack:
  *
@@ -104,6 +106,13 @@ static void mc_update_context_info_cb( struct mc_Client *self, enum mpd_idle eve
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
                         mc_lock_status(self);
+                        if(data->status != NULL) {
+                            data->last_song_data.id = mpd_status_get_song_id(data->status);
+                            data->last_song_data.state = mpd_status_get_state(data->status);
+                        } else {
+                            data->last_song_data.id = -1;
+                            data->last_song_data.state = MPD_STATE_UNKNOWN;
+                        }
                         free_if_not_null(data->status, mpd_status_free);
                         data->status = tmp_status;
                         mc_unlock_status(self);
@@ -182,6 +191,26 @@ static void mc_update_context_info_cb( struct mc_Client *self, enum mpd_idle eve
 
 ////////////////////////
 
+static bool mc_update_is_a_seek_event(mc_UpdateData* data, enum mpd_idle event_mask)
+{
+    if(event_mask & MPD_IDLE_PLAYER) {
+        /* Get the current data */
+        mc_lock_status(data->client);
+        long curr_song_id = mpd_status_get_song_id(data->status); 
+        enum mpd_state curr_song_state = mpd_status_get_state(data->status);
+        mc_unlock_status(data->client);
+
+        if(data->last_song_data.id == curr_song_id) {
+            if(data->last_song_data.state == curr_song_state) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+////////////////////////
+
 static gpointer mc_update_thread(gpointer user_data)
 {
     g_assert(user_data);
@@ -194,9 +223,19 @@ static gpointer mc_update_thread(gpointer user_data)
         mc_update_context_info_cb(data->client, event_mask);
         mc_priv_outputs_update(data->client->_outputs, event_mask);
 
+        /* Lookup if we need to trigger a client-event (maybe not if * auto-update)*/
         bool trigger_it = true;
         if(event_mask & IS_STATUS_TIMER_FLAG && data->status_timer.trigger_event) {
             trigger_it = false;
+        }
+
+        /* Maybe we should make this configurable? */
+        if(mc_update_is_a_seek_event(data, event_mask)) {
+            /* Set the PLAYER bit to 0 */
+            event_mask &= ~MPD_IDLE_PLAYER;
+
+            /* and add the SEEK bit intead */
+            event_mask |= MPD_IDLE_SEEK;
         }
 
          g_mutex_lock(&data->sync_mtx); {
@@ -328,6 +367,9 @@ mc_UpdateData * mc_update_data_new(struct mc_Client * self)
     g_mutex_init(&data->sync_mtx);
     g_cond_init(&data->sync_cond);
     data->sync_id = 0;
+
+    data->last_song_data.id = -1;
+    data->last_song_data.state = MPD_STATE_UNKNOWN;
 
     g_rec_mutex_init(&data->mtx_current_song);
     g_rec_mutex_init(&data->mtx_statistics);

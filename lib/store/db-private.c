@@ -555,7 +555,7 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
     if(warning != NULL) {
         mc_shelper_report_error_printf(
                 self->client,
-                "database: Query Parse Error: %d:%s", warning, warning_pos
+                "database: Query Parse Error: %d:%s", warning_pos, warning
         );
     }
 

@@ -50,7 +50,7 @@ static void mc_priv_signal_handler(int signal)
     case SIGSEGV:
         g_print("\n\nFATAL: libmoosecat received a terminal signal: %s\n\n", g_strsignal(signal));
         gchar *bug_report = mc_misc_bug_report((mc_Client *) gl_client);
-        g_print(bug_report);
+        g_print("%s", bug_report);
         g_free(bug_report);
         mc_print_backtrace();
         g_print("Most recent call first. I'm going to die now. Please debug me.\n\n");

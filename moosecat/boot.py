@@ -34,12 +34,12 @@ class GlobalRegistry:
 
     '''
     def register(self, name, ref):
-        if name not in self.__dict__:
-            self.__dict__[name] = ref
+        if not hasattr(self, name):
+            setattr(self, name, ref)
 
     def unregister(self, name):
-        if name in self.__dict__:
-            del self.__dict__[name]
+        if not hasattr(self, name):
+            delattr(self, name)
 
 
 # This is were the mysterious g-variable comes from.
@@ -51,24 +51,23 @@ g = GlobalRegistry()
 ###########################################################################
 
 
-def _check_or_mkdir(path):
-    if not os.path.exists(path):
-        os.mkdir(path)
-
-
 def _create_xdg_path(envar, endpoint):
     return os.environ.get(envar) or os.path.join(g.HOME_DIR, endpoint)
 
 
 def _create_file_structure():
+    def check_or_mkdir(path):
+        if not os.path.exists(path):
+            os.mkdir(path)
+
     g.register('CONFIG_DIR', os.path.join(BaseDirectory.xdg_config_dirs[0], 'moosecat'))
-    _check_or_mkdir(g.CONFIG_DIR)
+    check_or_mkdir(g.CONFIG_DIR)
 
     g.register('CACHE_DIR', os.path.join(BaseDirectory.xdg_cache_home, 'moosecat'))
-    _check_or_mkdir(g.CACHE_DIR)
+    check_or_mkdir(g.CACHE_DIR)
 
     g.register('USER_PLUGIN_DIR', os.path.join(g.CONFIG_DIR, 'plugins'))
-    _check_or_mkdir(g.USER_PLUGIN_DIR)
+    check_or_mkdir(g.USER_PLUGIN_DIR)
 
     g.register('CONFIG_FILE', os.path.join(g.CONFIG_DIR, 'config.yaml'))
     g.register('LOG_FILE', os.path.join(g.CONFIG_DIR, 'app.log'))
@@ -144,7 +143,7 @@ def _create_logger(name=None, verbosity=logging.DEBUG):
     # Rotating File-Handler
     file_stream = logging.handlers.RotatingFileHandler(
         filename=g.LOG_FILE,
-        maxBytes=(1024 ** 2 * 10),
+        maxBytes=(1024 ** 2 * 10),  # 10 MB
         backupCount=2,
         delay=True
     )
@@ -157,17 +156,18 @@ def _create_logger(name=None, verbosity=logging.DEBUG):
     return logger
 
 
-def _error_logger(client, error, error_msg, is_fatal):
-    log_func = logging.critical if is_fatal else logging.error
-    log_func('MPD Error #%d: %s', error, error_msg)
+def _logging_logger(client, message, level):
+    logfunc = {
+        'critical': logging.critical,
+        'error': logging.error,
+        'warning': logging.warning,
+        'info': logging.info,
+        'debug': logging.debug
+    }.get(level, logging.info)
+    logfunc('Logging: ' + message)
 
 
-def _progress_logger(client, print_n, message):
-    if print_n:
-        logging.info('Progress: ' + message)
-
-
-def _connectivity_logger(client, server_changed):
+def _connectivity_logger(client, server_changed, was_connected):
     if client.is_connected:
         LOGGER.info('connected to %s:%d', client.host, client.port)
     else:
@@ -182,20 +182,20 @@ def _find_out_host_and_port():
         for plugin in g.psys.category('NetworkProvider'):
             data = plugin.find()
             if data is not None:
-                return (data[0], data[1])
+                return (data[0], data[1])  # (host, port)
     else:
         port = g.config.get('port')
         return host, 6600 if port is None else port
 
 
-def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
+def boot_base(verbosity=logging.INFO, protocol_machine='idle'):
     '''Initialize the basic services.
 
     This is basically a helper to spare us a lot of init work in tests.
 
     Following things are done:
 
-        - Prepate the Filesystem.
+        - Prepare the Filesystem.
         - Initialize a pretty root logger.
         - Load the config.
         - Initialize the Plugin System.
@@ -245,8 +245,7 @@ def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
 
     # register auto-logging
     client.signal_add('connectivity', _connectivity_logger)
-    client.signal_add('error', _error_logger)
-    client.signal_add('progress', _progress_logger)
+    client.signal_add('logging', _logging_logger)
 
     # Initialize the Plugin System
     psys = PluginSystem(config=g.config, extra_plugin_paths=[g.USER_PLUGIN_DIR])
@@ -273,20 +272,24 @@ def boot_base(verbosity=logging.DEBUG, protocol_machine='command'):
     return client.is_connected
 
 
-def boot_store(wait=True):
+def boot_store():
     '''
     Initialize the store (optional)
 
     Must be called after boot_base()!
 
-    :wait: If True call store.wait() after initialize. If you set wait to False
-           you have to call store.wait() yourself, but can do other tasks before.
     :returns: the store (as shortcut) if wait=True, None otherwise.
     '''
     g.client.store_initialize(g.CACHE_DIR)
-    if wait:
-        g.client.store.wait()
-        return g.client.store
+    g.register('store', g.client.store)
+    logging.info('Started store creation in background')
+    return g.client.store
+
+
+def _format_db_path():
+    return os.path.join(g.CACHE_DIR, 'moosecat_{host}:{port}.sqlite[.zip]'.format(
+        host=g.client.host, port=g.client.port
+    ))
 
 
 def shutdown_application():
@@ -295,12 +298,24 @@ def shutdown_application():
 
     You can call this function also safely if you did not call boot_store().
     '''
-    LOGGER.info('shutting down moosecat.')
+    LOGGER.info('Shutting down moosecat.')
     g.config.save(g.CONFIG_FILE)
 
     try:
         g.client.store.close()
+        logging.info('Saving database to: ' + _format_db_path())
     except AttributeError:
         pass
 
     g.client.disconnect()
+
+
+if __name__ == '__main__':
+    boot_base()
+    boot_store()
+
+    with g.store.query('Akrea') as songs:
+        for song in songs:
+            print(song.artist, song.album, song.title)
+
+    shutdown_application()

@@ -12,6 +12,7 @@ import os
 from waflib import Logs
 from waflib import Task
 from waflib.TaskGen import feature, after_method
+from waflib.Tools import waf_unit_test
 
 # Global:
 
@@ -46,7 +47,7 @@ def download_sqlite_amalgamation(url):
         else:
             Logs.info('  [DOWNLOADING]: {url}'.format(url=url))
             zipped_file = download(url)
-            Logs.info('  [EXTRACTING]: {zipf}'.format(zipf=zipped_file))
+            Logs.info('  [EXTRACTING]: {zipfl}'.format(zipfl=zipped_file))
             extracted_files = extract(zipped_file)
             Logs.info('  [COPYING]: {files}'.format(files=extracted_files))
             copy(extracted_files)
@@ -240,7 +241,7 @@ def _find_cython_src(ctx):
 
 
 def build(bld):
-    LIBS = ['mpdclient', 'dl', 'pthread'] + bld.env.LIB_GLIB + bld.env.LIB_ZLIB + bld.env.LIB_AVAHI_GLIB
+    LIBS = ['m', 'mpdclient', 'dl', 'pthread'] + bld.env.LIB_GLIB + bld.env.LIB_ZLIB + bld.env.LIB_AVAHI_GLIB
     INCLUDES = bld.env.INCLUDES_GLIB + bld.env.INCLUDES_ZLIB + ['ext/sqlite/inc'] + bld.env.INCLUDES_AVAHI_GLIB
 
     def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
@@ -304,5 +305,9 @@ def build(bld):
                     cflags=CFLAGS
             )
 
-        from waflib.Tools import waf_unit_test
         bld.add_post_fun(waf_unit_test.summary)
+
+
+def doc(bld):
+    # This is solely here for typing 'waf doc'
+    subprocess.call('cd doc && make clean html', shell=True)

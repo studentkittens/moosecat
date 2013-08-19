@@ -28,7 +28,7 @@ Don't do this: ::
     100
 
 
-You will use most likely by accessing 'client.status'.
+**Hint:** You will use this most likely by accessing 'client.status'.
 '''
 
 cimport binds as c
@@ -240,7 +240,7 @@ cdef class Status:
     #  Audio Properties  #
     ######################
 
-    cdef c.mpd_audio_format * _audio(self) except NULL:
+    cdef c.mpd_audio_format * _audio(self) except? NULL:
         return <c.mpd_audio_format*> c.mpd_status_get_audio_format(self._p())
 
     property kbit_rate:
@@ -257,19 +257,28 @@ cdef class Status:
             return c.mpd_status_get_kbit_rate(self._p())
 
     property audio_sample_rate:
-        'audio: The sample rate of the'
+        'audio: The sample rate of the current song'
         def __get__(self):
-            return self._audio().sample_rate
+            if self._audio():
+                return self._audio().sample_rate
+            else:
+                return 0
 
     property audio_bits:
         'audio: mostly 24 bit'
         def __get__(self):
-            return self._audio().bits
+            if self._audio():
+                return self._audio().bits
+            else:
+                return 0
 
     property audio_channels:
         'audio: used channels '
         def __get__(self):
-            return self._audio().channels
+            if self._audio():
+                return self._audio().channels
+            else:
+                return 0
 
     ############################
     #  Replay Gain Properties  #

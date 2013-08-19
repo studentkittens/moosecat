@@ -77,8 +77,13 @@ char *mc_connect(
 {
     char *err = NULL;
 
-    if (self == NULL)
+    if (self == NULL) {
         return g_strdup(etable[ERR_IS_NULL]);
+    }
+
+    if(mc_is_connected(self)) {
+        return g_strdup("Already connected.");
+    }
 
     ASSERT_IS_MAINTHREAD(self);
 
@@ -468,5 +473,7 @@ void mc_block_till_sync(mc_Client *self)
 {
     g_assert(self);
 
-    mc_update_block_till_sync(self->_update_data);
+    if(mc_is_connected(self)) {
+        mc_update_block_till_sync(self->_update_data);
+    }
 }

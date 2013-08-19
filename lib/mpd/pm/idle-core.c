@@ -137,7 +137,7 @@ static bool idler_leave(mc_IdleClient *self)
         /* Since we're sending actively, we do not want
          * to be informed about it. */
         idler_remove_watch_kitten(self);
-        enum mpd_error event = 0;
+        enum mpd_idle event = 0;
 
         if ((event = mpd_run_noidle(self->con)) == 0) {
             rc = !idler_check_and_report_async_error(self);

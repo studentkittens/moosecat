@@ -19,7 +19,5 @@ cdef bytify(string):
 
 
 cdef client_send(c.mc_Client * client, command):
-    cdef char * b_command
-    b_command = command
-
+    b_command = bytify(command)
     return c.mc_client_send(client, b_command)

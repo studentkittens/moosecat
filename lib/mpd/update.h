@@ -36,6 +36,12 @@ typedef struct mc_UpdateData {
     GMutex sync_mtx;
     int sync_id;
 
+    /* ID of the last played song or -1 */
+    struct {
+        long id;
+        enum mpd_state state;
+    } last_song_data;
+
 } mc_UpdateData;
 
 /**

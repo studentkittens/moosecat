@@ -198,11 +198,13 @@ bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel)
 {
     bool rc = false;
 
-    g_mutex_lock(&jm->current_job_mutex);
-    {
-        rc = *cancel;
+    if(jm && cancel) {
+        g_mutex_lock(&jm->current_job_mutex);
+        {
+            rc = *cancel;
+        }
+        g_mutex_unlock(&jm->current_job_mutex);
     }
-    g_mutex_unlock(&jm->current_job_mutex);
 
     return rc;
 }
@@ -211,6 +213,10 @@ bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel)
 
 long mc_jm_send(struct mc_JobManager *jm, int priority, gpointer job_data)
 {
+    if(jm == NULL) {
+        return -1;
+    }
+
     /* Create a new job, with a unique job-id */
     mc_Job *job = mc_job_create(jm);
     job->priority = priority;
@@ -241,6 +247,10 @@ long mc_jm_send(struct mc_JobManager *jm, int priority, gpointer job_data)
 
 void mc_jm_wait(struct mc_JobManager *jm)
 {
+    if(jm == NULL) {
+        return;
+    }
+
     g_mutex_lock(&jm->finish_mutex);
     {
         for(;;) {
@@ -260,6 +270,16 @@ void mc_jm_wait(struct mc_JobManager *jm)
 
 void mc_jm_wait_for_id(struct mc_JobManager *jm, int job_id)
 {
+    if(jm == NULL || job_id < 0) {
+        /* Well, this is just down right invalid. */
+        return;
+    }
+
+    if(job_id > jm->last_send_job) {
+        /* Was not sended yet, also no need to wait */
+        return;
+    }
+
     bool has_key = false;
 
     /* Lookup if the results hash table already has this key */
@@ -273,17 +293,7 @@ void mc_jm_wait_for_id(struct mc_JobManager *jm, int job_id)
         /* Result was already computed */
         return;
     }
-
-    if(job_id < 0) {
-        /* Well, this is just down right invalid. */
-        return;
-    }
     
-    if(job_id > jm->last_send_job) {
-        /* Was not sended yet, also no need to wait */
-        return;
-    }
-
     /* Otherwise wait till we get notified upon execution */
     g_mutex_lock(&jm->finish_mutex);
     {
@@ -304,12 +314,14 @@ void * mc_jm_get_result(struct mc_JobManager *jm, int job_id)
 {
     void * result = NULL; 
 
-    /* Lock the hashtable and lookup the result */
-    g_mutex_lock(&jm->hash_table_mutex);
-    {
-        result = g_hash_table_lookup(jm->results, GINT_TO_POINTER(job_id));
+    if(jm != NULL) {
+        /* Lock the hashtable and lookup the result */
+        g_mutex_lock(&jm->hash_table_mutex);
+        {
+            result = g_hash_table_lookup(jm->results, GINT_TO_POINTER(job_id));
+        }
+        g_mutex_unlock(&jm->hash_table_mutex);
     }
-    g_mutex_unlock(&jm->hash_table_mutex);
 
     return result; 
 }
@@ -318,6 +330,10 @@ void * mc_jm_get_result(struct mc_JobManager *jm, int job_id)
 
 void mc_jm_close(struct mc_JobManager *jm)
 {
+    if(jm == NULL) {
+        return;
+    }
+
     /* Send a terminating job to the Queue and wait for it finish */
     g_async_queue_push(jm->job_queue, (gpointer)&jm->terminator);
     g_thread_join(jm->execute_thread);

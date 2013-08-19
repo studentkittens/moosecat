@@ -212,4 +212,20 @@ mc_Stack *mc_store_gw(mc_Store *self, int job_id);
  */
 void mc_store_release(mc_Store *self);
 
+/**
+ * @brief Find a song by it's ID in the database. 
+ *
+ * This is often used and therefore implemented for convienience/speed in C.
+ * Note: This has linear complexity since it needs to scan the whole list.
+ *
+ * You need to call mc_store_release() after done using the song.
+ *
+ * @param self the Store to search on. 
+ * @param needle_song_id
+ *
+ * @return NULL if not found or a mpd_song struct (do not free!)
+ */
+struct mpd_song * mc_store_find_song_by_id(mc_Store * self, unsigned needle_song_id);
+
+
 #endif /* end of include guard: DB_GUARD_H */

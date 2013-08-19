@@ -19,6 +19,12 @@ typedef enum {
     MC_PM_COMMAND
 } mc_PmType;
 
+
+/* Hack to distinguish between seek and player (pause, play) events.
+ * Use (currently...) highest value * 2
+ */
+#define MPD_IDLE_SEEK MPD_IDLE_MESSAGE << 1
+
 /* Prototype Update struct */
 struct mc_UpdateData;
 struct mc_OutputsData;
@@ -528,6 +534,7 @@ void mc_unlock_outputs(mc_Client *self);
  * @brief Waits for the first sync of status and co.
  *
  * This is useful for debugging purpose, not much for real applications.
+ * Will only block if connected.
  *
  * @param self client to wait upon on
  */

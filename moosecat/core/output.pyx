@@ -53,7 +53,7 @@ cdef class AudioOutput:
         def __get__(self):
             return c.mc_outputs_get_state(self._client, self._output_name)
         def __set__(self, state):
-            c.mc_outputs_set_state(self._client, self._output_name, 1 if state else 0)
+            c.mc_outputs_set_state(self._client, self._output_name, int(state))
 
     property name:
         'Getter: Get the name of the output like in the mpd.conf.'
