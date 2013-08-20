@@ -48,11 +48,11 @@ class CellRendererArrow(Gtk.CellRenderer):
             # stop_point is the point where the rectangle ends and the arrow starts
             stop_point = width - 20
             lw2 = line_width / 2
-            ctx.move_to(x, y + lw2)
+            ctx.move_to(x + lw2, y + lw2)
             ctx.line_to(x + stop_point, y + lw2)
             ctx.line_to(x + width, y + height / 2)
             ctx.line_to(x + stop_point, y + height - lw2)
-            ctx.line_to(x, y + height - lw2)
+            ctx.line_to(x + lw2, y + height - lw2)
             ctx.close_path()
 
             # Draw a small black line around it
