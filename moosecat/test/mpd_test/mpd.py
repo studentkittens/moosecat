@@ -43,7 +43,7 @@ audio_output {{
 }}
 
 # should run on different port than normal mpd
-port "6666"
+port "6600"
 '''
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -178,7 +178,7 @@ class MpdDummyClient:
     def __init__(self):
         self._telnet = None
 
-    def connect(self, host='localhost', port=6666):
+    def connect(self, host='localhost', port=6600):
         for _ in range(10):
             try:
                 self._telnet = telnetlib.Telnet(host, port)

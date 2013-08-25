@@ -268,6 +268,8 @@ cdef class Store:
     # This is private to prevent bad people from screwing up the locking order.
     @contextmanager
     def find_song_by_id(self, needle_song_id):
+        # Negative values trigger a conversion error (unsigned -> signed)
+        needle_song_id = max(0, needle_song_id)
         try:
             song = song_from_ptr(c.mc_store_find_song_by_id(self._p(), needle_song_id))
             yield song

@@ -43,6 +43,18 @@ class Heartbeat:
             elapsed = (status.elapsed_ms + offset) / 1000.0
         return elapsed
 
+    @property
+    def duration(self):
+        '''Returns the approx. duration of the currently playing song
+
+        :returns: The number of seconds as a float, with milliseconds fraction
+        '''
+        duration = 0
+        with self._client.lock_currentsong() as song:
+            if song:
+                duration = song.duration
+        return duration
+
     def _on_client_event(self, client, event):
         'client-event callback - updates the update timestamp'
         self._last_update_tmstp = self._current_time_ms()

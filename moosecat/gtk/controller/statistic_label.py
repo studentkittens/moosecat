@@ -53,6 +53,7 @@ def _format_db_playtime(playtime_sec):
 def _channels_to_string(channels):
     # To my knowledge currently will only give you these two:
     return {
+        0: '<small>(( no stream ))</small>',
         1: 'Mono',
         2: 'Stereo'
     }.get(channels, 'Stereo')
@@ -70,15 +71,27 @@ class StatisticLabel(Hideable):
         )
 
     def _format_text(self, song, stats, status):
+        if status is not None:
+            status_dict = {
+                'sample_rate': status.audio_sample_rate,
+                'bit': status.audio_bits,
+                'kbit': status.kbit_rate,
+                'channels': status.audio_channels
+            }
+        else:
+            status_dict = {
+                'sample_rate': 0,
+                'bit': 0,
+                'kbit': 0,
+                'channels': 0
+            }
+
         return TEMPLATE.format(
             elapsed_time=_format_time(int(g.heartbeat.elapsed)),
-            total_time=_format_time(song.duration),
+            total_time=_format_time(int(g.heartbeat.duration)),
             num_songs=stats.number_of_songs,
             db_playtime=_format_db_playtime(stats.db_playtime.tm_sec),
-            sample_rate=status.audio_sample_rate,
-            bit=status.audio_bits,
-            kbit=status.kbit_rate,
-            channels=_channels_to_string(status.audio_channels)
+            **status_dict
         )
 
     def _on_timeout_event(self):

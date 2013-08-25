@@ -21,5 +21,8 @@ class TitleLabel(Hideable):
     def _on_client_event(self, client, event):
         if event & Idle.PLAYER:
             with client.lock_currentsong() as song:
-                text = self._format_text(song)
-                self._info_label.set_markup(text)
+                if song is not None:
+                    text = self._format_text(song)
+                    self._info_label.set_markup(text)
+                else:
+                    self._info_label.set_markup('')

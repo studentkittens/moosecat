@@ -19,7 +19,6 @@ class ModeButtons(Hideable):
 
         for button in self._buttons:
             button.connect('clicked', self._on_button_clicked)
-
         g.client.signal_add('client-event', self._on_client_event)
 
     def _on_button_clicked(self, button):
