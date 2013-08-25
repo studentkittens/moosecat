@@ -108,7 +108,5 @@ class Menu(Hideable):
             status.repeat = item.get_active()
 
     ##################
-    #  Outouts Menu  #
-    ##################
-
-
+    #  Outputs Menu  #
+    #################
