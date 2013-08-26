@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from moosecat.core import Status
 from gi.repository import Gtk, Gdk, GLib, Pango, PangoCairo
 from cairo import Context, ImageSurface, RadialGradient, FORMAT_ARGB32
 from math import pi
 
 
+# TODO: make this a utility function
 def draw_center_text(ctx, width, height, text, font_size=15):
     'Draw a text at the center of width and height'
     layout = PangoCairo.create_layout(ctx)
@@ -59,10 +61,10 @@ def draw_undefined(ctx, width, height, mx, my):
 
 
 DRAW_STATE_MAP = {
-    'playing': draw_playing,
-    'stopped': draw_stopped,
-    'paused': draw_paused,
-    'undefined': draw_undefined
+    Status.Playing: draw_playing,
+    Status.Paused: draw_stopped,
+    Status.Stopped: draw_paused,
+    Status.Unknown: draw_undefined
 }
 
 
@@ -146,7 +148,6 @@ class TrayIcon(Gtk.StatusIcon):
         Gtk.StatusIcon.__init__(self)
 
         self.set_title(title)
-
         self.set_visible(True)
         self.connect('popup-menu', self.on_showpopup)
         self.connect('scroll-event', self.on_default_scroll_event)
@@ -159,7 +160,7 @@ class TrayIcon(Gtk.StatusIcon):
 
         # Settings:
         self._percent = 0
-        self._state = 'undefined'
+        self._state = Status.Unknown
         self._segments = 5
         self._on_popup_func = None
 
@@ -260,14 +261,13 @@ class TrayIcon(Gtk.StatusIcon):
 
     state = property(get_state, set_state, doc='State of Icon (one of DRAW_STATE_MAP)')
 
-    def get_on_popup(self):
+    def get_on_popup_func(self):
         return self._on_popup_func
 
-    def set_on_popup(self, func):
+    def set_on_popup_func(self, func):
         self._on_popup_func = func
 
-    on_popup = property(get_on_popup, set_on_popup, doc='Callback on menu popup')
-
+    on_popup_func = property(get_on_popup_func, set_on_popup_func, doc='Callback on menu popup')
 
 
 if __name__ == '__main__':

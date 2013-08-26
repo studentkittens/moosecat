@@ -27,7 +27,7 @@ class Application(Gtk.Application):
             ctrl.Sidebar, ctrl.Timeslide, ctrl.Volume, ctrl.PlayButtons,
             ctrl.TitleLabel, ctrl.ModeButtons, ctrl.StatisticLabel,
             ctrl.StatisticLabel, ctrl.InfoBar, ctrl.NextSongLabel,
-            ctrl.StatusSpinner, ctrl.Menu
+            ctrl.StatusSpinner, ctrl.Menu, ctrl.TrayIcon
         ]
 
         for controller in controller_list:

@@ -9,3 +9,4 @@ from .infobar import InfoBar
 from .next_song_label import NextSongLabel
 from .status_spinner import StatusSpinner
 from .menu import Menu
+from .tray import TrayIcon

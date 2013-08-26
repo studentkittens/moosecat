@@ -55,6 +55,18 @@ class Heartbeat:
                 duration = song.duration
         return duration
 
+    @property
+    def percent(self):
+        '''
+        Convinience method.
+
+        Returns (self.elapsed / self.duration) * 100
+        '''
+        if self.duration is not 0:
+            return self.elapsed / self.duration
+        else:
+            return 0
+
     def _on_client_event(self, client, event):
         'client-event callback - updates the update timestamp'
         self._last_update_tmstp = self._current_time_ms()
