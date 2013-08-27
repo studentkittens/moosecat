@@ -64,4 +64,8 @@ class IGtkBrowser(IBasePlugin):
         '''
         pass
 
-
+    def get_priority(self):
+        '''
+        High priorites are shown more on top than lower (0-100)
+        '''
+        return 0

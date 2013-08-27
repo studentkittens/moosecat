@@ -28,18 +28,22 @@ class Sidebar(Hideable):
         self._treeview.get_selection().connect('changed', self.on_selection_changed)
 
         # Fill something into the browser list
-        self.collect_browser()
+        self.collect_browsers()
 
-    def collect_browser(self):
+        # Select the first one
+        path_to_first = Gtk.TreePath.new_from_string('0')
+        self._treeview.get_selection().select_path(path_to_first)
+
+    def collect_browsers(self):
         # Get a List of Gtk Browsers
         browsers = g.psys.category('GtkBrowser')
+        browsers.sort(key=lambda b: b.get_priority(), reverse=True)
 
         for browser in browsers:
             # Tell them to build their GUI up.
             browser.do_build()
 
             # Render the icon in the style of treeview
-            #icon = self._treeview.render_icon_pixbuf(browser.get_browser_icon_name(), Gtk.IconSize.DND)
             icon = browser.get_browser_icon_name()
 
             # Name right side of Icon
@@ -56,10 +60,10 @@ class Sidebar(Hideable):
     ########################
 
     def get_hide_names(self):
-        pass
+        return ['sidebar']
 
     def get_hide_widgets(self):
-        pass
+        return [self._treeview]
 
     #############
     #  Signals  #

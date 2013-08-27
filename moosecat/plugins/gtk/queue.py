@@ -47,7 +47,9 @@ class QueueBrowser(IGtkBrowser):
         self._last_length = -1
         self._search_queue = Queue()
 
-        GLib.timeout_add(250, self._search)
+        # Fill it initially with the full Queue
+        self._search_queue.put('*')
+        GLib.timeout_add(200, self._search)
 
     def _changed(self, entry):
         self._search_queue.put(entry.get_text())
@@ -105,3 +107,6 @@ class QueueBrowser(IGtkBrowser):
 
     def get_browser_icon_name(self):
         return Gtk.STOCK_FIND
+
+    def get_priority(self):
+        return 90
