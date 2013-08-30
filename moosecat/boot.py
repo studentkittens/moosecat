@@ -7,6 +7,7 @@ import logging.handlers
 
 import moosecat.config as cfg
 import moosecat.core as core
+import moosecat.metadata as metadata
 
 from moosecat.plugin_system import PluginSystem
 from moosecat.heartbeat import Heartbeat
@@ -272,6 +273,17 @@ def boot_base(verbosity=logging.INFO, protocol_machine='idle'):
     return client.is_connected
 
 
+def boot_metadata():
+    '''
+    Initialize the metadata system (optional)
+
+    After calling this function you can use the :class:`moosecat.metadata.Retriever` instance
+    in ``g.meta_retriever``.
+    '''
+    retriever = metadata.Retriever()
+    g.register('meta_retriever', retriever)
+
+
 def boot_store():
     '''
     Initialize the store (optional)
@@ -296,7 +308,7 @@ def shutdown_application():
     '''
     Destruct everything boot_base() and boot_store() created.
 
-    You can call this function also safely if you did not call boot_store().
+    You can call this function also safely if you did not call boot_store() or boot_metadata().
     '''
     LOGGER.info('Shutting down moosecat.')
     g.config.save(g.CONFIG_FILE)
@@ -308,6 +320,9 @@ def shutdown_application():
         pass
 
     g.client.disconnect()
+
+    if hasattr(g, 'meta_retriever'):
+        g.meta_retriever.close()
 
 
 if __name__ == '__main__':

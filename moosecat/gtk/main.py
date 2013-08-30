@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 from gi.repository import Gtk
-from moosecat.boot import boot_base, boot_store, shutdown_application, g
+from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
 import moosecat.gtk.controller as ctrl
 
 
@@ -12,6 +12,7 @@ class Application(Gtk.Application):
 
         # Bring up the core!
         boot_base()
+        boot_metadata()
         boot_store()
 
         # Bind a global reference to gtk_builder
@@ -23,15 +24,15 @@ class Application(Gtk.Application):
 
         # TODO: Fixed path, srsly..
         builder.add_from_file('/home/sahib/dev/moosecat/moosecat/gtk/ui/main.glade')
-        controller_list = [
+        controller_class_list = [
             ctrl.Sidebar, ctrl.Timeslide, ctrl.Volume, ctrl.PlayButtons,
             ctrl.TitleLabel, ctrl.ModeButtons, ctrl.StatisticLabel,
             ctrl.StatisticLabel, ctrl.InfoBar, ctrl.NextSongLabel,
-            ctrl.StatusSpinner, ctrl.Menu, ctrl.TrayIcon
+            ctrl.StatusSpinner, ctrl.Menu, ctrl.TrayIcon, ctrl.SidebarCover
         ]
 
-        for controller in controller_list:
-            controller(builder)
+        for controller_class in controller_class_list:
+            controller_class(builder)
 
     def do_activate(self):
         window = g.gtk_builder.get_object('MainWindow')

@@ -11,9 +11,9 @@ It's moosetastic_!
    
    This is a mockup. Don't panic.
 
-#############################
-OH WOW, *ANOTHER* MPD CLIENT?
-#############################
+#################################
+OH WOW, *ANOTHER* musicpd CLIENT?
+#################################
 
 There are only 240 (`I counted them`_) clients out there.
 So here's our little contribution to get up to 256 clients.
@@ -28,7 +28,7 @@ that only a few other clients have.
   
     **Fast** and intellgigent searching.
 
-    A SQLite cache is built on startup, and is used instead of MPD's internal
+    A SQLite cache is built on startup, and is used instead of musicpd's internal
     search commands. On the next startup it is loaded from disk which is a lot
     faster if the server is on a remote machine. \*
 
@@ -41,6 +41,8 @@ that only a few other clients have.
 
     It is not exactly sure yet how this will be implemented, but 
     it should not be a large problem 
+
+    (This is a TODO Point in design)
 
 * **Good on Ressouces: Performance-critical stuff is written in C.**
 
@@ -61,7 +63,7 @@ that only a few other clients have.
 
 * **GUI-Agnostic.**
 
-    All MPD related code and all plugins are located in the core. 
+    All musicpd related code and all plugins are located in the core. 
     The core itself is partly written in C (*libmoosecat*) and partly
     in Cython. A PyGtk-GUI or an Ncurses-UI might be written relatively
     easy and share a lot code with each else.
@@ -71,13 +73,9 @@ that only a few other clients have.
     The current goal is to develop a *mpc* client as first milestone, which
     is very well tested by automated unittests. 
 
-    We even have a FakeMPD Server that is used to provide a clean counterpart
+    We even have a FakeMusicpd Server that is used to provide a clean counterpart
     for the client. It can also be used to startup moosecat without a proper server 
     anywhere.
-
-* **Python**
-
-    The fact that it's mostly written in Python is a feature itself. ☻
 
 * **Strong Metadata Support**
 
@@ -135,8 +133,8 @@ Here's a list of people to blame:
 
 ===================================  ==========================  ========================================
 *Christopher* **<sahib>** *Pahl*     https://github.com/sahib    He started it all. He also breaks it all
-*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Pluginsystem.
-*Christoph* **<kitteh>** *Piechula*  https://github.com/qitta    Moral boosts, Idead for Pluginsystem 
+*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Pluginsystem
+*Christoph* **<kitteh>** *Piechula*  https://github.com/qitta    Moral boosts, Ideas for Pluginsystem 
 ===================================  ==========================  ========================================
 
 .. _moosetastic: http://www.urbandictionary.com/define.php?term=moosetastic
