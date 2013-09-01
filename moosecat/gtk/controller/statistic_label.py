@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 
 TEMPLATE = """\
-<small>{elapsed_time}/{total_time} | {num_songs} Songs (~{db_playtime}) | \
+<small>{elapsed_time}/{total_time} | {num_songs} Songs <small>(~{db_playtime})</small> | \
 {sample_rate} KHz | {bit} Bit | {kbit} KBit/s | {channels}</small>\
 """
 
@@ -34,18 +34,22 @@ def _append_unit(markup, num, unit):
 
 
 def _format_db_playtime(playtime_sec):
-    delta = timedelta(seconds=playtime_sec)
-    dtime = datetime(1, 1, 1) + delta
+    dtime = datetime.fromtimestamp(playtime_sec)
 
-    # - 1 because 0 days are possible (couting stats at 1.1.1970)
+    # - 1 because 0 days are possible (couting from 1.1.1970)
     days, hours, minutes = dtime.day - 1, dtime.hour, dtime.minute
-    weeks = days / 7
+    months = dtime.month - 1
 
     markup = ''
-    markup = _append_unit(markup, weeks, 'Weeks')
+    markup = _append_unit(markup, months, 'Months')
     markup = _append_unit(markup, days, 'Days')
     markup = _append_unit(markup, hours, 'Hours')
     markup = _append_unit(markup, minutes, 'Mins')
+
+    # If there's space left we also add the number of seconds
+    # len was chosen at will
+    if len(markup) < 30:
+        markup = _append_unit(markup, dtime.second, 'Secs')
 
     return markup.strip()
 
@@ -76,21 +80,21 @@ class StatisticLabel(Hideable):
                 'sample_rate': status.audio_sample_rate,
                 'bit': status.audio_bits,
                 'kbit': status.kbit_rate,
-                'channels': status.audio_channels
+                'channels': _channels_to_string(status.audio_channels)
             }
         else:
             status_dict = {
                 'sample_rate': 0,
                 'bit': 0,
                 'kbit': 0,
-                'channels': 0
+                'channels': _channels_to_string(0)
             }
 
         return TEMPLATE.format(
             elapsed_time=_format_time(int(g.heartbeat.elapsed)),
             total_time=_format_time(int(g.heartbeat.duration)),
             num_songs=stats.number_of_songs,
-            db_playtime=_format_db_playtime(stats.db_playtime.tm_sec),
+            db_playtime=_format_db_playtime(stats.db_playtime_sec),
             **status_dict
         )
 

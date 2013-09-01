@@ -65,22 +65,22 @@ cdef class Statistics:
         def __get__(self):
             return c.mpd_stats_get_number_of_songs(self._p())
 
-    property uptime:
+    property uptime_sec:
         'MPDs uptime with seconds since the last epoch'
         def __get__(self):
-            return time.gmtime(c.mpd_stats_get_uptime(self._p()))
+            return c.mpd_stats_get_uptime(self._p())
 
-    property db_update_time:
+    property db_update_time_sec:
         'Last update of the database measured as seconds since the last epoch'
         def __get__(self):
-            return time.gmtime(c.mpd_stats_get_db_update_time(self._p()))
+            return c.mpd_stats_get_db_update_time(self._p())
 
-    property playtime:
+    property playtime_sec:
         'Time MPD spend playing since it spawned in seconds.'
         def __get__(self):
-            return time.gmtime(c.mpd_stats_get_play_time(self._p()))
+            return c.mpd_stats_get_play_time(self._p())
 
-    property db_playtime:
+    property db_playtime_sec:
         'Time it would take to play all songs in the database in seconds.'
         def __get__(self):
-            return time.gmtime(c.mpd_stats_get_db_play_time(self._p()))
+            return c.mpd_stats_get_db_play_time(self._p())
