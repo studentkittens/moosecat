@@ -5,13 +5,15 @@ from gi.repository import Gtk
 from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
 import moosecat.gtk.controller as ctrl
 
+import logging
+
 
 class Application(Gtk.Application):
     def __init__(self):
         Gtk.Application.__init__(self)
 
         # Bring up the core!
-        boot_base()
+        boot_base(verbosity=logging.INFO)
         boot_metadata()
         boot_store()
 

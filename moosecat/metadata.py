@@ -3,6 +3,8 @@ import logging
 import queue
 import threading
 
+from moosecat.boot import g
+
 # external
 from gi.repository import GLib
 import plyr
@@ -103,19 +105,57 @@ class Retriever:
             self._order_queue.put((prio, order))
             return order
 
+    def lookup(self, query):
+        '''
+        Lookup an item in the Database
+
+        :query: plyr.Query, as returned from configure_query e.g.
+        :returns: Boolean.
+        '''
+        return self._database.lookup(query)
+
     def close(self):
         '''
         Close the metadata system (join threads).
 
         .. note::
 
-            This might be already called for you if you used boot_metadata()
+            This might be already called for you automatically if you used boot_metadata()
 
         '''
         GLib.source_remove(self._watch_source)
         for thread in self._fetch_threads:
             self._order_queue.put((-1, None))
         self._wait_on_barrier()
+
+
+def update_needed(last_query, new_query):
+    '''
+    Check if an update of the metadata is actually needed.
+    It does this by checking the required attributes and compares them.
+
+    :last_query: Query used on the last update
+    :new_query: New Query that will be used.
+    :returns: Boolean
+    '''
+    if not last_query.get_type == new_query.get_type:
+        return False
+
+    info = plyr.PROVIDERS.get(last_query.get_type)
+    for attribute in info['required']:
+        if not getattr(last_query, attribute) == getattr(new_query, attribute):
+            return False
+    return True
+
+
+def _get_current_song_uri():
+    # TODO: Implement profiles first
+    dir_path = g.server_profile.music_directory
+    with g.client.lock_currentsong() as song:
+        if song is not None and dir_path is not None:
+            full_path = os.path.join(dir_path, song.uri)
+            if os.access(full_path, os.R_OK):
+                return full_path
 
 
 def configure_query(get_type, artist=None, album=None, title=None, amount=1):
@@ -143,7 +183,31 @@ def configure_query(get_type, artist=None, album=None, title=None, amount=1):
         album=str(album),
         title=str(title),
         number=amount,
-        verbosity=4
+        verbosity=2,
+        musictree_path=_get_current_song_uri() or ''
+        ############################################
+        #  Config Values, not explicitly settable  #
+        ############################################
+        # not settable;
+        # allowed_formats,
+        # proxy
+        # useragent
+        # max_per_plugin
+        # parallel
+
+        # # automatically:
+        # database_path
+        # force_utf8
+        # img_size,
+        # language
+
+        # fuzzyness
+        # language_aware_only
+        # providers
+        # qsratio
+        # redirects
+        # timeout
+        # verbosity
     )
 
 

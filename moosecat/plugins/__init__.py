@@ -9,18 +9,20 @@ class IBasePlugin(IPlugin):
         return 0
 
 
-class INetworkProvider(IBasePlugin):
+class IServerProfileProvider(IBasePlugin):
     'Plugin Interface for Plugins that want to provide connection data'
 
-    name = 'NetworkProvider'
+    name = 'ServerProfileProvider'
 
-    def find(self):
+    def trigger_scan(self, server_profile):
         '''
-        Find a server automatically.
+        Find a server automatically by looking at various things.
+        This function should not block.
+        If servers were found.
 
-        :returns: a tuple: (host:str, port:int, timeout:float)
+        :param profiles: An instance of ServerProfile
         '''
-        return ('localhost', 6600, 2.0)
+        pass
 
 
 class IConfigDefaults(IBasePlugin):
@@ -64,6 +66,7 @@ class IGtkBrowser(IBasePlugin):
         '''
         pass
 
+    # TODO: This is redundant with priority()
     def get_priority(self):
         '''
         High priorites are shown more on top than lower (0-100)

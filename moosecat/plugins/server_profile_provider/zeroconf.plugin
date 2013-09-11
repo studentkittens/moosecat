@@ -1,0 +1,8 @@
+[Core]
+Name = ZeroconfServerProvider
+Module = zeroconf
+
+[Documentation]
+Author = C. Pahl
+Version = 0.1
+Description = Tries to find the server via Zeroconf (if Avahi is running)

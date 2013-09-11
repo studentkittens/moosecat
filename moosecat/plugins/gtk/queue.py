@@ -43,7 +43,7 @@ class QueueBrowser(IGtkBrowser):
         # Signals
         self._entry.connect('changed', self._changed)
 
-        # Type Optimzations
+        # Typing Optimzations
         self._last_length = -1
         self._search_queue = Queue()
 

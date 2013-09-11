@@ -1,21 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import os
-import logging
-import logging.handlers
-
-import moosecat.config as cfg
-import moosecat.core as core
-import moosecat.metadata as metadata
-
-from moosecat.plugin_system import PluginSystem
-from moosecat.heartbeat import Heartbeat
-from moosecat.config_defaults import CONFIG_DEFAULTS
-
-# PyXDG Sepcs
-from xdg import BaseDirectory
-
 
 ###########################################################################
 #                             Global Registry                             #
@@ -46,6 +31,28 @@ class GlobalRegistry:
 # This is were the mysterious g-variable comes from.
 g = GlobalRegistry()
 
+###########################################################################
+#                                 Imports                                 #
+###########################################################################
+
+# Note: Imports come after GlobalRegistry since some of them
+# may do 'from moosecat.boot import g' already.
+
+import os
+import logging
+import logging.handlers
+
+import moosecat.config as cfg
+import moosecat.core as core
+import moosecat.metadata as metadata
+
+from moosecat.plugin_system import PluginSystem
+from moosecat.heartbeat import Heartbeat
+from moosecat.config_defaults import CONFIG_DEFAULTS
+from moosecat.server_profile import ServerProfile
+
+# PyXDG Sepcs
+from xdg import BaseDirectory
 
 ###########################################################################
 #                             PATH CONSTANTS                              #
@@ -178,15 +185,17 @@ def _connectivity_logger(client, server_changed, was_connected):
 
 
 def _find_out_host_and_port():
-    host = g.config.get('host')
-    if host is None:
-        for plugin in g.psys.category('NetworkProvider'):
-            data = plugin.find()
-            if data is not None:
-                return (data[0], data[1])  # (host, port)
-    else:
-        port = g.config.get('port')
-        return host, 6600 if port is None else port
+    host = g.server_profile.host or 'localhost'
+    port = g.server_profile.port or 6600
+    return host, port
+    #if host is None:
+    #    for plugin in g.psys.category('NetworkProvider'):
+    #        data = plugin.find()
+    #        if data is not None:
+    #            return (data[0], data[1])  # (host, port)
+    #else:
+    #    port = g.config.get('port')
+    #    return host, 6600 if port is None else port
 
 
 def boot_base(verbosity=logging.INFO, protocol_machine='idle'):
@@ -263,6 +272,12 @@ def boot_base(verbosity=logging.INFO, protocol_machine='idle'):
 
     # do the Heartbeat stuff
     g.register('heartbeat', Heartbeat(client))
+
+    # Make use of the Server Profiles in the config
+    # Note: This needs the Pluginsystem
+    server_profile = ServerProfile(config)
+    g.register('server_profile', server_profile)
+    server_profile.trigger_scan(psys)
 
     # Go into the hot phase...
     host, port = _find_out_host_and_port()

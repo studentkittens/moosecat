@@ -1,8 +1,0 @@
-[Core]
-Name = AvahiNetworkProvider
-Module = avahi
-
-[Documentation]
-Author = C. Pahl
-Version = 0.1
-Description = Simply assumes the Servers is on localhost:6600
