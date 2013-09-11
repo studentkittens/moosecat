@@ -22,6 +22,7 @@ Developer Documentation:
     api/plugin_system.rst
     api/config.rst
     api/heartbeat.rst
+    api/metadata.rst
 
 
 Indices and tables

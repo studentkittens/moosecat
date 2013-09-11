@@ -11,9 +11,18 @@ import plyr
 
 
 class Order:
+    '''Create a new Order used to deliver results.
+
+    You usually don't need to create new order explicitly, since they're
+    created by the :class:`Retriever` class for you.
+    '''
     def __init__(self, notify, query):
+        '''
+        :param notify: A callable, called when query is done cooking.
+        :param query: a plyr.Query
+        '''
         self._notify, self._query = notify, query
-        self._results = []
+        self._results = None
 
     def __lt__(self, other):
         # PriorityQueue requires that both elements of the tuple
@@ -23,6 +32,7 @@ class Order:
 
     @property
     def results(self):
+        'A list of plyr.Cache or None if nothing happened yet.'
         return self._results
 
     def execute(self):
@@ -36,8 +46,15 @@ class Order:
 
 
 class Retriever:
+    '''Models a metadata retrieveal system.
+
+    Queries can be submitted to the retriever which distributes those to a number
+    of threads. The notify-callable passed alongside the Query will be called
+    ON THE MAINTHREAD when the Query is done processing.
+    '''
     def __init__(self, threads=4):
-        self._database = plyr.Database('/tmp')  # TODO
+        '''Create a new Retriever with N threads.'''
+        self._database = plyr.Database(g.CACHE_DIR)  # TODO
         self._order_queue = queue.PriorityQueue()
         self._fetch_queue = queue.Queue()
         self._thr_barrier = threading.Barrier(
@@ -97,7 +114,7 @@ class Retriever:
         :param notify: a callable that is called on main thread when the item is retrieved
         :param query: a plyr.Query, like for example from ``configure_query()``
         :param prio: Higher priorites get sorted earlier in the Job Queue
-        :returns: an :class:`moosecat.metadata.Order` object.
+        :returns: an unfinished :class:`moosecat.metadata.Order` object.
         '''
         if all((notify, query)):
             query.database = self._database
@@ -148,18 +165,53 @@ def update_needed(last_query, new_query):
     return True
 
 
-def _get_current_song_uri():
-    # TODO: Implement profiles first
-    dir_path = g.server_profile.music_directory
+def _get_full_current_song_uri():
+    base_path = g.server_profile.music_directory
+    if base_path is None:
+        return
+
     with g.client.lock_currentsong() as song:
         if song is not None and dir_path is not None:
-            full_path = os.path.join(dir_path, song.uri)
+            full_path = os.path.join(base_path, song.uri)
             if os.access(full_path, os.R_OK):
                 return full_path
 
 
-def configure_query(get_type, artist=None, album=None, title=None, amount=1):
-    # TODO: this would be the best place to read the config.
+def configure_query_by_current_song(get_type, amount=1):
+    '''
+    Configure a Query based on the current song.
+    If no current song currently None is returned.
+
+    Otherwise the same as :py:func:`configure_query`
+
+    :returns: a :py:class:`plyr.Query`
+    '''
+    with g.client.lock_currentsong() as song:
+        if song is not None:
+            return configure_query(get_type, song.artist, song.album, song.title, amount=1)
+
+
+def configure_query(get_type, artist=None, album=None, title=None, amount=1, img_size=None):
+    '''
+    Create a :class:`plyr.Query` based on the parameters.
+    Not all parameters are required, for cover only artist/album is needed.
+
+    To get a full list of get_types do: ::
+
+        >>> from plyr import PROVIDERS
+        >>> list(PROVIDERS.keys())
+
+    Other values will be read from the config or determined from runtime info or
+    the values are left to libglyr to be determined.
+
+    :param get_type: A get_type dictated by plyr ('cover', 'lyrics')
+    :param artist: Artist Information
+    :param album: Album Information
+    :param title: Title information
+    :param amount: Number of items to retrieve
+    :param img_size: If item is an image, the (min size, max size) as tuple.
+    :returns: a ready configured :class:`plyr.Query`
+    '''
     def bailout(msg):
         raise ValueError(': '.join([msg, str(get_type)]))
 
@@ -177,37 +229,41 @@ def configure_query(get_type, artist=None, album=None, title=None, amount=1):
     if 'album' in requirements and album is None:
         bailout('Album is required for this get_type')
 
+    # Write less, one indirection less
+    cfg = g.config
+
     return plyr.Query(
-        get_type=get_type,
-        artist=str(artist),
-        album=str(album),
-        title=str(title),
-        number=amount,
-        verbosity=2,
-        musictree_path=_get_current_song_uri() or ''
-        ############################################
-        #  Config Values, not explicitly settable  #
-        ############################################
-        # not settable;
-        # allowed_formats,
-        # proxy
-        # useragent
-        # max_per_plugin
-        # parallel
+        **{
+            key: value for key, value in dict(
+                # Settings explicitly set
+                get_type=get_type,
+                artist=str(artist),
+                album=str(album),
+                title=str(title),
+                number=amount,
+                musictree_path=_get_full_current_song_uri(),
+                force_utf8=True,
+                useragent='moosecat/0.0.1 +(https://github.com/studentkittens/moosecat)',
+                img_size=img_size,
 
-        # # automatically:
-        # database_path
-        # force_utf8
-        # img_size,
-        # language
+                # Settings dynamically calculated by libglyr
+                # allowed_formats - png, jpg, gif
+                # proxy           - Read from env vars
+                # max_per_plugin  - Determined per get_type, number etc.
+                # parallel        - Determined per get_type
+                # language        - Autodetected from locale
 
-        # fuzzyness
-        # language_aware_only
-        # providers
-        # qsratio
-        # redirects
-        # timeout
-        # verbosity
+                # Configurable Attributes
+                verbosity=cfg['metadata.verbosity'],
+                providers=cfg['metadata.providers'],
+                language_aware_only=cfg['metadata.language_aware_only'],
+                qsratio=cfg['metadata.quality_speed_ratio'],
+                redirects=cfg['metadata.redirects'],
+                timeout=cfg['metadata.timeout'],
+                fuzzyness=cfg['metadata.fuzzyness']
+            ).items()
+            if value is not None
+        }
     )
 
 
