@@ -25,14 +25,17 @@ class Application(Gtk.Application):
 
         # Bind a global reference to gtk_builder
         builder = Gtk.Builder()
+        builder.add_from_file(glade_path('main'))
         g.register('gtk_builder', builder)
 
         # Bind a global reference to the Application Instance
         g.register('gtk_app', self)
 
-        builder.add_from_file(glade_path('main'))
+        # Sidebar is explictly instanced, since we need the ref
+        g.register('gtk_sidebar', ctrl.Sidebar(builder))
+
         controller_class_list = (
-            ctrl.Sidebar, ctrl.Timeslide, ctrl.Volume, ctrl.PlayButtons,
+            ctrl.Timeslide, ctrl.Volume, ctrl.PlayButtons,
             ctrl.TitleLabel, ctrl.ModeButtons, ctrl.StatisticLabel,
             ctrl.StatisticLabel, ctrl.InfoBar, ctrl.NextSongLabel,
             ctrl.StatusSpinner, ctrl.Menu, ctrl.TrayIcon, ctrl.SidebarCover

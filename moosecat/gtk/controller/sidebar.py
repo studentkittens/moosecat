@@ -22,10 +22,12 @@ class Sidebar(Hideable):
                 Gdk.RGBA(color.red, color.green, color.blue)
         )
 
-        self._treeview.append_column(Gtk.TreeViewColumn('Browser', CellRendererArrow(), text=0, icon=1))
+        self._treeview.append_column(
+            Gtk.TreeViewColumn('Browser', CellRendererArrow(), text=0, icon=1)
+        )
         self._treeview.set_headers_visible(False)
         self._treeview.set_model(self._store)
-        self._treeview.get_selection().connect('changed', self.on_selection_changed)
+        self._treeview.get_selection().connect('changed', self._on_selection_changed)
 
         # Fill something into the browser list
         self.collect_browsers()
@@ -55,6 +57,23 @@ class Sidebar(Hideable):
             # Remember the widget
             self._browser_widgets[display_name] = browser.get_root_widget()
 
+    def _switch_widgets(self, new_widget):
+        widget = self._main_pane.get_child()
+        if widget is not None:
+            self._main_pane.remove(widget)
+
+        self._main_pane.add(new_widget)
+        self._main_pane.show_all()
+
+    def switch_to(self, browser_name):
+        for idx, (name, _) in enumerate(self._store):
+            if name == browser_name:
+                # Triggers _on_selection_changed, which changes the browser
+                self._treeview.get_selection().select_path(Gtk.TreePath(str(idx)))
+                break
+        else:
+            raise ValueError('No such registered Browser: ' + browser_name)
+
     ########################
     #  Hideable Interface  #
     ########################
@@ -69,12 +88,6 @@ class Sidebar(Hideable):
     #  Signals  #
     #############
 
-    def on_selection_changed(self, selection):
+    def _on_selection_changed(self, selection):
         (model, iterator) = selection.get_selected()
-
-        widget = self._main_pane.get_child()
-        if widget is not None:
-            self._main_pane.remove(widget)
-
-        self._main_pane.add(self._browser_widgets[model[iterator][0]])
-        self._main_pane.show_all()
+        self._switch_widgets(self._browser_widgets[model[iterator][0]])

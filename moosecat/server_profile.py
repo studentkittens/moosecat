@@ -40,7 +40,6 @@ class ServerProfile(Profile):
 
     def trigger_scan(self, psys):
         for plugin in psys.category('ServerProfileProvider'):
-            print('Triggering ', plugin)
             plugin.trigger_scan(self)
 
     ###########################################################################
