@@ -1,8 +1,16 @@
 from cairo import LINE_CAP_SQUARE
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GObject
 
 
 class CairoSlider(Gtk.DrawingArea):
+    __gsignals__ = {
+            'percent-change': (
+                    GObject.SIGNAL_RUN_FIRST,  # Run-Order
+                    None,                      # Return Type
+                    tuple()                    # Paramaeters
+            )
+    }
+
     def __init__(self):
         Gtk.DrawingArea.__init__(self)
 
@@ -23,9 +31,6 @@ class CairoSlider(Gtk.DrawingArea):
                 Gdk.EventMask.SCROLL_MASK
         )
 
-        # No user function by default
-        self._on_percent_change_func = None
-
         # Signals used to know when redrawing is desired
         self.connect('scroll-event', self.on_scroll_event)
         self.connect('button-press-event', self.on_button_press_event)
@@ -33,18 +38,8 @@ class CairoSlider(Gtk.DrawingArea):
         self.connect('motion-notify-event', self.on_motion_notify)
         self.connect('draw', self.on_draw)
 
-    @property
-    def on_percent_change_func(self):
-        return self._on_percent_change_func
-
-    @on_percent_change_func.setter
-    def on_percent_change_func(self, func):
-        if callable(func):
-            self._on_percent_change_func = func
-
     def _call_on_percent_change_func(self):
-        if self._on_percent_change_func:
-            self._on_percent_change_func(self)
+        self.emit('percent-change')
 
     @property
     def theme_active_color(self):

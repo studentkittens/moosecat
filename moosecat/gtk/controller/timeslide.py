@@ -13,7 +13,7 @@ class Timeslide(Hideable):
         self._slide_align = builder.get_object('timeslider_align')
         self._slide = ProgressSlider()
         self._slide_align.add(self._slide)
-        self._slide.on_percent_change_func = self._on_percent_change
+        self._slide.connect('percent-change', self._on_percent_change)
 
         GLib.timeout_add(500, self._timeout_callback)
 

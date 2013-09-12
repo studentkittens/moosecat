@@ -12,9 +12,7 @@ class Volume(Hideable):
         self._vol_align.add(self._volume_bar)
 
         g.client.signal_add('client-event', self._on_client_event)
-
-        # TODO: Use gsignals like everyone does.
-        self._volume_bar.on_percent_change_func = self._on_click_event
+        self._volume_bar.connect('percent-change', self._on_click_event)
 
     def _on_client_event(self, client, event):
         if event & Idle.MIXER:
@@ -22,6 +20,6 @@ class Volume(Hideable):
                 self._volume_bar.percent = status.volume / 100
 
     def _on_click_event(self, bar):
-        # TODO: This is stupid.
         with g.client.lock_status() as status:
-            status.volume = bar.percent * 100
+            if status is not None:
+                status.volume = bar.percent * 100
