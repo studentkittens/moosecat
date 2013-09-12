@@ -2,23 +2,11 @@
 # encoding: utf-8
 
 from moosecat.core import Status
-from gi.repository import Gtk, Gdk, GLib, Pango, PangoCairo
+from moosecat.gtk.utils import draw_center_text
+
+from gi.repository import Gtk, Gdk, GLib
 from cairo import Context, ImageSurface, RadialGradient, FORMAT_ARGB32
 from math import pi
-
-
-# TODO: make this a utility function
-def draw_center_text(ctx, width, height, text, font_size=15):
-    'Draw a text at the center of width and height'
-    layout = PangoCairo.create_layout(ctx)
-    font = Pango.FontDescription()
-    font.set_size(font_size * Pango.SCALE)
-    layout.set_font_description(font)
-    layout.set_text(text, -1)
-
-    fw, fh = [num / Pango.SCALE / 2 for num in layout.get_size()]
-    ctx.move_to(width / 2 - fw, height / 2 - fh)
-    PangoCairo.show_layout(ctx, layout)
 
 
 def draw_stopped(ctx, width, height, mx, my):
