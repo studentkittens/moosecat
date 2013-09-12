@@ -142,8 +142,6 @@ static bool handle_output_switch(mc_Client *self, struct mpd_connection *conn, c
 
     intarg_named(argv[1], mode);
 
-    g_printerr("OUTPUT_SWITCH: %s %d\n", output_name, output_id);
-
     if (output_id != -1) {
         if (mode == TRUE) {
             COMMAND(

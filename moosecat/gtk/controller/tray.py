@@ -59,7 +59,6 @@ class TrayIcon(Hideable):
                 signal=lambda *_: g.gtk_app.activate()
         )
 
-        # TODO: Make this work - and fix state of play/pause
         create_menu(
                 tray, 'Preferences', stock_id='gtk-preferences',
                 signal=lambda *_: g.gtk_sidebar.switch_to('Settings')

@@ -148,14 +148,11 @@ bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bo
     bool found = false;
     struct mpd_output *op = mc_priv_outputs_find(data, output_name);
     if(op != NULL) {
-        g_printerr("---- SET OUTPUT\n");
         if(!!mpd_output_get_enabled(op) != !!state) {
-        g_printerr("---- TEST OKAY\n");
             found = true;
             char * output_switch_cmd = g_strdup_printf(
                     "output_switch %s %d", output_name, (state) ? 1 : 0
             );
-        g_printerr("---- SEND: %s\n", output_switch_cmd);
             mc_client_send(data->client, output_switch_cmd);
             g_free(output_switch_cmd);
         }
