@@ -194,13 +194,19 @@ static void mc_update_context_info_cb( struct mc_Client *self, enum mpd_idle eve
 static bool mc_update_is_a_seek_event(mc_UpdateData* data, enum mpd_idle event_mask)
 {
     if(event_mask & MPD_IDLE_PLAYER) {
+        long curr_song_id = -1;
+        enum mpd_state curr_song_state = MPD_STATE_UNKNOWN;
+
         /* Get the current data */
-        mc_lock_status(data->client);
-        long curr_song_id = mpd_status_get_song_id(data->status); 
-        enum mpd_state curr_song_state = mpd_status_get_state(data->status);
+        mc_lock_status(data->client); {
+            if(data->status) {
+                curr_song_id = mpd_status_get_song_id(data->status); 
+                curr_song_state = mpd_status_get_state(data->status);
+            }
+        }
         mc_unlock_status(data->client);
 
-        if(data->last_song_data.id == curr_song_id) {
+        if(curr_song_id != -1 && data->last_song_data.id == curr_song_id) {
             if(data->last_song_data.state == curr_song_state) {
                 return true;
             }
