@@ -54,9 +54,10 @@ class Retriever:
     '''
     def __init__(self, threads=4):
         '''Create a new Retriever with N threads.'''
-        self._database = plyr.Database(g.CACHE_DIR)  # TODO
+        self._database = plyr.Database(g.CACHE_DIR)
         self._order_queue = queue.PriorityQueue()
         self._fetch_queue = queue.Queue()
+        self._query_set = set()
         self._thr_barrier = threading.Barrier(
                 parties=threads + 1,
                 timeout=1.0  # Time to wait before forced kill.
@@ -96,6 +97,7 @@ class Retriever:
         try:
             order = self._fetch_queue.get_nowait()
             order.call_notify()
+            self._query_set.remove(order._query)
         except queue.Empty:
             pass
         except:
@@ -120,6 +122,7 @@ class Retriever:
             query.database = self._database
             order = Order(notify, query)
             self._order_queue.put((prio, order))
+            self._query_set.add(query)
             return order
 
     def lookup(self, query):
@@ -139,10 +142,21 @@ class Retriever:
 
             This might be already called for you automatically if you used boot_metadata()
 
+        .. note::
+
+            This should be called on the main thead.
         '''
         GLib.source_remove(self._watch_source)
+
+        # Tell left-over queries to cancel
+        for query in self._query_set:
+            query.cancel()
+
+        # Tell worker threads to finish
         for thread in self._fetch_threads:
             self._order_queue.put((-1, None))
+
+
         self._wait_on_barrier()
 
 
