@@ -19,7 +19,7 @@ class TrayIcon(Hideable):
         GLib.timeout_add(1000, self._on_timeout_event)
 
         # This is a hack to make GtkStatusIcon look like a widget
-        # although it is only a GObject: Patch two functions that do that.
+        # although it is only a GObject: Monkey-Patch two functions that do that.
         self._icon.show = partial(self._icon.set_visible, True)
         self._icon.hide = partial(self._icon.set_visible, False)
 

@@ -6,6 +6,12 @@ from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_applica
 import moosecat.gtk.controller as ctrl
 
 import logging
+import os
+
+
+def glade_path(glade_name):
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(script_path, 'ui', glade_name + '.glade')
 
 
 class Application(Gtk.Application):
@@ -24,14 +30,13 @@ class Application(Gtk.Application):
         # Bind a global reference to the Application Instance
         g.register('gtk_app', self)
 
-        # TODO: Fixed path, srsly..
-        builder.add_from_file('/home/sahib/dev/moosecat/moosecat/gtk/ui/main.glade')
-        controller_class_list = [
+        builder.add_from_file(glade_path('main'))
+        controller_class_list = (
             ctrl.Sidebar, ctrl.Timeslide, ctrl.Volume, ctrl.PlayButtons,
             ctrl.TitleLabel, ctrl.ModeButtons, ctrl.StatisticLabel,
             ctrl.StatisticLabel, ctrl.InfoBar, ctrl.NextSongLabel,
             ctrl.StatusSpinner, ctrl.Menu, ctrl.TrayIcon, ctrl.SidebarCover
-        ]
+        )
 
         for controller_class in controller_class_list:
             controller_class(builder)
