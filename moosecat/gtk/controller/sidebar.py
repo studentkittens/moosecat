@@ -37,7 +37,7 @@ class Sidebar(Hideable):
     def collect_browsers(self):
         # Get a List of Gtk Browsers
         browsers = g.psys.category('GtkBrowser')
-        browsers.sort(key=lambda b: b.get_priority(), reverse=True)
+        browsers.sort(key=lambda b: b.priority(), reverse=True)
 
         for browser in browsers:
             # Tell them to build their GUI up.

@@ -177,7 +177,7 @@ def _get_full_current_song_uri():
                 return full_path
 
 
-def configure_query_by_current_song(get_type, amount=1):
+def configure_query_by_current_song(get_type, amount=1, img_size=(-1, -1)):
     '''
     Configure a Query based on the current song.
     If no current song currently None is returned.
@@ -188,10 +188,17 @@ def configure_query_by_current_song(get_type, amount=1):
     '''
     with g.client.lock_currentsong() as song:
         if song is not None:
-            return configure_query(get_type, song.artist, song.album, song.title, amount=1)
+            return configure_query(
+                    get_type,
+                    song.artist,
+                    song.album,
+                    song.title,
+                    amount=1,
+                    img_size=img_size
+            )
 
 
-def configure_query(get_type, artist=None, album=None, title=None, amount=1, img_size=None):
+def configure_query(get_type, artist=None, album=None, title=None, amount=1, img_size=(-1, -1)):
     '''
     Create a :class:`plyr.Query` based on the parameters.
     Not all parameters are required, for cover only artist/album is needed.

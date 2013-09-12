@@ -21,5 +21,5 @@ class QueueBrowser(IGtkBrowser):
     def get_browser_icon_name(self):
         return Gtk.STOCK_PREFERENCES
 
-    def get_priority(self):
-        return -1
+    def priority(self):
+        return 20

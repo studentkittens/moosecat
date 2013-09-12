@@ -65,10 +65,3 @@ class IGtkBrowser(IBasePlugin):
         For example: GTK.STOCK_CDROM.
         '''
         pass
-
-    # TODO: This is redundant with priority()
-    def get_priority(self):
-        '''
-        High priorites are shown more on top than lower (0-100)
-        '''
-        return 0
