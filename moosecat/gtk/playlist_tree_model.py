@@ -69,10 +69,7 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
     def do_get_value(self, iter_, column):
         """Returns the value for iter and column."""
         ud = iter_.user_data
-        if ud is None:
-            # TODO
-            return 'xxxx'
-        else:
+        if ud is not None:
             if column is 0:
                 return  self.data[ud][0]
             if column is 1:
