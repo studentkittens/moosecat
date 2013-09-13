@@ -5,9 +5,6 @@ import unittest
 
 class TestClient(unittest.TestCase):
     def setUp(self):
-        #self._mpd = mpd_test.MpdTestProcess(do_print=True)
-        #self._mpd.start()
-
         self.client = m.Client()
         self.client.connect(host='localhost', port=6666, timeout_sec=1)
         self.client.queue_add('/')

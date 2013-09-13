@@ -43,7 +43,7 @@ audio_output {{
 }}
 
 # should run on different port than normal mpd
-port "6600"
+port "6666"
 '''
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))

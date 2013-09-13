@@ -212,7 +212,6 @@ cdef class Store:
         cdef c.mc_Stack * stack = c.mc_stack_create(10, NULL)
 
         i = 0
-
         c.mc_store_playlist_get_all_loaded(self._p(), stack)
 
         while i < c.mc_stack_length(stack):
@@ -220,7 +219,6 @@ cdef class Store:
             if b_name == pl_name:
                 result = <c.mpd_playlist * > c.mc_stack_at(stack, i)
                 break
-
             i =+ 1
 
         return result
@@ -306,9 +304,13 @@ cdef class Store:
         '''
         def __get__(self):
             cdef c.mc_Stack * pl_names = c.mc_stack_create(10, NULL)
-            c.mc_store_playlist_get_all_known(self._p(), pl_names)
-            names = self._make_playlist_names(pl_names)
-            c.mc_store_release(self._p())
+            job_id = c.mc_store_playlist_get_all_known(self._p(), pl_names)
+            c.mc_store_wait_for_job(self._p(), job_id)
+
+            try:
+                names = self._make_playlist_names(pl_names)
+            finally:
+                c.mc_store_release(self._p())
             return names
 
     property loaded_stored_playlists:
@@ -319,9 +321,13 @@ cdef class Store:
         '''
         def __get__(self):
             cdef c.mc_Stack * pl_names = c.mc_stack_create(10, NULL)
-            c.mc_store_playlist_get_all_loaded(self._p(), pl_names)
-            names = self._make_playlist_names(pl_names)
-            c.mc_store_release(self._p())
+            job_id = c.mc_store_playlist_get_all_loaded(self._p(), pl_names)
+            c.mc_store_wait_for_job(self._p(), job_id)
+
+            try:
+                names = self._make_playlist_names(pl_names)
+            finally:
+                c.mc_store_release(self._p())
             return names
 
     property total_songs:

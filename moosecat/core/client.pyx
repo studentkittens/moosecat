@@ -515,7 +515,7 @@ cdef class Client:
         :db_directory: the directory where the SQLite Database will be saved in.
         :use_memory_db: Cache the whole database in memory (a bit faster)
         :use_compression: save the database file with zip compression on disk
-        :tokenizer: a string naming a FTS-Tokenizer. Default is
+        :tokenizer: a string naming a FTS-Tokenizer. Default is 'porter'
         '''
         self._store_wrapper = Store()._init(self._p(), db_directory, use_memory_db, use_compression, tokenizer)
         self._store_wrapper.load()
