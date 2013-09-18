@@ -36,7 +36,7 @@ void mc_stprv_spl_update(mc_Store *self);
  * @param store the store to load them to.
  * @param playlist a mpd_playlist struct 
  */
-void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist);
+bool mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist);
 
 /**
  * @brief Load a playlist by it's name.
@@ -44,7 +44,7 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist);
  * @param store the store to load them to
  * @param playlist_name  a playlist name
  */
-void mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_name);
+bool mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_name);
 
 /**
  * @brief Search in a Playlist

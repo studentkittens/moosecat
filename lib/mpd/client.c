@@ -3,6 +3,8 @@
 #include "outputs.h"
 #include "update.h"
 
+#include <string.h>
+
 static bool mc_client_command_list_begin(mc_Client *self);
 static void mc_client_command_list_append(mc_Client *self, const char *command);
 static bool mc_client_command_list_commit(mc_Client *self);
@@ -736,6 +738,61 @@ static const mc_HandlerField * mc_client_find_handler(const char *command)
 
 ///////////////////
 
+/**
+ * @brief Parses a string like "command arg1 /// arg2" to a string vector of
+ * command, arg1, arg2
+ *
+ * @param input the whole command string
+ *
+ * @return a newly allocated vector of strings
+ */
+static char ** mc_client_parse_into_parts(const char * input)
+{
+    if(input == NULL) {
+        return NULL;
+    }
+    
+    /* Fast forward to the first non-space char */
+    while(g_ascii_isspace(*input)) {
+        ++input;
+    }
+
+    /* Extract the command part */
+    char * first_space = strchr(input, ' ');
+    char * command = g_strndup(
+            input,
+            (first_space) ? (gsize)ABS(first_space - input) : strlen(input)
+    );
+
+    if(command == NULL) {
+        return NULL;
+    }
+
+    if(first_space != NULL) {
+        /* Now split the arguments */
+        char ** args = g_strsplit(first_space + 1, " /// ", -1);
+        guint args_len = g_strv_length(args);
+
+        /* Allocate the result vector (command + NULL) */
+        char ** result_split = g_malloc0(sizeof(char *) * (args_len + 2));
+
+        /* Copy all data to the new vector */
+        result_split[0] = command;
+        memcpy(&result_split[1], args, sizeof(char * ) * args_len);
+
+        /* Free the old vector, but not strings in it */
+        g_free(args);
+        return result_split;
+    } else {
+        /* Only a single command */
+        char ** result = g_malloc0(sizeof(char *) * 2);
+        result[0] = command;
+        return  result;
+    }
+}
+
+///////////////////
+
 static bool mc_client_execute(
         mc_Client *self,
         const char *input,
@@ -748,7 +805,7 @@ static bool mc_client_execute(
     bool result = false;
 
     /* Argument vector */
-    char **parts = g_strsplit(input, " ", -1);
+    char **parts = mc_client_parse_into_parts(input);
 
     /* find out what handler to call */
     const mc_HandlerField *handler = mc_client_find_handler(g_strstrip(parts[0]));
@@ -758,6 +815,7 @@ static bool mc_client_execute(
         int arguments = 0;
         while(parts[arguments++]);
 
+        /* -2 because: -1 for off-by-one and -1 for not counting the command itself */
         if((arguments - 2) >= handler->num_args) {
             if(mc_is_connected(self)) {
                 result = handler->handler(self, conn, (const char **)&parts[1]);
@@ -765,7 +823,7 @@ static bool mc_client_execute(
         } else {
             mc_shelper_report_error_printf(self,
                     "API-Misuse: Too many arguments to %s: Expected %d, Got %d\n", 
-                    parts[0], handler->num_args, arguments - 2
+                     parts[0], handler->num_args, arguments - 2
             );
         }
     }

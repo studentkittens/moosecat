@@ -211,9 +211,13 @@ cdef class Store:
         cdef c.mpd_playlist * result = NULL
         cdef c.mc_Stack * stack = c.mc_stack_create(10, NULL)
 
-        i = 0
-        c.mc_store_playlist_get_all_loaded(self._p(), stack)
+        try:
+            job_id = c.mc_store_playlist_get_all_loaded(self._p(), stack)
+            c.mc_store_wait_for_job(self._p(), job_id)
+        finally:
+            c.mc_store_release(self._p())
 
+        i = 0
         while i < c.mc_stack_length(stack):
             pl_name = <char * > c.mpd_playlist_get_path(<c.mpd_playlist * > c.mc_stack_at(stack, i))
             if b_name == pl_name:
@@ -230,6 +234,9 @@ cdef class Store:
 
         :name: A playlist name (as given by stored_playlist_names)
         '''
+        if name not in self.stored_playlist_names:
+            raise ValueError('No such playlist: ' + name)
+
         b_name = bytify(name)
         c.mc_store_playlist_load(self._p(), b_name)
 
@@ -245,11 +252,15 @@ cdef class Store:
         # Create a buffer for the songs
         cdef c.mc_Stack * stack = c.mc_stack_create(0, NULL)
         cdef c.mpd_playlist * playlist = NULL
-        cdef char * b_match_clause = NULL
 
         if stack != NULL:
             # Convert input to char * compatible bytestrings
             b_name = bytify(name)
+            if match_clause is not None:
+                b_match_clause = bytify(match_clause)
+            else:
+                b_match_clause = b'*'
+
             playlist = self._stored_playlist_get_by_name(b_name)
             if playlist != NULL:
                 try:

@@ -208,7 +208,7 @@ class MpdDummyClient:
     def create_playlist(self, name):
         if self.is_connected():
             self._telnet.write(('save ' + name + '\n').encode('utf-8'))
-            self._telnet.read_until(b'\n')
+            self._telnet.read_until(b'OK\n')
         else:
             raise ValueError('Not connected!')
 

@@ -530,7 +530,7 @@ cdef class Client:
 
         Events: Idle.PLAYER
         '''
-        client_send(self._p(), 'next')
+        client_send(self._p(), b'next')
 
     def player_previous(self):
         '''
@@ -538,7 +538,7 @@ cdef class Client:
 
         Events: Idle.PLAYER
         '''
-        client_send(self._p(), 'previous')
+        client_send(self._p(), b'previous')
 
     def player_pause(self):
         '''
@@ -546,7 +546,7 @@ cdef class Client:
 
         Events: Idle.PLAYER
         '''
-        client_send(self._p(), 'pause')
+        client_send(self._p(), b'pause')
 
     def player_play(self, queue_id=None):
         '''
@@ -555,9 +555,9 @@ cdef class Client:
         Events: Idle.PLAYER (if something changed)
         '''
         if queue_id is None:
-            client_send(self._p(), 'play')
+            client_send(self._p(), b'play')
         else:
-            client_send(self._p(), 'play ' + str(queue_id))
+            client_send(self._p(), _fmt('play ', queue_id))
 
     def player_stop(self):
         '''
@@ -565,7 +565,7 @@ cdef class Client:
 
         Events: Idle.PLAYER
         '''
-        client_send(self._p(), 'stop')
+        client_send(self._p(), b'stop')
 
     def database_rescan(self, path='/'):
         '''
@@ -574,7 +574,7 @@ cdef class Client:
 
         Events: Idle.DATABASE
         '''
-        client_send(self._p(), 'database_rescan ' + path)
+        client_send(self._p(), _fmt('database_rescan', path))
 
     def database_update(self, path='/'):
         '''
@@ -582,7 +582,7 @@ cdef class Client:
 
         Events: Idle.DATABASE if something changed
         '''
-        client_send(self._p(), 'database_update ' + path)
+        client_send(self._p(), _fmt('database_update', path))
 
     def authenticate(self, password):
         '''
@@ -590,7 +590,7 @@ cdef class Client:
 
         :returns: true if server accepted the password.
         '''
-        job_id = client_send(self._p(), 'password ' + password)
+        job_id = client_send(self._p(), _fmt('password', password))
         return c.mc_client_recv(self._p(), job_id)
 
     def player_seek(self, seconds, song=None):
@@ -603,9 +603,9 @@ cdef class Client:
         :song: the song to seek into, if None the current song is used.
         '''
         if song is None:
-            client_send(self._p(), 'seekcur ' + str(seconds))
+            client_send(self._p(), _fmt('seekcur', seconds))
         else:
-            client_send(self._p(), 'seekid ' + str(song.queue_pos) +  str(seconds))
+            client_send(self._p(), _fmt('seekid', song.queue_pos, seconds))
 
     def player_seek_relative(self, percent, song=None):
         '''
@@ -642,17 +642,11 @@ cdef class Client:
         :son_end: If not none, apply the priority to the range [song-song_end]
         '''
         if song_end is None or song.queue_pos == song_end.queue_pos:
-            client_send(self._p(), 'prio_id {prio} {song_id}'.format(
-                prio=prio, song_id=song.queue_id
-            ))
+            client_send(self._p(), _fmt('prio_id', prio, song.queue_id))
         elif song_end is not None and song.queue_pos > song_end.queue_pos:
-            client_send(self._p(), 'prio_range {prio} {start_pos} {end_pos}'.format(
-                prio=prio, start_pos=song.queue_pos, end_pos=song_end.queue_pos
-            ))
+            client_send(self._p(), _fmt('prio_range', prio, song.queue_pos, song_end.queue_pos))
         else:
-            client_send(self._p(), 'prio_range {prio} {start_pos} {end_pos}'.format(
-                prio=prio, start_pos=song_end.queue_pos, end_pos=song.queue_pos
-            ))
+            client_send(self._p(), _fmt('prio_range', prio, song_end.queue_pos, song.queue_pos))
 
     #####################
     #  Queue Commands   #
@@ -665,13 +659,13 @@ cdef class Client:
         Example: ``queue_add('/')`` adds the whole database.
         Use queue_add_song() if you want to add a song instance only.
         '''
-        client_send(self._p(), 'queue_add ' + uri)
+        client_send(self._p(), _fmt('queue_add', uri))
 
     def queue_add_song(self, song):
         '''
         Add specified song to the Queue. If it is already in the Queue, it simply gets appended.
         '''
-        client_send(self._p(), 'queue_add ' + song.uri)
+        client_send(self._p(), _fmt('queue_add', song.uri))
 
     def queue_clear(self):
         '''
@@ -679,7 +673,7 @@ cdef class Client:
 
         Events: Idle.QUEUE
         '''
-        client_send(self._p(), 'queue_clear')
+        client_send(self._p(), b'queue_clear')
 
     def queue_delete(self, song, song_end=None):
         '''
@@ -691,15 +685,11 @@ cdef class Client:
         :song_end: If not None, the range between song and song_end is moved.
         '''
         if song_end is None or song.queue_pos == song_end.queue_pos:
-            client_send(self._p(), 'queue_delete_id ' + str(song.queue_id))
+            client_send(self._p(), _fmt('queue_delete_id', song.queue_id))
         elif song.queue_pos < song_end.queue_pos:
-            client_send(self._p(), 'queue_delete_range {start_id} {end_id}'.format(
-                start_id=song.queue_id, end_id=song_end.queue_id
-            ))
+            client_send(self._p(), _fmt('queue_delete_range', song.queue_id, song_end.queue_id))
         else:
-            client_send(self._p(), 'queue_delete_range {start_id} {end_id}'.format(
-                start_id=song_end.queue_id, end_id=song.queue_id
-            ))
+            client_send(self._p(), _fmt('queue_delete_range', song_end.queue_id, song.queue_id))
 
     def queue_move(self, song, song_end=None, offset=1):
         '''
@@ -712,17 +702,11 @@ cdef class Client:
         '''
         if offset is not 0:
             if song_end is None or song.queue_pos == song_end.queue_pos:
-                client_send(self._p(), 'queue_move {old} {new}'.format(
-                    old=song.queue_pos, new=song.queue_pos + offset
-                ))
+                client_send(self._p(), _fmt('queue_move', song.queue_pos, song.queue_pos + offset))
             elif song.queue_pos < song_end.queue_pos:
-                client_send(self._p(), 'queue_move_range {start} {end} {new}'.format(
-                    start=song.queue_pos, end=song_end.queue_pos, new=song.queue_pos + offset
-                ))
+                client_send(self._p(), _fmt('queue_move_range',  song.queue_pos, song_end.queue_pos, song.queue_pos + offset))
             else:
-                client_send(self._p(), 'queue_move_range {start} {end} {new}'.format(
-                    start=song_end.queue_pos, end=song.queue_pos, new=song_end.queue_pos + offset
-                ))
+                client_send(self._p(), _fmt('queue_move_range', song_end.queue_pos, song.queue_pos, song_end.queue_pos + offset))
 
     def queue_shuffle(self):
         '''
@@ -731,7 +715,7 @@ cdef class Client:
 
         Events: Idle.QUEUE
         '''
-        client_send(self._p(), 'queue_shuffle')
+        client_send(self._p(), b'queue_shuffle')
 
     def queue_swap(self, song_fst, song_snd):
         '''
@@ -739,9 +723,7 @@ cdef class Client:
 
         Events: Idle.QUEUE
         '''
-        client_send(self._p(), 'queue_swap_id {fst} {snd}'.format(
-            fst=song_fst.queue_id, snd=song_snd.queue_id
-        ))
+        client_send(self._p(), _fmt('queue_swap_id', song_fst.queue_id, song_snd.queue_id))
 
     def queue_save(self, as_name):
         '''
@@ -749,7 +731,7 @@ cdef class Client:
 
         Events: Idle.STORED_PLAYLIST
         '''
-        client_send(self._p(), 'playlist_save ' + as_name)
+        client_send(self._p(), _fmt('playlist_save', as_name))
 
     ###########################
     #  Command List Commands  #
@@ -805,16 +787,64 @@ cdef class Client:
         '''
         c.mc_block_till_sync(self._p())
 
-    def raw_send(self, command):
+    def raw_send(self, command, *args):
         '''
         Send a raw command to the server.
 
         :returns: Id to wait upon the result
         '''
-        return client_send(self._p(), command)
+        return client_send(self._p(), _fmt(command, *args))
 
     def raw_recv(self, job_id):
         return c.mc_client_recv(self._p(), job_id)
 
-    def raw_run(self, command):
-        return c.mc_client_recv(self._p(), client_send(self._p(), command))
+    def raw_run(self, command, *args):
+        return c.mc_client_recv(self._p(), client_send(self._p(), _fmt(command, *args)))
+
+    ###########################################################
+    #  Stored Playlist Functions that require mpd interaction #
+    ###########################################################
+
+    def playlist_add(self, playlist_name, song):
+        '''
+        Add the song the playlist.
+
+        :song: The song to add.
+        '''
+        client_send(self._p(), _fmt('playlist_add', playlist_name, song.uri))
+
+    def playlist_clear(self, playlist_name):
+        'Clear the playlist.'
+        client_send(self._p(), _fmt('playlist_clear', playlist_name))
+
+    def playlist_delete(self, playlist_name, song):
+        '''
+        Delete a song from the playlist.
+
+        :song: The song to delete.
+        '''
+        client_send(self._p(), _fmt('playlist_delete', playlist_name, song.uri))
+
+    def playlist_move(self, playlist_name, song, offset=1):
+        '''
+        Move the song in the Playlist.
+
+        :song: The song to move.
+        :offset: Offset to move the song.
+        '''
+        client_send(self._p(), _fmt('playlist_move',  self.playlist_name, song.queue_pos, song.queue_pos + offset))
+
+    def playlist_rename(self, old_plname, new_plname):
+        '''
+        Rename the stored playlist.
+
+        :new_plname: New name of the Playlist.
+
+        Note: Do not use this Playlist Wrapper after rename().
+                The internal name is not updated.
+        '''
+        client_send(self._p(), _fmt('playlist_rename', old_plname, new_plname))
+
+    def playlist_rm(self, playlist_name):
+        'Remove the Stored Playlist fully.'
+        client_send(self._p(), _fmt('playlist_rm', playlist_name))

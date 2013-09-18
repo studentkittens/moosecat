@@ -35,10 +35,11 @@ class Heartbeat:
 
         elapsed = 0
         with self._client.lock_status() as status:
-            if status.state is Status.Playing:
-                offset = self._current_time_ms() - self._last_update_tmstp
-            else:
-                offset = 0
+            if status is not None:
+                if status.state is Status.Playing:
+                    offset = self._current_time_ms() - self._last_update_tmstp
+                else:
+                    offset = 0
 
             elapsed = (status.elapsed_ms + offset) / 1000.0
         return elapsed

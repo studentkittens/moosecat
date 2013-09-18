@@ -253,7 +253,6 @@ static GList *mc_stprv_spl_get_loaded_list(mc_Store *self)
         CLEAR_BINDS(self->spl.select_tables_stmt);
     }
 
-    g_list_free(table_name_list);
     return table_name_list;
 }
 
@@ -419,12 +418,13 @@ bool mc_stprv_spl_is_loaded(mc_Store *store, struct mpd_playlist *playlist)
 
 ///////////////////
 
-void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
+bool mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
 {
     g_assert(store);
     g_assert(store->client);
     g_assert(playlist);
     
+    bool successfully_loaded = false;
     mc_Client *self = store->client;
 
     if(mc_stprv_spl_is_loaded(store, playlist)) {
@@ -433,7 +433,8 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
                 "database: Stored playlist '%s' already loaded - skipping.",
                 mpd_playlist_get_path(playlist)
         );
-        return;
+        /* This is fine too. */
+        return true;
     } else {
         mc_shelper_report_progress(self, true, 
                 "database: Loading stored playlist '%s'...",
@@ -452,7 +453,7 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
         if (sql != NULL) {
             if (sqlite3_prepare_v2(store->handle, sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
                 REPORT_SQL_ERROR(store, "Cannot prepare INSERT stmt!");
-                return;
+                return false;
             }
 
             mc_shelper_report_progress(self, true, "database: Loading stored playlist ,,%s'' from MPD", table_name);
@@ -480,6 +481,7 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
                         mc_shelper_report_error(self, conn);
                     } else {
                         mc_shelper_report_operation_finished(self, MC_OP_SPL_UPDATED);
+                        successfully_loaded = true;
                     }
                 }
             }
@@ -494,11 +496,13 @@ void mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
         mc_stprv_commit(store);
         g_free(table_name);
     }
+
+    return successfully_loaded; 
 }
 
 ///////////////////
 
-void mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_name)
+bool mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_name)
 {
     g_assert(store);
     g_assert(playlist_name);
@@ -506,8 +510,10 @@ void mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_na
 
     if (playlist != NULL) {
         mc_stprv_spl_load(store, playlist);
+        return true;
     } else {
         mc_shelper_report_error_printf(store->client, "Could not find stored playlist ,,%s''", playlist_name);
+        return false;
     }
 }
 
@@ -617,10 +623,12 @@ int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const cha
         while (sqlite3_step(pl_id_stmt) == SQLITE_ROW) {
             /* Get the actual song */
             int song_idx = sqlite3_column_int(pl_id_stmt, 0);
-            struct mpd_song *song = mc_stack_at(store->stack, song_idx - 1);
+            if(0 < song_idx && song_idx <= (int)mc_stack_length(store->stack)) {
+                struct mpd_song *song = mc_stack_at(store->stack, song_idx - 1);
 
-            /* Remember the pointer */
-            g_ptr_array_add(song_ptr_array, song);
+                /* Remember the pointer */
+                g_ptr_array_add(song_ptr_array, song);
+            }
         }
 
         if (sqlite3_errcode(store->handle) != SQLITE_DONE) {
@@ -674,6 +682,8 @@ int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack)
                 g_free(table_name);
             }
         }
+
+        g_list_free(table_name_list);
     }
 
     return rc;

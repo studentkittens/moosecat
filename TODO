@@ -1,8 +1,7 @@
 libmoosecat 
 -----------
 
-
-- Make seek operations not trigger a PLAYER event (or rather delay it)
+- Support client arguments with spaces in them, d'oh.
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.
 - Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 
@@ -29,3 +28,4 @@ libmoosecat
 - Make client/store failsafe in case of connection loss // DONE
 - Clean up API, Make README.docs  // DONE
 - Update cython wrapper (Oof) // DONE
+- Make seek operations not trigger a PLAYER event (or rather delay it) // DONE
