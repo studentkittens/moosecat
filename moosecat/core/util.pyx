@@ -18,10 +18,12 @@ cdef bytify(string):
 
 
 cdef client_send(c.mc_Client * client, b_full_command):
+    'Send a raw byte command to the client core'
     return c.mc_client_send(client, b_full_command)
 
 
 def _fmt(command, *args):
+    'Format a command and optional arguments to a full command suitable for client_send'
     b_command = bytify(command.strip())
     if args:
         b_args = bytify(' /// '.join(str(arg) for arg in args))

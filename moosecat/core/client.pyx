@@ -652,6 +652,11 @@ cdef class Client:
     #  Queue Commands   #
     #####################
 
+    cdef _song_or_uri(self, song):
+        if hasattr(song, 'uri'):
+            return song.uri
+        return song
+
     def queue_add(self, uri):
         '''
         Add a URI recursively to the Queue.
@@ -665,7 +670,7 @@ cdef class Client:
         '''
         Add specified song to the Queue. If it is already in the Queue, it simply gets appended.
         '''
-        client_send(self._p(), _fmt('queue_add', song.uri))
+        client_send(self._p(), _fmt('queue_add', self._song_or_uri(song)))
 
     def queue_clear(self):
         '''
@@ -811,7 +816,7 @@ cdef class Client:
 
         :song: The song to add.
         '''
-        client_send(self._p(), _fmt('playlist_add', playlist_name, song.uri))
+        client_send(self._p(), _fmt('playlist_add', playlist_name, self._song_or_uri(song)))
 
     def playlist_clear(self, playlist_name):
         'Clear the playlist.'
@@ -823,7 +828,7 @@ cdef class Client:
 
         :song: The song to delete.
         '''
-        client_send(self._p(), _fmt('playlist_delete', playlist_name, song.uri))
+        client_send(self._p(), _fmt('playlist_delete', playlist_name, self._song_or_uri(song)))
 
     def playlist_move(self, playlist_name, song, offset=1):
         '''
