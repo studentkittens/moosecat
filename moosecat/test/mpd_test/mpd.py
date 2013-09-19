@@ -174,45 +174,6 @@ def create_dirstruct(root_path='/tmp'):
         return top_dir
 
 
-class MpdDummyClient:
-    def __init__(self):
-        self._telnet = None
-
-    def connect(self, host='localhost', port=6600):
-        for _ in range(10):
-            try:
-                self._telnet = telnetlib.Telnet(host, port)
-                return True
-            except socket.error as err:
-                time.sleep(0.5)
-        else:
-            return False
-
-    def is_connected(self):
-        return self._telnet is not None
-
-    def disconnect(self):
-        if self.is_connected():
-            self._telnet.write('close\n'.encode('utf-8'))
-            self._telnet.close()
-        else:
-            raise ValueError('Not connected!')
-
-    def add(self, path='/'):
-        if self.is_connected():
-            self._telnet.write(('add ' + path + '\n').encode('utf-8'))
-            self._telnet.read_until(b'\n')
-        else:
-            raise ValueError('Not connected!')
-
-    def create_playlist(self, name):
-        if self.is_connected():
-            self._telnet.write(('save ' + name + '\n').encode('utf-8'))
-            self._telnet.read_until(b'OK\n')
-        else:
-            raise ValueError('Not connected!')
-
-
 class MpdTestProcess:
     def __init__(self, root='/tmp', do_print=False):
         self._top_dir = None
@@ -237,26 +198,24 @@ class MpdTestProcess:
                     stdout=subprocess.PIPE
             )
 
-
         if self._print:
             print('-- Server should run now.. Configuring it now: ', end='')
 
-        # Create a dummy playlist witha dummy queue
-        # Client will try to connect up to 10 times until server is ready.
-        client = MpdDummyClient()
-        if client.connect():
-            client.add('/')
-            client.create_playlist('test1')
-            client.create_playlist('test2')
-            client.disconnect()
-            if self._print:
-                print('[done]')
-        else:
-            if self._print:
-                print('[fail]')
+        # Silly hack, apparently mpd takes about a second till it accepts
+        # connections
+        time.sleep(1)
 
-            self.stop()
-            self.wait()
+        INIT = '''\
+            mpc -p 6666 add /
+            mpc -p 6666 save test1
+            mpc -p 6666 save test2
+        '''
+
+        for line in INIT.splitlines():
+            subprocess.call(line, shell=True)
+
+        if self._print:
+            print('[DONE]')
 
     def start(self):
         self._top_dir = create_dirstruct(root_path=self._root)
