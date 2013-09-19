@@ -225,6 +225,7 @@ cdef class Store:
                 break
             i =+ 1
 
+        c.mc_stack_free(stack)
         return result
 
     def stored_playlist_load(self, name):

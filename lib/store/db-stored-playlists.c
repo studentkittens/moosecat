@@ -297,7 +297,9 @@ void mc_stprv_spl_update(mc_Store *self)
 {
     g_assert(self);
 
+    /* Get a new list of playlists from mpd */
     mc_stprv_spl_listplaylists(self);
+
     GList *table_name_list = mc_stprv_spl_get_loaded_list(self);
 
     mc_shelper_report_progress(self->client, true, "database: Updating stored playlists...");
@@ -323,9 +325,11 @@ void mc_stprv_spl_update(mc_Store *self)
 
             if (is_valid == false) {
                 /* drop invalid table */
-                mc_shelper_report_progress(self->client, true,
-                                           "database: Dropping orphaned playlist-table ,,%s''",
-                                           drop_table_name);
+                mc_shelper_report_progress(
+                        self->client, true,
+                        "database: Dropping orphaned playlist-table ,,%s''",
+                        drop_table_name
+                );
                 mc_stprv_spl_drop_table(self, drop_table_name);
                 iter = iter->next;
                 table_name_list = g_list_delete_link(table_name_list, iter);
@@ -658,6 +662,7 @@ int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack)
 {
     g_assert(store);
     g_assert(stack);
+
     int rc = 0;
     GList *table_name_list = mc_stprv_spl_get_loaded_list(store);
 

@@ -427,7 +427,7 @@ static void mc_store_update_callback(
     } else if (events & MPD_IDLE_QUEUE) {
         mc_store_send_job_no_args(self, MC_OPER_PLCHANGES);
     } else if (events & MPD_IDLE_STORED_PLAYLIST) {
-        mc_store_send_job_no_args(self, MC_OPER_SPL_LIST);
+        mc_store_send_job_no_args(self, MC_OPER_SPL_UPDATE);
     }
 }
 
@@ -488,6 +488,7 @@ void *mc_store_job_execute_callback(
     mc_JobData *data = job_data;
 
     if(data->op == 0) {
+        /* Oooooh! a goto! How evil :-) */
         goto cleanup;
     }
 
@@ -786,6 +787,9 @@ long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const ch
 
 long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
 { 
+    g_assert(self);
+    g_assert(stack);
+
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_DIR_SEARCH;
     data->dir_directory = g_strdup(directory);
@@ -799,6 +803,9 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *d
 
 long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 {
+    g_assert(self);
+    g_assert(stack);
+
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_LIST;
     data->out_stack = stack;
@@ -810,6 +817,9 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 
 long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack)
 {
+    g_assert(self);
+    g_assert(stack);
+
     mc_JobData * data = g_new0(mc_JobData, 1);
     data->op = MC_OPER_SPL_LIST_ALL;
     data->out_stack = stack;
