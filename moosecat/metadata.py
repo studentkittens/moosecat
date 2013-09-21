@@ -2,6 +2,7 @@
 import logging
 import queue
 import threading
+import time
 
 from moosecat.boot import g
 
@@ -16,12 +17,12 @@ class Order:
     You usually don't need to create new order explicitly, since they're
     created by the :class:`Retriever` class for you.
     '''
-    def __init__(self, notify, query):
+    def __init__(self, notify, query, timestamp):
         '''
         :param notify: A callable, called when query is done cooking.
         :param query: a plyr.Query
         '''
-        self._notify, self._query = notify, query
+        self._notify, self._query, self._timestamp = notify, query, timestamp
         self._results = None
 
     def __lt__(self, other):
@@ -31,9 +32,17 @@ class Order:
         return 0
 
     @property
+    def timestamp(self):
+        return self._timestamp
+
+    @property
     def results(self):
         'A list of plyr.Cache or None if nothing happened yet.'
         return self._results
+
+    @property
+    def query(self):
+        return self._query
 
     def execute(self):
         'Execute the Query synchronously'
@@ -73,6 +82,9 @@ class Retriever:
             self._fetch_threads.append(thread)
         self._watch_source = GLib.timeout_add(200, self._watch_fetch_queue)
 
+    def __contains__(self, item):
+        return self.is_already_queued(item)
+
     def _wait_on_barrier(self):
         try:
             self._thr_barrier.wait()
@@ -97,7 +109,7 @@ class Retriever:
         try:
             order = self._fetch_queue.get_nowait()
             order.call_notify()
-            self._query_set.remove(order._query)
+            self._query_set.remove(order.query)
         except queue.Empty:
             pass
         except:
@@ -119,11 +131,37 @@ class Retriever:
         :returns: an unfinished :class:`moosecat.metadata.Order` object.
         '''
         if all((notify, query)):
+            time_stmp = time.time()
+
             query.database = self._database
-            order = Order(notify, query)
-            self._order_queue.put((prio, order))
+            self._order_queue.put((prio, Order(notify, query, time_stmp)))
             self._query_set.add(query)
-            return order
+            return time_stmp
+
+    def is_already_queued(self, search_qry, query_props=None):
+        '''
+        Check if a query already is processed by the system.
+
+        You should call this only from the mainthread.
+
+        .. note::
+
+            The __contains__ operator is mapped to this,
+            so you can also write something like this:
+
+                >>> qry in g.meta_retriever
+                True
+
+        :param search_qry: a plyr.Query object.
+        :param query_props: Query-Properties to compare. (default: artist,album, title, get_type)
+        :returns: True if it is currently processed
+        '''
+        props = query_props or ('artist', 'album', 'title', 'get_type')
+        for qry in self._query_set:
+            # Compare all attributes and check if all were the same.
+            if all(map(lambda p: getattr(search_qry, p) == getattr(qry, p), props)):
+                return True
+        return False
 
     def lookup(self, query):
         '''
@@ -156,7 +194,6 @@ class Retriever:
         for thread in self._fetch_threads:
             self._order_queue.put((-1, None))
 
-
         self._wait_on_barrier()
 
 
@@ -169,14 +206,17 @@ def update_needed(last_query, new_query):
     :new_query: New Query that will be used.
     :returns: Boolean
     '''
+    if not all((last_query, new_query)):
+        return True
+
     if not last_query.get_type == new_query.get_type:
-        return False
+        return True
 
     info = plyr.PROVIDERS.get(last_query.get_type)
     for attribute in info['required']:
         if not getattr(last_query, attribute) == getattr(new_query, attribute):
-            return False
-    return True
+            return True
+    return False
 
 
 def _get_full_current_song_uri():
