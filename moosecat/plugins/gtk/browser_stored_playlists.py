@@ -1,60 +1,14 @@
-# Mooscat stuff
+from moosecat.gtk.widgets import NotebookTab, PlaylistWidget, PlaylistTreeModel
 from moosecat.core import parse_query, QueryParseException, Idle
 from moosecat.plugins import IGtkBrowser
-from moosecat.gtk.playlist_widget import PlaylistWidget
-from moosecat.gtk.playlist_tree_model import PlaylistTreeModel
-
-from gi.repository import Gtk, GLib, GObject
-
 from moosecat.boot import g
 
+from gi.repository import Gtk, GObject
 
-# TODO: Make this a util widget
-class NotebookTab(Gtk.Box):
-    __gsignals__ = {
-            'tab-close': (
-                    GObject.SIGNAL_RUN_FIRST,  # Run-Order
-                    None,                      # Return Type
-                    (int, )                    # Parameters
-            )
-    }
 
-    def __init__(self, label_markup, page_num, stock_id='gtk-justify-fill'):
-        #self._icon = Gtk.Image.new_from_stock(stock_id, Gtk.IconSize.MENU)
-        self._icon = Gtk.Label()
-        self._icon.set_markup('<big><b>♬</b></big>')
-
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL)
-        self._label = Gtk.Label()
-        self._label.set_markup(label_markup)
-        self._label_markup = label_markup
-
-        self._page_num = page_num
-
-        self._close_button = Gtk.Button('x')
-        self._close_button.set_relief(Gtk.ReliefStyle.NONE)
-        self._close_button.set_focus_on_click(False)
-        self._close_button.connect(
-                'clicked',
-                lambda btn: self.emit('tab-close', self._page_num)
-        )
-
-        for widget in (self._icon, self._label, self._close_button):
-            self.pack_start(widget, True, True, 0)
-
-        self.show_all()
-
-    @property
-    def label_markup(self):
-        return self._label_markup
-
-    @label_markup.setter
-    def label_markup(self, new_label):
-        self._label_markup = new_label
-        self._label.set_markup(new_label)
-
-    def set_page_num(self, page_num):
-        self._page_num = page_num
+def _tab_label_from_page_num(notebook, page_num):
+    chld = notebook.get_nth_page(page_num)
+    return notebook.get_tab_label(chld)
 
 
 class StoredPlaylistAddEntry(Gtk.Box):
@@ -90,10 +44,9 @@ class StoredPlaylistAddEntry(Gtk.Box):
     def _on_entry_changed(self, entry):
         names = []
         for page_num in range(self._notebook.get_n_pages()):
-            child = self._notebook.get_nth_page(page_num)
-            nbtab = self._notebook.get_tab_label(child)
-            if hasattr(nbtab, 'label_markup'):
-                names.append(nbtab.label_markup)
+            nbtab = _tab_label_from_page_num(self._notebook, page_num)
+            if hasattr(nbtab, 'get_playlist_name()'):
+                names.append(nbtab.get_playlist_name())
 
         entry_text = entry.get_text()
         is_sensitive = bool(entry_text) and entry_text not in names
@@ -107,19 +60,20 @@ class StoredPlaylistAddEntry(Gtk.Box):
 
 
 class StoredPlaylistWidget(PlaylistWidget):
+    'The content of a Notebook Tab, implementing a custom search for Playlists'
     def __init__(self, playlist_name):
         PlaylistWidget.__init__(self)
         self._playlist_name = playlist_name
 
     def do_search(self, query):
-        songs_data = []
         with g.client.store.stored_playlist_query(self._playlist_name, query) as playlist:
-            for song in playlist:
-                songs_data.append((song.artist, song.album, song.title))
-        self._view.set_model(PlaylistTreeModel(songs_data))
+            self._view.set_model(PlaylistTreeModel(
+                [(song.artist, song.album, song.title) for song in playlist]
+            ))
 
 
 class StoredPlaylistBrowser(IGtkBrowser):
+    'Actual Browser Implementation putting all together'
     def do_build(self):
         self._notebook = Gtk.Notebook()
         add_entry = StoredPlaylistAddEntry(self._notebook)
@@ -128,7 +82,7 @@ class StoredPlaylistBrowser(IGtkBrowser):
         self._notebook.connect('switch-page', self._on_switch_page)
 
         # a mapping from the playlist names to their corresponding widgets
-        self._playlist_to_widget = {}
+        self._playlist_to_widget = set()
 
         # Start configuration
         self._empty_page_is_shown = True
@@ -136,14 +90,9 @@ class StoredPlaylistBrowser(IGtkBrowser):
 
         g.client.signal_add('client-event', self._on_client_event)
 
-    def get_n_pages(self):
-        return self._notebook.get_n_pages()
-
     def _update_tab_numbers(self):
         for page_num in range(self._notebook.get_n_pages()):
-            child = self._notebook.get_nth_page(page_num)
-            nbtab = self._notebook.get_tab_label(child)
-            nbtab.set_page_num(page_num)
+            _tab_label_from_page_num(self._notebook, page_num).set_page_num(page_num)
 
     def _show_empty_playlists(self):
         self._empty_page_is_shown = True
@@ -156,6 +105,7 @@ class StoredPlaylistBrowser(IGtkBrowser):
         info_label.set_justify(Gtk.Justification.CENTER)
         info_label.show()
 
+        # We need at lease one tab to show something.
         self._notebook.append_page(info_label, Gtk.Label(' ☉ '))
         self._notebook.show_all()
 
@@ -171,7 +121,7 @@ class StoredPlaylistBrowser(IGtkBrowser):
         ntab = NotebookTab(playlist_name, page_num=self._notebook.get_n_pages())
         ntab.connect('tab-close', self._on_del_button_clicked)
 
-        self._notebook.append_page(Gtk.Alignment(), ntab)
+        self._notebook.append_page(Gtk.VBox(), ntab)
         self._notebook.show_all()
 
     #####################
@@ -192,19 +142,28 @@ class StoredPlaylistBrowser(IGtkBrowser):
             self._show_empty_playlists()
 
     def _on_switch_page(self, notebook, page, page_num):
-        child = self._notebook.get_nth_page(page_num)
-        nbtab = self._notebook.get_tab_label(child)
-        if hasattr(nbtab, 'label_markup'):
-            if not nbtab.label_markup in self._playlist_to_widget:
-                g.client.store.stored_playlist_load(nbtab.label_markup)
+        nbtab = _tab_label_from_page_num(self._notebook, page_num)
 
-                # Create a new playlist widget on demand.
-                playlist_widget = StoredPlaylistWidget(nbtab.label_markup)
-                self._playlist_to_widget[nbtab.label_markup] = playlist_widget
+        # The empty screen label has no get_playlist_name().
+        if not hasattr(nbtab, 'get_playlist_name'):
+            return
 
-                box = self._notebook.get_nth_page(page_num)
-                box.add(playlist_widget)
-                box.show_all()
+        # Only create new playlists widget if not already there.
+        if nbtab.get_playlist_name() in self._playlist_to_widget:
+            return
+
+        # Load the playlist (asynchronously)
+        g.client.store.stored_playlist_load(nbtab.get_playlist_name())
+
+        # Create a new playlist widget on demand and remember it.
+        playlist_widget = StoredPlaylistWidget(nbtab.get_playlist_name())
+        self._playlist_to_widget.add(playlist_widget)
+
+        # Fill in some life.
+        box = self._notebook.get_nth_page(page_num)
+        box.pack_start(Gtk.Label('Old'), False, False, 0)
+        box.pack_start(playlist_widget, True, True, 0)
+        box.show_all()
 
     #######################
     #  IGtkBRowser Stuff  #

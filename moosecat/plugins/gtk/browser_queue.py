@@ -1,14 +1,10 @@
-from gi.repository import Gtk, GdkPixbuf, GLib
-
-# Mooscat stuff
 from moosecat.plugins import IGtkBrowser
 from moosecat.core import parse_query, QueryParseException
 from moosecat.boot import g
+from moosecat.gtk.widgets import PlaylistTreeModel
 
-
+from gi.repository import Gtk, GdkPixbuf, GLib
 from queue import Queue, Empty
-
-from moosecat.gtk.playlist_tree_model import PlaylistTreeModel
 
 
 class QueueBrowser(IGtkBrowser):

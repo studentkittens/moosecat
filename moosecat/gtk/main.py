@@ -31,7 +31,7 @@ class Application(Gtk.Application):
         # Bind a global reference to the Application Instance
         g.register('gtk_app', self)
 
-        # Sidebar is explictly instanced, since we need the ref
+        # Sidebar is explictly instanced, since we need the reference to it.
         g.register('gtk_sidebar', ctrl.Sidebar(builder))
 
         controller_class_list = (
