@@ -1,6 +1,6 @@
 [Core]
 Name = QueueBrowser
-Module = queue
+Module = browser_queue
 
 [Documentation]
 Author = C. Pahl

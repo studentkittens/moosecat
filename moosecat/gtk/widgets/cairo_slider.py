@@ -7,7 +7,7 @@ class CairoSlider(Gtk.DrawingArea):
             'percent-change': (
                     GObject.SIGNAL_RUN_FIRST,  # Run-Order
                     None,                      # Return Type
-                    tuple()                    # Paramaeters
+                    ()                         # Parameters
             )
     }
 

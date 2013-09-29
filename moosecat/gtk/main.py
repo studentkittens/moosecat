@@ -19,7 +19,7 @@ class Application(Gtk.Application):
         Gtk.Application.__init__(self)
 
         # Bring up the core!
-        boot_base(verbosity=logging.INFO)
+        boot_base(verbosity=logging.DEBUG)
         boot_metadata()
         boot_store()
 
@@ -57,6 +57,7 @@ class Application(Gtk.Application):
         # self.set_menubar(menubar)
 
     def do_close_application(self, window, event):
+        window.destroy()
         shutdown_application()
 
 

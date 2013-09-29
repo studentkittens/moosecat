@@ -223,7 +223,7 @@ cdef class Store:
             if b_name == pl_name:
                 result = <c.mpd_playlist * > c.mc_stack_at(stack, i)
                 break
-            i =+ 1
+            i += 1
 
         c.mc_stack_free(stack)
         return result

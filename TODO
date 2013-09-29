@@ -1,6 +1,8 @@
 libmoosecat 
 -----------
 
+Implement "bookmars" to jump to a certain song in the queue.
+
 - Write finally some tests for the Store? Still not 100% sure it will work
   with all configurations. Especially when output buffer is too large.
 - Make MPD Devs include a ``plchangesposidfile`` command. ``plchanges`` 

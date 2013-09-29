@@ -1,6 +1,6 @@
 [Core]
 Name = GtkSettingsBrowser
-Module = settings
+Module = browser_settings
 
 [Documentation]
 Author = C. Pahl

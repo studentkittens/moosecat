@@ -10,7 +10,7 @@ class InfoBar(Hideable):
         self._bar.hide()
         self._bar.add_button('OK?', 1)
 
-        g.client.signal_add('logging', self._on_log_event)
+        # g.client.signal_add('logging', self._on_log_event)
 
     def _on_log_event(self, client, msg, level):
         message_type = {
