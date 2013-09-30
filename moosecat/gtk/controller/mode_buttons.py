@@ -7,15 +7,17 @@ from moosecat.boot import g
 class ModeButtons(Hideable):
     def __init__(self, builder):
         go = builder.get_object
-        self._actions = {
-            'icon_single': Status.single,
-            'icon_repeat': Status.repeat,
-            'icon_random': Status.random,
-            'icon_consume': Status.consume
-        }
-        self._button_names = list(self._actions.keys())
+        self._actions = dict(
+            icon_single=Status.single,
+            icon_repeat=Status.repeat,
+            icon_random=Status.random,
+            icon_consume=Status.consume
+        )
+        self._button_names = sorted(self._actions.keys())
         self._buttons = [go(name) for name in self._button_names]
-        self._single, self._repeat, self._consume, self._random = self._buttons
+
+        # Note: We have to unpack it alphabetically (:P)
+        self._consume, self._random, self._repeat, self._single = self._buttons
 
         for button in self._buttons:
             button.connect('clicked', self._on_button_clicked)

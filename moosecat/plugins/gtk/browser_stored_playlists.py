@@ -1,6 +1,6 @@
 from moosecat.gtk.widgets import NotebookTab, PlaylistWidget, PlaylistTreeModel
-from moosecat.core import parse_query, QueryParseException, Idle
 from moosecat.plugins import IGtkBrowser
+from moosecat.core import Idle
 from moosecat.boot import g
 
 from gi.repository import Gtk, GObject
@@ -110,6 +110,10 @@ class StoredPlaylistBrowser(IGtkBrowser):
         self._notebook.show_all()
 
     def _update_stored_playlists(self):
+        self._playlist_to_widget = set()
+        for page_num in range(self._notebook.get_n_pages()):
+            self._del_tab(page_num)
+
         for name in reversed(g.client.store.stored_playlist_names):
             self._add_tab(name)
 
@@ -124,6 +128,12 @@ class StoredPlaylistBrowser(IGtkBrowser):
         self._notebook.append_page(Gtk.VBox(), ntab)
         self._notebook.show_all()
 
+    def _del_tab(self, page_num):
+        self._notebook.remove_page(page_num)
+        self._update_tab_numbers()
+        if self._notebook.get_n_pages() is 0:
+            self._show_empty_playlists()
+
     #####################
     #  Signal Handlers  #
     #####################
@@ -133,13 +143,11 @@ class StoredPlaylistBrowser(IGtkBrowser):
             self._update_stored_playlists()
 
     def _on_add_button_clicked(self, _, playlist_name):
+        g.client.queue_save(playlist_name)
         self._add_tab(playlist_name)
 
     def _on_del_button_clicked(self, _, page_num):
-        self._notebook.remove_page(page_num)
-        self._update_tab_numbers()
-        if self._notebook.get_n_pages() is 0:
-            self._show_empty_playlists()
+        self._del_tab(page_num)
 
     def _on_switch_page(self, notebook, page, page_num):
         nbtab = _tab_label_from_page_num(self._notebook, page_num)
@@ -152,12 +160,14 @@ class StoredPlaylistBrowser(IGtkBrowser):
         if nbtab.get_playlist_name() in self._playlist_to_widget:
             return
 
+        # Remember the created playlist
+        self._playlist_to_widget.add(nbtab.get_playlist_name())
+
         # Load the playlist (asynchronously)
         g.client.store.stored_playlist_load(nbtab.get_playlist_name())
 
-        # Create a new playlist widget on demand and remember it.
+        # Create a new playlist widget on demand
         playlist_widget = StoredPlaylistWidget(nbtab.get_playlist_name())
-        self._playlist_to_widget.add(playlist_widget)
 
         # Fill in some life.
         box = self._notebook.get_nth_page(page_num)
@@ -179,6 +189,9 @@ class StoredPlaylistBrowser(IGtkBrowser):
 
     def get_browser_icon_name(self):
         return Gtk.STOCK_FIND_AND_REPLACE
+
+    def priority(self):
+        return 80
 
 ###########################################################################
 #                      Standalone Main for debugging                      #

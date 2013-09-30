@@ -8,7 +8,7 @@ class InfoBar(Hideable):
     def __init__(self, builder):
         self._bar = builder.get_object('infobar')
         self._bar.hide()
-        self._bar.add_button('OK?', 1)
+        # self._bar.add_button('OK?', 1)
 
         # g.client.signal_add('logging', self._on_log_event)
 

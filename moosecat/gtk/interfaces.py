@@ -1,3 +1,5 @@
+# TODO: Make this rather to a IRegion.
+
 class Hideable():
     def get_hide_widgets(self):
         '''

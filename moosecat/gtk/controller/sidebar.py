@@ -17,10 +17,10 @@ class Sidebar(Hideable):
 
         # Make the treeview integrate better in the rest of the application
         color = self._main_pane.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
-        self._treeview.override_background_color(
-                Gtk.StateFlags.NORMAL,
-                Gdk.RGBA(color.red, color.green, color.blue)
-        )
+        # self._treeview.override_background_color(
+        #         Gtk.StateFlags.NORMAL,
+        #         Gdk.RGBA(color.red, color.green, color.blue)
+        # )
 
         self._treeview.append_column(
             Gtk.TreeViewColumn('Browser', CellRendererArrow(), text=0, icon=1)
