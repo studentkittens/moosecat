@@ -12,9 +12,15 @@ class QueuePlaylistWidget(PlaylistWidget):
 
     def do_search(self, query):
         with g.client.store.query(query, queue_only=True) as playlist:
-            self._view.set_model(PlaylistTreeModel(
-                [(song.artist, song.album, song.title) for song in playlist]
+            self.set_model(PlaylistTreeModel(
+                [(song.artist, song.album, song.title, song.queue_id) for song in playlist],
+                n_columns=3
             ))
+
+    def do_row_activated(self, row):
+        *_, queue_id = row
+        print('playing', queue_id)
+        g.client.player_play(queue_id=queue_id)
 
 
 class QueueBrowser(IGtkBrowser):

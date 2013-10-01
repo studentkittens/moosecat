@@ -2,15 +2,17 @@ from gi.repository import Gtk, Pango, GObject, GLib
 
 
 class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
-    def __init__(self, data):
+    def __init__(self, data, n_columns=None):
         self.data = data
         self._num_rows = len(self.data)
-
         self._num_rows_minus_one = self._num_rows - 1
-        if self.data:
-            self._n_columns = 3
+
+        if n_columns is None:
+            if self.data:
+                # Get the length of the first tuple
+                self._n_columns = len(self.data[0])
         else:
-            self._n_columns = 0
+            self._n_columns = n_columns
 
         GObject.GObject.__init__(self)
 
@@ -70,12 +72,7 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         """Returns the value for iter and column."""
         ud = iter_.user_data
         if ud is not None:
-            if column is 0:
-                return  self.data[ud][0]
-            if column is 1:
-                return  self.data[ud][1]
-            if column is 2:
-                return  self.data[ud][2]
+            return self.data[ud][column]
 
     def do_get_n_columns(self):
         """Returns the number of columns."""
@@ -89,3 +86,10 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
     def do_get_flags(self):
         """Returns the flags supported by this interface."""
         return Gtk.TreeModelFlags.ITERS_PERSIST | Gtk.TreeModelFlags.LIST_ONLY
+
+    #######################
+    #  Utility Functions  #
+    #######################
+
+    def data_from_path(self, path):
+        return self.data[path.get_indices()[0]]

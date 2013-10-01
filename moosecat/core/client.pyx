@@ -557,7 +557,7 @@ cdef class Client:
         if queue_id is None:
             client_send(self._p(), b'play')
         else:
-            client_send(self._p(), _fmt('play ', queue_id))
+            client_send(self._p(), _fmt('play_id ', queue_id))
 
     def player_stop(self):
         '''
