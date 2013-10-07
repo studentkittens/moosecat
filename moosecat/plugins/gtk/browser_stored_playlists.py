@@ -68,7 +68,7 @@ class StoredPlaylistWidget(PlaylistWidget):
     def do_search(self, query):
         with g.client.store.stored_playlist_query(self._playlist_name, query) as playlist:
             self.set_model(PlaylistTreeModel(
-                [(song.artist, song.album, song.title, song) for song in playlist]
+                [(song.artist, song.album, song.title, song) for song in playlist],
             ))
 
 

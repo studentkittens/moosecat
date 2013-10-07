@@ -3,6 +3,7 @@
 
 from gi.repository import Gtk
 from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
+from moosecat.gtk.utils import add_keybindings
 import moosecat.gtk.controller as ctrl
 
 import logging
@@ -47,6 +48,11 @@ class Application(Gtk.Application):
     def do_activate(self):
         window = g.gtk_builder.get_object('MainWindow')
         window.connect('delete-event', self.do_close_application)
+
+        add_keybindings(window, {
+            't': lambda win, key: g.gtk_sidebar.toggle_sidebar_visibility()
+        })
+
         window.show_all()
 
         self.add_window(window)

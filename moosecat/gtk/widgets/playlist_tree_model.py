@@ -1,6 +1,14 @@
 from gi.repository import Gtk, Pango, GObject, GLib
 
 
+# Note:
+# Code below is somewhat optimized and is a little harder to read then I'd like.
+# Things to note:
+#  * Access of iter_.user_data is slow, so always save a reference
+#  * Access of user_data is slow (involces g_property_get())
+#  * Only suitable for Lists, not for Trees.
+
+
 class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
     def __init__(self, data, n_columns=None):
         self.data = data
@@ -8,9 +16,8 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         self._num_rows_minus_one = self._num_rows - 1
 
         if n_columns is None:
-            if self.data:
-                # Get the length of the first tuple
-                self._n_columns = len(self.data[0])
+            # Get the length of the first tuple
+            self._n_columns = len(self.data[0]) if self.data else 0
         else:
             self._n_columns = n_columns
 
@@ -23,14 +30,11 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         """
         idx = path.get_indices()[0]
 
-        #import sys; sys.exit(0)
         if idx < self._num_rows:
             iter_ = Gtk.TreeIter()
             iter_.user_data = idx
-            # import sys; sys.exit(0)
             return (True, iter_)
         else:
-            # import sys; sys.exit(0)
             return (False, None)
 
     def do_iter_next(self, iter_):

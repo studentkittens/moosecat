@@ -1,7 +1,8 @@
 from queue import Queue, Empty
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 from moosecat.core import parse_query, QueryParseException
 from moosecat.gtk.widgets import PlaylistTreeModel
+from moosecat.gtk.utils import add_keybindings
 
 
 import logging
@@ -17,6 +18,7 @@ class PlaylistWidget(Gtk.VBox):
                 Gtk.PolicyType.AUTOMATIC
         )
 
+        self._menu = None
         self._model = PlaylistTreeModel([])
 
         # GtkSearchEntry configuration
@@ -28,16 +30,35 @@ class PlaylistWidget(Gtk.VBox):
         self._view.set_fixed_height_mode(True)
         self._view.set_rules_hint(True)
         self._view.connect('row-activated', self._on_row_activated)
+        self._view.connect('button-press-event', self._on_button_press_event)
+
+        add_keybindings(self._view, {
+            '<Shift>space': lambda view, key: self.jump_to_selection(),
+            '<Ctrl>f':      lambda view, key: self._entry.grab_focus(),
+            '/':            lambda view, key: self._entry.grab_focus()
+        })
+
+        add_keybindings(self._entry, {
+            'Escape': lambda ent, key: self._view.grab_focus()
+        })
 
         selection = self._view.get_selection()
         selection.set_mode(Gtk.SelectionMode.MULTIPLE)
 
         for i, text in enumerate(col_names):
-            renderer = Gtk.CellRendererText()
-            renderer.set_fixed_height_from_font(1)
-
-            col = Gtk.TreeViewColumn(text, renderer, text=i)
-            col.set_min_width(250)
+            # TODO: Think of a clearer API
+            if '<pixbuf>' in text:
+                _, header = text.split(':', maxsplit=1)
+                renderer = Gtk.CellRendererPixbuf()
+                col = Gtk.TreeViewColumn(header)
+                col.pack_start(renderer, False)
+                col.add_attribute(renderer, 'stock-id', i)
+                col.set_min_width(30)
+            else:
+                renderer = Gtk.CellRendererText()
+                renderer.set_fixed_height_from_font(1)
+                col = Gtk.TreeViewColumn(text, renderer, text=i)
+                col.set_min_width(250)
             col.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
             self._view.append_column(col)
 
@@ -59,6 +80,17 @@ class PlaylistWidget(Gtk.VBox):
     def set_model(self, model):
         self._model = model
         self._view.set_model(model)
+
+    def set_menu(self, menu):
+        self._menu = menu
+
+    def jump_to_selection(self):
+        print('JUMPDAFUCKUP')
+        rows = self._view.get_selection().get_selected_rows()
+        if rows:
+            self._view.scroll_to_cell(rows[int(len(rows) / 2)], None, False, 0, 0)
+            print(rows)
+        return True
 
     ############################
     #  Private Helper Methods  #
@@ -128,3 +160,10 @@ class PlaylistWidget(Gtk.VBox):
     def _on_row_activated(self, view, path, tv_column):
         print(self._model.data_from_path(path))
         self.do_row_activated(self._model.data_from_path(path))
+
+    def _on_button_press_event(self, treeview, event):
+        if self._menu is not None:
+            if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+                self._menu.simple_popup(event)
+                return True
+        return False

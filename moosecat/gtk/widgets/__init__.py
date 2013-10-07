@@ -7,3 +7,4 @@ from .tray import TrayIcon
 from .notebooktab import NotebookTab
 from .playlist_tree_model import PlaylistTreeModel
 from .playlist_widget import PlaylistWidget
+from .simple_popup_menu import SimplePopupMenu

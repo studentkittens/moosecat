@@ -137,7 +137,6 @@ class TrayIcon(Gtk.StatusIcon):
 
         self.set_title(title)
         self.set_visible(True)
-        self.connect('popup-menu', self.on_showpopup)
         self.connect('scroll-event', self.on_default_scroll_event)
         self.connect('size-changed', self.on_size_changed)
 
@@ -189,20 +188,6 @@ class TrayIcon(Gtk.StatusIcon):
     #  Signals  #
     #############
 
-    def on_showpopup(self, icon, button, time):
-        if self._on_popup_func:
-            menu = Gtk.Menu()
-            self._on_popup_func(self, menu)
-
-            menu.show_all()
-            menu.popup(
-                    None, None,
-                    lambda *_: self.position_menu(menu, self),
-                    self,
-                    3,
-                    time
-            )
-
     def on_default_scroll_event(self, icon, event):
         if event.direction == Gdk.ScrollDirection.UP:
             sign = +1
@@ -249,14 +234,6 @@ class TrayIcon(Gtk.StatusIcon):
 
     state = property(get_state, set_state, doc='State of Icon (one of DRAW_STATE_MAP)')
 
-    def get_on_popup_func(self):
-        return self._on_popup_func
-
-    def set_on_popup_func(self, func):
-        self._on_popup_func = func
-
-    on_popup_func = property(get_on_popup_func, set_on_popup_func, doc='Callback on menu popup')
-
 
 if __name__ == '__main__':
     def increment_percent(ti):
@@ -292,7 +269,7 @@ if __name__ == '__main__':
 
     def main():
         ti = TrayIcon()
-        ti.on_popup = on_popup
+        # ti.on_popup = on_popup
         GLib.timeout_add(200, increment_percent, ti)
         Gtk.main()
 

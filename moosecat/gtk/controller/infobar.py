@@ -7,10 +7,15 @@ from moosecat.boot import g
 class InfoBar(Hideable):
     def __init__(self, builder):
         self._bar = builder.get_object('infobar')
-        self._bar.hide()
-        # self._bar.add_button('OK?', 1)
+        self._box = builder.get_object('infobar_box')
+        self._bar.connect('response', self._on_response)
+        self._bar.add_button('OK?', 1)
+        g.client.signal_add('logging', self._on_log_event)
+        self._bar.response(1)
 
-        # g.client.signal_add('logging', self._on_log_event)
+    def _on_response(self, info_bar, response_id):
+        print('stuff')
+        info_bar.hide()
 
     def _on_log_event(self, client, msg, level):
         message_type = {
@@ -20,6 +25,9 @@ class InfoBar(Hideable):
             'info'     : Gtk.MessageType.INFO,
             'debug'    : Gtk.MessageType.OTHER
         }.get(level, Gtk.MessageType.ERROR)
+
+        if message_type < Gtk.MessageType.WARNING:
+            return
 
         self._bar.set_message_type(message_type)
         content_area = self._bar.get_content_area()

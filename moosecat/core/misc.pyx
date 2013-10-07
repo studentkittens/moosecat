@@ -63,7 +63,6 @@ def parse_query(query):
 
     result = None
     b_query = bytify(query)
-
     b_result = parse_query_bytes(b_query)
     result = stringify(b_result)
 
@@ -73,7 +72,7 @@ def parse_query(query):
     return result
 
 
-cdef char * parse_query_bytes(b_query) except NULL:
+cdef char * parse_query_bytes(b_query) except *:
     'Used internally. So no byte-str-conversion needs to be done.'
     cdef const char *warning = NULL
     cdef int warning_pos = 0
@@ -84,7 +83,6 @@ cdef char * parse_query_bytes(b_query) except NULL:
         if result is not NULL:
             free(result)
         raise QueryParseException(stringify(<char *>warning), warning_pos)
-
     return result
 
 ##################
