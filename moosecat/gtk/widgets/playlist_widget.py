@@ -34,12 +34,12 @@ class PlaylistWidget(Gtk.VBox):
 
         add_keybindings(self._view, {
             '<Shift>space': lambda view, key: self.jump_to_selection(),
-            '<Ctrl>f':      lambda view, key: self._entry.grab_focus(),
-            '/':            lambda view, key: self._entry.grab_focus()
+            '<Ctrl>f':      lambda view, key: self.focus_searchbar(),
+            '/':            lambda view, key: self.focus_searchbar()
         })
 
         add_keybindings(self._entry, {
-            'Escape': lambda ent, key: self._view.grab_focus()
+            'Escape': lambda ent, key: self.focus_treeview()
         })
 
         selection = self._view.get_selection()
@@ -64,7 +64,10 @@ class PlaylistWidget(Gtk.VBox):
 
         self._scw.add(self._view)
         self.pack_start(self._scw, True, True, 1)
-        self.pack_start(self._entry, False, False, 1)
+
+        self._revealer = Gtk.Revealer()
+        self._revealer.add(self._entry)
+        self.pack_start(self._revealer, False, False, 1)
         self.pack_start(Gtk.HSeparator(), False, False, 1)
 
         # Typing Optimzations
@@ -76,6 +79,15 @@ class PlaylistWidget(Gtk.VBox):
         GLib.timeout_add(150, self._internal_search)
 
         self.show_all()
+        self.focus_searchbar()
+
+    def focus_searchbar(self):
+        self._revealer.show_all()
+        self._entry.grab_focus()
+
+    def focus_treeview(self):
+        self._revealer.hide()
+        self._view.grab_focus()
 
     def set_model(self, model):
         self._model = model
