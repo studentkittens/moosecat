@@ -479,6 +479,7 @@ bool mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist)
                         }
 
                         CLEAR_BINDS(insert_stmt);
+                        mpd_return_pair(conn, file_pair);
                     }
 
                     if (mpd_response_finish(conn) == FALSE) {
