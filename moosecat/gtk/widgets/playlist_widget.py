@@ -65,9 +65,7 @@ class PlaylistWidget(Gtk.VBox):
         self._scw.add(self._view)
         self.pack_start(self._scw, True, True, 1)
 
-        self._revealer = Gtk.Revealer()
-        self._revealer.add(self._entry)
-        self.pack_start(self._revealer, False, False, 1)
+        self.pack_start(self._entry, False, False, 1)
         self.pack_start(Gtk.HSeparator(), False, False, 1)
 
         # Typing Optimzations
@@ -82,11 +80,9 @@ class PlaylistWidget(Gtk.VBox):
         self.focus_searchbar()
 
     def focus_searchbar(self):
-        self._revealer.show_all()
         self._entry.grab_focus()
 
     def focus_treeview(self):
-        self._revealer.hide()
         self._view.grab_focus()
 
     def set_model(self, model):

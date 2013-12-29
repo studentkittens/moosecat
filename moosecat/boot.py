@@ -89,7 +89,7 @@ def _create_file_structure():
 LOGGER = None
 
 # Loggin related
-COLORED_FORMAT = "%(asctime)s%(reset)s %(log_color)s{logsymbol} \
+COLORED_FORMAT = "%(asctime)s%(reset)s %(log_color)s[logsymbol]} \
 %(levelname)-8s%(reset)s %(bold_blue)s[%(filename)s:%(lineno)3d]%(reset)s \
 %(bold_black)s%(name)s:%(reset)s %(message)s"
 
@@ -133,7 +133,7 @@ def _create_logger(name=None, verbosity=logging.DEBUG):
         class SymbolFormatter(colorlog.ColoredFormatter):
             def format(self, record):
                 result = colorlog.ColoredFormatter.format(self, record)
-                return result.format(logsymbol=UNICODE_ICONS[record.levelno])
+                return result.replace('[logsymbol]', UNICODE_ICONS[record.levelno])
 
     except ImportError:
         col_formatter = formatter
