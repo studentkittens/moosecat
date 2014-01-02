@@ -31,3 +31,21 @@ Implement "bookmars" to jump to a certain song in the queue.
 - Update cython wrapper (Oof) // DONE
 - Make seek operations not trigger a PLAYER event (or rather delay it) // DONE
 - Support client arguments with spaces in them, d'oh. // DONE
+
+
+Naglfar
+-------
+
+- Mehr Songs zu testdata adden/taggen
+- echte signale - history add bei song-wechsel
+- listen add sperre - seek 
+- Empfehlungen implementieren - 
+
+    * Clear button in Playlist
+    * Right click in Database oder Execute icon oben rechts
+    * parse attribute search stuff
+    * enable/disable filter
+
+- "Zurückschnalzen" von Playlist verhindern
+- Code aufräumen
+- Musicdir ordentlich übergeben. 

@@ -89,7 +89,7 @@ def _create_file_structure():
 LOGGER = None
 
 # Loggin related
-COLORED_FORMAT = "%(asctime)s%(reset)s %(log_color)s[logsymbol]} \
+COLORED_FORMAT = "%(asctime)s%(reset)s %(log_color)s[logsymbol] \
 %(levelname)-8s%(reset)s %(bold_blue)s[%(filename)s:%(lineno)3d]%(reset)s \
 %(bold_black)s%(name)s:%(reset)s %(message)s"
 

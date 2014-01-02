@@ -80,7 +80,7 @@ def find_genre_via_discogs(artist, album):
 
 
 def write_genre_tag(music_path, genre_value):
-    # Open the via taglib:
+    # Open the audio file via taglib:
     handle = taglib.File(music_path)
 
     # genre_value might be None. In this case just clear this tag.
@@ -98,7 +98,7 @@ def write_genre_tag(music_path, genre_value):
 
 
 def tag_music(data_mapping):
-    CACHE_PATH = '/tmp/genre.cache'
+    CACHE_PATH = '/tmp/genre.cache.2'
     try:
         with open(CACHE_PATH, 'rb') as handle:
             genre_cache = pickle.load(handle)
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     import moosecat.core
 
     client = moosecat.core.Client()
-    client.connect()
+    client.connect(port=6601)
     client.store_initialize('/tmp')
 
     # Collect a whole-lot-of data from the database in this format:
@@ -141,6 +141,7 @@ if __name__ == '__main__':
     data_mapping = defaultdict(set)
     with client.store.query('*') as full_playlist:
         for song in full_playlist:
+            # Prefer album artist over the track artist
             artist = song.album_artist or song.artist
             full_path = os.path.join(sys.argv[1], song.uri)
             data_mapping[(artist, song.album)].add(full_path)

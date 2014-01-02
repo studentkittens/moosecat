@@ -13,16 +13,12 @@ from munin.easy import EasySession
 from munin.provider import PlyrLyricsProvider
 
 
-LYRICS_PROVIDER = PlyrLyricsProvider()
-
-
-def retrieve_lyrics(artist, title):
-    return LYRICS_PROVIDER.do_process((artist, title))
+LYRICS_PROVIDER = PlyrLyricsProvider(cache_failures=True)
 
 
 def make_entry(song):
     # TODO
-    full_uri = '/home/sahib/hd/music/clean/' + song.uri
+    full_uri = '/mnt/testdata/' + song.uri
     return (song.uri, {
         'artist': song.artist,
         'album': song.album,
@@ -30,7 +26,9 @@ def make_entry(song):
         'genre': song.genre,
         'bpm': full_uri,
         'moodbar': full_uri,
-        'lyrics': retrieve_lyrics(song.artist, song.title)
+        'lyrics': LYRICS_PROVIDER.do_process((
+            song.album_artist or song.artist, song.title
+        ))
     })
 
 if __name__ == '__main__':
@@ -38,11 +36,13 @@ if __name__ == '__main__':
 
     # Bring up the core!
     boot_base(verbosity=logging.DEBUG)
+    g.client.disconnect()
+    g.client.connect(port=6601)
     boot_metadata()
     boot_store()
 
     entries = []
-    with g.client.store.query(sys.argv[1], queue_only=False) as playlist:
+    with g.client.store.query('*', queue_only=False) as playlist:
         for song in playlist:
             entries.append(make_entry(song))
 

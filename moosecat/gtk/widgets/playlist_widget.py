@@ -54,6 +54,14 @@ class PlaylistWidget(Gtk.VBox):
                 col.pack_start(renderer, False)
                 col.add_attribute(renderer, 'stock-id', i)
                 col.set_min_width(30)
+            elif '<progress>' in text:
+                _, header = text.split(':', maxsplit=1)
+                col = Gtk.TreeViewColumn(header)
+                renderer = Gtk.CellRendererProgress()
+                col.pack_start(renderer, False)
+                col.add_attribute(renderer, 'text', i)
+                col.add_attribute(renderer, 'value', i)
+                col.set_min_width(20)
             else:
                 renderer = Gtk.CellRendererText()
                 renderer.set_fixed_height_from_font(1)
