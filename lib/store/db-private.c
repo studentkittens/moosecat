@@ -880,7 +880,6 @@ int mc_stprv_queue_clip(mc_Store *self, int since_pos)
     int error_id = SQLITE_OK;
     sqlite3_stmt *clear_stmt = SQL_STMT(self, QUEUE_CLEAR);
 
-    g_printerr("Clipping from real: %d\n", MAX(-1, since_pos - 1));
     bind_int(self, QUEUE_CLEAR, pos_idx, MAX(-1, since_pos - 1), error_id);
 
     if (error_id != SQLITE_OK) {
@@ -919,7 +918,6 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
 
             if (song != NULL) {
                 unsigned queue_pos = sqlite3_column_int(select_stmt, 1);
-                g_printerr("Inserting: %u %p\n", queue_pos, GINT_TO_POINTER(queue_pos));
                 g_hash_table_insert(
                     already_seen_ids,
                     song,
@@ -938,9 +936,7 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
     for(unsigned i = 0; i < mc_stack_length(self->stack); ++i) {
         struct mpd_song * song = mc_stack_at(self->stack, i);
         if(song != NULL) {
-            g_printerr("POS %d ID %d %s\n", mpd_song_get_pos(song), mpd_song_get_id(song), mpd_song_get_uri(song));
             if(!g_hash_table_lookup(already_seen_ids, song)) {
-                g_printerr("Deleting song from queue on stack\n");
                 /* Warning: -1 is casted to unsigned int and late back */
                 mpd_song_set_pos(song, -1);
                 parse_pair.value = (char *) "-1";

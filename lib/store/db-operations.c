@@ -246,7 +246,6 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
             if(song != (gpointer)EMPTY_QUEUE_INDICATOR) {
                 start_position = mpd_song_get_pos(song);
             } 
-            g_printerr("Clipping from: %d\n", start_position);
             clipped = mc_stprv_queue_clip(self, start_position);
             clip_time = g_timer_elapsed(timer, NULL);
             g_timer_start(timer);
@@ -376,7 +375,6 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
             /* Empty queue - we need to notift he other thread
              * */
             if(progress_counter == 0) {
-                g_printerr("Sending empty queue indicator\n");
                 g_async_queue_push(queue, (gpointer)EMPTY_QUEUE_INDICATOR);
             }
         }

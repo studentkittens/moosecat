@@ -53,9 +53,7 @@ static void mc_update_data_push_full(mc_UpdateData *data, enum mpd_idle event, b
         if(is_status_timer) {
             event |= IS_STATUS_TIMER_FLAG;
         }
-        g_printerr("PUSH FULL %d\n", event);
         g_async_queue_push(data->event_queue, GINT_TO_POINTER(send_event));
-        g_printerr("PUSH FULL DONE\n");
     }
 }
 
@@ -226,11 +224,8 @@ static gpointer mc_update_thread(gpointer user_data)
     enum mpd_idle event_mask = 0;
 
     while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
-        g_printerr("GOT EVENT IN UPDATE THREAD: %d\n", event_mask);
         mc_update_context_info_cb(data->client, event_mask);
-        g_printerr("AFter context info\n");
         mc_priv_outputs_update(data->client->_outputs, event_mask);
-        g_printerr("AFter update\n");
 
         /* Lookup if we need to trigger a client-event (maybe not if * auto-update)*/
         bool trigger_it = true;
@@ -247,20 +242,16 @@ static gpointer mc_update_thread(gpointer user_data)
             event_mask |= MPD_IDLE_SEEK;
         }
 
-        g_printerr("WAITING FOR SYNC!\n");
         g_mutex_lock(&data->sync_mtx); {
              data->sync_id += 1;
              g_cond_broadcast(&data->sync_cond);
         }
         g_mutex_unlock(&data->sync_mtx);
 
-        g_printerr("NOW DISPATCH SIGNAL!\n");
         if(trigger_it) {
             mc_signal_dispatch(data->client, "client-event", data->client, event_mask);
         }
-        g_printerr("DONE WITH THAT!\n");
     }
-    g_printerr("KILLED THE UPDATE THREAD OH OH\n");
 
     return NULL;
 }
