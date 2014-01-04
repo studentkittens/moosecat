@@ -14,6 +14,11 @@ typedef struct {
 } mc_StoreQueueTag;
 
 
+/* Popping this from a GAsyncQueue means 
+ * the queue is empty and we night to do some actions 
+ */
+#define EMPTY_QUEUE_INDICATOR 0x1
+
 ///////////////////////////////////
 
 static gpointer mc_store_do_list_all_info_sql_thread(gpointer user_data)
@@ -234,25 +239,30 @@ gpointer mc_store_do_plchanges_sql_thread(gpointer user_data)
     mc_stprv_begin(self);
 
     while ((gpointer)(song = g_async_queue_pop(queue)) != queue) {
-        if(first_song_passed == false) {
+        if(first_song_passed == false || song == (gpointer)EMPTY_QUEUE_INDICATOR) {
             g_timer_start(timer);
-            clipped = mc_stprv_queue_clip(
-                    self,
-                    mpd_song_get_pos(song)
-            );
+
+            int start_position = -1;
+            if(song != (gpointer)EMPTY_QUEUE_INDICATOR) {
+                start_position = mpd_song_get_pos(song);
+            } 
+            g_printerr("Clipping from: %d\n", start_position);
+            clipped = mc_stprv_queue_clip(self, start_position);
             clip_time = g_timer_elapsed(timer, NULL);
             g_timer_start(timer);
 
             first_song_passed = true;
         }
 
-        mc_stprv_queue_insert_posid(
-                self,
-                mpd_song_get_pos(song),
-                mpd_song_get_id(song),
-                mpd_song_get_uri(song)
-        );
-        mpd_song_free(song);
+        if(song != (gpointer)EMPTY_QUEUE_INDICATOR) { 
+            mc_stprv_queue_insert_posid(
+                    self,
+                    mpd_song_get_pos(song),
+                    mpd_song_get_id(song),
+                    mpd_song_get_uri(song)
+            );
+            mpd_song_free(song);
+        }
     }
 
     posid_time = g_timer_elapsed(timer, NULL);
@@ -352,7 +362,7 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
             while ((song = mpd_recv_song(conn)) != NULL) {
                 if(mc_jm_check_cancel(store->jm, cancel)) {
                     mc_shelper_report_progress(
-                            self, false, "database: plchanges cancelled!"
+                            self, false, "database: plchanges canceled!"
                     );
 
                     break;
@@ -361,6 +371,13 @@ void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel)
                 ++progress_counter;
 
                 g_async_queue_push(queue, song);
+            }
+
+            /* Empty queue - we need to notift he other thread
+             * */
+            if(progress_counter == 0) {
+                g_printerr("Sending empty queue indicator\n");
+                g_async_queue_push(queue, (gpointer)EMPTY_QUEUE_INDICATOR);
             }
         }
 

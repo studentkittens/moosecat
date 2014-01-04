@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 
@@ -21,6 +22,12 @@ from munin.scripts.moodbar_visualizer import draw_moodbar
 MUNIN_SESSION = EasySession.from_name()
 
 
+try:
+    MUSIC_DIR = sys.argv[1]
+except IndexError:
+    MUSIC_DIR = None
+
+
 ###########################################################################
 #                              Util widgets                               #
 ###########################################################################
@@ -40,9 +47,8 @@ class NotebookTab(Gtk.Box):
         self.show_all()
 
 
-class QueuePlaylistWidget(PlaylistWidget):
-    'The content of a Notebook Tab, implementing a custom search for Playlists'
-    def __init__(self):
+class BasePlaylistWidget(PlaylistWidget):
+    def __init__(self, queue_only):
         PlaylistWidget.__init__(self, col_names=(
             '<pixbuf>:',
             'ID',
@@ -51,24 +57,7 @@ class QueuePlaylistWidget(PlaylistWidget):
             'Title',
             '<progress>:Playcount'
         ))
-
-        menu = SimplePopupMenu()
-        menu.simple_add('Clear', self._on_menu_clear, stock_id='gtk-clear')
-        self.set_menu(menu)
-
-        g.client.signal_add('client-event', self._on_client_event)
-
-    ######################
-    #  Signal Callbacks  #
-    ######################
-
-    def _on_client_event(self, client, event):
-        if event & Idle.PLAYER:
-            self._on_entry_changed(self._entry)
-
-    #######################
-    #  Interface Methods  #
-    #######################
+        self._queue_only = queue_only
 
     def do_search(self, query):
         # Get the QueueId of the currently playing song.
@@ -77,12 +66,14 @@ class QueuePlaylistWidget(PlaylistWidget):
             if song is not None:
                 queue_id = song.queue_id
 
-        with g.client.store.query(query, queue_only=True) as playlist:
+        print('Searching', self._queue_only)
+        with g.client.store.query(query, queue_only=self._queue_only) as playlist:
             self.set_model(PlaylistTreeModel(
                 list(map(lambda song: (
                     # Visible columns:
                     'gtk-yes' if song.queue_id == queue_id else '',
-                    '#' + str(MUNIN_SESSION.mapping[:song.uri]),
+                    # '#' + str(MUNIN_SESSION.mapping[:song.uri]),
+                    song.queue_pos,
                     song.artist,
                     song.album,
                     song.title,
@@ -94,23 +85,96 @@ class QueuePlaylistWidget(PlaylistWidget):
                 n_columns=5
             ))
 
+
+class DatabasePlaylistWidget(BasePlaylistWidget):
+    def __init__(self):
+        BasePlaylistWidget.__init__(self, queue_only=False)
+
+        menu = SimplePopupMenu()
+        menu.simple_add(
+            'Recommend from this song',
+            self._on_menu_recommend,
+            stock_id='gtk-add'
+        )
+        menu.simple_add(
+            'Recommend from attribute search',
+            self._on_menu_recommend,
+            stock_id='gtk-color-picker'
+        )
+        menu.simple_add(
+            'Recommend from heuristic',
+            self._on_menu_recommend,
+            stock_id='gtk-about'
+        )
+        self.set_menu(menu)
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _on_menu_recommend(self, menu_item):
+        pass
+
+    def _on_client_event(self, client, event):
+        if event & Idle.DATABASE:
+            self._on_entry_changed(self._entry)
+
     def do_row_activated(self, row):
         queue_id, uri = row[-2], row[-1]
-        print('playing', queue_id, uri)
-        g.client.player_play(queue_id=queue_id)
-        MUNIN_SESSION.feed_history(MUNIN_SESSION.mapping[:uri])
+        if queue_id > 0:
+            g.client.player_play(queue_id=queue_id)
 
-    ###########################
-    #  Menu Signal Callbacks  #
-    ###########################
+
+class QueuePlaylistWidget(BasePlaylistWidget):
+    def __init__(self):
+        BasePlaylistWidget.__init__(self, queue_only=True)
+
+        menu = SimplePopupMenu()
+        menu.simple_add(
+            'Clear',
+            self._on_menu_clear,
+            stock_id='gtk-clear'
+        )
+        menu.simple_add_separator()
+        menu.simple_add(
+            'Explain',
+            self._on_menu_clear,
+            stock_id='gtk-dialog-question'
+        )
+        menu.simple_add_separator()
+        menu.simple_add(
+            'Recommend from this song',
+            self._on_menu_recommend,
+            stock_id='gtk-add'
+        )
+        menu.simple_add(
+            'Recommend from attribute search',
+            self._on_menu_recommend,
+            stock_id='gtk-color-picker'
+        )
+        menu.simple_add(
+            'Recommend from heuristic',
+            self._on_menu_recommend,
+            stock_id='gtk-about'
+        )
+        self.set_menu(menu)
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _on_menu_recommend(self, menu_item):
+        pass
 
     def _on_menu_clear(self, menu_item):
-        print(menu_item)
+        g.client.queue_clear()
 
+    def do_row_activated(self, row):
+        queue_id, uri = row[-2], row[-1]
+        g.client.player_play(queue_id=queue_id)
+
+    def _on_client_event(self, client, event):
+        if event & Idle.QUEUE:
+            self._on_entry_changed(self._entry)
 
 ###########################################################################
 #                               Statistics                                #
 ###########################################################################
+
 
 class GraphPage(Gtk.ScrolledWindow):
     def __init__(self, width=1500, height=1500):
@@ -125,6 +189,7 @@ class GraphPage(Gtk.ScrolledWindow):
 
         # TODO: Load this directly from surface.
         #       This should be done with:
+        #            gdk_pixbuf_get_from_surface ()
         #       But I was unable to find this function in the
         #       pygobject wrapper.. which is somewhat weird.
         pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
@@ -161,7 +226,6 @@ class HistoryWidget(Gtk.VBox):
         self.pack_start(view, True, True, 1)
 
         self.update()
-        GLib.timeout_add(10000, self.update)
 
     def update(self):
         self._model.clear()
@@ -179,15 +243,20 @@ class HistoryPage(Gtk.ScrolledWindow):
         Gtk.ScrolledWindow.__init__(self)
 
         box = Gtk.HBox(self)
-        box.pack_start(
-            HistoryWidget(MUNIN_SESSION.listen_history, 'Listening History'),
-            True, True, 2
+        self._listen_history = HistoryWidget(
+            MUNIN_SESSION.listen_history, 'Listening History'
         )
-        box.pack_start(
-            HistoryWidget(MUNIN_SESSION.recom_history, 'Recommendation History'),
-            True, True, 2
+        self._recom_history = HistoryWidget(
+            MUNIN_SESSION.recom_history, 'Recommendation History'
         )
+
+        box.pack_start(self._listen_history, True, True, 2)
+        box.pack_start(self._recom_history, True, True, 2)
         self.add(box)
+
+    def update(self):
+        self._listen_history.update()
+        self._recom_history.update()
 
 
 class ExamineSongPage(Gtk.ScrolledWindow):
@@ -203,13 +272,11 @@ class ExamineSongPage(Gtk.ScrolledWindow):
             Gtk.TreeViewColumn('Attribute', Gtk.CellRendererText(), text=0)
         )
         view.append_column(
-            Gtk.TreeViewColumn('Guessed Original', Gtk.CellRendererText(), text=1)
+            Gtk.TreeViewColumn('Original', Gtk.CellRendererText(), text=1)
         )
         view.append_column(
             Gtk.TreeViewColumn('Value', Gtk.CellRendererText(), text=2)
         )
-
-        g.client.signal_add('client-event', self._on_client_event)
 
         self._title_label = Gtk.Label()
         self._title_label.set_use_markup(True)
@@ -227,6 +294,8 @@ class ExamineSongPage(Gtk.ScrolledWindow):
         self.add(box)
         self.show_all()
 
+        self.update()
+
     def _on_draw(self, area, ctx):
         if self._moodbar is None:
             return True
@@ -236,13 +305,12 @@ class ExamineSongPage(Gtk.ScrolledWindow):
 
         return True
 
-    def _on_client_event(self, client, event):
-        if event & Idle.PLAYER:
-            self.update()
-
     def update(self):
         self._model.clear()
         with g.client.lock_currentsong() as song:
+            if song is None:
+                return
+
             self._title_label.set_markup('<b>Current Song Attributes </b><i>({})</i>:'.format(song.uri))
             munin_song_id = MUNIN_SESSION.mapping[:song.uri]
             for attribute, value in MUNIN_SESSION[munin_song_id]:
@@ -252,13 +320,12 @@ class ExamineSongPage(Gtk.ScrolledWindow):
                     original = ''
                 self._model.append((attribute, original, str(value)))
 
-            # TODO:
-            import os
-            moodbar_path = os.path.join('/mnt/testdata/', song.uri) + '.mood'
-            try:
-                self._moodbar = read_moodbar_values(moodbar_path)
-            except OSError:
-                print('no moodbar for', moodbar_path)
+            if MUSIC_DIR is not None:
+                moodbar_path = os.path.join(MUSIC_DIR, song.uri) + '.mood'
+                try:
+                    self._moodbar = read_moodbar_values(moodbar_path)
+                except OSError:
+                    pass
 
 
 class RulesPage(Gtk.ScrolledWindow):
@@ -295,9 +362,6 @@ class RulesPage(Gtk.ScrolledWindow):
 
         self._view = view
         self.update()
-
-        # TODO: For now just update every 10s.
-        GLib.timeout_add(10000, self.update)
 
     def update(self):
         self._model.clear()
@@ -385,19 +449,22 @@ class NaglfarContainer(Gtk.Box):
         self.pack_start(self._notebook, True, True, 1)
 
         self._notebook.append_page(
-            QueuePlaylistWidget(), NotebookTab('Database', 'ʘ')
+            DatabasePlaylistWidget(), NotebookTab('Database', 'ʘ')
         )
         self._notebook.append_page(
             QueuePlaylistWidget(), NotebookTab('Playlist', '◎')
         )
+        self._rules_page = RulesPage()
         self._notebook.append_page(
-            RulesPage(), NotebookTab('Rules', '💡')
+            self._rules_page, NotebookTab('Rules', '💡')
         )
+        self._examine_page = ExamineSongPage()
         self._notebook.append_page(
             ExamineSongPage(), NotebookTab('Examine', '☑')
         )
+        self._history_page = HistoryPage()
         self._notebook.append_page(
-            HistoryPage(), NotebookTab('History', '⪜')
+            self._history_page, NotebookTab('History', '⪜')
         )
         self._notebook.append_page(
             GraphPage(), NotebookTab('Graph', '☊')
@@ -405,6 +472,31 @@ class NaglfarContainer(Gtk.Box):
 
         self.show_all()
 
+        self._last_song = None
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _on_client_event(self, client, event):
+        print('Got event:', event)
+        if event & Idle.PLAYER:
+            current_song = None
+            with g.client.lock_currentsong() as song:
+                if song is not None:
+                    current_song = song.uri
+
+            if current_song is None:
+                return
+
+            # TODO: Seek heuristic
+            if self._last_song != current_song and self._last_song is not None:
+                MUNIN_SESSION.feed_history(
+                    MUNIN_SESSION.mapping[:self._last_song]
+                )
+
+                self._rules_page.update()
+                self._history_page.update()
+                self._examine_page.update()
+
+            self._last_song = current_song
 
 ###########################################################################
 #                           GApplication Stuff                            #
@@ -418,9 +510,6 @@ class NaglfarWindow(Gtk.ApplicationWindow):
 
         # a scrollbar for the child widget (that is going to be the textview)
         scrolled_window = Gtk.ScrolledWindow()
-
-        # textview is scrolled
-        # scrolled_window.add(QueuePlaylistWidget())
         container = NaglfarContainer()
         scrolled_window.add(container)
 
@@ -432,13 +521,7 @@ class NaglfarApplication(Gtk.Application):
         Gtk.Application.__init__(self)
 
         # Bring up the core!
-        boot_base(verbosity=logging.DEBUG)
-
-        # TODO:
-        g.client.disconnect()
-        g.client.connect(port=6601)
-
-        boot_metadata()
+        boot_base(verbosity=logging.DEBUG, host='localhost', port=6601)
         boot_store()
 
     def do_activate(self):
@@ -455,6 +538,10 @@ class NaglfarApplication(Gtk.Application):
         shutdown_application()
 
 if __name__ == '__main__':
+    if '--help' in sys.argv:
+        print('{} [music_dir_root]'.format(sys.argv[0]))
+        sys.exit(0)
+
     app = NaglfarApplication()
-    exit_status = app.run(sys.argv)
+    exit_status = app.run(sys.argv[1:])
     sys.exit(exit_status)

@@ -37,8 +37,7 @@ Naglfar
 -------
 
 - Mehr Songs zu testdata adden/taggen
-- echte signale - history add bei song-wechsel
-- listen add sperre - seek 
+- echte signale - history add bei song-wechsel // DONE
 - Empfehlungen implementieren - 
 
     * Clear button in Playlist
@@ -47,5 +46,6 @@ Naglfar
     * enable/disable filter
 
 - "Zurückschnalzen" von Playlist verhindern
-- Code aufräumen
-- Musicdir ordentlich übergeben. 
+- Code aufräumen 
+- Musicdir ordentlich übergeben. // DONE
+- Seek heuristic

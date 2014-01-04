@@ -198,7 +198,7 @@ def _find_out_host_and_port():
     #    return host, 6600 if port is None else port
 
 
-def boot_base(verbosity=logging.INFO, protocol_machine='idle'):
+def boot_base(verbosity=logging.INFO, protocol_machine='idle', host=None, port=None):
     '''Initialize the basic services.
 
     This is basically a helper to spare us a lot of init work in tests.
@@ -280,7 +280,8 @@ def boot_base(verbosity=logging.INFO, protocol_machine='idle'):
     server_profile.trigger_scan(psys)
 
     # Go into the hot phase...
-    host, port = _find_out_host_and_port()
+    if not host and not port:
+        host, port = _find_out_host_and_port()
     error = client.connect(host, port)
     if error is not None:
         logging.error("Connection Trouble: " + error)
@@ -305,9 +306,9 @@ def boot_store():
 
     Must be called after boot_base()!
 
-    :returns: the store (as shortcut) if wait=True, None otherwise.
+    :returns: the store (as shortcut)
     '''
-    g.client.store_initialize(g.CACHE_DIR)
+    g.client.store_initialize(g.CACHE_DIR, use_compression=False)
     g.register('store', g.client.store)
     logging.info('Started store creation in background')
     return g.client.store

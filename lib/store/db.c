@@ -422,6 +422,8 @@ static void mc_store_update_callback(
 {
     g_assert(self && client && self->client == client);
 
+    g_printerr("=====> Got internal event: %d", events);
+
     if (events & MPD_IDLE_DATABASE) {
         mc_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
     } else if (events & MPD_IDLE_QUEUE) {

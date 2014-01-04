@@ -589,7 +589,7 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
          * 
          * We can do that a lot faster anyways;
          * */
-        if (queue_only == false || ((int) mpd_song_get_pos(selected) > -1)) {
+        if (queue_only == false || ((int)mpd_song_get_pos(selected) > -1)) {
             mc_stack_append(stack, selected);
         }
     }
@@ -879,6 +879,8 @@ int mc_stprv_queue_clip(mc_Store *self, int since_pos)
     int pos_idx = 1;
     int error_id = SQLITE_OK;
     sqlite3_stmt *clear_stmt = SQL_STMT(self, QUEUE_CLEAR);
+
+    g_printerr("Clipping from real: %d\n", MAX(-1, since_pos - 1));
     bind_int(self, QUEUE_CLEAR, pos_idx, MAX(-1, since_pos - 1), error_id);
 
     if (error_id != SQLITE_OK) {
@@ -907,6 +909,8 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
     struct mpd_pair parse_pair;
     parse_pair.name = "Id";
 
+    GHashTable * already_seen_ids = g_hash_table_new(NULL, NULL);
+
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int row_idx  = sqlite3_column_int(select_stmt, 0);
 
@@ -914,13 +918,37 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
             struct mpd_song *song = mc_stack_at(self->stack, row_idx - 1);
 
             if (song != NULL) {
+                unsigned queue_pos = sqlite3_column_int(select_stmt, 1);
+                g_printerr("Inserting: %u %p\n", queue_pos, GINT_TO_POINTER(queue_pos));
+                g_hash_table_insert(
+                    already_seen_ids,
+                    song,
+                    GINT_TO_POINTER(TRUE)
+                );
+
+                /* Luckily we have a setter here, otherwise I would feel a bit strange. */
+                mpd_song_set_pos(song, queue_pos);
                 parse_pair.value = (char *) sqlite3_column_text(select_stmt, 2);
                 mpd_song_feed(song, &parse_pair);
-                /* Luckily we have a setter here, otherwise I would feel a bit strange. */
-                mpd_song_set_pos(song, sqlite3_column_int(select_stmt, 1));
             }
         }
     }
+    
+    /* Reset all songs of the database to -1/-1 that were not in the queue */
+    for(unsigned i = 0; i < mc_stack_length(self->stack); ++i) {
+        struct mpd_song * song = mc_stack_at(self->stack, i);
+        if(song != NULL) {
+            g_printerr("POS %d ID %d %s\n", mpd_song_get_pos(song), mpd_song_get_id(song), mpd_song_get_uri(song));
+            if(!g_hash_table_lookup(already_seen_ids, song)) {
+                g_printerr("Deleting song from queue on stack\n");
+                /* Warning: -1 is casted to unsigned int and late back */
+                mpd_song_set_pos(song, -1);
+                parse_pair.value = (char *) "-1";
+                mpd_song_feed(song, &parse_pair);
+            }
+        }
+    }
+    g_hash_table_destroy(already_seen_ids);
 }
 
 ///////////////////
