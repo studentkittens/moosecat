@@ -184,7 +184,7 @@ static void idler_dispatch_events(mc_IdleClient *self, enum mpd_idle events)
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        //mc_shelper_report_client_event((mc_Client *)self, events);
+        // mc_shelper_report_client_event((mc_Client *)self, events);
         mc_force_sync((mc_Client *)self, events);
     }
     self->is_running_extern = FALSE;

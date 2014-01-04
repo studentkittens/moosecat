@@ -310,6 +310,7 @@ void mc_force_sync(
     enum mpd_idle events)
 {
     g_assert(self);
+    g_printerr("FORCE SYNC %d\n", events);
     mc_update_data_push(self->_update_data, events);
 }
 
