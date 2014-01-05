@@ -100,6 +100,10 @@ class PlaylistWidget(Gtk.VBox):
     def set_menu(self, menu):
         self._menu = menu
 
+    def get_selected_rows(self):
+        model, paths = self._view.get_selection().get_selected_rows()
+        return model, (model[path] for path in paths)
+
     def jump_to_selection(self):
         print('JUMPDAFUCKUP')
         rows = self._view.get_selection().get_selected_rows()

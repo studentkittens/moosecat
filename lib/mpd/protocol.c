@@ -165,25 +165,27 @@ char *mc_disconnect(
 
         ASSERT_IS_MAINTHREAD(self);
 
+        bool error_happenend = false;
+
         /* Lock the connection while destroying it */
-        g_rec_mutex_lock(&self->_getput_mutex);
+        g_rec_mutex_lock(&self->_getput_mutex); {
+            /* Finish current running command */
+            mc_client_destroy(self);
 
-        /* Finish current running command */
-        mc_client_destroy(self);
+            /* let the connector clean up itself */
+            error_happenend = !self->do_disconnect(self);
 
-        /* let the connector clean up itself */
-        bool error_happenend = !self->do_disconnect(self);
+            /* Reset status/song/stats to NULL */
+            mc_update_reset(self->_update_data);
 
-        /* Reset status/song/stats to NULL */
-        mc_update_reset(self->_update_data);
+            /* Notify user of the disconnect */
+            mc_signal_dispatch(self, "connectivity", self, false, false);
 
-        /* Notify user of the disconnect */
-        mc_signal_dispatch(self, "connectivity", self, false, false);
-
-        /* Unlock the mutex - we can use it now again
-         * e.g. - queued commands would wake up now
-         *        and notice they are not connected anymore
-         */
+            /* Unlock the mutex - we can use it now again
+            * e.g. - queued commands would wake up now
+            *        and notice they are not connected anymore
+            */
+        }
         g_rec_mutex_unlock(&self->_getput_mutex);
 
         if (error_happenend)
@@ -219,8 +221,9 @@ void mc_free(mc_Client *self)
 
     /* Kill any previously connected host info */
     g_rec_mutex_lock(&self->_client_attr_mutex);
-    if (self->_host != NULL)
+    if (self->_host != NULL) {
         g_free(self->_host);
+    }
     g_rec_mutex_unlock(&self->_client_attr_mutex);
 
     g_rec_mutex_clear(&self->_getput_mutex);

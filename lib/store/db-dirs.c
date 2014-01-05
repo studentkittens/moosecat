@@ -83,6 +83,7 @@ void mc_stprv_dir_insert(mc_Store *self, const char *path)
 
     /* Make sure bindings are ready for the next insert */
     CLEAR_BINDS_BY_NAME(self, DIR_INSERT);
+    sqlite3_reset(SQL_STMT(self, DIR_INSERT));
 }
 
 //////////////////
@@ -94,6 +95,7 @@ void mc_stprv_dir_delete(mc_Store *self)
     if (sqlite3_step(SQL_STMT(self, DIR_DELETE_ALL)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "cannot DELETE * from dirs");
     }
+    sqlite3_reset(SQL_STMT(self, DIR_DELETE_ALL));
 }
 
 //////////////////
@@ -146,6 +148,7 @@ int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *di
         }
 
         CLEAR_BINDS(select_stmt);
+        sqlite3_reset(select_stmt);
     }
 
     return returned;

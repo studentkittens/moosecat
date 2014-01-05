@@ -23,6 +23,9 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
 
         GObject.GObject.__init__(self)
 
+    def __getitem__(self, path):
+        return self.data[path.get_indices()[0]]
+
     def do_get_iter(self, path):
         """Returns a new TreeIter that points at path.
 

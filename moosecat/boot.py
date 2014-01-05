@@ -335,9 +335,11 @@ def shutdown_application():
     except AttributeError:
         pass
 
+    logging.info('Disconnecting from previous server')
     g.client.disconnect()
 
     if hasattr(g, 'meta_retriever'):
+        logging.info('Shutting down metadata-system.')
         g.meta_retriever.close()
 
 

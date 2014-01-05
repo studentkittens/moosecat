@@ -13,7 +13,9 @@
 #include <stdlib.h>
 
 /* gmtime(), strftime() */
-#define _POSIX_SOURCE
+#ifndef _POSIX_SOURCE
+    #define _POSIX_SOURCE
+#endif
 #include <time.h>
 
 #define SQL_CODE(NAME) \
@@ -430,6 +432,7 @@ void mc_stprv_begin(mc_Store *self)
 {
     if (sqlite3_step(SQL_STMT(self, BEGIN)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute BEGIN");
+    sqlite3_reset(SQL_STMT(self, BEGIN));
 }
 
 ////////////////////////////////
@@ -438,6 +441,7 @@ void mc_stprv_commit(mc_Store *self)
 {
     if (sqlite3_step(SQL_STMT(self, COMMIT)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute COMMIT");
+    sqlite3_reset(SQL_STMT(self, COMMIT));
 }
 
 ////////////////////////////////
@@ -446,6 +450,7 @@ void mc_stprv_delete_songs_table(mc_Store *self)
 {
     if (sqlite3_step(SQL_STMT(self, DELETE_ALL)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Cannot delete table contentes of 'songs'");
+    sqlite3_reset(SQL_STMT(self, DELETE_ALL));
 }
 
 ////////////////////////////////
@@ -503,6 +508,7 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
 
     /* Make sure bindings are ready for the next insert */
     CLEAR_BINDS_BY_NAME(db, INSERT);
+    sqlite3_reset(SQL_STMT(db, INSERT));
 
     if ((rc = (error_id != SQLITE_DONE)) == true)
         REPORT_SQL_ERROR(db, "WARNING: cannot insert into :memory: - that's pretty serious.");
@@ -513,22 +519,113 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
 
 ////////////////////////////////
 
-static gint mc_stprv_select_impl_sort_func_noud(gconstpointer a, gconstpointer b)
-{
-    if (a && b) {
-        int pos_a = mpd_song_get_pos(* ((struct mpd_song **) a));
-        int pos_b = mpd_song_get_pos(* ((struct mpd_song **) b));
+static gint mc_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b) 
+{                                                                                   
+    if (a && b) {                                                                   
+        int pos_a = mpd_song_get_pos(* ((struct mpd_song **) a)); 
+        int pos_b = mpd_song_get_pos(* ((struct mpd_song **) b)); 
 
         if (pos_a == pos_b) return +0;
 
         if (pos_a <  pos_b) return -1;
 
-        /* pos_a > pos_b */
-        return +1;
-    } else return +1; /* to sort NULL at the end */
+        /* pos_a > pos_b */ 
+        return +1; 
+    } else return +1; /* to sort NULL at the end */ 
+}
+
+static gint mc_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstpointer b) 
+{                                                                                   
+    if (a && b) {                                                                   
+        struct mpd_song * sa = (* ((struct mpd_song **) a));
+        struct mpd_song * sb = (* ((struct mpd_song **) b));
+
+        if (sa == sb) return +0;
+
+        if (sa <  sb) return -1;
+
+        return +1; 
+    } else return +1; /* to sort NULL at the end */ 
 }
 
 ////////////////////////////////
+
+/* Quadratic binary search algorithm adapted from: 
+ *
+ *   http://research.ijcaonline.org/volume65/number14/pxc3886165.pdf
+ *
+ * This is more of a fun excercise, than a real speedup.
+ */ 
+static struct mpd_song * mc_stprv_find_idx(mc_Stack * stack, struct mpd_song * key)
+{
+    int l = 0;
+    int r = mc_stack_length(stack) - 1;
+    int qr1 = 0, qr3 = 0, mid = 0;
+
+    while(l <= r) {
+        mid = (l + r) / 2;
+        qr1 = l + (r - l) / 4;
+        qr3 = l + (r - l) * 3 / 4;
+
+        struct mpd_song * at_mid = mc_stack_at(stack, mid);
+        struct mpd_song * at_qr1 = mc_stack_at(stack, qr1);
+        struct mpd_song * at_qr3 = mc_stack_at(stack, qr3);
+
+        if(at_mid == key || key == at_qr1 || key == at_qr3) {
+            int result_idx = 0;
+            if(at_mid == key) {
+                result_idx = mid;
+            } else if(at_qr1 == key) {
+                result_idx = qr1;
+            } else {
+                result_idx = qr3;
+            }
+            return mc_stack_at(stack, result_idx);
+        } else if (key < at_mid && key < at_qr1) {
+            r = qr1 - 1;
+        } else if (key < at_mid && key > at_qr1) {
+            l = qr1 + 1;
+            r = mid - 1;
+        } else if (key > at_mid && key > at_qr3) {
+            l = qr3 + 1;
+        } else if (key > at_mid && key < at_qr3) {
+            l = mid + 1;
+            r = qr3 - 1;
+        }
+    }
+    return NULL;
+}
+
+////////////////////////////////
+
+static mc_Stack * mc_stprv_build_queue_content(mc_Store *self, mc_Stack *to_filter)
+{
+    g_assert(self);
+
+    int error_id = SQLITE_OK;
+    sqlite3_stmt *select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
+    mc_Stack *queue_songs = mc_stack_create(mc_stack_length(to_filter) / 2, NULL);
+
+    while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
+        int stack_idx = sqlite3_column_int(select_stmt, 0);
+        struct mpd_song *queue_song = mc_stprv_find_idx(
+            to_filter, mc_stack_at(self->stack, stack_idx - 1)
+        );
+        if(queue_song != NULL) {
+            mc_stack_append(queue_songs, queue_song);
+        }
+    }
+
+    if (sqlite3_errcode(self->handle) != SQLITE_DONE) {
+        REPORT_SQL_ERROR(self, "Error while building queue contents");
+    } 
+
+    if (sqlite3_reset(select_stmt) != SQLITE_OK) {
+        REPORT_SQL_ERROR(self, "Error while resetting select queue statement");
+    } 
+
+    return queue_songs;
+}
 
 /*
  * Search stuff in the 'songs' table using a SELECT clause (also using MATCH).
@@ -598,11 +695,20 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
         REPORT_SQL_ERROR(self, "WARNING: Cannot SELECT");
 
     CLEAR_BINDS(select_stmt);
+    sqlite3_reset(select_stmt);
+
     g_free(match_clause_dup);
 
     /* sort by position in queue if queue_only is passed. */
     if (queue_only) {
-        mc_stack_sort(stack, mc_stprv_select_impl_sort_func_noud);
+        mc_stack_sort(stack, mc_stprv_select_impl_sort_func_by_stack_ptr);
+        mc_Stack * queue = mc_stprv_build_queue_content(self, stack);
+        mc_stack_clear(stack);
+        for(unsigned i = 0; i < mc_stack_length(queue); ++i) {
+            mc_stack_append(stack, mc_stack_at(queue, i));
+        }
+        stack = queue;
+        mc_stack_sort(stack, mc_stprv_select_impl_sort_func_by_pos);
     }
 
     return mc_stack_length(stack);
@@ -800,6 +906,8 @@ void mc_stprv_deserialize_songs(mc_Store *self)
     if (error_id != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "ERROR: cannot load songs from database");
     }
+
+    sqlite3_reset(stmt);
 }
 
 /////////////////// META TABLE STUFF ////////////////////
@@ -893,6 +1001,7 @@ int mc_stprv_queue_clip(mc_Store *self, int since_pos)
 
     /* Make sure bindings are ready for the next insert */
     CLEAR_BINDS(clear_stmt);
+    sqlite3_reset(clear_stmt);
     return sqlite3_changes(self->handle);
 }
 
@@ -931,6 +1040,8 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
             }
         }
     }
+
+    sqlite3_reset(select_stmt);
     
     /* Reset all songs of the database to -1/-1 that were not in the queue */
     for(unsigned i = 0; i < mc_stack_length(self->stack); ++i) {
@@ -966,4 +1077,5 @@ void mc_stprv_queue_insert_posid(mc_Store *self, int pos, int idx, const char *f
         REPORT_SQL_ERROR(self, "Unable to INSERT song into queue.");
 
     CLEAR_BINDS_BY_NAME(self, QUEUE_INSERT_ROW);
+    sqlite3_reset(SQL_STMT(self, QUEUE_INSERT_ROW));
 }

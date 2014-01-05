@@ -410,21 +410,18 @@ cdef class Client:
     def lock_status(self):
         'Get the current :class:`.Status` object and takes care of locking.'
         try:
-            status = status_from_ptr(c.mc_lock_status(self._p()), self._p())
-            yield status
+            yield status_from_ptr(c.mc_lock_status(self._p()), self._p())
         finally:
-            if status:
-                c.mc_unlock_status(self._p())
+            c.mc_unlock_status(self._p())
 
     @contextmanager
     def lock_currentsong(self):
         'Get the current :class:`.Song` object and takes care of locking.'
         try:
-            song = song_from_ptr(c.mc_lock_current_song(self._p()))
-            yield song
+
+            yield song_from_ptr(c.mc_lock_current_song(self._p()))
         finally:
-            if song:
-                c.mc_unlock_current_song(self._p())
+            c.mc_unlock_current_song(self._p())
 
     @contextmanager
     def lock_nextsong(self):
@@ -445,8 +442,7 @@ cdef class Client:
     def lock_statistics(self):
         'Get the current :class:`.Statistics` object and takes care of locking.'
         try:
-            statistics = statistics_from_ptr(c.mc_lock_statistics(self._p()))
-            yield statistics
+            yield statistics_from_ptr(c.mc_lock_statistics(self._p()))
         finally:
             c.mc_unlock_statistics(self._p())
 

@@ -224,6 +224,7 @@ static gpointer mc_update_thread(gpointer user_data)
     enum mpd_idle event_mask = 0;
 
     while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
+        g_printerr("UPDATER ALIVE!!\n");
         mc_update_context_info_cb(data->client, event_mask);
         mc_priv_outputs_update(data->client->_outputs, event_mask);
 
@@ -252,6 +253,8 @@ static gpointer mc_update_thread(gpointer user_data)
             mc_signal_dispatch(data->client, "client-event", data->client, event_mask);
         }
     }
+
+    g_printerr("UPDATER DIED!!\n");
 
     return NULL;
 }

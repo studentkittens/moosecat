@@ -40,10 +40,15 @@ Naglfar
 - echte signale - history add bei song-wechsel // DONE
 - Empfehlungen implementieren - 
 
-    * Clear button in Playlist
-    * Right click in Database oder Execute icon oben rechts
-    * parse attribute search stuff
-    * enable/disable filter
+    * add sqlite3_reset to prep statements
+    * deduplicate queue bug?
+    * controls oben implementieren
+    * info bar für fehler
+    * seed song anzeigen
+    * clear and recommend
+    * doppelclick in db -> zur queue adden
+    * rating? 
+    * genre anzeigen?
 
 - "Zurückschnalzen" von Playlist verhindern
 - Code aufräumen 

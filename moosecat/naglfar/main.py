@@ -19,7 +19,10 @@ from munin.scripts.moodbar_visualizer import read_moodbar_values
 from munin.scripts.moodbar_visualizer import draw_moodbar
 
 
+# Globals - ugly, I know
 MUNIN_SESSION = EasySession.from_name()
+ATTRIBUTE_SEARCH_QUERY = None
+RECOM_COUNT = 1
 
 
 try:
@@ -87,78 +90,69 @@ class BasePlaylistWidget(PlaylistWidget):
 
 
 class DatabasePlaylistWidget(BasePlaylistWidget):
-    def __init__(self):
-        BasePlaylistWidget.__init__(self, queue_only=False)
+    def __init__(self, queue_only=False):
+        BasePlaylistWidget.__init__(self, queue_only=queue_only)
 
-        menu = SimplePopupMenu()
-        menu.simple_add(
+        self._menu = SimplePopupMenu()
+        self._menu.simple_add(
             'Recommend from this song',
             self._on_menu_recommend,
             stock_id='gtk-add'
         )
-        menu.simple_add(
+        self._menu.simple_add(
             'Recommend from attribute search',
-            self._on_menu_recommend,
+            self._on_menu_recommend_attrs,
             stock_id='gtk-color-picker'
         )
-        menu.simple_add(
+        self._menu.simple_add(
             'Recommend from heuristic',
-            self._on_menu_recommend,
+            self._on_menu_recommend_heuristic,
             stock_id='gtk-about'
         )
-        self.set_menu(menu)
+        self.set_menu(self._menu)
         g.client.signal_add('client-event', self._on_client_event)
 
     def _on_menu_recommend(self, menu_item):
-        pass
+        model, rows = self.get_selected_rows()
+        for row in rows:
+            munin_id = MUNIN_SESSION.mapping[:row[-1]]
+
+            # TODO: transaction, deduplicate
+            for munin_song in MUNIN_SESSION.recommend_from_seed(munin_id, RECOM_COUNT):
+                recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+                g.client.queue_add(recom_uri)
+
+    def _on_menu_recommend_attrs(self, menu_item):
+        for munin_song in MUNIN_SESSION.recommend_from_attributes(ATTRIBUTE_SEARCH_QUERY, RECOM_COUNT):
+            recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+            g.client.queue_add(recom_uri)
+
+    def _on_menu_recommend_heuristic(self, menu_item):
+        for munin_song in MUNIN_SESSION.recommend_from_heuristic(RECOM_COUNT):
+            recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+            g.client.queue_add(recom_uri)
 
     def _on_client_event(self, client, event):
-        if event & Idle.DATABASE:
+        if event & (Idle.DATABASE | Idle.QUEUE):
             self._on_entry_changed(self._entry)
 
     def do_row_activated(self, row):
         queue_id, uri = row[-2], row[-1]
         if queue_id > 0:
             g.client.player_play(queue_id=queue_id)
+        else:
+            g.client.queue_add(uri)
 
 
-class QueuePlaylistWidget(BasePlaylistWidget):
+class QueuePlaylistWidget(DatabasePlaylistWidget):
     def __init__(self):
-        BasePlaylistWidget.__init__(self, queue_only=True)
-
-        menu = SimplePopupMenu()
-        menu.simple_add(
+        DatabasePlaylistWidget.__init__(self, queue_only=True)
+        self._menu.simple_add_separator()
+        self._menu.simple_add(
             'Clear',
             self._on_menu_clear,
             stock_id='gtk-clear'
         )
-        menu.simple_add_separator()
-        menu.simple_add(
-            'Explain',
-            self._on_menu_clear,
-            stock_id='gtk-dialog-question'
-        )
-        menu.simple_add_separator()
-        menu.simple_add(
-            'Recommend from this song',
-            self._on_menu_recommend,
-            stock_id='gtk-add'
-        )
-        menu.simple_add(
-            'Recommend from attribute search',
-            self._on_menu_recommend,
-            stock_id='gtk-color-picker'
-        )
-        menu.simple_add(
-            'Recommend from heuristic',
-            self._on_menu_recommend,
-            stock_id='gtk-about'
-        )
-        self.set_menu(menu)
-        g.client.signal_add('client-event', self._on_client_event)
-
-    def _on_menu_recommend(self, menu_item):
-        pass
 
     def _on_menu_clear(self, menu_item):
         g.client.queue_clear()
@@ -168,7 +162,7 @@ class QueuePlaylistWidget(BasePlaylistWidget):
         g.client.player_play(queue_id=queue_id)
 
     def _on_client_event(self, client, event):
-        if event & Idle.QUEUE:
+        if event & (Idle.QUEUE | Idle.PLAYER):
             self._on_entry_changed(self._entry)
 
 ###########################################################################
@@ -308,24 +302,22 @@ class ExamineSongPage(Gtk.ScrolledWindow):
     def update(self):
         self._model.clear()
         with g.client.lock_currentsong() as song:
-            if song is None:
-                return
+            if song is not None:
+                self._title_label.set_markup('<b>Current Song Attributes </b><i>({})</i>:'.format(song.uri))
+                munin_song_id = MUNIN_SESSION.mapping[:song.uri]
+                for attribute, value in MUNIN_SESSION[munin_song_id]:
+                    try:
+                        original = getattr(song, attribute)
+                    except:
+                        original = ''
+                    self._model.append((attribute, original, str(value)))
 
-            self._title_label.set_markup('<b>Current Song Attributes </b><i>({})</i>:'.format(song.uri))
-            munin_song_id = MUNIN_SESSION.mapping[:song.uri]
-            for attribute, value in MUNIN_SESSION[munin_song_id]:
-                try:
-                    original = getattr(song, attribute)
-                except:
-                    original = ''
-                self._model.append((attribute, original, str(value)))
-
-            if MUSIC_DIR is not None:
-                moodbar_path = os.path.join(MUSIC_DIR, song.uri) + '.mood'
-                try:
-                    self._moodbar = read_moodbar_values(moodbar_path)
-                except OSError:
-                    pass
+                if MUSIC_DIR is not None:
+                    moodbar_path = os.path.join(MUSIC_DIR, song.uri) + '.mood'
+                    try:
+                        self._moodbar = read_moodbar_values(moodbar_path)
+                    except OSError:
+                        pass
 
 
 class RulesPage(Gtk.ScrolledWindow):
@@ -397,6 +389,16 @@ class RulesPage(Gtk.ScrolledWindow):
 ###########################################################################
 
 
+def parse_attribute_search(query):
+    query_dict = {}
+    for pair in query.split(','):
+        splits = [v.strip() for v in pair.split(':', maxsplit=1)]
+        if len(splits) > 1:
+            key, value = splits
+            query_dict[key] = value
+    return query_dict
+
+
 class RecomControl(Gtk.HBox):
     def __init__(self):
         Gtk.HBox.__init__(self)
@@ -406,14 +408,22 @@ class RecomControl(Gtk.HBox):
         self._add_button.set_image(
             Gtk.Image.new_from_stock('gtk-execute', Gtk.IconSize.MENU)
         )
-        #self._add_button.set_relief(Gtk.ReliefStyle.NONE)
-        #self._add_button.set_focus_on_click(False)
         self._add_button.connect('clicked', self._on_add_button_clicked)
 
         self._spin_button = Gtk.SpinButton.new_with_range(1, 1000, 1)
+        self._spin_button.connect('value-changed', self._on_spin_button_changed)
+
         self._sieve_check = Gtk.ToggleButton('Filter')
+        self._sieve_check.set_active(MUNIN_SESSION.sieving)
+        self._sieve_check.connect(
+            'toggled',
+            lambda btn: setattr(MUNIN_SESSION, 'sieving', btn.get_active())
+        )
+
         self._attrs_entry = Gtk.Entry()
         self._attrs_entry.set_placeholder_text('<Enter Attribute Search>')
+        self._attrs_entry.connect('activate', self._on_add_button_clicked)
+        self._attrs_entry.connect('changed', self._on_entry_changed)
 
         rbox = Gtk.HBox()
         lbox = Gtk.HBox()
@@ -429,11 +439,37 @@ class RecomControl(Gtk.HBox):
         style_context = rbox.get_style_context()
         style_context.add_class(Gtk.STYLE_CLASS_LINKED)
 
+        alignment = Gtk.Alignment()
+        alignment.set(0.5, 0.5, 0, 0)
+        alignment.add(rbox)
+
         self.pack_start(lbox, True, True, 2)
-        self.pack_start(rbox, True, True, 2)
+        self.pack_start(alignment, True, True, 2)
+
+    def _on_entry_changed(self, entry):
+        global ATTRIBUTE_SEARCH_QUERY
+        query_dict = parse_attribute_search(entry.get_text())
+        if query_dict:
+            ATTRIBUTE_SEARCH_QUERY = query_dict
+        else:
+            ATTRIBUTE_SEARCH_QUERY = None
 
     def _on_add_button_clicked(self, button):
-        pass
+        if ATTRIBUTE_SEARCH_QUERY is not None:
+            iterator = MUNIN_SESSION.recommend_from_attributes(
+                ATTRIBUTE_SEARCH_QUERY,
+                RECOM_COUNT
+            )
+        else:
+            iterator = MUNIN_SESSION.recommend_from_heuristic(RECOM_COUNT)
+
+        for munin_song in iterator:
+            recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+            g.client.queue_add(recom_uri)
+
+    def _on_spin_button_changed(self, spin_button):
+        global RECOM_COUNT
+        RECOM_COUNT = self._spin_button.get_value_as_int()
 
 
 class NaglfarContainer(Gtk.Box):

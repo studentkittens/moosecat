@@ -863,17 +863,18 @@ static void * mc_client_command_dispatcher(
 
         /* Input command left to parse */
         const char *input = job_data;
+        g_printerr("DISPATCHED %s\n", input);
 
         /* Free input (since it was strdrup'd) */
         bool free_input = true;
         if(mc_is_connected(self) == false) {
             result = false;
         }
-        else
+        else /* commit */
         if(mc_client_command_list_is_start_or_end(input) == -1) {
             result = mc_client_command_list_commit(self);
         }
-        else
+        else /* active command */
         if(mc_client_command_list_is_active(self)) {
             mc_client_command_list_append(self, input);
             if(mc_is_connected(self)) {
@@ -881,20 +882,29 @@ static void * mc_client_command_dispatcher(
                 free_input = false;
             }
         }
-        else 
+        else  /* begin */
         if(mc_client_command_list_is_start_or_end(input) == +1) {
             mc_client_command_list_begin(self);
             result = true;
         }
         else {
+            g_printerr("getting connection\n");
             struct mpd_connection * conn = mc_get(self);
+            g_printerr("getting connection done\n");
             if(conn != NULL && mc_is_connected(self)) {
+                g_printerr("connected; executing \n");
                 result = mc_client_execute(self, input, conn);
-                if (mpd_response_finish(conn) == false) {       
+                g_printerr("connected; done %d\n", result);
+                if (mpd_response_finish(conn) == false) {
+                    g_printerr("reporting error\n");
                     mc_shelper_report_error(self, conn);        
-                }                                               
+                    g_printerr("reporting error done\n");
+                }                                   
+                g_printerr("finfished response\n");
             }
+            g_printerr("putting connection\n");
             mc_put(self);
+            g_printerr("putting connection done\n");
         }
 
         if(free_input) {
@@ -902,7 +912,7 @@ static void * mc_client_command_dispatcher(
             g_free((char *) input);
         }
     }
-
+        g_printerr("DISPATCHED ^s\n");
     return GINT_TO_POINTER(result);
 }
 

@@ -1,4 +1,5 @@
 # stdlib
+import os
 import logging
 import queue
 import threading
@@ -68,8 +69,8 @@ class Retriever:
         self._fetch_queue = queue.Queue()
         self._query_set = set()
         self._thr_barrier = threading.Barrier(
-                parties=threads + 1,
-                timeout=1.0  # Time to wait before forced kill.
+            parties=threads + 1,
+            timeout=1.0  # Time to wait before forced kill.
         )
 
         self._fetch_threads = []
@@ -227,8 +228,11 @@ def _get_full_current_song_uri():
     with g.client.lock_currentsong() as song:
         if song is not None and dir_path is not None:
             full_path = os.path.join(base_path, song.uri)
-            if os.access(full_path, os.R_OK):
-                return full_path
+        else:
+            full_path = None
+
+    if full_path is not None and os.access(full_path, os.R_OK):
+        return full_path
 
 
 def configure_query_by_current_song(get_type, amount=1, img_size=(-1, -1)):
@@ -242,14 +246,18 @@ def configure_query_by_current_song(get_type, amount=1, img_size=(-1, -1)):
     '''
     with g.client.lock_currentsong() as song:
         if song is not None:
-            return configure_query(
-                    get_type,
-                    song.artist,
-                    song.album,
-                    song.title,
-                    amount=1,
-                    img_size=img_size
+            qry = configure_query(
+                get_type,
+                song.artist,
+                song.album,
+                song.title,
+                amount=1,
+                img_size=img_size
             )
+        else:
+            qry = None
+
+    return qry
 
 
 def configure_query(get_type, artist=None, album=None, title=None, amount=1, img_size=(-1, -1)):
