@@ -45,12 +45,11 @@ Naglfar
     * controls oben implementieren
     * info bar für fehler
     * seed song anzeigen
-    * clear and recommend
     * doppelclick in db -> zur queue adden
     * rating? 
     * genre anzeigen?
 
 - "Zurückschnalzen" von Playlist verhindern
 - Code aufräumen 
-- Musicdir ordentlich übergeben. // DONE
-- Seek heuristic
+- Seek heuristic -> Heartbeat
+- Easter Egg?

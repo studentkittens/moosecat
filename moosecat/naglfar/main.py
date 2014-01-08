@@ -8,8 +8,10 @@ from gi.repository import GdkPixbuf
 
 #from moosecat.gtk.widgets.playlist_tree_model import PlaylistTreeModel
 from moosecat.gtk.widgets import PlaylistTreeModel, PlaylistWidget, SimplePopupMenu
+from moosecat.gtk.widgets import ProgressSlider
+from moosecat.gtk.widgets import BarSlider
 from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
-from moosecat.core import Idle
+from moosecat.core import Idle, Status
 
 
 # External:
@@ -75,8 +77,8 @@ class BasePlaylistWidget(PlaylistWidget):
                 list(map(lambda song: (
                     # Visible columns:
                     'gtk-yes' if song.queue_id == queue_id else '',
-                    # '#' + str(MUNIN_SESSION.mapping[:song.uri]),
-                    song.queue_pos,
+                    '#' + str(MUNIN_SESSION.mapping[:song.uri]),
+                    # song.queue_pos,
                     song.artist,
                     song.album,
                     song.title,
@@ -539,17 +541,198 @@ class NaglfarContainer(Gtk.Box):
 ###########################################################################
 
 
+class ModebuttonBox(Gtk.HBox):
+    def __init__(self):
+        Gtk.HBox.__init__(self)
+
+        style_context = self.get_style_context()
+        style_context.add_class(Gtk.STYLE_CLASS_LINKED)
+
+        self._single_button = Gtk.Button.new_from_icon_name(
+            'object-rotate-left', Gtk.IconSize.MENU
+        )
+        self._repeat_button = Gtk.Button.new_from_icon_name(
+            'media-playlist-repeat', Gtk.IconSize.MENU
+        )
+        self._random_button = Gtk.Button.new_from_icon_name(
+            'media-playlist-shuffle', Gtk.IconSize.MENU
+        )
+        self._consume_button = Gtk.Button.new_from_icon_name(
+            'media-tape', Gtk.IconSize.MENU
+        )
+
+        self._actions = {
+            self._single_button: Status.single,
+            self._repeat_button: Status.repeat,
+            self._random_button: Status.random,
+            self._consume_button: Status.consume
+        }
+
+        self.pack_start(self._single_button, False, False, 0)
+        self.pack_start(self._repeat_button, False, False, 0)
+        self.pack_start(self._random_button, False, False, 0)
+        self.pack_start(self._consume_button, False, False, 0)
+
+        for button in self._actions.keys():
+            button.connect('clicked', self._on_button_clicked)
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _on_button_clicked(self, button):
+        # Get the corresponding action for this button
+        action_func = self._actions[button]
+
+        # Trigger the action
+        with g.client.lock_status() as status:
+            action_func.__set__(status, button.get_active())
+
+    def _on_client_event(self, client, event):
+        if event & Idle.OPTIONS:
+            # Update appearance according to MPD's state
+            with g.client.lock_status() as status:
+                self._single_button.set_active(status.single)
+                self._repeat_button.set_active(status.repeat)
+                self._consume_button.set_active(status.consume)
+                self._random_button.set_active(status.random)
+
+
+class PlaybuttonBox(Gtk.HBox):
+    def __init__(self):
+        Gtk.HBox.__init__(self)
+
+        style_context = self.get_style_context()
+        style_context.add_class(Gtk.STYLE_CLASS_LINKED)
+
+        self._pause_button = Gtk.Button.new_from_icon_name(
+            'media-playback-start', Gtk.IconSize.MENU
+        )
+        self._next_button = Gtk.Button.new_from_icon_name(
+            'media-skip-forward', Gtk.IconSize.MENU
+        )
+        self._prev_button = Gtk.Button.new_from_icon_name(
+            'media-skip-backward', Gtk.IconSize.MENU
+        )
+        self._stop_button = Gtk.Button.new_from_icon_name(
+            'media-playback-stop', Gtk.IconSize.MENU
+        )
+
+        self._actions = {
+            self._stop_button: g.client.player_stop,
+            self._pause_button: g.client.player_pause,
+            self._prev_button: g.client.player_previous,
+            self._next_button: g.client.player_next
+        }
+
+        self.pack_start(self._prev_button, False, False, 0)
+        self.pack_start(self._pause_button, False, False, 0)
+        self.pack_start(self._stop_button, False, False, 0)
+        self.pack_start(self._next_button, False, False, 0)
+
+        for button in self._actions.keys():
+            button.connect('clicked', self._on_button_clicked)
+
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _set_button_icon(self, icon):
+        self._pause_button.set_image(Gtk.Image.new_from_icon_name(
+            icon, Gtk.IconSize.MENU
+        ))
+
+    def _on_client_event(self, client, event):
+        if event & Idle.PLAYER:
+            with client.lock_status() as status:
+                if status is not None:
+                    return
+                if status.state == Status.Playing:
+                    self._actions[self._pause_button] = client.player_pause
+                    self._set_button_icon('media-playback-pause')
+                elif status.state == Status.Paused:
+                    self._actions[self._pause_button] = client.player_play
+                    self._set_button_icon('media-playback-start')
+
+    def _on_button_clicked(self, button):
+        action = self._actions[button]
+        action()
+
+
 class NaglfarWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         Gtk.Window.__init__(self, title="Naglfar", application=app)
         self.set_default_size(300, 450)
+
+        self._volume_slider = BarSlider()
+        self._volume_slider.set_size_request(60, 25)
+
+        volume_alignment = Gtk.Alignment()
+        volume_alignment.set(0.5, 0.5, 0, 0)
+        volume_alignment.add(self._volume_slider)
+
+        g.client.signal_add('client-event', self._on_client_event)
+        self._volume_slider.connect('percent-change', self._on_volume_click_event)
+
+        self._progress_bar = ProgressSlider()
+        self._progress_bar.set_size_request(200, 15)
+
+        progress_alignment = Gtk.Alignment()
+        progress_alignment.set(0.5, 0.5, 0, 0)
+        progress_alignment.add(self._progress_bar)
+
+        GLib.timeout_add(500, self._timeout_callback)
+        self._progress_bar.connect('percent-change', self._on_percent_change)
+
+        app_box = Gtk.VBox()
+        self._headerbar = Gtk.HeaderBar()
+        self._headerbar.pack_start(PlaybuttonBox())
+        self._headerbar.pack_start(progress_alignment)
+        self._headerbar.pack_end(volume_alignment)
+        self._headerbar.pack_end(ModebuttonBox())
+        self._headerbar.set_show_close_button(True)
+        app_box.pack_start(self._headerbar, False, False, 0)
 
         # a scrollbar for the child widget (that is going to be the textview)
         scrolled_window = Gtk.ScrolledWindow()
         container = NaglfarContainer()
         scrolled_window.add(container)
 
-        self.add(scrolled_window)
+        app_box.pack_start(scrolled_window, True, True, 0)
+        self.add(app_box)
+
+    def _on_client_event(self, client, event):
+        if event & Idle.MIXER:
+            with client.lock_status() as status:
+                if status is not None:
+                    self._volume_slider.percent = status.volume / 100
+
+        if event & Idle.PLAYER:
+            with client.lock_currentsong() as song:
+                if song is not None:
+                    self._headerbar.set_title('{title}'.format(
+                        title=song.title
+                    ))
+                    self._headerbar.set_subtitle('{album} - {artist}'.format(
+                        album=song.album,
+                        artist=song.artist or song.album_artist
+                    ))
+                else:
+                    self._headerbar.set_title('Ready to play!')
+                    self._headerbar.set_subtitle('Just add something to the playlist.')
+
+
+    def _on_volume_click_event(self, bar):
+        with g.client.lock_status() as status:
+            if status is not None:
+                status.volume = bar.percent * 100
+
+    # User clicked in the Slider
+    def _on_percent_change(self, slider):
+        g.client.player_seek_relative(slider.percent)
+
+    def _timeout_callback(self):
+        with g.client.lock_status() as status:
+            if status is not None:
+                total_time = status.total_time
+                if total_time is not 0:
+                    self._progress_bar.percent = g.heartbeat.elapsed / total_time
+        return True
 
 
 class NaglfarApplication(Gtk.Application):
