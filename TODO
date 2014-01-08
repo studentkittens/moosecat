@@ -38,18 +38,12 @@ Naglfar
 
 - Mehr Songs zu testdata adden/taggen
 - echte signale - history add bei song-wechsel // DONE
-- Empfehlungen implementieren - 
-
-    * add sqlite3_reset to prep statements
-    * deduplicate queue bug?
-    * controls oben implementieren
-    * info bar für fehler
-    * seed song anzeigen
-    * doppelclick in db -> zur queue adden
-    * rating? 
-    * genre anzeigen?
-
-- "Zurückschnalzen" von Playlist verhindern
+- add sqlite3_reset to prep statements // DONE
+- deduplicate queue bug? // DONE 
+- controls oben implementieren // DON
+- seed song anzeigen // DONE
+- doppelclick in db -> zur queue adden
+- rating? 
 - Code aufräumen 
 - Seek heuristic -> Heartbeat
 - Easter Egg?

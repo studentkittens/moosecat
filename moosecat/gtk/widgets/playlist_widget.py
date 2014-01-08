@@ -22,8 +22,10 @@ class PlaylistWidget(Gtk.VBox):
         self._model = PlaylistTreeModel([])
 
         # GtkSearchEntry configuration
+        self._revealer = Gtk.Revealer()
         self._entry = Gtk.SearchEntry()
         self._entry.connect('changed', self._on_entry_changed)
+        self._revealer.add(self._entry)
 
         # Treeview Configuration
         self._view = Gtk.TreeView(model=None)
@@ -73,7 +75,7 @@ class PlaylistWidget(Gtk.VBox):
         self._scw.add(self._view)
         self.pack_start(self._scw, True, True, 1)
 
-        self.pack_start(self._entry, False, False, 1)
+        self.pack_start(self._revealer, False, False, 1)
         self.pack_start(Gtk.HSeparator(), False, False, 1)
 
         # Typing Optimzations
@@ -85,12 +87,14 @@ class PlaylistWidget(Gtk.VBox):
         GLib.timeout_add(150, self._internal_search)
 
         self.show_all()
-        self.focus_searchbar()
+        self._revealer.set_reveal_child(False)
 
     def focus_searchbar(self):
+        self._revealer.set_reveal_child(True)
         self._entry.grab_focus()
 
     def focus_treeview(self):
+        self._revealer.set_reveal_child(False)
         self._view.grab_focus()
 
     def set_model(self, model):

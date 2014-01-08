@@ -26,6 +26,7 @@ def make_entry(song):
         'genre': song.genre,
         'bpm': full_uri,
         'moodbar': full_uri,
+        'rating': 0,
         'lyrics': LYRICS_PROVIDER.do_process((
             song.album_artist or song.artist, song.title
         ))

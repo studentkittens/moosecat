@@ -9,6 +9,7 @@ from gi.repository import GdkPixbuf
 #from moosecat.gtk.widgets.playlist_tree_model import PlaylistTreeModel
 from moosecat.gtk.widgets import PlaylistTreeModel, PlaylistWidget, SimplePopupMenu
 from moosecat.gtk.widgets import ProgressSlider
+from moosecat.gtk.widgets import StarSlider
 from moosecat.gtk.widgets import BarSlider
 from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
 from moosecat.core import Idle, Status
@@ -25,6 +26,7 @@ from munin.scripts.moodbar_visualizer import draw_moodbar
 MUNIN_SESSION = EasySession.from_name()
 ATTRIBUTE_SEARCH_QUERY = None
 RECOM_COUNT = 1
+SEED_SONG_URI = None
 
 
 try:
@@ -76,9 +78,12 @@ class BasePlaylistWidget(PlaylistWidget):
             self.set_model(PlaylistTreeModel(
                 list(map(lambda song: (
                     # Visible columns:
-                    'gtk-yes' if song.queue_id == queue_id else '',
+                    'gtk-media-play' if
+                        song.queue_id == queue_id
+                    else 'gtk-media-record' if
+                        song.uri == SEED_SONG_URI
+                    else '',
                     '#' + str(MUNIN_SESSION.mapping[:song.uri]),
-                    # song.queue_pos,
                     song.artist,
                     song.album,
                     song.title,
@@ -117,7 +122,11 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
     def _on_menu_recommend(self, menu_item):
         model, rows = self.get_selected_rows()
         for row in rows:
-            munin_id = MUNIN_SESSION.mapping[:row[-1]]
+            uri = row[-1]
+            munin_id = MUNIN_SESSION.mapping[:uri]
+
+            global SEED_SONG_URI
+            SEED_SONG_URI = uri
 
             # TODO: transaction, deduplicate
             for munin_song in MUNIN_SESSION.recommend_from_seed(munin_id, RECOM_COUNT):
@@ -125,13 +134,23 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
                 g.client.queue_add(recom_uri)
 
     def _on_menu_recommend_attrs(self, menu_item):
+        first = False
         for munin_song in MUNIN_SESSION.recommend_from_attributes(ATTRIBUTE_SEARCH_QUERY, RECOM_COUNT):
             recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+            if not first:
+                global SEED_SONG_URI
+                SEED_SONG_URI = recom_uri
+                first = True
             g.client.queue_add(recom_uri)
 
     def _on_menu_recommend_heuristic(self, menu_item):
+        first = False
         for munin_song in MUNIN_SESSION.recommend_from_heuristic(RECOM_COUNT):
             recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+            if not first:
+                global SEED_SONG_URI
+                SEED_SONG_URI = recom_uri
+                first = True
             g.client.queue_add(recom_uri)
 
     def _on_client_event(self, client, event):
@@ -167,6 +186,7 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
         if event & (Idle.QUEUE | Idle.PLAYER):
             self._on_entry_changed(self._entry)
 
+
 ###########################################################################
 #                               Statistics                                #
 ###########################################################################
@@ -175,11 +195,14 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 class GraphPage(Gtk.ScrolledWindow):
     def __init__(self, width=1500, height=1500):
         Gtk.ScrolledWindow.__init__(self)
+        self._width, self._height = width, height
+        self.update()
 
+    def update(self):
         path = '/tmp/.munin_plot.png'
         munin.plot.Plot(
             MUNIN_SESSION.database,
-            width, height,
+            self._width, self._height,
             path=path
         )
 
@@ -190,7 +213,12 @@ class GraphPage(Gtk.ScrolledWindow):
         #       pygobject wrapper.. which is somewhat weird.
         pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
         image = Gtk.Image.new_from_pixbuf(pixbuf)
-        image.set_size_request(width, height)
+        image.set_size_request(self._width, self._height)
+
+        child = self.get_child()
+        if child is not None:
+            self.remove(child)
+
         self.add(image)
         self.show_all()
 
@@ -298,7 +326,6 @@ class ExamineSongPage(Gtk.ScrolledWindow):
 
         alloc = area.get_allocation()
         draw_moodbar(ctx, self._moodbar, alloc.width, alloc.height)
-
         return True
 
     def update(self):
@@ -445,8 +472,22 @@ class RecomControl(Gtk.HBox):
         alignment.set(0.5, 0.5, 0, 0)
         alignment.add(rbox)
 
+        self._star_slider = StarSlider()
+        self._star_slider.set_size_request(
+            self._star_slider.width_multiplier() * 20,
+            20
+        )
+        self._star_slider.connect('percent-change', self._on_stars_changed)
+        g.client.signal_add('client-event', self._on_client_event)
+
+        slide_alignment = Gtk.Alignment()
+        slide_alignment.set(0.5, 0.5, 0, 0)
+        slide_alignment.add(self._star_slider)
+
+        self.pack_start(slide_alignment, True, True, 5)
         self.pack_start(lbox, True, True, 2)
         self.pack_start(alignment, True, True, 2)
+        self.show_all()
 
     def _on_entry_changed(self, entry):
         global ATTRIBUTE_SEARCH_QUERY
@@ -465,13 +506,34 @@ class RecomControl(Gtk.HBox):
         else:
             iterator = MUNIN_SESSION.recommend_from_heuristic(RECOM_COUNT)
 
+        first = False
         for munin_song in iterator:
             recom_uri = MUNIN_SESSION.mapping[munin_song.uid]
+            if not first:
+                global SEED_SONG_URI
+                SEED_SONG_URI = recom_uri
+                first = True
             g.client.queue_add(recom_uri)
+
+    def _on_client_event(self, client, event):
+        if event & Idle.PLAYER:
+            with g.client.lock_currentsong() as song:
+                if song is None:
+                    return
+
+                current_song_uri = song.uri
+
+            munin_song = MUNIN_SESSION.mapping[:current_song_uri]
+            rating = MUNIN_SESSION[munin_song]['rating']
+            print('rating', rating)
+            self._star_slider.stars = rating or 0
 
     def _on_spin_button_changed(self, spin_button):
         global RECOM_COUNT
         RECOM_COUNT = self._spin_button.get_value_as_int()
+
+    def _on_stars_changed(self, slider):
+        print(slider.stars)
 
 
 class NaglfarContainer(Gtk.Box):
@@ -514,7 +576,6 @@ class NaglfarContainer(Gtk.Box):
         g.client.signal_add('client-event', self._on_client_event)
 
     def _on_client_event(self, client, event):
-        print('Got event:', event)
         if event & Idle.PLAYER:
             current_song = None
             with g.client.lock_currentsong() as song:
@@ -589,10 +650,14 @@ class ModebuttonBox(Gtk.HBox):
         if event & Idle.OPTIONS:
             # Update appearance according to MPD's state
             with g.client.lock_status() as status:
-                self._single_button.set_active(status.single)
-                self._repeat_button.set_active(status.repeat)
-                self._consume_button.set_active(status.consume)
-                self._random_button.set_active(status.random)
+                print(status.single)
+                print(status.repeat)
+                print(status.consume)
+                print(status.random)
+                # self._single_button.set_active(status.single)
+                # self._repeat_button.set_active(status.repeat)
+                # self._consume_button.set_active(status.consume)
+                # self._random_button.set_active(status.random)
 
 
 class PlaybuttonBox(Gtk.HBox):
@@ -715,7 +780,6 @@ class NaglfarWindow(Gtk.ApplicationWindow):
                 else:
                     self._headerbar.set_title('Ready to play!')
                     self._headerbar.set_subtitle('Just add something to the playlist.')
-
 
     def _on_volume_click_event(self, bar):
         with g.client.lock_status() as status:
