@@ -64,15 +64,15 @@ class CairoSlider(Gtk.DrawingArea):
     ####################
 
     def on_button_press_event(self, widget, event):
-        self._position = event.x
-        self._call_on_percent_change_func()
-        self.queue_draw()
-        self._drag_mode = True
-        return True
+        if Gdk.EventType.BUTTON_RELEASE:
+            self._position = event.x
+            self._call_on_percent_change_func()
+            self.queue_draw()
+            self._drag_mode = True
+            return True
 
     def on_button_release_event(self, widget, event):
         self._drag_mode = False
-        self._call_on_percent_change_func()
         return True
 
     def on_scroll_event(self, widget, event):

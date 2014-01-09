@@ -6,12 +6,13 @@ from gi.repository import Gtk
 from gi.repository import GLib
 from gi.repository import GdkPixbuf
 
-#from moosecat.gtk.widgets.playlist_tree_model import PlaylistTreeModel
-from moosecat.gtk.widgets import PlaylistTreeModel, PlaylistWidget, SimplePopupMenu
+from moosecat.gtk.widgets import PlaylistTreeModel
+from moosecat.gtk.widgets import PlaylistWidget
+from moosecat.gtk.widgets import SimplePopupMenu
 from moosecat.gtk.widgets import ProgressSlider
 from moosecat.gtk.widgets import StarSlider
 from moosecat.gtk.widgets import BarSlider
-from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
+from moosecat.boot import boot_base, boot_store, shutdown_application, g
 from moosecat.core import Idle, Status
 
 
@@ -602,6 +603,14 @@ class NaglfarContainer(Gtk.Box):
 ###########################################################################
 
 
+def toggle_button_from_icon_name(icon_name, icon_size):
+    toggler = Gtk.ToggleButton()
+    toggler.set_image(Gtk.Image.new_from_icon_name(
+        icon_name, icon_size
+    ))
+    return toggler
+
+
 class ModebuttonBox(Gtk.HBox):
     def __init__(self):
         Gtk.HBox.__init__(self)
@@ -609,16 +618,16 @@ class ModebuttonBox(Gtk.HBox):
         style_context = self.get_style_context()
         style_context.add_class(Gtk.STYLE_CLASS_LINKED)
 
-        self._single_button = Gtk.Button.new_from_icon_name(
+        self._single_button = toggle_button_from_icon_name(
             'object-rotate-left', Gtk.IconSize.MENU
         )
-        self._repeat_button = Gtk.Button.new_from_icon_name(
+        self._repeat_button = toggle_button_from_icon_name(
             'media-playlist-repeat', Gtk.IconSize.MENU
         )
-        self._random_button = Gtk.Button.new_from_icon_name(
+        self._random_button = toggle_button_from_icon_name(
             'media-playlist-shuffle', Gtk.IconSize.MENU
         )
-        self._consume_button = Gtk.Button.new_from_icon_name(
+        self._consume_button = toggle_button_from_icon_name(
             'media-tape', Gtk.IconSize.MENU
         )
 
@@ -654,10 +663,10 @@ class ModebuttonBox(Gtk.HBox):
                 print(status.repeat)
                 print(status.consume)
                 print(status.random)
-                # self._single_button.set_active(status.single)
-                # self._repeat_button.set_active(status.repeat)
-                # self._consume_button.set_active(status.consume)
-                # self._random_button.set_active(status.random)
+                self._single_button.set_active(status.single)
+                self._repeat_button.set_active(status.repeat)
+                self._consume_button.set_active(status.consume)
+                self._random_button.set_active(status.random)
 
 
 class PlaybuttonBox(Gtk.HBox):
