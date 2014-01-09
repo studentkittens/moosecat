@@ -33,6 +33,10 @@ Implement "bookmars" to jump to a certain song in the queue.
 - Support client arguments with spaces in them, d'oh. // DONE
 
 
+
+- Make cmnd protocol machine work again
+
+
 Naglfar
 -------
 
@@ -43,7 +47,8 @@ Naglfar
 - controls oben implementieren // DON
 - seed song anzeigen // DONE
 - doppelclick in db -> zur queue adden
-- rating? 
+- rating? // DONE (graph plot update)
 - Code aufräumen 
 - Seek heuristic -> Heartbeat
-- Easter Egg?
+- Validate Graph after modify
+- broken queue bug

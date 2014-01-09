@@ -4,6 +4,7 @@ import logging
 
 from gi.repository import Gtk
 from gi.repository import GLib
+from gi.repository import Gdk
 from gi.repository import GdkPixbuf
 
 from moosecat.gtk.widgets import PlaylistTreeModel
@@ -28,6 +29,7 @@ MUNIN_SESSION = EasySession.from_name()
 ATTRIBUTE_SEARCH_QUERY = None
 RECOM_COUNT = 1
 SEED_SONG_URI = None
+PLOT_NEED_REDRAW = True
 
 
 try:
@@ -74,7 +76,6 @@ class BasePlaylistWidget(PlaylistWidget):
             if song is not None:
                 queue_id = song.queue_id
 
-        print('Searching', self._queue_only)
         with g.client.store.query(query, queue_only=self._queue_only) as playlist:
             self.set_model(PlaylistTreeModel(
                 list(map(lambda song: (
@@ -160,6 +161,7 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
 
     def do_row_activated(self, row):
         queue_id, uri = row[-2], row[-1]
+        print(queue_id, uri)
         if queue_id > 0:
             g.client.player_play(queue_id=queue_id)
         else:
@@ -196,10 +198,20 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 class GraphPage(Gtk.ScrolledWindow):
     def __init__(self, width=1500, height=1500):
         Gtk.ScrolledWindow.__init__(self)
+        self._image = Gtk.Image()
+        self.add(self._image)
+
         self._width, self._height = width, height
+        self.show_all()
         self.update()
 
+        GLib.timeout_add(1000, self.update)
+
     def update(self):
+        global PLOT_NEED_REDRAW
+        if not PLOT_NEED_REDRAW:
+            return True
+
         path = '/tmp/.munin_plot.png'
         munin.plot.Plot(
             MUNIN_SESSION.database,
@@ -207,21 +219,12 @@ class GraphPage(Gtk.ScrolledWindow):
             path=path
         )
 
-        # TODO: Load this directly from surface.
-        #       This should be done with:
-        #            gdk_pixbuf_get_from_surface ()
-        #       But I was unable to find this function in the
-        #       pygobject wrapper.. which is somewhat weird.
         pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
-        image = Gtk.Image.new_from_pixbuf(pixbuf)
-        image.set_size_request(self._width, self._height)
+        self._image.set_from_pixbuf(pixbuf)
+        self._image.set_size_request(self._width, self._height)
 
-        child = self.get_child()
-        if child is not None:
-            self.remove(child)
-
-        self.add(image)
-        self.show_all()
+        PLOT_NEED_REDRAW = False
+        return True
 
 
 class HistoryWidget(Gtk.VBox):
@@ -525,8 +528,7 @@ class RecomControl(Gtk.HBox):
                 current_song_uri = song.uri
 
             munin_song = MUNIN_SESSION.mapping[:current_song_uri]
-            rating = MUNIN_SESSION[munin_song]['rating']
-            print('rating', rating)
+            rating = MUNIN_SESSION[munin_song]['rating'][0]
             self._star_slider.stars = rating or 0
 
     def _on_spin_button_changed(self, spin_button):
@@ -534,7 +536,20 @@ class RecomControl(Gtk.HBox):
         RECOM_COUNT = self._spin_button.get_value_as_int()
 
     def _on_stars_changed(self, slider):
-        print(slider.stars)
+        with g.client.lock_currentsong() as song:
+            if song is None:
+                return
+
+            current_song_uri = song.uri
+
+        munin_song = MUNIN_SESSION[MUNIN_SESSION.mapping[:current_song_uri]]
+        with MUNIN_SESSION.fix_graph():
+            new_song = MUNIN_SESSION[MUNIN_SESSION.modify(
+                munin_song, {'rating': slider.stars}
+            )]
+
+        global PLOT_NEED_REDRAW
+        PLOT_NEED_REDRAW = True
 
 
 class NaglfarContainer(Gtk.Box):
@@ -578,16 +593,13 @@ class NaglfarContainer(Gtk.Box):
 
     def _on_client_event(self, client, event):
         if event & Idle.PLAYER:
-            current_song = None
+            current_song_uri = None
             with g.client.lock_currentsong() as song:
                 if song is not None:
-                    current_song = song.uri
-
-            if current_song is None:
-                return
+                    current_song_uri = song.uri
 
             # TODO: Seek heuristic
-            if self._last_song != current_song and self._last_song is not None:
+            if self._last_song != current_song_uri and self._last_song is not None:
                 MUNIN_SESSION.feed_history(
                     MUNIN_SESSION.mapping[:self._last_song]
                 )
@@ -596,7 +608,7 @@ class NaglfarContainer(Gtk.Box):
                 self._history_page.update()
                 self._examine_page.update()
 
-            self._last_song = current_song
+            self._last_song = current_song_uri
 
 ###########################################################################
 #                           GApplication Stuff                            #
@@ -731,7 +743,7 @@ class PlaybuttonBox(Gtk.HBox):
 class NaglfarWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         Gtk.Window.__init__(self, title="Naglfar", application=app)
-        self.set_default_size(300, 450)
+        self.set_default_size(1400, 900)
 
         self._volume_slider = BarSlider()
         self._volume_slider.set_size_request(60, 25)

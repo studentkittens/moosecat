@@ -194,7 +194,7 @@ cdef class Song:
     property queue_pos:
         'Retrieve the position of the song in the Queue (or 0 if in DB only)'
         def __get__(self):
-            return c.mpd_song_get_pos(self._p())
+            return <int>c.mpd_song_get_pos(self._p())
         def __set__(self, int pos):
             c.mpd_song_set_pos(self._p(), pos)
 
@@ -205,7 +205,7 @@ cdef class Song:
         In contrast to the Position the Id won't change on move/add/delete.
         '''
         def __get__(self):
-            return c.mpd_song_get_id(self._p())
+            return <int>c.mpd_song_get_id(self._p())
 
     property last_modified:
         '''

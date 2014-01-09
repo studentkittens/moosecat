@@ -25,6 +25,14 @@ class Heartbeat:
         )
 
     @property
+    def listened(self):
+        '''The percent of the song that was actually listened to.
+
+        This excludes areas that were skipped.
+        '''
+        pass
+
+    @property
     def elapsed(self):
         '''Returns the approx. number of elapsed seconds of the currently playing song
 
@@ -81,7 +89,6 @@ if __name__ == '__main__':
     from gi.repository import GLib
 
     def timeout_callback():
-        #print(g.client.is_connected)
         print(g.heartbeat.elapsed)
         g.client.connect()
         return True

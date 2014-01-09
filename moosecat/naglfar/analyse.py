@@ -58,5 +58,6 @@ if __name__ == '__main__':
                 traceback.print_exc()
 
     session.save()
-    session.database.plot()
+
+    # session.database.plot()
     shutdown_application()
