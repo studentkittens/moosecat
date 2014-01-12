@@ -608,7 +608,6 @@ static mc_Stack * mc_stprv_build_queue_content(mc_Store *self, mc_Stack *to_filt
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int stack_idx = sqlite3_column_int(select_stmt, 0);
-        g_printerr("STACK IDX: %d\n", stack_idx);
         if(stack_idx <= 0)  {
             continue;
         }

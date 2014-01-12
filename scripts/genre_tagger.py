@@ -8,6 +8,7 @@ import json
 import pickle
 import sys
 
+from collections import Counter
 from urllib.request import urlopen
 from urllib.parse import quote
 
@@ -16,15 +17,20 @@ from munin.provider.normalize import \
     ArtistNormalizeProvider, \
     AlbumNormalizeProvider
 
-
 # External:
 from pyxdameraulevenshtein import normalized_damerau_levenshtein_distance as \
     levenshtein
 import taglib
 
 
+def filter_crosslinks(genre_set, style_set):
+    for key in genre_set:
+        if key in style_set:
+            del style_set[key]
+
+
 def find_genre_via_discogs(artist, album):
-    genre_set, style_set = set(), set()
+    genre_set, style_set = Counter(), Counter()
 
     # Get the data from discogs
     api_root = API_SEARCH_URL.format(artist=quote(artist))
@@ -44,7 +50,6 @@ def find_genre_via_discogs(artist, album):
             if 'style' not in item:
                 continue
 
-            # print('   ', item['title'], item['genre'], item['style'])
             # Get the remote artist/album from the title, also normalise them.
             remote_artist, remote_album = item['title'].split(' - ', maxsplit=1)
             remote_artist, *_ = artist_normalizer.do_process(remote_artist)
@@ -63,10 +68,24 @@ def find_genre_via_discogs(artist, album):
             genre_set.update(item['genre'])
             style_set.update(item['style'])
 
+        filter_spam(genre_set)
+        filter_spam(style_set)
+        filter_crosslinks(genre_set, style_set)
+
+    def filter_spam(counter):
+        if not counter:
+            return
+
+        avg = sum(counter.values()) // len(counter)
+        for key in list(counter):
+            if counter[key] < avg:
+                del counter[key]
+
     find_right_genre(True)
     if not (genre_set or style_set):
         # Lower the expectations, just take the genre of
         # all known albums of this artist, if any:
+        print('  -- exact album not found.')
         find_right_genre(False)
 
     # Still not? Welp.
@@ -75,8 +94,11 @@ def find_genre_via_discogs(artist, album):
 
     # Bulid a genre string that is formatted this way:
     #  genre1; genre2 [;...] / style1, style2, style3 [,...]
-    #  blues; rock / blues rock, country rock, christian blues
-    return ' / '.join(('; '.join(genre_set), ', '.join(style_set)))
+    #  blues, rock / blues rock, country rock, christian blues
+    return ' / '.join((
+        ', '.join(k for k, v in genre_set.most_common(3)),
+        ', '.join(k for k, v in style_set.most_common(4))
+    ))
 
 
 def write_genre_tag(music_path, genre_value):
@@ -139,7 +161,7 @@ if __name__ == '__main__':
     # Collect a whole-lot-of data from the database in this format:
     # {('artist', 'album'): set(['/home/a/foo.mp3', # '/home/piotr/blub.mp3'])}
     data_mapping = defaultdict(set)
-    with client.store.query('*') as full_playlist:
+    with client.store.query('*', queue_only=False) as full_playlist:
         for song in full_playlist:
             # Prefer album artist over the track artist
             artist = song.album_artist or song.artist

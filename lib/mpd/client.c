@@ -29,19 +29,37 @@ static bool mc_client_command_list_commit(mc_Client *self);
     }                                               \
 
 
-#define intarg(argument, result)                     \
-{                                                    \
-    char *endptr = NULL;                             \
-    result = g_ascii_strtoll(argument, &endptr, 10); \
-                                                     \
-    if(result == 0 && endptr != NULL) {              \
-        return false;                                \
-    }                                                \
-}                                                    \
+#define intarg(argument, result)                                   \
+{                                                                  \
+    char *endptr = NULL;                                           \
+    result = g_ascii_strtoll(argument, &endptr, 10);               \
+                                                                   \
+    if(endptr != NULL && *endptr != '\0') {                        \
+        g_printerr("Could not convert to int: ''%s''", argument);  \
+        return false;                                              \
+    }                                                              \
+}                                                                  \
 
 #define intarg_named(argument, name) \
     int name = 0;                    \
     intarg(argument, name);          \
+
+
+#define floatarg(argument, result)                                 \
+{                                                                  \
+    char *endptr = NULL;                                           \
+    result = g_ascii_strtod(argument, &endptr);                    \
+                                                                   \
+    if(endptr != NULL && *endptr != '\0') {                        \
+        g_printerr("Could not convert to float: ''%s''", argument);\
+        return false;                                              \
+    }                                                              \
+}                                                                  \
+
+#define floatarg_named(argument, name) \
+    double name = 0;                   \
+    floatarg(argument, name);          \
+
 
 ///////////////////
 
@@ -85,7 +103,7 @@ static bool handle_consume(mc_Client *self, struct mpd_connection *conn, const c
 
 static bool handle_crossfade(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
-    intarg_named(argv[0], mode);
+    floatarg_named(argv[0], mode);
     COMMAND(
         mpd_run_crossfade(conn, mode),
         mpd_send_crossfade(conn, mode)
@@ -180,7 +198,7 @@ static bool handle_playlist_load(mc_Client *self, struct mpd_connection *conn, c
 
 static bool handle_mixramdb(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
-    intarg_named(argv[0], decibel);
+    floatarg_named(argv[0], decibel);
     COMMAND(
         mpd_run_mixrampdb(conn, decibel),
         mpd_send_mixrampdb(conn, decibel)
@@ -193,7 +211,7 @@ static bool handle_mixramdb(mc_Client *self, struct mpd_connection *conn, const 
 
 static bool handle_mixramdelay(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
-    intarg_named(argv[0], seconds);
+    floatarg_named(argv[0], seconds);
     COMMAND(
         mpd_run_mixrampdelay(conn, seconds),
         mpd_send_mixrampdelay(conn, seconds)
@@ -509,7 +527,7 @@ static bool handle_playlist_save(mc_Client *self, struct mpd_connection *conn, c
 static bool handle_seek(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
     intarg_named(argv[0], pos);
-    intarg_named(argv[1], seconds);
+    floatarg_named(argv[1], seconds);
 
     COMMAND(
         mpd_run_seek_pos(conn, pos, seconds),
@@ -524,7 +542,7 @@ static bool handle_seek(mc_Client *self, struct mpd_connection *conn, const char
 static bool handle_seek_id(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
     intarg_named(argv[0], id);
-    intarg_named(argv[1], seconds);
+    floatarg_named(argv[1], seconds);
 
     COMMAND(
         mpd_run_seek_id(conn, id, seconds),
@@ -538,7 +556,7 @@ static bool handle_seek_id(mc_Client *self, struct mpd_connection *conn, const c
 
 static bool handle_seekcur(mc_Client *self, struct mpd_connection *conn, const char **argv)
 {
-    intarg_named(argv[0], seconds);
+    floatarg_named(argv[0], seconds);
 
     /* there is 'seekcur' in newer mpd versions,
      * but we can emulate it easily */
@@ -863,7 +881,6 @@ static void * mc_client_command_dispatcher(
 
         /* Input command left to parse */
         const char *input = job_data;
-        g_printerr("DISPATCHED %s\n", input);
 
         /* Free input (since it was strdrup'd) */
         bool free_input = true;

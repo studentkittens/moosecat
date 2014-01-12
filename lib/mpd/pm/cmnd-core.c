@@ -26,6 +26,19 @@
 // Private Interface //
 ///////////////////////
 
+
+/* WARNING AND TODO:
+ * 
+ * Currently this code does not work for obscure reasons.
+ * Perhaps I changed something and braimdumped during that.
+ *
+ * After a while the connections timeouts and both close.
+ *
+ * This needs to be debugged.
+ *
+ */
+
+
 typedef struct {
     /* Parent struct */
     mc_Client logic;
@@ -141,11 +154,6 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
                 if(mpd_connection_get_error(idle_con) == MPD_ERROR_TIMEOUT) {
                     mpd_connection_clear_error(idle_con);
                 } else {
-                    mc_shelper_report_error((mc_Client *) self, idle_con);
-                }
-            } else {
-                if(cmnder_get_run_listener(self, g_thread_self()) == false) {
-                    break;
                 }
 
                 if ((events = mpd_recv_idle(idle_con, false)) == 0) {

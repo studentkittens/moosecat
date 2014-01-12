@@ -33,22 +33,35 @@ Implement "bookmars" to jump to a certain song in the queue.
 - Support client arguments with spaces in them, d'oh. // DONE
 
 
-
-- Make cmnd protocol machine work again
-
-
 Naglfar
 -------
 
-- Mehr Songs zu testdata adden/taggen
+- application icon // DONE
 - echte signale - history add bei song-wechsel // DONE
 - add sqlite3_reset to prep statements // DONE
 - deduplicate queue bug? // DONE 
-- controls oben implementieren // DON
+- controls oben implementieren // DONE
 - seed song anzeigen // DONE
-- doppelclick in db -> zur queue adden
-- rating? // DONE (graph plot update)
+- doppelclick in db -> zur queue adden // DONE
+- rating? // DONE (graph plot update?)
+- Validate Graph after modify // DONE
+- discogs genre provider // DONE
+- rating distance function fixen // DONE
+- explain tooltips // DONE
+- moodbar drawing fixen // DONE
+- graph cutoff fixen // DONE
+- artist/title/album weight lower // DONE
+- Fixen AvgGenre... same items do not get 0.0  // DONE
+- Seek heuristic -> Heartbeat // DONE
+- travis CI error fixen // DONE
+- explanation page cleanen // DONE
+- graph update fixen // DONE
+- title anzeigen im graph // DONE
+- genre optimieren // DONE
+
 - Code aufräumen 
-- Seek heuristic -> Heartbeat
-- Validate Graph after modify
-- broken queue bug
+- Mehr Songs zu testdata adden/taggen 
+- fix weighting - still 0.17
+- transaction for queue_add
+
+- 5 Euro BWLer

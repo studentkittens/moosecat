@@ -109,11 +109,9 @@ class PlaylistWidget(Gtk.VBox):
         return model, (model[path] for path in paths)
 
     def jump_to_selection(self):
-        print('JUMPDAFUCKUP')
         rows = self._view.get_selection().get_selected_rows()
         if rows:
             self._view.scroll_to_cell(rows[int(len(rows) / 2)], None, False, 0, 0)
-            print(rows)
         return True
 
     ############################
@@ -182,7 +180,6 @@ class PlaylistWidget(Gtk.VBox):
         self._search_queue.put(entry.get_text())
 
     def _on_row_activated(self, view, path, tv_column):
-        print(self._model.data_from_path(path))
         self.do_row_activated(self._model.data_from_path(path))
 
     def _on_button_press_event(self, treeview, event):
