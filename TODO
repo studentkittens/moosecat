@@ -58,10 +58,12 @@ Naglfar
 - graph update fixen // DONE
 - title anzeigen im graph // DONE
 - genre optimieren // DONE
+- transaction for queue_add // DONE
+- fix weighting - still 0.17 // DONE
+- mit RAKE rumspielen // DONE
+- self is other hack // DONE
 
 - Code aufräumen 
 - Mehr Songs zu testdata adden/taggen 
-- fix weighting - still 0.17
-- transaction for queue_add
 
 - 5 Euro BWLer

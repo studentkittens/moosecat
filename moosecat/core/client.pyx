@@ -765,13 +765,12 @@ cdef class Client:
         '''
         if self.is_connected:
             c.mc_client_begin(self._p())
-            if c.mc_client_command_list_is_active(self._p()):
-                try:
-                    yield
-                finally:
-                    c.mc_client_commit(self._p())
-                    return
-        raise Exception('Unable to start command list mode')
+            try:
+                yield
+            finally:
+                c.mc_client_commit(self._p())
+        else:
+            raise RuntimeError('No connection - unable to do command list.')
 
     #####################
     #  Misc Client API  #

@@ -53,18 +53,25 @@ except IndexError:
     MUSIC_DIR = None
 
 
-###########################################################################
-#                              Util widgets                               #
-###########################################################################
+def parse_attribute_search(query):
+    query_dict = {}
+    for pair in query.split(','):
+        splits = [v.strip() for v in pair.split(':', maxsplit=1)]
+        if len(splits) > 1:
+            key, value = splits
+            query_dict[key] = value
+    return query_dict
+
 
 def process_recommendation(iterator):
     first = False
-    for munin_song in iterator:
-        recom_uri = SESSION.mapping[munin_song.uid]
-        if not first:
-            SESSION.data.seed_song_uri = recom_uri
-            first = True
-        g.client.queue_add(recom_uri)
+    with g.client.command_list_mode():
+        for munin_song in iterator:
+            recom_uri = SESSION.mapping[munin_song.uid]
+            if not first:
+                SESSION.data.seed_song_uri = recom_uri
+                first = True
+            g.client.queue_add(recom_uri)
 
 
 def format_explanation(song_uri):
@@ -83,6 +90,22 @@ def format_explanation(song_uri):
             ('{} ({:1.3f})'.format(attr, dist) for attr, dist in detail)
         )
     )
+
+
+def toggle_button_from_icon_name(icon_name, icon_size):
+    toggler = Gtk.ToggleButton()
+    toggler.set_image(Gtk.Image.new_from_icon_name(
+        icon_name, icon_size
+    ))
+    return toggler
+
+
+def find_icon_for_song(song, queue_id):
+    if song.queue_id == queue_id and song.queue_id is not -1:
+        return 'gtk-media-play'
+    elif song.uri == SESSION.data.seed_song_uri:
+        'gtk-media-record'
+    return ''
 
 
 class NotebookTab(Gtk.Box):
@@ -123,15 +146,11 @@ class BasePlaylistWidget(PlaylistWidget):
         if SESSION.data.seed_song_uri is not None:
             self._view.set_tooltip_column(6)
 
-        with g.client.store.query(query, queue_only=self._queue_only) as playlist:
+        with g.client.store.query(query, queue_only=self._queue_only) as songs:
             self.set_model(PlaylistTreeModel(
                 list(map(lambda song: (
                     # Visible columns:
-                    'gtk-media-play' if
-                        song.queue_id == queue_id and song.queue_id is not -1
-                    else 'gtk-media-record' if
-                        song.uri == SESSION.data.seed_song_uri
-                    else '',
+                    find_icon_for_song(song, queue_id),
                     '» ' + str(SESSION.mapping[:song.uri]),
                     song.artist,
                     song.album,
@@ -142,7 +161,7 @@ class BasePlaylistWidget(PlaylistWidget):
                     format_explanation(song.uri),
                     song.queue_id,
                     song.uri
-                ), playlist)),
+                ), songs)),
                 n_columns=5
             ))
 
@@ -181,7 +200,9 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
             process_recommendation(
                 itertools.chain(
                     [SESSION[munin_id]],
-                    SESSION.recommend_from_seed(munin_id, SESSION.data.recom_count)
+                    SESSION.recommend_from_seed(
+                        munin_id, SESSION.data.recom_count
+                    )
                 )
             )
 
@@ -190,7 +211,9 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
             return
 
         process_recommendation(
-            SESSION.recommend_from_attributes(SESSION.data.attribute_search_query, SESSION.data.recom_count)
+            SESSION.recommend_from_attributes(
+                SESSION.data.attribute_search_query, SESSION.data.recom_count
+            )
         )
 
     def _on_menu_recommend_heuristic(self, menu_item):
@@ -223,10 +246,6 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
         queue_id, uri = row[-2], row[-1]
         g.client.player_play(queue_id=queue_id)
 
-
-###########################################################################
-#                               Statistics                                #
-###########################################################################
 
 class GraphPage(Gtk.ScrolledWindow):
     def __init__(self, width=1500, height=1500):
@@ -401,7 +420,6 @@ class ExamineSongPage(Gtk.ScrolledWindow):
                 print('could not readmoodbar')
 
         self.show_all()
-        return
 
 
 class RulesPage(Gtk.ScrolledWindow):
@@ -470,21 +488,6 @@ class RulesPage(Gtk.ScrolledWindow):
         self.show_all()
 
 
-###########################################################################
-#                           Notebook Container                            #
-###########################################################################
-
-
-def parse_attribute_search(query):
-    query_dict = {}
-    for pair in query.split(','):
-        splits = [v.strip() for v in pair.split(':', maxsplit=1)]
-        if len(splits) > 1:
-            key, value = splits
-            query_dict[key] = value
-    return query_dict
-
-
 class RecomControl(Gtk.HBox):
     def __init__(self):
         Gtk.HBox.__init__(self)
@@ -496,7 +499,10 @@ class RecomControl(Gtk.HBox):
         )
         self._add_button.connect('clicked', self._on_add_button_clicked)
         self._spin_button = Gtk.SpinButton.new_with_range(1, 1000, 1)
-        self._spin_button.connect('value-changed', self._on_spin_button_changed)
+        self._spin_button.connect(
+            'value-changed',
+            self._on_spin_button_changed
+        )
         self._spin_button.set_value(SESSION.data.recom_count or 1)
 
         self._sieve_check = Gtk.ToggleButton('Filter')
@@ -572,7 +578,9 @@ class RecomControl(Gtk.HBox):
                 SESSION.data.recom_count
             )
         else:
-            iterator = SESSION.recommend_from_heuristic(SESSION.data.recom_count)
+            iterator = SESSION.recommend_from_heuristic(
+                SESSION.data.recom_count
+            )
 
         process_recommendation(iterator)
 
@@ -658,7 +666,9 @@ class NaglfarContainer(Gtk.Box):
 
             song_changed = self._last_song != current_song_uri
 
-            if song_changed and g.heartbeat.last_listened_percent >= SESSION.data.listen_threshold:
+            listened_percent = g.heartbeat.last_listened_percent
+            enough_listened = listened_percent >= SESSION.data.listen_threshold
+            if song_changed and enough_listened:
                 if self._last_song is not None:
                     SESSION.feed_history(
                         SESSION.mapping[:self._last_song]
@@ -669,18 +679,6 @@ class NaglfarContainer(Gtk.Box):
             self._notebook.show_all()
 
             self._last_song = current_song_uri
-
-###########################################################################
-#                           GApplication Stuff                            #
-###########################################################################
-
-
-def toggle_button_from_icon_name(icon_name, icon_size):
-    toggler = Gtk.ToggleButton()
-    toggler.set_image(Gtk.Image.new_from_icon_name(
-        icon_name, icon_size
-    ))
-    return toggler
 
 
 class ModebuttonBox(Gtk.HBox):
@@ -819,7 +817,9 @@ class NaglfarWindow(Gtk.ApplicationWindow):
         volume_alignment.add(self._volume_slider)
 
         g.client.signal_add('client-event', self._on_client_event)
-        self._volume_slider.connect('percent-change', self._on_volume_click_event)
+        self._volume_slider.connect(
+            'percent-change', self._on_volume_click_event
+        )
 
         self._progress_bar = ProgressSlider()
         self._progress_bar.set_size_request(200, 15)
@@ -866,7 +866,9 @@ class NaglfarWindow(Gtk.ApplicationWindow):
                     ))
                 else:
                     self._headerbar.set_title('Ready to play!')
-                    self._headerbar.set_subtitle('Just add something to the playlist.')
+                    self._headerbar.set_subtitle(
+                        'Just add something to the playlist.'
+                    )
 
     def _on_volume_click_event(self, bar):
         with g.client.lock_status() as status:
@@ -878,11 +880,7 @@ class NaglfarWindow(Gtk.ApplicationWindow):
         g.client.player_seek_relative(slider.percent)
 
     def _timeout_callback(self):
-        with g.client.lock_status() as status:
-            if status is not None:
-                total_time = status.total_time
-                if total_time is not 0:
-                    self._progress_bar.percent = g.heartbeat.elapsed / total_time
+        self._progress_bar.percent = g.heartbeat.percent
         return True
 
 
