@@ -29,16 +29,16 @@ from gi.repository import GLib
 from gi.repository import GdkPixbuf
 
 
-class ExtraData:
+class ExtraDataNamespace:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
 
-# Globals - ugly, I know
+# Globals - ugly, I know.
 SESSION = EasySession.from_name()
 if not hasattr(SESSION, 'data'):
     # Data that needs to be stored along the session
-    SESSION.data = ExtraData(
+    SESSION.data = ExtraDataNamespace(
         attribute_search_query=None,
         recom_count=1,
         seed_song_uri=None,
@@ -53,7 +53,24 @@ except IndexError:
     MUSIC_DIR = None
 
 
+###########################################################################
+#                            Utility Functions                            #
+###########################################################################
+
+
 def parse_attribute_search(query):
+    """Parse a string like this:
+
+        'genre: metal, artist: debauchery'
+
+    into:
+
+        {
+            'genre': 'metal',
+            'artist': 'debauchery'
+        }
+
+    """
     query_dict = {}
     for pair in query.split(','):
         splits = [v.strip() for v in pair.split(':', maxsplit=1)]
@@ -64,6 +81,9 @@ def parse_attribute_search(query):
 
 
 def process_recommendation(iterator):
+    """Take an iterator from the recommend_from_* family of functions
+    and add the individual songs to the queue.
+    """
     first = False
     with g.client.command_list_mode():
         for munin_song in iterator:
@@ -75,6 +95,14 @@ def process_recommendation(iterator):
 
 
 def format_explanation(song_uri):
+    """Format the explanation of a recommendation into something like this:
+
+        total_distance: attr1 (dist_attr1), attr2 (dist_attr2), ...
+
+    Example:
+
+        ~0.645: genre (0.2), lyrics(0.5), title(1.0)
+    """
     if SESSION.data.seed_song_uri is None:
         return None
 
@@ -93,6 +121,10 @@ def format_explanation(song_uri):
 
 
 def toggle_button_from_icon_name(icon_name, icon_size):
+    """Helper Function that does the same as Gtk.Button.new_from_icon_name.
+
+    But instead for Gtk.ToggleButton. Why ever there is no pendant.
+    """
     toggler = Gtk.ToggleButton()
     toggler.set_image(Gtk.Image.new_from_icon_name(
         icon_name, icon_size
@@ -101,14 +133,22 @@ def toggle_button_from_icon_name(icon_name, icon_size):
 
 
 def find_icon_for_song(song, queue_id):
+    """Get the icon that is shown in the Playlist/Database for a certain song.
+    """
     if song.queue_id == queue_id and song.queue_id is not -1:
         return 'gtk-media-play'
     elif song.uri == SESSION.data.seed_song_uri:
         'gtk-media-record'
     return ''
 
+###########################################################################
+#                              Util Widgets                               #
+###########################################################################
+
 
 class NotebookTab(Gtk.Box):
+    """Label of a GtkNotebook Tab. Shows a unicode glyph symbol and a text.
+    """
     def __init__(self, label, symbol='<big><b>♬</b></big> '):
         Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL)
 
@@ -121,6 +161,34 @@ class NotebookTab(Gtk.Box):
         self.pack_start(icon, True, True, 0)
         self.pack_start(Gtk.Label(label), True, True, 0)
         self.show_all()
+
+
+class InfoBar(Gtk.InfoBar):
+    def __init__(self):
+        Gtk.InfoBar.__init__(self)
+        self.set_no_show_all(True)
+        self.set_show_close_button(True)
+        self.connect('response', lambda *_: self.hide())
+
+        self._label = Gtk.Label()
+        self._label.set_use_markup(True)
+        self.get_content_area().add(self._label)
+        self._label.show()
+
+    def message(self, message, msg_type=Gtk.MessageType.WARNING):
+        self._label.set_markup('<big>' + message + '</big>')
+        self.set_message_type(msg_type)
+        self.show()
+
+        self.get_content_area().show_all()
+        GLib.timeout_add(5000, self.hide)
+
+
+INFO_BAR = InfoBar()
+
+###########################################################################
+#                            Playlist Widgets                             #
+###########################################################################
 
 
 class BasePlaylistWidget(PlaylistWidget):
@@ -181,6 +249,11 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
             stock_id='gtk-add'
         )
         self._menu.simple_add(
+            'Clear & Recommend from this song',
+            self._on_menu_recommend_clear,
+            stock_id='gtk-add'
+        )
+        self._menu.simple_add(
             'Recommend from attribute search',
             self._on_menu_recommend_attrs,
             stock_id='gtk-color-picker'
@@ -192,11 +265,15 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
         )
         self.set_menu(self._menu)
 
+    def _on_menu_recommend_clear(self, menu_item):
+        g.client.queue_clear()
+        self._on_menu_recommend(menu_item)
+
     def _on_menu_recommend(self, menu_item):
         model, rows = self.get_selected_rows()
         for row in rows:
-            uri = row[-1]
-            munin_id = SESSION.mapping[:uri]
+            # row[-1] is the uri of the song.
+            munin_id = SESSION.mapping[:row[-1]]
             process_recommendation(
                 itertools.chain(
                     [SESSION[munin_id]],
@@ -208,6 +285,10 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
 
     def _on_menu_recommend_attrs(self, menu_item):
         if SESSION.data.attribute_search_query is None:
+            INFO_BAR.message(
+                'Please fill some attributes in the top right entry!',
+                Gtk.MessageType.ERROR
+            )
             return
 
         process_recommendation(
@@ -245,6 +326,11 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
     def do_row_activated(self, row):
         queue_id, uri = row[-2], row[-1]
         g.client.player_play(queue_id=queue_id)
+
+
+###########################################################################
+#                            Individual Pages                             #
+###########################################################################
 
 
 class GraphPage(Gtk.ScrolledWindow):
@@ -488,6 +574,11 @@ class RulesPage(Gtk.ScrolledWindow):
         self.show_all()
 
 
+###########################################################################
+#                              Top controls                               #
+###########################################################################
+
+
 class RecomControl(Gtk.HBox):
     def __init__(self):
         Gtk.HBox.__init__(self)
@@ -605,6 +696,10 @@ class RecomControl(Gtk.HBox):
     def _on_stars_changed(self, slider):
         with g.client.lock_currentsong() as song:
             if song is None:
+                INFO_BAR.message(
+                    'There is no current song to rate.',
+                    Gtk.MessageType.INFO
+                )
                 return
 
             current_song_uri = song.uri
@@ -616,69 +711,6 @@ class RecomControl(Gtk.HBox):
             )]
 
         SESSION.data.plot_needs_redraw = True
-
-
-class NaglfarContainer(Gtk.Box):
-    def __init__(self):
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL)
-
-        self._notebook = Gtk.Notebook()
-
-        self._recom_control = RecomControl()
-        self._notebook.set_action_widget(self._recom_control, Gtk.PackType.END)
-        self._recom_control.show_all()
-
-        self.pack_start(self._notebook, True, True, 1)
-
-        self._notebook.append_page(
-            DatabasePlaylistWidget(), NotebookTab('Database', 'ʘ')
-        )
-        self._notebook.append_page(
-            QueuePlaylistWidget(), NotebookTab('Playlist', '◎')
-        )
-        self._rules_page = RulesPage()
-        self._notebook.append_page(
-            self._rules_page, NotebookTab('Rules', '💡')
-        )
-        self._examine_page = ExamineSongPage()
-        self._notebook.append_page(
-            ExamineSongPage(), NotebookTab('Examine', '☑')
-        )
-        self._history_page = HistoryPage()
-        self._notebook.append_page(
-            self._history_page, NotebookTab('History', '⪜')
-        )
-        self._notebook.append_page(
-            GraphPage(), NotebookTab('Graph', '☊')
-        )
-
-        self.show_all()
-
-        self._last_song = None
-        g.client.signal_add('client-event', self._on_client_event)
-
-    def _on_client_event(self, client, event):
-        if event & Idle.PLAYER:
-            current_song_uri = None
-            with g.client.lock_currentsong() as song:
-                if song is not None:
-                    current_song_uri = song.uri
-
-            song_changed = self._last_song != current_song_uri
-
-            listened_percent = g.heartbeat.last_listened_percent
-            enough_listened = listened_percent >= SESSION.data.listen_threshold
-            if song_changed and enough_listened:
-                if self._last_song is not None:
-                    SESSION.feed_history(
-                        SESSION.mapping[:self._last_song]
-                    )
-
-            self._rules_page.update()
-            self._history_page.update()
-            self._notebook.show_all()
-
-            self._last_song = current_song_uri
 
 
 class ModebuttonBox(Gtk.HBox):
@@ -794,11 +826,78 @@ class PlaybuttonBox(Gtk.HBox):
                     self._set_button_icon('media-playback-start')
 
     def _on_button_clicked(self, button):
-        action = self._actions[button]
-        action()
+        self._actions[button]()
 
 
-class NaglfarWindow(Gtk.ApplicationWindow):
+###########################################################################
+#                           Root of all widgets                           #
+###########################################################################
+
+
+class ScrolledWindowChild(Gtk.Box):
+    def __init__(self):
+        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL)
+
+        self._notebook = Gtk.Notebook()
+
+        self._recom_control = RecomControl()
+        self._notebook.set_action_widget(self._recom_control, Gtk.PackType.END)
+        self._recom_control.show_all()
+
+        self.pack_start(self._notebook, True, True, 1)
+
+        self._notebook.append_page(
+            DatabasePlaylistWidget(), NotebookTab('Database', 'ʘ')
+        )
+        self._notebook.append_page(
+            QueuePlaylistWidget(), NotebookTab('Playlist', '◎')
+        )
+        self._rules_page = RulesPage()
+        self._notebook.append_page(
+            self._rules_page, NotebookTab('Rules', '💡')
+        )
+        self._examine_page = ExamineSongPage()
+        self._notebook.append_page(
+            ExamineSongPage(), NotebookTab('Examine', '☑')
+        )
+        self._history_page = HistoryPage()
+        self._notebook.append_page(
+            self._history_page, NotebookTab('History', '⪜')
+        )
+        self._notebook.append_page(
+            GraphPage(), NotebookTab('Graph', '☊')
+        )
+
+        self.show_all()
+
+        self._last_song = None
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _on_client_event(self, client, event):
+        if event & Idle.PLAYER:
+            current_song_uri = None
+            with g.client.lock_currentsong() as song:
+                if song is not None:
+                    current_song_uri = song.uri
+
+            song_changed = self._last_song != current_song_uri
+
+            listened_percent = g.heartbeat.last_listened_percent
+            enough_listened = listened_percent >= SESSION.data.listen_threshold
+            if song_changed and enough_listened:
+                if self._last_song is not None:
+                    SESSION.feed_history(
+                        SESSION.mapping[:self._last_song]
+                    )
+
+            self._rules_page.update()
+            self._history_page.update()
+            self._notebook.show_all()
+
+            self._last_song = current_song_uri
+
+
+class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         Gtk.Window.__init__(self, title="Naglfar", application=app)
         self.set_default_size(1400, 900)
@@ -839,10 +938,10 @@ class NaglfarWindow(Gtk.ApplicationWindow):
         self._headerbar.pack_end(ModebuttonBox())
         self._headerbar.set_show_close_button(True)
         app_box.pack_start(self._headerbar, False, False, 0)
+        app_box.pack_start(INFO_BAR, False, False, 0)
 
-        # a scrollbar for the child widget (that is going to be the textview)
         scrolled_window = Gtk.ScrolledWindow()
-        container = NaglfarContainer()
+        container = ScrolledWindowChild()
         scrolled_window.add(container)
 
         app_box.pack_start(scrolled_window, True, True, 0)
@@ -883,6 +982,10 @@ class NaglfarWindow(Gtk.ApplicationWindow):
         self._progress_bar.percent = g.heartbeat.percent
         return True
 
+###########################################################################
+#                           GApplication Stuff                            #
+###########################################################################
+
 
 class NaglfarApplication(Gtk.Application):
     def __init__(self):
@@ -898,7 +1001,7 @@ class NaglfarApplication(Gtk.Application):
         boot_store()
 
     def do_activate(self):
-        win = NaglfarWindow(self)
+        win = MainWindow(self)
         win.connect('delete-event', self.do_close_application)
         win.show_all()
 
@@ -909,6 +1012,11 @@ class NaglfarApplication(Gtk.Application):
         SESSION.save()
         window.destroy()
         shutdown_application()
+
+###########################################################################
+#                                  Main                                   #
+###########################################################################
+
 
 if __name__ == '__main__':
     if '--help' in sys.argv:
