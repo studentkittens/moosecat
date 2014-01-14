@@ -6,6 +6,8 @@ import os
 import sys
 import logging
 import itertools
+import logging
+LOGGER = logging.getLogger(__name__)
 
 # Internal:
 from moosecat.gtk.widgets import PlaylistTreeModel
@@ -141,6 +143,14 @@ def find_icon_for_song(song, queue_id):
         'gtk-media-record'
     return ''
 
+
+def align_widget(widget):
+    """Make a widget use minimal space"""
+    alignment = Gtk.Alignment()
+    alignment.set(0.5, 0.5, 0, 0)
+    alignment.add(widget)
+    return alignment
+
 ###########################################################################
 #                              Util Widgets                               #
 ###########################################################################
@@ -178,8 +188,8 @@ class InfoBar(Gtk.InfoBar):
     def message(self, message, msg_type=Gtk.MessageType.WARNING):
         self._label.set_markup('<big>' + message + '</big>')
         self.set_message_type(msg_type)
-        self.show()
 
+        self.show()
         self.get_content_area().show_all()
         GLib.timeout_add(5000, self.hide)
 
@@ -251,7 +261,7 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
         self._menu.simple_add(
             'Clear & Recommend from this song',
             self._on_menu_recommend_clear,
-            stock_id='gtk-add'
+            stock_id='gtk-go-down'
         )
         self._menu.simple_add(
             'Recommend from attribute search',
@@ -333,18 +343,16 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 ###########################################################################
 
 
-class GraphPage(Gtk.ScrolledWindow):
+class GraphPage(Gtk.DrawingArea):
     def __init__(self, width=1500, height=1500):
-        Gtk.ScrolledWindow.__init__(self)
-        self._surface = None
-        self._area = Gtk.DrawingArea()
-        self._area.set_size_request(width, height)
-        self._area.connect('draw', self._on_draw)
-        self.add(self._area)
+        Gtk.DrawingArea.__init__(self)
+
+        self.set_size_request(width, height)
+        self.connect('draw', self._on_draw)
         self.show_all()
 
         SESSION.data.plot_needs_redraw = True
-        GLib.timeout_add(1000, self._area.queue_draw)
+        GLib.timeout_add(1000, self.queue_draw)
 
     def _create_vx_mapping(self):
         mapping = {}
@@ -380,7 +388,6 @@ class HistoryWidget(Gtk.VBox):
         topic_label.set_use_markup(True)
         topic_label.set_markup('<b>' + topic + '</b>')
         topic_label.set_alignment(0.01, 0.5)
-        self.pack_start(topic_label, False, False, 1)
 
         self._model = Gtk.ListStore(int, str, str)
         self._view = Gtk.TreeView(model=self._model)
@@ -393,6 +400,8 @@ class HistoryWidget(Gtk.VBox):
         self._view.append_column(
             Gtk.TreeViewColumn('File', Gtk.CellRendererText(), text=2)
         )
+
+        self.pack_start(topic_label, False, False, 1)
         self.pack_start(self._view, True, True, 1)
         self.update()
 
@@ -407,11 +416,10 @@ class HistoryWidget(Gtk.VBox):
                 ))
 
 
-class HistoryPage(Gtk.ScrolledWindow):
+class HistoryPage(Gtk.HBox):
     def __init__(self):
-        Gtk.ScrolledWindow.__init__(self)
+        Gtk.HBox.__init__(self)
 
-        box = Gtk.HBox(self)
         self._listen_history = HistoryWidget(
             SESSION.listen_history, 'Listening History'
         )
@@ -419,34 +427,31 @@ class HistoryPage(Gtk.ScrolledWindow):
             SESSION.recom_history, 'Recommendation History'
         )
 
-        box.pack_start(self._listen_history, True, True, 2)
-        box.pack_start(self._recom_history, True, True, 2)
-        self.add(box)
+        self.pack_start(self._listen_history, True, True, 2)
+        self.pack_start(self._recom_history, True, True, 2)
 
     def update(self):
         self._listen_history.update()
         self._recom_history.update()
 
 
-class ExamineSongPage(Gtk.ScrolledWindow):
+class ExamineSongPage(Gtk.VBox):
     def __init__(self):
-        Gtk.ScrolledWindow.__init__(self)
-
-        self._box = Gtk.VBox()
+        Gtk.VBox.__init__(self)
 
         self._model = Gtk.ListStore(str, str, str)
-        self._view = Gtk.TreeView(model=self._model)
+        view = Gtk.TreeView(model=self._model)
 
-        self._view.append_column(
+        view.append_column(
             Gtk.TreeViewColumn('Attribute', Gtk.CellRendererText(), text=0)
         )
-        self._view.append_column(
+        view.append_column(
             Gtk.TreeViewColumn('Original', Gtk.CellRendererText(), text=1)
         )
 
         renderer = Gtk.CellRendererText()
         renderer.set_property('max-width-chars', 200)
-        self._view.append_column(
+        view.append_column(
             Gtk.TreeViewColumn('Value', renderer, text=2)
         )
 
@@ -459,13 +464,12 @@ class ExamineSongPage(Gtk.ScrolledWindow):
         self._moodbar_da.set_property('margin', 15)
         self._moodbar = None
 
-        self._box.pack_start(self._title_label, False, False, 1)
-        self._box.pack_start(self._moodbar_da, False, False, 1)
-        self._box.pack_start(self._view, False, False, 1)
-
-        self.add(self._box)
-        g.client.signal_add('client-event', self._on_client_event)
+        self.pack_start(self._title_label, False, False, 1)
+        self.pack_start(self._moodbar_da, False, False, 1)
+        self.pack_start(view, False, False, 1)
         self.update()
+
+        g.client.signal_add('client-event', self._on_client_event)
 
     def _on_client_event(self, client, event):
         if event & Idle.PLAYER:
@@ -503,35 +507,37 @@ class ExamineSongPage(Gtk.ScrolledWindow):
                 self._moodbar = read_moodbar_values(moodbar_path)
                 self._moodbar_da.queue_draw()
             except OSError:
-                print('could not readmoodbar')
+                LOGGER.warning(
+                    'could not read moodbar for file: ' + moodbar_path
+                )
 
         self.show_all()
 
 
-class RulesPage(Gtk.ScrolledWindow):
+class RulesPage(Gtk.Bin):
     def __init__(self):
-        Gtk.ScrolledWindow.__init__(self)
+        Gtk.Bin.__init__(self)
 
         self._model = Gtk.ListStore(str, str, str, int, int)
-        view = Gtk.TreeView(model=self._model)
+        self._view = Gtk.TreeView(model=self._model)
 
         col = Gtk.TreeViewColumn('', Gtk.CellRendererText(), text=0)
         col.set_min_width(50)
-        view.append_column(col)
+        self._view.append_column(col)
 
         col = Gtk.TreeViewColumn('Left Side', Gtk.CellRendererText(), text=1)
         col.set_min_width(100)
-        view.append_column(col)
+        self._view.append_column(col)
 
         col = Gtk.TreeViewColumn('Right Side', Gtk.CellRendererText(), text=2)
         col.set_min_width(100)
-        view.append_column(col)
+        self._view.append_column(col)
 
         col = Gtk.TreeViewColumn('Support', Gtk.CellRendererText(), text=3)
         col.set_min_width(75)
-        view.append_column(col)
+        self._view.append_column(col)
 
-        view.append_column(
+        self._view.append_column(
             Gtk.TreeViewColumn(
                 'Rating',
                 Gtk.CellRendererProgress(),
@@ -540,7 +546,6 @@ class RulesPage(Gtk.ScrolledWindow):
             )
         )
 
-        self._view = view
         self.update()
 
     def update(self):
@@ -834,44 +839,38 @@ class PlaybuttonBox(Gtk.HBox):
 ###########################################################################
 
 
-class ScrolledWindowChild(Gtk.Box):
+class NoteBookContent(Gtk.Bin):
     def __init__(self):
-        Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL)
+        Gtk.Bin.__init__(self)
 
         self._notebook = Gtk.Notebook()
+        self._notebook.popup_enable()
+        self._last_song = None
 
         self._recom_control = RecomControl()
         self._notebook.set_action_widget(self._recom_control, Gtk.PackType.END)
-        self._recom_control.show_all()
+        self.add(self._notebook)
 
-        self.pack_start(self._notebook, True, True, 1)
+        def append_page(widget, title, symbol):
+            scrolled_window = Gtk.ScrolledWindow()
+            scrolled_window.add(widget)
 
-        self._notebook.append_page(
-            DatabasePlaylistWidget(), NotebookTab('Database', 'ʘ')
-        )
-        self._notebook.append_page(
-            QueuePlaylistWidget(), NotebookTab('Playlist', '◎')
-        )
-        self._rules_page = RulesPage()
-        self._notebook.append_page(
-            self._rules_page, NotebookTab('Rules', '💡')
-        )
-        self._examine_page = ExamineSongPage()
-        self._notebook.append_page(
-            ExamineSongPage(), NotebookTab('Examine', '☑')
-        )
-        self._history_page = HistoryPage()
-        self._notebook.append_page(
-            self._history_page, NotebookTab('History', '⪜')
-        )
-        self._notebook.append_page(
-            GraphPage(), NotebookTab('Graph', '☊')
-        )
+            self._notebook.append_page(
+                scrolled_window, NotebookTab(title, symbol)
+            )
+            self._notebook.set_tab_reorderable(scrolled_window, True)
+            return widget
 
-        self.show_all()
+        append_page(DatabasePlaylistWidget(), 'Database', 'ʘ')
+        append_page(QueuePlaylistWidget(), 'Playlist', '◎')
+        append_page(GraphPage(), 'Graph', '☊')
 
-        self._last_song = None
+        self._rules_page = append_page(RulesPage(), 'Rules', '💡')
+        self._examine_page = append_page(ExamineSongPage(), 'Examine', '☑')
+        self._history_page = append_page(HistoryPage(), 'History', '⪜')
+
         g.client.signal_add('client-event', self._on_client_event)
+        self.show_all()
 
     def _on_client_event(self, client, event):
         if event & Idle.PLAYER:
@@ -880,11 +879,9 @@ class ScrolledWindowChild(Gtk.Box):
                 if song is not None:
                     current_song_uri = song.uri
 
-            song_changed = self._last_song != current_song_uri
-
             listened_percent = g.heartbeat.last_listened_percent
             enough_listened = listened_percent >= SESSION.data.listen_threshold
-            if song_changed and enough_listened:
+            if self._last_song != current_song_uri and enough_listened:
                 if self._last_song is not None:
                     SESSION.feed_history(
                         SESSION.mapping[:self._last_song]
@@ -893,13 +890,16 @@ class ScrolledWindowChild(Gtk.Box):
             self._rules_page.update()
             self._history_page.update()
             self._notebook.show_all()
-
             self._last_song = current_song_uri
 
 
 class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
-        Gtk.Window.__init__(self, title="Naglfar", application=app)
+        Gtk.ApplicationWindow.__init__(
+            self,
+            title="Naglfar (libmunin demo application)",
+            application=app
+        )
         self.set_default_size(1400, 900)
 
         # application icon:
@@ -910,42 +910,33 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self._volume_slider = BarSlider()
         self._volume_slider.set_size_request(60, 25)
-
-        volume_alignment = Gtk.Alignment()
-        volume_alignment.set(0.5, 0.5, 0, 0)
-        volume_alignment.add(self._volume_slider)
-
-        g.client.signal_add('client-event', self._on_client_event)
         self._volume_slider.connect(
             'percent-change', self._on_volume_click_event
         )
 
         self._progress_bar = ProgressSlider()
         self._progress_bar.set_size_request(200, 15)
+        self._progress_bar.connect(
+            'percent-change',
+            self._on_percent_change
+        )
 
-        progress_alignment = Gtk.Alignment()
-        progress_alignment.set(0.5, 0.5, 0, 0)
-        progress_alignment.add(self._progress_bar)
+        self._headerbar = Gtk.HeaderBar()
+        self._headerbar.set_show_close_button(True)
 
-        GLib.timeout_add(500, self._timeout_callback)
-        self._progress_bar.connect('percent-change', self._on_percent_change)
+        self._headerbar.pack_start(PlaybuttonBox())
+        self._headerbar.pack_start(align_widget(self._progress_bar))
+        self._headerbar.pack_end(align_widget(self._volume_slider))
+        self._headerbar.pack_end(ModebuttonBox())
 
         app_box = Gtk.VBox()
-        self._headerbar = Gtk.HeaderBar()
-        self._headerbar.pack_start(PlaybuttonBox())
-        self._headerbar.pack_start(progress_alignment)
-        self._headerbar.pack_end(volume_alignment)
-        self._headerbar.pack_end(ModebuttonBox())
-        self._headerbar.set_show_close_button(True)
+        app_box.pack_start(NoteBookContent(), True, True, 0)
         app_box.pack_start(self._headerbar, False, False, 0)
         app_box.pack_start(INFO_BAR, False, False, 0)
-
-        scrolled_window = Gtk.ScrolledWindow()
-        container = ScrolledWindowChild()
-        scrolled_window.add(container)
-
-        app_box.pack_start(scrolled_window, True, True, 0)
         self.add(app_box)
+
+        GLib.timeout_add(500, self._timeout_callback)
+        g.client.signal_add('client-event', self._on_client_event)
 
     def _on_client_event(self, client, event):
         if event & Idle.MIXER:
@@ -1009,8 +1000,8 @@ class NaglfarApplication(Gtk.Application):
         Gtk.Application.do_startup(self)
 
     def do_close_application(self, window, event):
-        SESSION.save()
         window.destroy()
+        SESSION.save()
         shutdown_application()
 
 ###########################################################################
