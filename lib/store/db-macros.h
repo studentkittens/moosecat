@@ -14,7 +14,7 @@
  * DB Layout version.
  * Older tables will not be loaded.
  * */
-#define MC_DB_SCHEMA_VERSION 1
+#define MC_DB_SCHEMA_VERSION 2
 
 #define MC_STORE_TMP_DB_PATH "/tmp/.moosecat.tmp.db"
 

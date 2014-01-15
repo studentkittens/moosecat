@@ -20,13 +20,29 @@ QUERIES = [
     'a:Heaven b:Iconoclast',
     'a:Reiter b:Moral',
     'a:Finntroll b:Visor',
-    'a:Finntroll b:Nattödd',
+    'a:Finntroll b:Nattfödd',
+    'a:Finntroll b:Blodsvept',
     'a:Nachtgeschrei b:Hoffnung*',
     'a:Suidakra b:Book',
     'a:Rhyne',
     'b:LIMBO ! b:Original',
     'a:Tanzwut (b:Labyrinth | b:Tanzwut)',
-    'a:Instanz (b:Götter | b:Brachial* | b:Ewig)'
+    'a:Instanz (b:Götter | b:Brachial* | b:Ewig)',
+    'a:Monsters a:Men b:Animal',
+    'a:Chubby b:Twist',
+    'a:Clawfinger b:Zeros',
+    'a:Cypres b:Death',
+    'a:Toten a:Hosen b:II',
+    'a:die (b:geräusch | b:Spendierhosen)',
+    'b:Schnecken.Haus',
+    'a:System b:Toxicity',
+    'a:Tenacious b:Rize',
+    'a:Rammstein b:Liebe',
+    'a:Billy a:Talent b:III',
+    'a:Biermösl b:Unterbayern',
+    'a:Apocalyptica b:Apocalyptica',
+    'a:Clint Mansell b:Moon',
+    'a:Knorkator (b:Hasenchartbreaker | b:Knorkator)'
 ]
 
 
@@ -43,7 +59,8 @@ if __name__ == '__main__':
     client.connect(port=6600)
     client.store_initialize('/tmp')
 
-    query = '|'.join('(' + sub + ')' for sub in QUERIES)
+    query = ' | '.join('(' + sub + ')' for sub in QUERIES)
+    print(query)
 
     with client.store.query(query, queue_only=False) as full_playlist:
         song_count = 0
@@ -60,4 +77,4 @@ if __name__ == '__main__':
                 os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                 shutil.copyfile(src_path, dst_path)
 
-        print('-- Copied {} files.', song_count)
+        print('-- Copied {} files.'.format(song_count))

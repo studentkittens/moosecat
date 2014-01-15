@@ -86,13 +86,13 @@ def process_recommendation(iterator):
     """Take an iterator from the recommend_from_* family of functions
     and add the individual songs to the queue.
     """
-    first = False
+    first = True
     with g.client.command_list_mode():
         for munin_song in iterator:
             recom_uri = SESSION.mapping[munin_song.uid]
-            if not first:
+            if first:
                 SESSION.data.seed_song_uri = recom_uri
-                first = True
+                first = False
             g.client.queue_add(recom_uri)
 
 
@@ -140,7 +140,7 @@ def find_icon_for_song(song, queue_id):
     if song.queue_id == queue_id and song.queue_id is not -1:
         return 'gtk-media-play'
     elif song.uri == SESSION.data.seed_song_uri:
-        'gtk-media-record'
+        return 'gtk-media-record'
     return ''
 
 
@@ -209,6 +209,7 @@ class BasePlaylistWidget(PlaylistWidget):
             'Artist',
             'Album',
             'Title',
+            'Date',
             '<progress>:Playcount'
         ))
         self._queue_only = queue_only
@@ -222,7 +223,7 @@ class BasePlaylistWidget(PlaylistWidget):
                 queue_id = song.queue_id
 
         if SESSION.data.seed_song_uri is not None:
-            self._view.set_tooltip_column(6)
+            self._view.set_tooltip_column(7)
 
         with g.client.store.query(query, queue_only=self._queue_only) as songs:
             self.set_model(PlaylistTreeModel(
@@ -233,6 +234,7 @@ class BasePlaylistWidget(PlaylistWidget):
                     song.artist,
                     song.album,
                     song.title,
+                    song.date,
                     SESSION.playcount(SESSION.mapping[:song.uri]),
 
                     # Hidden data:
@@ -344,7 +346,7 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 
 
 class GraphPage(Gtk.DrawingArea):
-    def __init__(self, width=1500, height=1500):
+    def __init__(self, width=3500, height=3500):
         Gtk.DrawingArea.__init__(self)
 
         self.set_size_request(width, height)
@@ -367,7 +369,7 @@ class GraphPage(Gtk.DrawingArea):
             self._surface = munin.plot.Plot(
                 SESSION.database,
                 alloc.width, alloc.height,
-                do_save=False,
+                do_save=True,
                 vx_mapping=self._create_vx_mapping()
             )
             SESSION.data.plot_needs_redraw = False
@@ -491,7 +493,9 @@ class ExamineSongPage(Gtk.VBox):
 
         song_uri = song.uri
         self._title_label.set_markup(
-            '<b>Current Song Attributes </b><i>({})</i>:'.format(song_uri)
+            '<b>Current Song Attributes </b><i>({})</i>:'.format(
+                GLib.markup_escape_text(song.uri)
+            )
         )
         munin_song_id = SESSION.mapping[:song_uri]
         for attribute, value in SESSION[munin_song_id]:
@@ -930,9 +934,9 @@ class MainWindow(Gtk.ApplicationWindow):
         self._headerbar.pack_end(ModebuttonBox())
 
         app_box = Gtk.VBox()
+        app_box.pack_start(INFO_BAR, False, False, 0)
         app_box.pack_start(NoteBookContent(), True, True, 0)
         app_box.pack_start(self._headerbar, False, False, 0)
-        app_box.pack_start(INFO_BAR, False, False, 0)
         self.add(app_box)
 
         GLib.timeout_add(500, self._timeout_callback)
@@ -947,6 +951,10 @@ class MainWindow(Gtk.ApplicationWindow):
         if event & Idle.PLAYER:
             with client.lock_currentsong() as song:
                 if song is not None:
+                    self.set_title('Naglfar (Playing: {} - {})'.format(
+                        GLib.markup_escape_text(song.artist or song.album_artist),
+                        GLib.markup_escape_text(song.title)
+                    ))
                     self._headerbar.set_title('{title}'.format(
                         title=song.title
                     ))
@@ -1014,8 +1022,10 @@ if __name__ == '__main__':
         print('{} [music_dir_root]'.format(sys.argv[0]))
         sys.exit(0)
 
+    print(SESSION.data.seed_song_uri)
+
     # sometimes pickle.dump hits max recursion depth...
-    sys.setrecursionlimit(sys.getrecursionlimit() * 2)
+    sys.setrecursionlimit(10000)
 
     app = NaglfarApplication()
     exit_status = app.run(sys.argv[1:])

@@ -27,6 +27,7 @@ def make_entry(song):
         'bpm': full_uri,
         'moodbar': full_uri,
         'rating': 0,
+        'date': song.date,
         'lyrics': LYRICS_PROVIDER.do_process((
             song.album_artist or song.artist, song.title
         ))
@@ -34,6 +35,7 @@ def make_entry(song):
 
 if __name__ == '__main__':
     import sys
+    sys.setrecursionlimit(10000)
 
     # Bring up the core!
     boot_base(verbosity=logging.DEBUG)

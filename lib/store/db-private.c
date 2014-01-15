@@ -93,6 +93,7 @@ enum {
     SQL_COL_TRACK,
     SQL_COL_NAME,
     SQL_COL_GENRE,
+    SQL_COL_DATE,
     SQL_COL_COMPOSER,
     SQL_COL_PERFORMER,
     SQL_COL_COMMENT,
@@ -123,6 +124,7 @@ static const char *_sql_stmts[] = {
     "    track          TEXT,                                                                           \n"
     "    name           TEXT,                                                                           \n"
     "    genre          TEXT,                                                                           \n"
+    "    date           TEXT,                                                                           \n"
     "    composer       TEXT,                                                                           \n"
     "    performer      TEXT,                                                                           \n"
     "    comment        TEXT,                                                                           \n"
@@ -176,7 +178,7 @@ static const char *_sql_stmts[] = {
     [STMT_SQL_COUNT] =
     "SELECT count(*) FROM songs;",
     [STMT_SQL_INSERT] =
-    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [STMT_SQL_QUEUE_INSERT_ROW] =
     "INSERT INTO queue(song_idx, pos, idx) VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?), ?, ?);",
     [STMT_SQL_QUEUE_CLEAR] =
@@ -476,6 +478,7 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
     bind_int(db, INSERT, pos_idx, mpd_song_get_end(song), error_id);
     bind_int(db, INSERT, pos_idx, mpd_song_get_duration(song), error_id);
     bind_int(db, INSERT, pos_idx, mpd_song_get_last_modified(song), error_id);
+
     /* bind tags */
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_ARTIST, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_ALBUM, error_id);
@@ -484,6 +487,9 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_TRACK, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_NAME, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_GENRE, error_id);
+    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_DATE, error_id);
+    if (error_id != SQLITE_OK)
+        REPORT_SQL_ERROR(db, "WARNING: Error while binding");
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_COMPOSER, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_PERFORMER, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_COMMENT, error_id);
@@ -884,6 +890,7 @@ void mc_stprv_deserialize_songs(mc_Store *self)
         feed_tag(MPD_TAG_TRACK, SQL_COL_TRACK, stmt, song, pair);
         feed_tag(MPD_TAG_NAME, SQL_COL_NAME, stmt, song, pair);
         feed_tag(MPD_TAG_GENRE, SQL_COL_GENRE, stmt, song, pair);
+        feed_tag(MPD_TAG_DATE, SQL_COL_DATE, stmt, song, pair);
         feed_tag(MPD_TAG_COMPOSER, SQL_COL_COMPOSER, stmt, song, pair);
         feed_tag(MPD_TAG_PERFORMER, SQL_COL_PERFORMER, stmt, song, pair);
         feed_tag(MPD_TAG_COMMENT, SQL_COL_COMMENT, stmt, song, pair);
