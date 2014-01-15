@@ -20,7 +20,7 @@ class Application(Gtk.Application):
         Gtk.Application.__init__(self)
 
         # Bring up the core!
-        boot_base(verbosity=logging.DEBUG, port=6601, host='localhost')
+        boot_base(verbosity=logging.DEBUG, port=6600, host='localhost')
         boot_metadata()
         boot_store()
 

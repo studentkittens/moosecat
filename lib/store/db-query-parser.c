@@ -351,7 +351,7 @@ void mc_store_qp_process_token(mc_StoreParseData *data)
     int token_len = 0;
     const char *end_token = data->iter;
 
-    while (1) {
+    for(;;) {
         /* Jump to the next token */
         end_token = strpbrk(end_token, " ()\t\r+|!");
 
@@ -391,9 +391,6 @@ void mc_store_qp_process_token(mc_StoreParseData *data)
         data->check.bad_conjunction = false;
         mc_store_qp_process_text(data, data->iter, token_len);
     }
-
-
-
 
     /* Jump over the parsed area */
     data->iter += MAX(0, token_len - 1);
