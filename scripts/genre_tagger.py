@@ -60,7 +60,7 @@ if __name__ == '__main__':
     import moosecat.core
 
     client = moosecat.core.Client()
-    client.connect(port=6601)
+    client.connect(port=6600)
     client.store_initialize('/tmp')
 
     # Collect a whole-lot-of data from the database in this format:

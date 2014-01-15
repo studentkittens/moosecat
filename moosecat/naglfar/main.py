@@ -28,6 +28,7 @@ from munin.scripts.moodbar_visualizer import draw_moodbar
 # Gtk
 from gi.repository import Gtk
 from gi.repository import GLib
+from gi.repository import Pango
 from gi.repository import GdkPixbuf
 
 
@@ -452,7 +453,10 @@ class ExamineSongPage(Gtk.VBox):
         )
 
         renderer = Gtk.CellRendererText()
-        renderer.set_property('max-width-chars', 200)
+        renderer.set_property('wrap-width', 100)
+        renderer.set_property('wrap-mode', Pango.WrapMode.WORD)
+
+        # renderer.set_property('max-width-chars', 200)
         view.append_column(
             Gtk.TreeViewColumn('Value', renderer, text=2)
         )
@@ -693,8 +697,11 @@ class RecomControl(Gtk.HBox):
                 current_song_uri = song.uri
 
             munin_song = SESSION.mapping[:current_song_uri]
-            rating = SESSION[munin_song]['rating'][0]
-            self._star_slider.stars = rating or 0
+            rating = SESSION[munin_song]['rating']
+            if rating is None:
+                self._star_slider.stars = 0
+            else:
+                self._star_slider.stars = rating[0]
 
     def _on_spin_button_changed(self, spin_button):
         SESSION.data.recom_count = self._spin_button.get_value_as_int()
