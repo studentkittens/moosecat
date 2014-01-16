@@ -4,7 +4,6 @@
 # Stdlib:
 import os
 import sys
-import logging
 import itertools
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -27,6 +26,7 @@ from munin.scripts.moodbar_visualizer import draw_moodbar
 
 # Gtk
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GLib
 from gi.repository import Pango
 from gi.repository import GdkPixbuf
@@ -346,16 +346,39 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 ###########################################################################
 
 
-class GraphPage(Gtk.DrawingArea):
+class GraphPage(Gtk.ScrolledWindow):
     def __init__(self, width=3500, height=3500):
-        Gtk.DrawingArea.__init__(self)
+        Gtk.ScrolledWindow.__init__(self)
 
-        self.set_size_request(width, height)
-        self.connect('draw', self._on_draw)
+        self._area = Gtk.DrawingArea()
+        self._area.set_size_request(width, height)
+        self._area.connect('draw', self._on_draw)
+        self._area.add_events(
+            self._area.get_events()
+            | Gdk.EventMask.BUTTON_PRESS_MASK
+            | Gdk.EventMask.BUTTON_RELEASE_MASK
+            | Gdk.EventMask.POINTER_MOTION_MASK
+        )
+
+        self._drag_mode = False
+        self._last_pos = (0, 0)
+        self._curr_pos = (0, 0)
+
+        self._area.connect(
+            'button-press-event', self._on_button_press_event
+        )
+        self._area.connect(
+            'button-release-event', self._on_button_release_event
+        )
+        self._area.connect(
+            'motion-notify-event', self._on_motion_notify
+        )
+
+        self.add(self._area)
         self.show_all()
 
         SESSION.data.plot_needs_redraw = True
-        GLib.timeout_add(1000, self.queue_draw)
+        GLib.timeout_add(1000, self._area.queue_draw)
 
     def _create_vx_mapping(self):
         mapping = {}
@@ -363,6 +386,37 @@ class GraphPage(Gtk.DrawingArea):
             for song in playlist:
                 mapping[SESSION.mapping[:song.uri]] = song.title
         return mapping
+
+    def _on_button_press_event(self, widget, event):
+        self._drag_mode = True
+        self._last_pos = (event.x, event.y)
+        self._curr_pos = (event.x, event.y)
+        return True
+
+    def _on_button_release_event(self, widget, event):
+        self._drag_mode = False
+        return True
+
+    def _on_motion_notify(self, widget, event):
+        if self._drag_mode:
+            self._curr_pos = (event.x, event.y)
+
+            def _move(adjustment, diff):
+                adjustment.set_value(
+                    adjustment.get_value() - diff
+                )
+
+            _move(
+                self.get_hadjustment(),
+                self._curr_pos[0] - self._last_pos[0]
+            )
+            _move(
+                self.get_vadjustment(),
+                self._curr_pos[1] - self._last_pos[1]
+            )
+
+            self.queue_draw()
+            return True
 
     def _on_draw(self, area, ctx):
         if SESSION.data.plot_needs_redraw or self._surface is None:
@@ -959,7 +1013,9 @@ class MainWindow(Gtk.ApplicationWindow):
             with client.lock_currentsong() as song:
                 if song is not None:
                     self.set_title('Naglfar (Playing: {} - {})'.format(
-                        GLib.markup_escape_text(song.artist or song.album_artist),
+                        GLib.markup_escape_text(
+                            song.artist or song.album_artist
+                        ),
                         GLib.markup_escape_text(song.title)
                     ))
                     self._headerbar.set_title('{title}'.format(
