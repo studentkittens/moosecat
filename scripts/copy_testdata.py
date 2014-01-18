@@ -8,12 +8,13 @@ QUERIES = [
     'a:Stones b:Licks',
     'a:Farin b:Lügen',
     'a:Varg b:Wolfskult',
-    'a:Beatles b:1 ! Backstage',
+    'a:"The Beatles" b:1',
     'a:Cranberries b:Argue',
-    'a:Lordi',
+    'a:Debauchery t:Apostle',
+    't:"Dort oben sterben Tiere"',
     'a:Johnny b:Hits',
     'a:Schandmaul b:Anderswelt',
-    'a:Extremo b:Blick',
+    'a:Extremo b:"Kein Blick"',
     'a:Coppelius b:Zinnober',
     'a:Devildriver b:Devildriver',
     'a:Horizon b:Suicide',
@@ -25,7 +26,6 @@ QUERIES = [
     'a:Nachtgeschrei b:Hoffnung*',
     'a:Suidakra b:Book',
     'a:Rhyne',
-    'b:LIMBO ! b:Original',
     'a:Tanzwut (b:Labyrinth | b:Tanzwut)',
     'a:Instanz (b:Götter | b:Brachial* | b:Ewig)',
     'a:Monsters a:Men b:Animal',
@@ -42,7 +42,8 @@ QUERIES = [
     'a:Biermösl b:Unterbayern',
     'a:Apocalyptica b:Apocalyptica',
     'a:Clint Mansell b:Moon',
-    'a:Knorkator (b:Hasenchartbreaker | b:Knorkator)'
+    'a:Knorkator (b:Hasenchartbreaker | b:Knorkator)',
+    'a:"We butter the bread with butter" b:Goldkinder'
 ]
 
 

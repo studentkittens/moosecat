@@ -464,13 +464,13 @@ static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res,
     char ** vector = g_strsplit(content, " ", -1);
 
     if(*content) {
-        g_string_append(res, "(");
+        g_string_append(res, " (");
         for(int i = 0; vector[i]; i++) {
             g_string_append(res, tag);
             g_string_append(res, g_strstrip(vector[i]));
             g_string_append(res, " ");
         }
-        g_string_overwrite(res, res->len - 1, ")");
+        g_string_append(res, ") ");
     } 
     
     g_free(tag);
@@ -566,7 +566,7 @@ static char * mc_store_qp_preprocess_ranges(const char *query)
 static char * mc_store_qp_preprocess(const char *query)
 {
     char * step_one = mc_store_qp_preprocess_quotationmarks(query);
-    char * step_two = mc_store_qp_preprocess_ranges(query);
+    char * step_two = mc_store_qp_preprocess_ranges(step_one);
     g_free(step_one);
     return step_two;
 }
