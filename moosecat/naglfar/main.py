@@ -910,6 +910,10 @@ class NoteBookContent(Gtk.Bin):
 
         self._notebook = Gtk.Notebook()
         self._notebook.popup_enable()
+
+        # This doesn't look good:
+        # self._notebook.set_tab_pos(Gtk.PositionType.BOTTOM)
+
         self._last_song = None
 
         self._recom_control = RecomControl()

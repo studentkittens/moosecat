@@ -32,9 +32,6 @@ typedef struct {
 
         /* Balance of brackets (should be 0) */
         int bracket_balance;
-
-        /* Quote counter (should not be odd) */
-        int quote_counter;
     } check;
 
     /* For warning messages */
@@ -139,9 +136,6 @@ static void mc_store_qp_write_string(mc_StoreParseData *data, const char *string
         gunichar c = g_utf8_get_char(iter);
 
         switch (c) {
-        case '"':
-            break;
-
         default:
             g_string_append_unichar(data->output, c);
         }
@@ -219,11 +213,12 @@ void mc_store_qp_process_text(mc_StoreParseData *data, const char *text, size_t 
         g_string_append_unichar(data->output, ' ');
     }
 
-
     data->check.was_tag = is_tag;
 }
 
 ///////////////////
+
+
 
 static const char *mc_store_qp_special_char_to_full(char c)
 {
@@ -250,7 +245,6 @@ bool mc_store_qp_check_is_soft_token(const char *iter)
     case '(':
     case ')':
         return true;
-
     default:
         return g_unichar_isspace(c);
     }
@@ -266,7 +260,6 @@ bool mc_store_qp_check_is_near_token(char *iter)
     case '|':
     case '+':
     case '!':
-    case '"':
     case '\0':
         return true;
 
@@ -452,6 +445,134 @@ bool mc_store_qp_str_is_empty(const char *str)
 
 ///////////////////
 
+static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
+{
+    char * tag = g_match_info_fetch(info, 1);
+    if(tag == NULL || *tag == 0) {
+        g_free(tag);
+        tag = g_match_info_fetch(info, 2);
+    }
+
+    if(tag == NULL || *tag == 0) {
+        g_free(tag);
+        return FALSE;
+    }
+
+    tag = g_strstrip(tag);
+
+    char * content = g_match_info_fetch(info, 3);
+    char ** vector = g_strsplit(content, " ", -1);
+
+    if(*content) {
+        g_string_append(res, "(");
+        for(int i = 0; vector[i]; i++) {
+            g_string_append(res, tag);
+            g_string_append(res, g_strstrip(vector[i]));
+            g_string_append(res, " ");
+        }
+        g_string_overwrite(res, res->len - 1, ")");
+    } 
+    
+    g_free(tag);
+    g_free(content);
+    g_strfreev(vector);
+    return FALSE;
+}
+
+
+static char * mc_store_qp_preprocess_quotationmarks(const char *query) 
+{
+    if(query == NULL) 
+        return NULL;
+
+    GRegex * regex = g_regex_new(
+        "(\\w:\\s*|)\"(\\s*\\w:\\s*|)(.*?)\"", 0, 0, NULL
+    );
+
+    char * result = g_regex_replace_eval(
+        regex, query, -1, 0, 0, mc_store_qp_quote_eval_cb, NULL, NULL
+    );
+    g_regex_unref(regex);
+    return result;
+}
+
+///////////////////
+
+static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
+{
+    char * tag = g_match_info_fetch(info, 1);
+    if(tag != NULL && *tag == 0) {
+        g_free(tag);
+        tag = NULL;
+    } else {
+        tag = g_strstrip(tag);
+    }
+
+    char *start_str = g_match_info_fetch(info, 2);
+    char *stop_str = g_match_info_fetch(info, 3);
+
+    long start = g_ascii_strtoll(start_str, NULL, 10);
+    long stop = g_ascii_strtoll(stop_str, NULL, 10);
+
+    /* Limit the max range to 1000,
+     * Values bigger than that confuse the shit out of 
+     * */
+    if(start < stop && (ABS(start - stop) <= 1000)) {
+        g_string_append(res, " (");
+        for(long i = start; i < stop; i++) {
+            if(tag != NULL) {
+                g_string_append(res, tag);
+            }
+            g_string_append_printf(res, "%ld", i);
+
+            if((i + 1) < stop) {
+                g_string_append(res, " OR ");
+            }
+        }
+        g_string_append(res, ") ");
+    }
+
+    g_free(tag); g_free(start_str); g_free(stop_str);
+    return FALSE;
+}
+
+/* Note: 
+ *
+ * The implemenation sucks and you will laugh out loud.
+ *
+ * I was too lazy to filter the songs that were queries (which would be faster),
+ * since this would require some postprocessing step.
+ *
+ * This works well enough for the small numbers we usually have for music.
+ * */
+static char * mc_store_qp_preprocess_ranges(const char *query) 
+{
+    if(query == NULL) 
+        return NULL;
+
+    GRegex * regex = g_regex_new(
+        "(\\w:|)(\\d+)\\.\\.(\\d+)", 0, 0, NULL
+    );
+
+    char * result = g_regex_replace_eval(
+        regex, query, -1, 0, 0, mc_store_qp_range_eval_cb, NULL, NULL
+    );
+    g_regex_unref(regex);
+    return result;
+}
+
+///////////////////
+
+static char * mc_store_qp_preprocess(const char *query)
+{
+    char * step_one = mc_store_qp_preprocess_quotationmarks(query);
+    char * step_two = mc_store_qp_preprocess_ranges(query);
+    g_free(step_one);
+    return step_two;
+}
+
+///////////////////
+
 char *mc_store_qp_parse(const char *query, const char **warning, int *warning_pos)
 {
     mc_StoreParseData sdata;
@@ -475,9 +596,9 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
     }
 
     /* Everything else is 0 for now */
-    data->query = query;
+    data->query = mc_store_qp_preprocess(query);
     data->query_len = strlen(query);
-    data->iter = query;
+    data->iter = data->query;
     data->output = g_string_sized_new(data->query_len);
 
     /* "runtime" checks */
@@ -493,15 +614,10 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
             case '*':
                 mc_store_qp_process_star(data);
                 break;
-
             case '+':
             case '|':
             case '!':
                 mc_store_qp_process_operand(data);
-                break;
-
-            case '"':
-                data->check.quote_counter++;
                 break;
 
             default: {
@@ -542,9 +658,6 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
         }
     }
 
-    if (data->check.quote_counter % 2 != 0) {
-        WARNING(data, "Odd number of quotes");
-    }
-
+    g_free((char *)data->query);
     return g_strstrip(g_string_free(data->output, false));
 }
