@@ -8,6 +8,10 @@ import itertools
 import logging
 LOGGER = logging.getLogger(__name__)
 
+# Use deterministic randomness
+import random
+random.seed(42)
+
 # Internal:
 from moosecat.gtk.widgets import PlaylistTreeModel
 from moosecat.gtk.widgets import PlaylistWidget
@@ -95,6 +99,12 @@ def process_recommendation(iterator):
                 SESSION.data.seed_song_uri = recom_uri
                 first = False
             g.client.queue_add(recom_uri)
+
+
+def random_iterator():
+    """Return a random list of songs - for comparasion.
+    """
+    return iter(random.sample(set(SESSION), SESSION.data.recom_count))
 
 
 def format_explanation(song_uri):
@@ -211,6 +221,7 @@ class BasePlaylistWidget(PlaylistWidget):
             'Album',
             'Title',
             'Date',
+            'Genre',
             '<progress>:Playcount'
         ))
         self._queue_only = queue_only
@@ -224,7 +235,7 @@ class BasePlaylistWidget(PlaylistWidget):
                 queue_id = song.queue_id
 
         if SESSION.data.seed_song_uri is not None:
-            self._view.set_tooltip_column(7)
+            self._view.set_tooltip_column(8)
 
         with g.client.store.query(query, queue_only=self._queue_only) as songs:
             self.set_model(PlaylistTreeModel(
@@ -236,6 +247,7 @@ class BasePlaylistWidget(PlaylistWidget):
                     song.album,
                     song.title,
                     song.date,
+                    song.genre,
                     SESSION.playcount(SESSION.mapping[:song.uri]),
 
                     # Hidden data:
@@ -276,6 +288,11 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
             self._on_menu_recommend_heuristic,
             stock_id='gtk-about'
         )
+        self._menu.simple_add(
+            'Recommend from random',
+            self._on_menu_recommend_random,
+            stock_id='gtk-dialog-error'
+        )
         self.set_menu(self._menu)
 
     def _on_menu_recommend_clear(self, menu_item):
@@ -293,6 +310,17 @@ class DatabasePlaylistWidget(BasePlaylistWidget):
                     SESSION.recommend_from_seed(
                         munin_id, SESSION.data.recom_count
                     )
+                )
+            )
+
+    def _on_menu_recommend_random(self, menu_item):
+        model, rows = self.get_selected_rows()
+        for row in rows:
+            munin_id = SESSION.mapping[:row[-1]]
+            process_recommendation(
+                itertools.chain(
+                    [SESSION[munin_id]],
+                    random_iterator()
                 )
             )
 

@@ -54,7 +54,7 @@ static bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
 {
     static const char *tags[] = {
         "uri", "start", "end", "duration",
-        "last_modifie", "artist", "album", "title",
+        "last_modified", "date", "artist", "album", "title",
         "album_artist", "track", "name", "genre",
         "composer", "performer", "comment", "disc",
         "musicbrainz_artist_id", "musicbrainz_album_id",
@@ -112,6 +112,7 @@ static const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len)
         ['p'] = "performer:",
         ['r'] = "track:",
         ['s'] = "disc:",
+        ['y'] = "date:",
         ['t'] = "title:",
         ['u'] = "uri:",
         ['~'] = NULL
@@ -515,11 +516,12 @@ static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res,
     long stop = g_ascii_strtoll(stop_str, NULL, 10);
 
     /* Limit the max range to 1000,
-     * Values bigger than that confuse the shit out of 
+     * Values bigger than that confuse the shit out of sqlite.
+     * Queries get very slow.
      * */
     if(start < stop && (ABS(start - stop) <= 1000)) {
         g_string_append(res, " (");
-        for(long i = start; i < stop; i++) {
+        for(long i = start; i <= stop; i++) {
             if(tag != NULL) {
                 g_string_append(res, tag);
             }
@@ -551,7 +553,7 @@ static char * mc_store_qp_preprocess_ranges(const char *query)
         return NULL;
 
     GRegex * regex = g_regex_new(
-        "(\\w:|)(\\d+)\\.\\.(\\d+)", 0, 0, NULL
+        "(\\w:|)(\\d*)\\.\\.(\\d+)", 0, 0, NULL
     );
 
     char * result = g_regex_replace_eval(
