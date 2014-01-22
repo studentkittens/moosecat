@@ -3,8 +3,6 @@
 #include <string.h>
 
 
-// TODO: What about Phrase Queries? "Word_a Word_b" returns Word_a OR Word_b currently
-
 /* Stores everything the parinsg routines need to know */
 typedef struct {
     /* Pointer to start of query */

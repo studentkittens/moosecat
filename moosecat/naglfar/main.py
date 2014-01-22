@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+height#!/usr/bin/env python
 # encoding: utf-8
 
 # Stdlib:
@@ -638,14 +638,19 @@ class RulesPage(Gtk.Bin):
 
         self.update()
 
+    def _format_rule_side(self, side):
+        return str(
+            [os.path.basename(SESSION.mapping[song.uid]) for song in side]
+        )
+
     def update(self):
         self._model.clear()
         rules = enumerate(SESSION.rule_index, start=1)
         for idx, (lefts, rights, support, rating) in rules:
             self._model.append((
                 '#{}'.format(idx),
-                str([song.uid for song in lefts]),
-                str([song.uid for song in rights]),
+                self._format_rule_side(lefts),
+                self._format_rule_side(rights),
                 support,
                 int(rating * 100)
             ))
