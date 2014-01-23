@@ -198,7 +198,7 @@ cdef class Client:
     def store_is_initialized(self):
         return not (self._store_wrapper is None)
 
-    def connect(self, host='localhost', port=6600, timeout_sec=2.):
+    def connect(self, host='localhost', port=6600, timeout_sec=20.):
         '''Connect this client to a server.
 
         Will trigger the "connectivity" signal.

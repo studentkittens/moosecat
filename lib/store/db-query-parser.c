@@ -454,10 +454,12 @@ static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res,
 
     if(tag == NULL || *tag == 0) {
         g_free(tag);
-        return FALSE;
+        tag = NULL;
     }
 
-    tag = g_strstrip(tag);
+    if(tag != NULL) {
+        tag = g_strstrip(tag);
+    }
 
     char * content = g_match_info_fetch(info, 3);
     char ** vector = g_strsplit(content, " ", -1);
@@ -465,7 +467,9 @@ static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res,
     if(*content) {
         g_string_append(res, " (");
         for(int i = 0; vector[i]; i++) {
-            g_string_append(res, tag);
+            if(tag != NULL) {
+                g_string_append(res, tag);
+            }
             g_string_append(res, g_strstrip(vector[i]));
             g_string_append(res, " ");
         }

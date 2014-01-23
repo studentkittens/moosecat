@@ -682,6 +682,8 @@ class RulesPage(Gtk.Bin):
 class RecomControl(Gtk.HBox):
     def __init__(self):
         Gtk.HBox.__init__(self)
+        self.set_margin_right(5)
+        self.set_margin_bottom(5)
 
         # Add button:
         self._add_button = Gtk.Button()
@@ -696,7 +698,10 @@ class RecomControl(Gtk.HBox):
         )
         self._spin_button.set_value(SESSION.data.recom_count or 1)
 
-        self._sieve_check = Gtk.ToggleButton('Filter')
+        self._sieve_check = Gtk.ToggleButton()
+        self._sieve_check.set_image(Gtk.Image.new_from_icon_name(
+            'gtk-strikethrough', Gtk.IconSize.BUTTON
+        ))
         self._sieve_check.set_active(SESSION.sieving)
         self._sieve_check.connect(
             'toggled',
@@ -750,9 +755,9 @@ class RecomControl(Gtk.HBox):
         slide_alignment.set(0.5, 0.5, 0, 0)
         slide_alignment.add(self._star_slider)
 
-        self.pack_start(slide_alignment, True, True, 5)
-        self.pack_start(lbox, True, True, 2)
-        self.pack_start(alignment, True, True, 2)
+        self.pack_start(slide_alignment, True, True, 8)
+        self.pack_start(lbox, True, True, 5)
+        self.pack_start(alignment, True, True, 5)
         self.show_all()
 
     def _on_entry_changed(self, entry):
@@ -1053,7 +1058,7 @@ class MainWindow(Gtk.ApplicationWindow):
                         GLib.markup_escape_text(
                             song.artist or song.album_artist
                         ),
-                        GLib.markup_escape_text(song.title)
+                        song.title
                     ))
                     self._headerbar.set_title('{title}'.format(
                         title=song.title

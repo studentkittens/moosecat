@@ -17,7 +17,6 @@ LYRICS_PROVIDER = PlyrLyricsProvider(cache_failures=True)
 
 
 def make_entry(song):
-    # TODO
     full_uri = '/mnt/testdata/' + song.uri
     return (song.uri, {
         'artist': song.artist,
