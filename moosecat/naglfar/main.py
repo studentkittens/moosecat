@@ -1127,8 +1127,6 @@ if __name__ == '__main__':
         print('{} [music_dir_root]'.format(sys.argv[0]))
         sys.exit(0)
 
-    print(SESSION.data.seed_song_uri)
-
     # sometimes pickle.dump hits max recursion depth...
     sys.setrecursionlimit(10000)
 
