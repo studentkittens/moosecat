@@ -34,6 +34,7 @@ class Heartbeat:
         )
 
         if use_listened_counter:
+            self._last_tick = self._current_time_ms()
             GLib.timeout_add(self._interval, self._on_poll_elapsed)
 
     def _on_poll_elapsed(self):
@@ -41,13 +42,16 @@ class Heartbeat:
         if not self._client.is_connected:
             return 0.0
 
+        now = self._current_time_ms()
         with self._client.lock_status() as status:
             if status is not None and status.state is Status.Playing:
-                self._curr_listened += self._interval
+                self._curr_listened += now - self._last_tick
 
         with self._client.lock_currentsong() as song:
             if song:
                 self._last_duration = song.duration
+
+        self._last_tick = now
         return True
 
     @property
@@ -134,20 +138,19 @@ class Heartbeat:
         self._last_update_tmstp = self._current_time_ms()
 
     def _current_time_ms(self):
-        return int(round(time() * 1000))
+        return time() * 1000
 
 
 if __name__ == '__main__':
     from moosecat.boot import boot_base, g
 
     def timeout_callback():
-        print(
+        print('elapsed={:3.3f} percent={:3.3f} curr={:3.3f} last={:3.3f}'.format(
             g.heartbeat.elapsed,
             g.heartbeat.percent,
-            g.heartbeat._curr_listened,
             g.heartbeat.currently_listened_percent,
             g.heartbeat.last_listened_percent
-        )
+        ))
 
         g.client.connect()
         return True
