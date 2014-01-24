@@ -5,6 +5,7 @@
 import os
 import sys
 import itertools
+import functools
 import logging
 LOGGER = logging.getLogger(__name__)
 
@@ -260,7 +261,13 @@ class BasePlaylistWidget(PlaylistWidget):
 
     def _on_client_event(self, client, event):
         if event & (Idle.DATABASE | Idle.QUEUE | Idle.PLAYER):
-            self._on_entry_changed(self._entry)
+            if event & Idle.PLAYER:
+                GLib.timeout_add(
+                    100,
+                    functools.partial(self._on_entry_changed, self._entry)
+                )
+            else:
+                self._on_entry_changed(self._entry)
 
 
 class DatabasePlaylistWidget(BasePlaylistWidget):
