@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -42,10 +43,36 @@ typedef struct {
 
 ///////////////////
 
-#define WARNING(data, pmsg)                                                        \
-    if(data->warning.msg != NULL) *data->warning.msg = pmsg;                       \
-    if(data->warning.pos != NULL) *data->warning.pos = (data->iter - data->query); \
- 
+GRegex * REGEX_QUOTES = NULL,
+       * REGEX_RANGES = NULL;
+
+G_LOCK_DEFINE_STATIC(REGEX_QUOTES);
+G_LOCK_DEFINE_STATIC(REGEX_RANGES);
+
+static void mc_mtx_free_ranges(void) {
+    G_LOCK(REGEX_RANGES); {
+        g_regex_unref(REGEX_RANGES);
+    } 
+    G_UNLOCK(REGEX_RANGES);
+}
+
+static void mc_mtx_free_quotes(void) {
+    G_LOCK(REGEX_QUOTES); {
+        g_regex_unref(REGEX_QUOTES);
+    } 
+    G_UNLOCK(REGEX_QUOTES);
+}
+
+///////////////////
+
+/* Only keep the first warning, since it's mostly the most relevant */
+#define WARNING(data, pmsg)                                       \
+    if(data->warning.msg != NULL && *data->warning.msg == NULL) { \
+        *data->warning.msg = pmsg;                                \
+        if(data->warning.pos != NULL) {                           \
+            *data->warning.pos = (data->iter - data->query);      \
+        }                                                         \
+    }                                                             \
 ///////////////////
 
 static bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
@@ -446,7 +473,9 @@ bool mc_store_qp_str_is_empty(const char *str)
 
 static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
 {
+    mc_StoreParseData* parse_data = data;
     char * tag = g_match_info_fetch(info, 1);
+
     if(tag == NULL || *tag == 0) {
         g_free(tag);
         tag = g_match_info_fetch(info, 2);
@@ -474,7 +503,9 @@ static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res,
             g_string_append(res, " ");
         }
         g_string_append(res, ") ");
-    } 
+    } else {
+        WARNING(parse_data, "Empty content in paranthesis");
+    }
     
     g_free(tag);
     g_free(content);
@@ -483,19 +514,26 @@ static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res,
 }
 
 
-static char * mc_store_qp_preprocess_quotationmarks(const char *query) 
+static char * mc_store_qp_preprocess_quotationmarks(const char *query, mc_StoreParseData * data) 
 {
     if(query == NULL) 
         return NULL;
 
-    GRegex * regex = g_regex_new(
-        "(\\w:\\s*|)\"(\\s*\\w:\\s*|)(.*?)\"", 0, 0, NULL
-    );
+    G_LOCK(REGEX_QUOTES); /* { */
+        if(REGEX_QUOTES == NULL) {
+            REGEX_QUOTES = g_regex_new(
+                "(\\w:\\s*|)\"(\\s*\\w:\\s*|)(.*?)\"", G_REGEX_OPTIMIZE, 0, NULL
+            );
 
-    char * result = g_regex_replace_eval(
-        regex, query, -1, 0, 0, mc_store_qp_quote_eval_cb, NULL, NULL
-    );
-    g_regex_unref(regex);
+            atexit(mc_mtx_free_quotes);
+        }
+
+        char * result = g_regex_replace_eval(
+            REGEX_QUOTES, query, -1, 0, 0, mc_store_qp_quote_eval_cb, data, NULL
+        );
+
+    /* } */
+    G_UNLOCK(REGEX_QUOTES);
     return result;
 }
 
@@ -503,7 +541,9 @@ static char * mc_store_qp_preprocess_quotationmarks(const char *query)
 
 static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
 {
+    mc_StoreParseData* parse_data = data;
     char * tag = g_match_info_fetch(info, 1);
+
     if(tag != NULL && *tag == 0) {
         g_free(tag);
         tag = NULL;
@@ -512,16 +552,24 @@ static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res,
     }
 
     char *start_str = g_match_info_fetch(info, 2);
-    char *stop_str = g_match_info_fetch(info, 3);
-
+    char *range_op_str = g_match_info_fetch(info, 3);
+    char *stop_str = g_match_info_fetch(info, 4);
+        
     long start = g_ascii_strtoll(start_str, NULL, 10);
     long stop = g_ascii_strtoll(stop_str, NULL, 10);
+
+    /* Check if the '...' operator was used. 
+     * In this case we do not include the stop.
+     */ 
+    if(range_op_str != NULL && strlen(range_op_str) == 3) {
+        stop -= 1;
+    }
 
     /* Limit the max range to 1000,
      * Values bigger than that confuse the shit out of sqlite.
      * Queries get very slow.
      * */
-    if(start < stop && (ABS(start - stop) <= 1000)) {
+    if(start <= stop && (ABS(start - stop) <= 1000)) {
         g_string_append(res, " (");
         for(long i = start; i <= stop; i++) {
             if(tag != NULL) {
@@ -529,14 +577,23 @@ static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res,
             }
             g_string_append_printf(res, "%ld", i);
 
-            if((i + 1) < stop) {
+            if((i + 1) <= stop) {
                 g_string_append(res, " OR ");
             }
         }
         g_string_append(res, ") ");
+    } else {
+        if(start <= stop) {
+            WARNING(parse_data, "range: assertion(start < stop) failed");
+        } else {
+            WARNING(
+                parse_data,
+                "range: crappy implementation: max 1000 difference allowed"
+            );
+        }
     }
 
-    g_free(tag); g_free(start_str); g_free(stop_str);
+    g_free(tag); g_free(start_str); g_free(stop_str); g_free(range_op_str);
     return FALSE;
 }
 
@@ -549,28 +606,35 @@ static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res,
  *
  * This works well enough for the small numbers we usually have for music.
  * */
-static char * mc_store_qp_preprocess_ranges(const char *query) 
+static char * mc_store_qp_preprocess_ranges(const char *query, mc_StoreParseData * data) 
 {
     if(query == NULL) 
         return NULL;
 
-    GRegex * regex = g_regex_new(
-        "(\\w:|)(\\d*)\\.\\.(\\d+)", 0, 0, NULL
-    );
+    G_LOCK(REGEX_RANGES); /* { */
+        if(REGEX_RANGES == NULL) {
+            REGEX_RANGES = g_regex_new(
+                "(\\w:|)(\\d*)(\\.{2,3})(\\d+)", G_REGEX_OPTIMIZE, 0, NULL
+            );
+        
+            atexit(mc_mtx_free_ranges);
+        }
 
-    char * result = g_regex_replace_eval(
-        regex, query, -1, 0, 0, mc_store_qp_range_eval_cb, NULL, NULL
-    );
-    g_regex_unref(regex);
+        char * result = g_regex_replace_eval(
+            REGEX_RANGES, query, -1, 0, 0, mc_store_qp_range_eval_cb, data, NULL
+        );
+    /* } */
+    G_UNLOCK(REGEX_RANGES);
+
     return result;
 }
 
 ///////////////////
 
-static char * mc_store_qp_preprocess(const char *query)
+static char * mc_store_qp_preprocess(const char *query, mc_StoreParseData * data)
 {
-    char * step_one = mc_store_qp_preprocess_quotationmarks(query);
-    char * step_two = mc_store_qp_preprocess_ranges(step_one);
+    char * step_one = mc_store_qp_preprocess_quotationmarks(query, data);
+    char * step_two = mc_store_qp_preprocess_ranges(step_one, data);
     g_free(step_one);
     return step_two;
 }
@@ -600,7 +664,7 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
     }
 
     /* Everything else is 0 for now */
-    data->query = mc_store_qp_preprocess(query);
+    data->query = mc_store_qp_preprocess(query, data);
     data->query_len = strlen(query);
     data->iter = data->query;
     data->output = g_string_sized_new(data->query_len);

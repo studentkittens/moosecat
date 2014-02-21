@@ -217,7 +217,6 @@ class BasePlaylistWidget(PlaylistWidget):
     def __init__(self, queue_only):
         PlaylistWidget.__init__(self, col_names=(
             '<pixbuf>:',
-            'ID',
             'Artist',
             'Album',
             'Title',
@@ -236,14 +235,14 @@ class BasePlaylistWidget(PlaylistWidget):
                 queue_id = song.queue_id
 
         if SESSION.data.seed_song_uri is not None:
-            self._view.set_tooltip_column(8)
+            self._view.set_tooltip_column(7)
 
         with g.client.store.query(query, queue_only=self._queue_only) as songs:
             self.set_model(PlaylistTreeModel(
                 list(map(lambda song: (
                     # Visible columns:
                     find_icon_for_song(song, queue_id),
-                    '» ' + str(SESSION.mapping[:song.uri]),
+                    #'» ' + str(SESSION.mapping[:song.uri]),
                     song.artist,
                     song.album,
                     song.title,
@@ -256,7 +255,7 @@ class BasePlaylistWidget(PlaylistWidget):
                     song.queue_id,
                     song.uri
                 ), songs)),
-                n_columns=5
+                n_columns=7
             ))
 
     def _on_client_event(self, client, event):

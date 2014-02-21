@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-
 # Stdlib:
 import logging
 
 # Internal:
-from moosecat.boot import g, boot_base, boot_store, boot_metadata, shutdown_application
+import moosecat.boot
+from moosecat.boot import g
 
 # External:
 from munin.easy import EasySession
 from munin.provider import PlyrLyricsProvider
 
-
+# Fetch missing lyrics, or load them from disk.
+# Also cache missed items for speed reasons.
 LYRICS_PROVIDER = PlyrLyricsProvider(cache_failures=True)
 
-
 def make_entry(song):
+    # Hardcoded, Im sorry:
     full_uri = '/mnt/testdata/' + song.uri
-    return (song.uri, {
+    return song.uri, {
         'artist': song.artist,
         'album': song.album,
         'title': song.title,
@@ -30,24 +31,27 @@ def make_entry(song):
         'lyrics': LYRICS_PROVIDER.do_process((
             song.album_artist or song.artist, song.title
         ))
-    })
+    }
 
 if __name__ == '__main__':
+    # pickle tends to hit python's recursionlimit
     import sys
     sys.setrecursionlimit(10000)
 
-    # Bring up the core!
-    boot_base(verbosity=logging.DEBUG)
+    # Bring up moosecat
+    moosecat.boot.boot_base(verbosity=logging.DEBUG)
     g.client.disconnect()
     g.client.connect(port=6601)
-    boot_metadata()
-    boot_store()
+    moosecat.boot.boot_metadata()
+    moosecat.boot.boot_store()
 
+    # Fetch the whole database into entries:
     entries = []
     with g.client.store.query('*', queue_only=False) as playlist:
         for song in playlist:
             entries.append(make_entry(song))
 
+    # Instance a new EasySession and fill in the values.
     session = EasySession()
     with session.transaction():
         for uri, entry in entries:
@@ -58,7 +62,12 @@ if __name__ == '__main__':
                 import traceback
                 traceback.print_exc()
 
+    # Save the Session to disk (~/.cache/libmunin/EasySession.gz)
     session.save()
 
-    # session.database.plot()
-    shutdown_application()
+    # Plot if desired.
+    if '--plot' in sys.argv:
+        session.database.plot()
+
+    # Close the connection to MPD, save cached database
+    moosecat.boot.shutdown_application()
