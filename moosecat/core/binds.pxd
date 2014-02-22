@@ -369,6 +369,14 @@ cdef extern from "../../lib/misc/posix-signal.h":
 cdef extern from "../../lib/misc/external-logs.h":
     void mc_misc_catch_external_logs(mc_Client *)
 
+cdef extern from "../../lib/misc/metadata-threads.h":
+    ctypedef struct mc_MetadataThreads:
+        pass
+
+    mc_MetadataThreads * mc_mdthreads_new(void *, void *, void *, int)
+    void mc_mdthreads_push(mc_MetadataThreads *, void *)
+    void mc_mdthreads_free(mc_MetadataThreads *)
+
 cdef extern from "../../lib/misc/zeroconf.h":
     cdef struct mc_ZeroconfBrowser:
         pass
@@ -404,3 +412,5 @@ cdef extern from "../../lib/config.h":
         VERSION_MINOR         'MC_VERSION_MINOR'
         VERSION_PATCH         'MC_VERSION_PATCH'
         VERSION_GIT_REVISION  'MC_VERSION_GIT_REVISION'
+
+

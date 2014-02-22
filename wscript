@@ -257,6 +257,7 @@ def build(bld):
 
         EXCLUDE_FILES.append(sources)
 
+    #build_test_program('lib/misc/metadata-threads.c', 'mdthreads')
     build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
     build_test_program('lib/samples/test_command_list.c', 'test_command_list')
     build_test_program('lib/samples/test_client.c', 'test_client')
