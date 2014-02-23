@@ -16,14 +16,12 @@ static void mc_mdthreads_dispatch(gpointer data, gpointer user_data)
 
     /* Probably some python object, just pass it */
     gpointer result = self->thread_callback(self, data, self->user_data);
-    if(result != NULL) {
-        g_async_queue_push(self->queue, result);
-    }
+    mc_mdthreads_forward(self, result);
 }
 
 ///////////////////////
 
-static gboolean mc_mdthreads_forward(GAsyncQueue * queue, gpointer user_data)
+static gboolean mc_mdthreads_mainloop_callback(GAsyncQueue * queue, gpointer user_data)
 {
     g_assert(queue);
     g_assert(user_data);
@@ -73,7 +71,7 @@ mc_MetadataThreads * mc_mdthreads_new(
     self->watch = mc_async_queue_watch_new(
         self->queue, 
         100,
-        mc_mdthreads_forward, 
+        mc_mdthreads_mainloop_callback, 
         self,
         NULL
     );
@@ -99,6 +97,16 @@ void mc_mdthreads_push(mc_MetadataThreads * self, void * data)
     /* Check if not destroyed yet */
     if(self->watch != -1) {
         g_thread_pool_push(self->pool, data, NULL);
+    }
+
+}
+
+///////////////////////
+
+void mc_mdthreads_forward(mc_MetadataThreads * self, void * result)
+{
+    if(result != NULL) {
+        g_async_queue_push(self->queue, result);
     }
 
 }

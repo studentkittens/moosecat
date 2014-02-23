@@ -74,6 +74,19 @@ mc_MetadataThreads * mc_mdthreads_new(
 void mc_mdthreads_push(mc_MetadataThreads * self, void * data);
 
 /**
+ * @brief This is useful for pushing individual results to the mainloop early.
+ *
+ * For usescases when the results come in one by one with some delay inbetween.
+ * To be called from the thread-callback.
+ *
+ * When the result arrives, the deliver callback is called.
+ *
+ * @param self The Pool.
+ * @param result the data to forward to the mainthread.
+ */
+void mc_mdthreads_forward(mc_MetadataThreads * self, void * result);
+
+/**
  * @brief Free the Pool.
  *
  * @param self Well, guess.

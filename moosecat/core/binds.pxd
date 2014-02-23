@@ -375,6 +375,7 @@ cdef extern from "../../lib/misc/metadata-threads.h":
 
     mc_MetadataThreads * mc_mdthreads_new(void *, void *, void *, int)
     void mc_mdthreads_push(mc_MetadataThreads *, void *)
+    void mc_mdthreads_forward(mc_MetadataThreads *, void *)
     void mc_mdthreads_free(mc_MetadataThreads *)
 
 cdef extern from "../../lib/misc/zeroconf.h":

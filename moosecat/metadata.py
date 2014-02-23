@@ -1,8 +1,5 @@
 # stdlib
 import os
-import logging
-import queue
-import threading
 import time
 import collections
 
@@ -16,15 +13,25 @@ import plyr
 
 Order = collections.namedtuple('Order', [
     'notify_func',
+    'cache_received_func',
     'query',
     'timestamp',
     'results'
 ])
 
 
+def make_query_key(query):
+    """Returns a hash value that is unique to the configuration of a plry.Query
+    """
+    return hash((
+        query.artist, query.album, query.title, query.get_type, query.number,
+        query.normalize, query.useragent, tuple(query.providers)
+    ))
+
+
 class Retriever(MetadataThreads):
     def __init__(self):
-        self._query_set = set()
+        self._query_dict = {}
         self._database = plyr.Database(g.CACHE_DIR)
         MetadataThreads.__init__(
             self,
@@ -32,36 +39,65 @@ class Retriever(MetadataThreads):
             self._on_deliver
         )
 
-    def push(self, notify_func, query):
-        if all((notify_func, query)):
-            # The order wraps all the extra data:
-            order = Order(
-                notify_func=notify_func,
-                query=query,
-                timestamp=time.time(),
-                results=[]
-            )
+    def push(self, notify_func, query, cache_received_func=None):
+        if not any((notify_func, query)):
+            return None
 
-            # Configure to use the database if possible.
-            query.database = self._database
+        key = make_query_key(query)
+        if key in self._query_dict:
+            return None
 
-            # Remember the order.
-            self._query_set.add(query)
+        # The order wraps all the extra data:
+        order = Order(
+            notify_func=notify_func,
+            cache_received_func=cache_received_func,
+            query=query,
+            timestamp=time.time(),
+            results=[]
+        )
 
-            # Distribute it to some thread on the C-side
-            MetadataThreads.push(self, order)
+        # Configure to use the database if possible.
+        query.database = self._database
+        query.callback = self._on_query_callback
 
-            return order.timestamp
+        # Remember the order.
+        self._query_dict[key] = order
+
+        # Distribute it to some thread on the C-side
+        MetadataThreads.push(self, order)
+
+        # Users might use this to know if the need to update.
+        return order.timestamp
+
+    def _on_query_callback(self, cache, query):
+        """
+
+        Attention: does not run on mainthread!
+        """
+        self.forward((cache, query))
 
     def _on_thread(self, mdt, order):
+        """
+
+        Attention: does not run on mainthread!
+        """
         # Trick: commit() does not lock the gil most of the time.
         results = order.query.commit()
         order.results.extend(results)
         return order
 
-    def _on_deliver(self, mdt, order):
-        order.notify_func(order)
-        self._query_set.remove(order.query)
+    def _on_deliver(self, mdt, order_or_cache):
+        if isinstance(order_or_cache, Order):
+            order = order_or_cache
+            order.notify_func(order)
+            self._query_dict.pop(make_query_key(order.query))
+        else:
+            # Not finished yet, subresult:
+            cache, query = order_or_cache
+
+            order = self._query_dict[make_query_key(query)]
+            if order.cache_received_func:
+                order.cache_received_func(order, cache)
 
     def lookup(self, query):
         '''
@@ -84,8 +120,8 @@ class Retriever(MetadataThreads):
 
             This should be called on the main thead.
         '''
-        for query in self._query_set:
-            query.cancel()
+        for order in self._query_dict.values():
+            order.query.cancel()
 
 
 def update_needed(last_query, new_query):

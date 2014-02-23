@@ -105,7 +105,7 @@ cdef void * wrap_ThreadCallback(c.mc_MetadataThreads * _, object data, object us
 cdef void * wrap_DeliverCallback(c.mc_MetadataThreads * _, object data, object user_data) with gil:
     try:
         result = user_data[1](user_data[2], data)
-        Py_DECREF(data)
+        # Py_DECREF(data)
         return <void *>1 if result else NULL
     except:
         log_exception(user_data[1])
@@ -128,6 +128,10 @@ cdef class MetadataThreads:
     def push(self, data):
         Py_INCREF(data)
         c.mc_mdthreads_push(self._threads, <void *>data)
+
+    def forward(self, result):
+        Py_INCREF(result)
+        c.mc_mdthreads_forward(self._threads, <void*>result)
 
     def __dealloc__(self):
         if self._threads is not NULL:
