@@ -30,6 +30,8 @@ def make_query_key(query):
 
 
 class Retriever(MetadataThreads):
+    """Multithreaded (on the C-side) retrieval of metadata queries.
+    """
     def __init__(self):
         self._query_dict = {}
         self._database = plyr.Database(g.CACHE_DIR)
@@ -39,7 +41,28 @@ class Retriever(MetadataThreads):
             self._on_deliver
         )
 
-    def push(self, notify_func, query, cache_received_func=None):
+    def push(self, query, notify_func, cache_received_func=None):
+        """Push a new query into the Retriever.
+
+        Internally the query will be wraped into an Order.
+        The Order provides a results (list of plyr.Caches) and a query field,
+        also there's the time of the Order initialization in timestamp.
+
+        If the query (or one very similar) is currently processed push() will
+        return immediately.
+
+        Callbacks can be provided to get the results of the query, both will be
+        called on the main thread, for a stress-free threading experience:
+
+            * ``notify_func``: called with the order as soon commit() finished
+            * ``cache_received_func``: called, possible several times, as soon a
+               single cache is ready. The order and the cache is passed.
+               The cache will not be in the results field of the order.
+               Do not store the cache, it is temporarily and will be destroyed in
+               the background. This is only meant for "render or surrender".
+
+        :returns: the timestamp of the point where the order was created.
+        """
         if not any((notify_func, query)):
             return None
 
@@ -58,7 +81,8 @@ class Retriever(MetadataThreads):
 
         # Configure to use the database if possible.
         query.database = self._database
-        query.callback = self._on_query_callback
+        if cache_received_func:
+            query.callback = self._on_query_callback
 
         # Remember the order.
         self._query_dict[key] = order
@@ -70,14 +94,16 @@ class Retriever(MetadataThreads):
         return order.timestamp
 
     def _on_query_callback(self, cache, query):
-        """
+        """Called by libglyr's wrapper code as soon a cache is ready.
+        cache and query wrap a valid C-struct but they are *not* the same
+        object as in results or the query above.
 
         Attention: does not run on mainthread!
         """
         self.forward((cache, query))
 
     def _on_thread(self, mdt, order):
-        """
+        """Called in an own thread, as soon a thread is ready.
 
         Attention: does not run on mainthread!
         """
@@ -87,6 +113,8 @@ class Retriever(MetadataThreads):
         return order
 
     def _on_deliver(self, mdt, order_or_cache):
+        """Called as soon an item is ready on the mainthread.
+        """
         if isinstance(order_or_cache, Order):
             order = order_or_cache
             order.notify_func(order)
@@ -95,9 +123,11 @@ class Retriever(MetadataThreads):
             # Not finished yet, subresult:
             cache, query = order_or_cache
 
+            # Get the corresponding order:
             order = self._query_dict[make_query_key(query)]
-            if order.cache_received_func:
-                order.cache_received_func(order, cache)
+
+            # Call the callback if possible:
+            order.cache_received_func(order, cache)
 
     def lookup(self, query):
         '''

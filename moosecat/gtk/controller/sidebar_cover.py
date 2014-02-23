@@ -24,8 +24,8 @@ class SidebarCover(Hideable):
             return
 
         self._submit_tmstmp = g.meta_retriever.push(
-            self._on_item_retrieved,
-            qry
+            qry,
+            self._on_item_retrieved
         )
 
     def _on_item_retrieved(self, order):
