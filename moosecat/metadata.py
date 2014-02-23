@@ -4,7 +4,9 @@ import logging
 import queue
 import threading
 import time
+import collections
 
+from moosecat.core import MetadataThreads
 from moosecat.boot import g
 
 # external
@@ -12,157 +14,54 @@ from gi.repository import GLib
 import plyr
 
 
-class Order:
-    '''Create a new Order used to deliver results.
-
-    You usually don't need to create new order explicitly, since they're
-    created by the :class:`Retriever` class for you.
-    '''
-    def __init__(self, notify, query, timestamp):
-        '''
-        :param notify: A callable, called when query is done cooking.
-        :param query: a plyr.Query
-        '''
-        self._notify, self._query, self._timestamp = notify, query, timestamp
-        self._results = None
-
-    def __lt__(self, other):
-        # PriorityQueue requires that both elements of the tuple
-        # are sortable, so that items with the same priority can be
-        # priorized - in our case we ignore this and treat all orders the same.
-        return 0
-
-    @property
-    def timestamp(self):
-        return self._timestamp
-
-    @property
-    def results(self):
-        'A list of plyr.Cache or None if nothing happened yet.'
-        return self._results
-
-    @property
-    def query(self):
-        return self._query
-
-    def execute(self):
-        'Execute the Query synchronously'
-        self._results = self._query.commit()
-
-    def call_notify(self):
-        'Call the user-defined callback for this order'
-        if self._notify:
-            self._notify(self)
+Order = collections.namedtuple('Order', [
+    'notify_func',
+    'query',
+    'timestamp',
+    'results'
+])
 
 
-class Retriever:
-    '''Models a metadata retrieveal system.
-
-    Queries can be submitted to the retriever which distributes those to a number
-    of threads. The notify-callable passed alongside the Query will be called
-    ON THE MAINTHREAD when the Query is done processing.
-    '''
-    def __init__(self, threads=4):
-        '''Create a new Retriever with N threads.'''
-        self._database = plyr.Database(g.CACHE_DIR)
-        self._order_queue = queue.PriorityQueue()
-        self._fetch_queue = queue.Queue()
+class Retriever(MetadataThreads):
+    def __init__(self):
         self._query_set = set()
-        self._thr_barrier = threading.Barrier(
-            parties=threads + 1,
-            timeout=1.0  # Time to wait before forced kill.
+        self._database = plyr.Database(g.CACHE_DIR)
+        MetadataThreads.__init__(
+            self,
+            self._on_thread,
+            self._on_deliver
         )
 
-        self._fetch_threads = []
-        for num in range(threads):
-            thread = threading.Thread(
-                    target=self._threaded_fetcher,
-                    name='MetadataFetcherThread #' + str(num)
+    def push(self, notify_func, query):
+        if all((notify_func, query)):
+            # The order wraps all the extra data:
+            order = Order(
+                notify_func=notify_func,
+                query=query,
+                timestamp=time.time(),
+                results=[]
             )
-            thread.start()
-            self._fetch_threads.append(thread)
-        self._watch_source = GLib.timeout_add(200, self._watch_fetch_queue)
 
-    def __contains__(self, item):
-        return self.is_already_queued(item)
-
-    def _wait_on_barrier(self):
-        try:
-            self._thr_barrier.wait()
-        except threading.BrokenBarrierError:
-            pass
-
-    def _threaded_fetcher(self):
-        while True:
-            _, order = self._order_queue.get()
-            self._order_queue.task_done()
-            if order is not None:
-                try:
-                    order.execute()
-                    self._fetch_queue.put(order)
-                except:
-                    logging.exception('Unhandled exception while retrieving metadata')
-            else:
-                self._wait_on_barrier()
-                break
-
-    def _watch_fetch_queue(self):
-        try:
-            order = self._fetch_queue.get_nowait()
-            order.call_notify()
-            self._query_set.remove(order.query)
-        except queue.Empty:
-            pass
-        except:
-            logging.exception('Exception during executing order.notfiy()')
-        finally:
-            return True
-
-    ####################
-    #  Public Methods  #
-    ####################
-
-    def submit(self, notify, query, prio=0):
-        '''
-        Submit a request to the metadata System.
-
-        :param notify: a callable that is called on main thread when the item is retrieved
-        :param query: a plyr.Query, like for example from ``configure_query()``
-        :param prio: Higher priorites get sorted earlier in the Job Queue
-        :returns: an unfinished :class:`moosecat.metadata.Order` object.
-        '''
-        if all((notify, query)):
-            time_stmp = time.time()
-
+            # Configure to use the database if possible.
             query.database = self._database
-            self._order_queue.put((prio, Order(notify, query, time_stmp)))
+
+            # Remember the order.
             self._query_set.add(query)
-            return time_stmp
 
-    def is_already_queued(self, search_qry, query_props=None):
-        '''
-        Check if a query already is processed by the system.
+            # Distribute it to some thread on the C-side
+            MetadataThreads.push(self, order)
 
-        You should call this only from the mainthread.
+            return order.timestamp
 
-        .. note::
+    def _on_thread(self, mdt, order):
+        # Trick: commit() does not lock the gil most of the time.
+        results = order.query.commit()
+        order.results.extend(results)
+        return order
 
-            The __contains__ operator is mapped to this,
-            so you can also write something like this:
-
-                >>> qry in g.meta_retriever
-                True
-
-        :param search_qry: a plyr.Query object.
-        :param query_props: Query-Properties to compare. (default: artist,album, title, get_type)
-        :returns: True if it is currently processed
-        '''
-        props = query_props or ('artist', 'album', 'title', 'get_type')
-        for qry in self._query_set:
-            # Compare all attributes and check if all were the same.
-            if all(map(lambda p: getattr(search_qry, p) == getattr(qry, p), props)):
-                return True
-        return False
+    def _on_deliver(self, mdt, order):
+        order.notify_func(order)
+        self._query_set.remove(order.query)
 
     def lookup(self, query):
         '''
@@ -185,17 +84,8 @@ class Retriever:
 
             This should be called on the main thead.
         '''
-        GLib.source_remove(self._watch_source)
-
-        # Tell left-over queries to cancel
         for query in self._query_set:
             query.cancel()
-
-        # Tell worker threads to finish
-        for thread in self._fetch_threads:
-            self._order_queue.put((-1, None))
-
-        self._wait_on_barrier()
 
 
 def update_needed(last_query, new_query):

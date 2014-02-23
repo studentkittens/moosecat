@@ -95,6 +95,7 @@ cdef void * wrap_ThreadCallback(c.mc_MetadataThreads * _, object data, object us
 
         # Gets decref'd later in the deliver callback
         Py_INCREF(result)
+        Py_DECREF(data)
         return <void *>result
     except:
         log_exception(user_data[0])
@@ -107,7 +108,7 @@ cdef void * wrap_DeliverCallback(c.mc_MetadataThreads * _, object data, object u
         Py_DECREF(data)
         return <void *>1 if result else NULL
     except:
-        log_exception(user_data[0])
+        log_exception(user_data[1])
         return NULL
 
 
@@ -115,7 +116,7 @@ cdef class MetadataThreads:
     cdef c.mc_MetadataThreads * _threads
     cdef object _data_ref
 
-    def __cinit__(self, thread_func, deliver_func, max_threads=15):
+    def __init__(self, thread_func, deliver_func, max_threads=15):
         self._data_ref = [thread_func, deliver_func, self]
         self._threads = c.mc_mdthreads_new(
             <void *>wrap_ThreadCallback,
@@ -125,28 +126,13 @@ cdef class MetadataThreads:
         )
 
     def push(self, data):
+        Py_INCREF(data)
         c.mc_mdthreads_push(self._threads, <void *>data)
 
     def __dealloc__(self):
-        self._data_ref = None
-        c.mc_mdthreads_free(self._threads)
-
-
-# TODO:
-class MetadataFetcher(MetadataThreads):
-    def __init__(self):
-        MetadataThreads.__init__(
-            self._on_thread,
-            self._on_deliver
-        )
-
-    def _on_thread(self, mdt, query):
-        return query.commit()
-
-    def _on_deliver(self, a):
-        pass
-
-
+        if self._threads is not NULL:
+            self._data_ref = None
+            c.mc_mdthreads_free(self._threads)
 
 
 ##################

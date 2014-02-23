@@ -23,13 +23,13 @@ class SidebarCover(Hideable):
             LOGGER.debug('sidebar cover needs no update')
             return
 
-        self._submit_tmstmp = g.meta_retriever.submit(
+        self._submit_tmstmp = g.meta_retriever.push(
             self._on_item_retrieved,
             qry
         )
 
     def _on_item_retrieved(self, order):
-        if len(order.results) > 0 and self._submit_tmstmp <= order.timestamp:
+        if order.results and self._submit_tmstmp <= order.timestamp:
             cache, *_ = order.results
             pixbuf = plyr_cache_to_pixbuf(cache, width=150, height=150)
             if pixbuf is not None:
