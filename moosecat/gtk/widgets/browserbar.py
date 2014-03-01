@@ -17,6 +17,9 @@ class BrowserBar(SlideNotebook):
         # TODO: read config values
         SlideNotebook.__init__(self)
 
+        # Make switching to certain browser for others possible:
+        g.register('gtk_sidebar', self)
+
         # Fill something into the browser list
         self.collect_browsers()
 

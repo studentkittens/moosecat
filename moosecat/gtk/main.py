@@ -23,7 +23,7 @@ def align_widget(widget):
 class ProgressSliderControl(widgets.ProgressSlider):
     def __init__(self):
         widgets.ProgressSlider.__init__(self)
-        self.set_size_request(250, 11)
+        self.set_size_request(200, 11)
         self.connect('percent-change', self._on_percent_change)
         GLib.timeout_add(500, self._timeout_callback)
 
@@ -46,7 +46,7 @@ class StarControl(widgets.StarSlider):
 
         self.set_size_request(self.width_multiplier() * 20, 20)
 
-        # TODO
+        # TODO: Functionality for the slider.
         # self._star_slider.connect('percent-change', self._on_stars_changed)
         # g.client.signal_add('client-event', self._on_client_event)
 
@@ -70,41 +70,92 @@ class VolumeControl(widgets.BarSlider):
                 status.volume = bar.percent * 100
 
 
+class TitledHeadbar(Gtk.HeaderBar):
+    def __init__(self):
+        Gtk.HeaderBar.__init__(self)
+
+        self.pack_start(widgets.PlaybuttonBox())
+        self.pack_start(Gtk.VSeparator())
+        self.pack_start(align_widget(ProgressSliderControl()))
+        self.pack_end(align_widget(VolumeControl()))
+        self.pack_end(Gtk.VSeparator())
+        self.pack_end(widgets.ModebuttonBox())
+
+        g.client.signal_add('client-event', self._on_client_event)
+
+    def _on_client_event(self, client, event):
+        if event & Idle.PLAYER:
+            with client.lock_currentsong() as song:
+                if song is not None:
+                    self.set_title('{title}'.format(
+                        title=song.title
+                    ))
+                    self.set_subtitle('{album} - {artist}'.format(
+                        album=song.album,
+                        artist=song.artist or song.album_artist
+                    ))
+                elif client.is_connected:
+                    self.set_title('Im ready!')
+                    self.set_subtitle('Just go ahead and play someting.')
+                else:
+                    self.set_title('Not connected.')
+                    self.set_subtitle('Go select a server.')
+
+
 class ActionContainer(Gtk.Box):
     def __init__(self):
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.HORIZONTAL)
 
         self.pack_start(align_widget(StarControl()), True, True, 0)
         self.pack_start(widgets.MenuButton(), True, True, 0)
+        self.pack_start(Gtk.VSeparator(), True, True, 1)
+
+        close_button = Gtk.Button.new_from_icon_name(
+            'gtk-close', Gtk.IconSize.MENU
+        )
+        close_button.set_relief(Gtk.ReliefStyle.NONE)
+        close_button.connect('clicked', lambda *_: g.gtk_app.quit())
+
+        self.pack_start(close_button, True, True, 1)
         self.show_all()
 
 
 class MoosecatWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
-        Gtk.ApplicationWindow.__init__(self, title="Naglfar", application=app)
+        Gtk.ApplicationWindow.__init__(self, title="Moosecat", application=app)
         self.set_default_size(1400, 900)
-
-        headerbar = Gtk.HeaderBar()
-        headerbar.set_show_close_button(True)
-        headerbar.pack_start(widgets.PlaybuttonBox())
-        headerbar.pack_start(align_widget(ProgressSliderControl()))
-        headerbar.pack_end(align_widget(VolumeControl()))
-        headerbar.pack_end(widgets.ModebuttonBox())
 
         browser_bar = widgets.BrowserBar()
         browser_bar.set_action_widget(ActionContainer())
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         main_box.pack_start(browser_bar, True, True, 0)
-        main_box.pack_start(headerbar, False, False, 0)
+        main_box.pack_start(TitledHeadbar(), False, False, 0)
+
+        g.client.signal_add('client-event', self._on_client_event)
 
         self.add(main_box)
         self.show_all()
+
+    def _on_client_event(self, client, event):
+        with client.lock_currentsong() as song:
+            if song is None:
+                text = 'Playing: {} - {}'.format(
+                    GLib.markup_escape_text(song.artist or song.album_artist),
+                    song.title
+                )
+            else:
+                text = 'Not Playing'
+
+            self.set_title('Moosecat ({})'.format(text))
 
 
 class MoosecatApplication(Gtk.Application):
     def __init__(self):
         Gtk.Application.__init__(self)
+
+        # For usage like quit()
+        g.register('gtk_app', self)
 
         # Bring up the core!
         boot_base(verbosity=logging.DEBUG, port=6601, host='localhost')
@@ -116,6 +167,8 @@ class MoosecatApplication(Gtk.Application):
         window.connect('delete-event', self.do_close_application)
         self.add_window(window)
         window.show_all()
+
+        ctrl.TrayIcon('')
 
         # TODO
         # add_keybindings(window, {

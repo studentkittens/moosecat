@@ -4,7 +4,7 @@ from moosecat.boot import g
 from gi.repository import Gtk
 
 
-class QueuePlaylistWidget(PlaylistWidget):
+class DatabasePlaylistWidget(PlaylistWidget):
     'The content of a Notebook Tab, implementing a custom search for Playlists'
     def __init__(self):
         PlaylistWidget.__init__(self, col_names=(
@@ -24,7 +24,7 @@ class QueuePlaylistWidget(PlaylistWidget):
             if song is not None:
                 queue_id = song.queue_id
 
-        with g.client.store.query(query, queue_only=True) as playlist:
+        with g.client.store.query(query, queue_only=False) as playlist:
             self.set_model(PlaylistTreeModel([
                 ('gtk-yes' if song.queue_id == queue_id else 'gtk',
                 song.track,
@@ -49,7 +49,7 @@ class QueuePlaylistWidget(PlaylistWidget):
         print(menu_item)
 
 
-class QueueBrowser(IGtkBrowser):
+class DatabaseBrowser(IGtkBrowser):
     def do_build(self):
         self._scw = Gtk.ScrolledWindow()
         self._scw.set_policy(
@@ -57,7 +57,7 @@ class QueueBrowser(IGtkBrowser):
             Gtk.PolicyType.AUTOMATIC
         )
 
-        self._scw.add(QueuePlaylistWidget())
+        self._scw.add(DatabasePlaylistWidget())
         self._scw.show_all()
 
     #######################
@@ -70,10 +70,10 @@ class QueueBrowser(IGtkBrowser):
 
     def get_browser_name(self):
         'Get the name of the browser (displayed in the sidebar)'
-        return 'Queue'
+        return 'Database'
 
     def get_browser_icon_name(self):
-        return Gtk.STOCK_FIND
+        return 'system-search'
 
     def priority(self):
-        return 90
+        return 89

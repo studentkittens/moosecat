@@ -68,7 +68,7 @@ class PlaylistWidget(Gtk.VBox):
                 renderer = Gtk.CellRendererText()
                 renderer.set_fixed_height_from_font(1)
                 col = Gtk.TreeViewColumn(text, renderer, text=i)
-                col.set_min_width(250)
+                col.set_min_width(200)
             col.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
             self._view.append_column(col)
 
