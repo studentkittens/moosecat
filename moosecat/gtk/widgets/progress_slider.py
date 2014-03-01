@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 from moosecat.gtk.widgets.cairo_slider import CairoSlider
 from cairo import LINE_CAP_SQUARE
 from gi.repository import Gtk

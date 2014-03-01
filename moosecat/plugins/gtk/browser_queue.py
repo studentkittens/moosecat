@@ -24,7 +24,7 @@ class QueuePlaylistWidget(PlaylistWidget):
 
         with g.client.store.query(query, queue_only=True) as playlist:
             self.set_model(PlaylistTreeModel(
-                [('gtk-yes' if song.queue_id == queue_id else 'gtk-apply', song.artist, song.album, song.title, song.queue_id) for song in playlist],
+                [('gtk-yes' if song.queue_id == queue_id else 'gtk', song.artist, song.album, song.title, song.queue_id) for song in playlist],
                 n_columns=4
             ))
 

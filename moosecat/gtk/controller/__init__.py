@@ -1,6 +1,3 @@
-from .sidebar import Sidebar
-from .timeslide import Timeslide
-from .volume import Volume
 from .play_buttons import PlayButtons
 from .title_label import TitleLabel
 from .mode_buttons import ModeButtons

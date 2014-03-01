@@ -1036,7 +1036,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self._headerbar = Gtk.HeaderBar()
         self._headerbar.set_show_close_button(True)
-
         self._headerbar.pack_start(PlaybuttonBox())
         self._headerbar.pack_start(align_widget(self._progress_bar))
         self._headerbar.pack_end(align_widget(self._volume_slider))

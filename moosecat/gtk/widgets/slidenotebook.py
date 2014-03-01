@@ -7,16 +7,17 @@ from gi.repository import Gtk
 class NotebookTab(Gtk.Box):
     """Label of a GtkNotebook Tab. Shows a unicode glyph symbol and a text.
     """
-    def __init__(self, label, symbol='<big><b>♬</b></big> '):
+    def __init__(self, label, symbol=None):
         Gtk.Box.__init__(self, Gtk.Orientation.HORIZONTAL)
 
-        # A nice music note at the left for some visual candy
-        icon = Gtk.Label()
-        icon.set_use_markup(True)
-        icon.set_markup('<big><big>' + symbol + '</big></big> ')
+        if symbol is not None:
+            icon = Gtk.Image.new_from_icon_name(
+                symbol,
+                Gtk.IconSize.BUTTON
+            )
+            icon.set_margin_right(2)
+            self.pack_start(icon, True, True, 0)
 
-        # Pack them in the container box
-        self.pack_start(icon, True, True, 0)
         self.pack_start(Gtk.Label(label), True, True, 0)
         self.show_all()
 
@@ -49,7 +50,7 @@ class SlideNotebook(Gtk.Box):
         self.pack_start(self._stack, True, True, 0)
         self.show_all()
 
-    def append_page(self, name, widget, symbol='<big><b>♬</b></big> '):
+    def append_page(self, name, widget, symbol=None):
         dummy_box = Gtk.EventBox()
         self._widget_table[dummy_box] = name
         self._stack.add_named(widget, name)
@@ -58,9 +59,15 @@ class SlideNotebook(Gtk.Box):
     def set_action_widget(self, widget):
         self._notebook.set_action_widget(widget, Gtk.PackType.END)
 
+    def set_visible_page(self, name):
+        if name in self._widget_table.values():
+            self._stack.set_visible_child_name(name)
+        else:
+            raise ValueError('No such page: ' + name)
+
     def _on_switch_page(self, nb, page_widget, page_num):
         name = self._widget_table[page_widget]
-        self._stack.set_visible_child_name(name)
+        self.set_visible_page(name)
 
 
 if __name__ == '__main__':
