@@ -40,6 +40,9 @@ typedef struct _mc_MetadataThreads {
      * and the result is available on the main thread.
      */
     mc_MetadataCallback deliver_callback;
+    
+    /* User data for *both* callbacks 
+     */
     gpointer user_data;
 } mc_MetadataThreads;
 

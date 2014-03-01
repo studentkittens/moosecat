@@ -26,8 +26,8 @@ static gboolean mc_mdthreads_mainloop_callback(GAsyncQueue * queue, gpointer use
     g_assert(queue);
     g_assert(user_data);
 
-    mc_MetadataThreads * self = user_data;
     void * result = NULL;
+    mc_MetadataThreads * self = user_data;
     
     /* It's possible that there happended more events */
     while((result = g_async_queue_try_pop(queue)) != NULL) {

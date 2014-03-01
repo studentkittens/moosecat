@@ -15,6 +15,18 @@ def glade_path(glade_name):
     return os.path.join(script_path, 'ui', glade_name + '.glade')
 
 
+class MoosecatWindow(Gtk.ApplicationWindow):
+    def __init__(self, app):
+        Gtk.ApplicationWindow.__init__(
+            self,
+            title="Naglfar",
+            application=app
+        )
+        self.set_default_size(1400, 900)
+
+
+
+
 class Application(Gtk.Application):
     def __init__(self):
         Gtk.Application.__init__(self)
