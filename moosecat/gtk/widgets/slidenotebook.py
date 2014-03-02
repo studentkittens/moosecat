@@ -13,7 +13,7 @@ class NotebookTab(Gtk.Box):
         if symbol is not None:
             icon = Gtk.Image.new_from_icon_name(
                 symbol,
-                Gtk.IconSize.BUTTON
+                Gtk.IconSize.MENU
             )
             icon.set_margin_right(2)
             self.pack_start(icon, True, True, 0)
