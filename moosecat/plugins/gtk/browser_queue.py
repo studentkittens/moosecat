@@ -98,16 +98,19 @@ class QueueBrowser(IGtkBrowser):
         self._overlay = Gtk.Overlay()
         self._overlay.add(self._scw)
 
-        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self._label = Gtk.Label('<span bgcolor="#AAAAAA"><b>   Metadata:   </b></span>\n(Use Ctrl-T to toggle)')
+        self._label = Gtk.Label('')
         self._label.set_use_markup(True)
         self._label.set_size_request(250, -1)
         self._label.override_background_color(0, Gdk.RGBA(0.5, 0.5, 1.0, 0.2))
         self._label.set_halign(Gtk.Align.END)
         self._label.set_alignment(0.5, 0.4)
-        self._box.set_halign(Gtk.Align.END)
 
-        self._box.pack_start(SidebarCover(), True, True, 10)
+        self._box = Gtk.Grid()
+        self._box.set_halign(Gtk.Align.END)
+        cover = SidebarCover()
+        cover.set_margin_top(500)
+        cover.set_alignment(0.5, 1.0)
+        self._box.attach_next_to(cover, None, Gtk.PositionType.BOTTOM, 1, 1)
 
         self._overlay.add_overlay(self._label)
         self._overlay.add_overlay(self._box)
