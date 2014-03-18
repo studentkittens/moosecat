@@ -2,6 +2,11 @@
 # encoding: utf-8
 
 
+def view_all_in_database(settings_chooser, get_type_only, amount, chooser):
+    count = chooser.show_all_in_database(get_type_only, amount)
+    settings_chooser.set_database_count(count)
+
+
 if __name__ == '__main__':
     from gi.repository import Gtk
 
@@ -22,7 +27,8 @@ if __name__ == '__main__':
         chooser = MetadataChooser(
             get_type='cover',
             artist='Knorkator',
-            album='Hasenchartbreaker'
+            album='Hasenchartbreaker',
+            title="Ich bin ein ganz besond'rer Mann"
         )
 
         chooser.connect(
@@ -32,10 +38,8 @@ if __name__ == '__main__':
 
         settings_chooser.connect(
             'view-all-in-database',
-            lambda _, get_type_only, amount: chooser.show_all_in_database(
-                get_type_only,
-                amount
-            )
+            view_all_in_database,
+            chooser
         )
 
         settings_chooser.update_provider(chooser.get_selected_type())

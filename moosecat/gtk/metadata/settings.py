@@ -371,7 +371,7 @@ class DatabaseSection(Section):
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         button_box.get_style_context().add_class(Gtk.STYLE_CLASS_LINKED)
         button_box.pack_start(
-            Gtk.Label('View all database items'),
+            Gtk.Label('View database items'),
             True, True, 2
         )
         button_box.pack_start(Gtk.VSeparator(), False, False, 2)
@@ -413,24 +413,31 @@ class DatabaseSection(Section):
             )
         )
 
+        self._count_label = Gtk.Label()
+
         lsbox.add(
             listbox_create_indented_labelrow(
-                '666 items in cache',
+                self._count_label,
                 view_all_button
             )
         )
         lsbox.add(
             listbox_create_indented_labelrow(
-                'Amount to view (-1 is unlimited):',
+                'Amount to view (-1 is unlimited)',
                 limit_num_button
             )
         )
         lsbox.add(
             listbox_create_indented_labelrow(
-                'Limit to current type:',
+                'Limit to current type',
                 limit_type_swich
             )
         )
+
+    def set_database_count(self, count):
+        self._count_label.set_text('{:d} items shown.'.format(
+            count
+        ))
 
 
 ###########################################################################
@@ -473,6 +480,9 @@ class SettingsChooser(Gtk.Grid):
 
     def update_provider(self, get_type):
         self._provider_section.update_provider(get_type)
+
+    def set_database_count(self, count):
+        self._database_section.set_database_count(count)
 
 if __name__ == '__main__':
     # Internal:

@@ -45,10 +45,15 @@ def listbox_create_labelrow(name, widget, include_colon=True, bold=True):
     :param bold: Wether to render the label font bold.
     """
     bold_start, bold_end = ('<b>', '</b>') if bold else ('', '')
-    name_label = Gtk.Label(bold_start + name + '{colon}'.format(
-        colon=':' if include_colon else ''
-    ) + bold_end)
-    name_label.set_use_markup(True)
+    if isinstance(name, Gtk.Label):
+        name_label = name
+    else:
+        name_label = Gtk.Label(bold_start + name + '{colon}'.format(
+            colon=':' if include_colon else ''
+        ) + bold_end)
+        name_label.set_use_markup(True)
+
+
 
     box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=50)
     box.pack_start(name_label, False, True, 0)
@@ -106,17 +111,17 @@ def construct_heading(query):
     if me in ['guitartabs', 'lyrics']:
         return '{m} of {t} by {a}'.format(
             m=me.capitalize(),
-            t=query.title, a=query.artist
+            t=query.title.capitalize(), a=query.artist.capitalize()
         )
     elif me in ['relations', 'tags']:
         return '{m} for {v}'.format(
             m=me.capitalize(),
-            v=query.artist or query.album or query.title
+            v=(query.artist or query.album or query.title).capitalize()
         )
     elif me in ['artistbio', 'albumreview']:
         return '{m} for {a}'.format(
             m=me.capitalize(),
-            v=query.album or query.artist
+            v=(query.album or query.artist).capitalize()
         )
 
 
