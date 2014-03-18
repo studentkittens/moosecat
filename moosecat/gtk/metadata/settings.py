@@ -463,8 +463,8 @@ class SettingsChooser(Gtk.Grid):
             )
         )
 
-        self.attach(SettingsSection(), 0, 0, 1, 1)
-        self.attach(self._provider_section, 0, 1, 1, 1)
+        self.attach(self._provider_section, 0, 0, 1, 1)
+        self.attach(SettingsSection(), 0, 1, 1, 1)
         self.attach(self._database_section, 0, 2, 1, 1)
 
     ###################

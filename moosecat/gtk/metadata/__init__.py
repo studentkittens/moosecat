@@ -10,7 +10,7 @@ if __name__ == '__main__':
     from moosecat.gtk.metadata.settings import SettingsChooser
 
     settings = Gtk.Settings.get_default()
-    settings.set_property('gtk-application-prefer-dark-theme', True)
+    # settings.set_property('gtk-application-prefer-dark-theme', True)
 
     with main(metadata=True) as win:
         settings_chooser = SettingsChooser()
