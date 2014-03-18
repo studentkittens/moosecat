@@ -3,12 +3,16 @@
 
 # Internal:
 from moosecat.boot import g
-from moosecat.gtk.metadata.templates import listbox_create_labelrow
+from moosecat.gtk.metadata.templates import listbox_create_labelrow, add_label_to_grid
 
 # External
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, GObject
 import plyr
 
+
+###########################################################################
+#                              Util Widgets                               #
+###########################################################################
 
 class Section(Gtk.Box):
     def __init__(self, title, content_widget):
@@ -48,10 +52,59 @@ class Section(Gtk.Box):
         self._content_widget.set_visible(new_state)
 
 
+class LabeledLevelBar(Gtk.Box):
+    __gsignals__ = {
+        'changed': (
+            GObject.SIGNAL_RUN_FIRST,  # Run-Order
+            None,                      # Return Type
+            (float, )                  # Parameters
+        )
+    }
+
+    def __init__(self, multiplier=1, label_format='{:2.3f}'):
+        Gtk.Box.__init__(self, orientation=Gtk.Orientation.HORIZONTAL)
+
+        self._multiplier = multiplier
+        self._label_format = label_format
+
+        self._levelbar = Gtk.LevelBar.new_for_interval(0.0, 1.0)
+        self._levelbar.set_size_request(95, -1)
+        self._label = Gtk.Label()
+
+        self._levelbar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_LOW, 0.33)
+        self._levelbar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_HIGH, 0.66)
+
+        eventbox = Gtk.EventBox()
+        eventbox.add(self._levelbar)
+        eventbox.connect('button-press-event', self._on_button_press_event)
+
+        self.pack_start(self._label, False, False, 3)
+        self.pack_start(eventbox, True, True, 0)
+
+    def _on_button_press_event(self, widget, event):
+        self._percent = event.x / widget.get_allocation().width
+        self.set_value(self._percent * self._multiplier, emit=False)
+
+    def set_value(self, value, emit=True):
+        self._percent = value / self._multiplier
+        self._levelbar.set_value(self._percent)
+        self._label.set_text(self._label_format.format(self.get_value()))
+        if emit is True:
+            self.emit('changed', self._percent)
+
+    def get_value(self):
+        return self._percent * self._multiplier
+
+
+###########################################################################
+#                          The Settings Sections                          #
+###########################################################################
+
 class ProviderSection(Section):
     def __init__(self):
         self._model = None
         self._provider = Gtk.TreeView()
+        self._chosen_type = None
 
         Section.__init__(self, 'Provider', self._provider)
 
@@ -72,46 +125,52 @@ class ProviderSection(Section):
             col.set_sort_column_id(idx)
             self._provider.append_column(col)
 
-        self.update_provider('cover')
+    def update_provider(self, chosen_type):
+        self._chosen_type = chosen_type.lower()
+        if self._chosen_type is None:
+            return
 
-    def update_provider(self, chosen_provider):
-        key = chosen_provider.lower()
-        #key = self.get_chosen_provider()
-        if key is not None:
-            providers = plyr.PROVIDERS[key]['providers'] + [{
-                'name': 'local',
-                'speed': 100,
-                'quality': 100
-            }, {
-                'name': 'musictree',
-                'speed': 99,
-                'quality': 99
-            }]
-            self._model = Gtk.ListStore(bool, str, int, int)
+        providers = plyr.PROVIDERS[self._chosen_type]['providers'] + [{
+            'name': 'local',
+            'speed': 100,
+            'quality': 100
+        }, {
+            'name': 'musictree',
+            'speed': 99,
+            'quality': 99
+        }]
+        self._model = Gtk.ListStore(bool, str, int, int)
 
-            # Lookup which one are enabled: TODO
-            enabled = set(g.config.get('metadata.providers.' + 'cover'))
+        # Lookup which one are enabled:
+        enabled = set(g.config.get(
+            'metadata.providers.' + self._chosen_type
+        ))
 
-            for p in sorted(providers, key=lambda e: e['quality'], reverse=True):
-                is_enabled = 'all' in enabled or p['name'] in enabled
-                self._model.append([
-                    is_enabled, p['name'], p['quality'], p['speed']
-                ])
+        for p in sorted(providers, key=lambda e: e['quality'], reverse=True):
+            is_enabled = 'all' in enabled or p['name'] in enabled
+            self._model.append([
+                is_enabled, p['name'], p['quality'], p['speed']
+            ])
 
-            self._provider.set_model(self._model)
+        self._provider.set_model(self._model)
 
     def _on_toggle_cell(self, cell, path):
         if path is not None:
             it = self._model.get_iter(path)
             self._model[it][0] = not self._model[it][0]
 
+        # Collect all enabled providers:
         providers = [row[1] for row in self._model if row[0]]
 
         # Check if we can just subsitute "all" (add the 2 special providers)
-        if len(providers) == len(plyr.PROVIDERS['cover']['providers']) + 2:
+        if len(providers) == len(plyr.PROVIDERS[self._chosen_type]['providers']) + 2:
             providers = ['all']
 
-        g.config.set('metadata.providers.{t}'.format(t='cover'), providers)
+        # Remember the selection in the config:
+        g.config.set(
+            'metadata.providers.{t}'.format(t=self._chosen_type),
+            providers
+        )
 
 
 def listbox_create_indented_labelrow(title, widget):
@@ -142,23 +201,18 @@ def config_proxy_bool(config_path):
     return switch
 
 
-def config_proxy_fraction(config_path, multiplier=1):
-    level_bar = Gtk.LevelBar.new_for_interval(0.0, 1.0)
+def config_proxy_fraction(config_path, multiplier=1, label_format='{:2.3f}'):
+    level_bar = LabeledLevelBar(
+        multiplier=multiplier, label_format=label_format
+    )
 
-    def _set_value(widget, event):
-        percent = event.x / widget.get_allocation().width
+    def _set_value(widget, percent):
         level_bar.set_value(percent)
-        g.config.set(config_path, percent * multiplier)
+        g.config.set(config_path, percent)
 
-    level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_LOW, 0.33)
-    level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_HIGH, 0.66)
-    level_bar.set_size_request(95, -1)
-    level_bar.set_value(g.config.get(config_path) / multiplier)
-
-    evbox = Gtk.EventBox()
-    evbox.add(level_bar)
-    evbox.connect('button-press-event', _set_value)
-    return evbox
+    level_bar.set_value(g.config.get(config_path))
+    level_bar.connect('changed', _set_value)
+    return level_bar
 
 
 def config_proxy_enum(config_path, values, active=None):
@@ -214,13 +268,20 @@ class SettingsSection(Section):
         lsbox.add(
             listbox_create_indented_labelrow(
                 'Quality/Speed ratio',
-                config_proxy_fraction('metadata.qsratio')
+                config_proxy_fraction(
+                    'metadata.qsratio',
+                    label_format='{:0.2f}'
+                ),
             )
         )
         lsbox.add(
             listbox_create_indented_labelrow(
                 'Fuzzyness',
-                config_proxy_fraction('metadata.fuzzyness', multiplier=20)
+                config_proxy_fraction(
+                    'metadata.fuzzyness',
+                    multiplier=20,
+                    label_format='{:2.0f}'
+                )
             )
         )
         lsbox.add(
@@ -293,11 +354,21 @@ class SettingsSection(Section):
 
 
 class DatabaseSection(Section):
-    def __init__(self):
-        grid = Gtk.Grid()
-        grid.set_margin_top(5)
+    __gsignals__ = {
+        'view-all-in-database': (
+            GObject.SIGNAL_RUN_FIRST,
+            None,
+            (bool, int)
+        )
+    }
 
-        Section.__init__(self, 'Database', grid)
+    def __init__(self):
+        lsbox = Gtk.ListBox()
+        lsbox.set_margin_top(5)
+
+        Section.__init__(self, 'Database', lsbox)
+
+        lsbox.set_selection_mode(Gtk.SelectionMode.NONE)
 
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         button_box.get_style_context().add_class(Gtk.STYLE_CLASS_LINKED)
@@ -314,27 +385,96 @@ class DatabaseSection(Section):
             False, False, 2
         )
 
+        g.config.add_defaults({
+            'gtk': {
+                'metadata': {
+                    'view_all': {
+                        'limit_type': True,
+                        'limit_num': -1
+                    }
+                }
+            }
+        })
+
+        limit_type_swich = config_proxy_bool(
+            'gtk.metadata.view_all.limit_type'
+        )
+        limit_num_button = config_proxy_range(
+            'gtk.metadata.view_all.limit_num', -1, 32000
+        )
+
         view_all_button = Gtk.Button()
         view_all_button.add(button_box)
         view_all_button.set_halign(Gtk.Align.END)
+        view_all_button.connect(
+            'clicked',
+            lambda _: self.emit(
+                'view-all-in-database',
+                limit_type_swich.get_active(),
+                int(limit_num_button.get_value())
+            )
+        )
 
-        count_label = Gtk.Label('666 items in cache')
-        count_label.set_halign(Gtk.Align.START)
-        count_label.set_margin_left(4)
-        count_label.set_hexpand(True)
+        lsbox.add(
+            listbox_create_indented_labelrow(
+                '666 items in cache',
+                view_all_button
+            )
+        )
+        lsbox.add(
+            listbox_create_indented_labelrow(
+                'Amount to view (-1 is unlimited):',
+                limit_num_button
+            )
+        )
+        lsbox.add(
+            listbox_create_indented_labelrow(
+                'Limit to current type:',
+                limit_type_swich
+            )
+        )
 
-        grid.attach(count_label, 0, 0, 1, 1)
-        grid.attach(view_all_button, 1, 0, 1, 1)
+
+###########################################################################
+#                           Put it all together                           #
+###########################################################################
 
 
 class SettingsChooser(Gtk.Grid):
+    __gsignals__ = {
+        'view-all-in-database': (
+            GObject.SIGNAL_RUN_FIRST,
+            None,
+            (bool, int)
+        )
+    }
+
     def __init__(self):
         Gtk.Grid.__init__(self)
 
-        self.attach(SettingsSection(), 0, 0, 1, 1)
-        self.attach(ProviderSection(), 0, 1, 1, 1)
-        self.attach(DatabaseSection(), 0, 2, 1, 1)
+        self._provider_section = ProviderSection()
+        self._database_section = DatabaseSection()
 
+        # Forward signal:
+        self._database_section.connect(
+            'view-all-in-database',
+            lambda _, get_type_only, amount: self.emit(
+                'view-all-in-database',
+                get_type_only,
+                amount
+            )
+        )
+
+        self.attach(SettingsSection(), 0, 0, 1, 1)
+        self.attach(self._provider_section, 0, 1, 1, 1)
+        self.attach(self._database_section, 0, 2, 1, 1)
+
+    ###################
+    #  Proxy Methods  #
+    ###################
+
+    def update_provider(self, get_type):
+        self._provider_section.update_provider(get_type)
 
 if __name__ == '__main__':
     # Internal:

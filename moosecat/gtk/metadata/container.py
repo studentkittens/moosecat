@@ -4,12 +4,12 @@
 from moosecat.boot import g
 import moosecat.metadata as metadata
 
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GObject
 import plyr
-import math
 
 
 import moosecat.gtk.metadata.templates as templates
+from moosecat.gtk.utils.drawing import draw_center_text
 
 
 def select_template(query, cache):
@@ -143,17 +143,14 @@ class ContentBox(Gtk.ScrolledWindow):
             self._box.remove(child)
 
     def make_empty(self):
-        print('make empty')
         self.clear()
 
-        self._color_flag = True
         self._is_empty = True
 
         da = Gtk.DrawingArea()
         da.connect('draw', self._render_missing)
         self._box.pack_start(da, True, True, 0)
 
-        self._fade_id = GLib.timeout_add(2000, self._on_color_flag_toggle, da)
         self.show_all()
 
     def number_of_children(self):
@@ -163,7 +160,6 @@ class ContentBox(Gtk.ScrolledWindow):
         # Remove the "oh, empty Drawing Area
         if self._is_empty:
             self.clear()
-            GLib.source_remove(self._fade_id)
             self._is_empty = False
         self._box.pack_start(widget, False, False, 0)
         self._box.pack_start(templates.DottedSeparator(), False, False, 0)
@@ -173,31 +169,28 @@ class ContentBox(Gtk.ScrolledWindow):
     #  Internal  #
     ##############
 
-    def _on_color_flag_toggle(self, da):
-        self._color_flag = not self._color_flag
-        da.queue_draw()
-        return True
-
     def _render_missing(self, widget, ctx):
         alloc = widget.get_allocation()
         w, h = alloc.width, alloc.height
-        w2, h2 = w / 2, h / 2
 
-        red = 1.0 if self._color_flag else 0.0
-        ctx.set_source_rgba(red, 0, 0, 0.5)
-        ctx.arc(w2, h2,  w / 20, 0, 2 * math.pi)
-        ctx.fill()
-
-        ctx.set_line_width(w / 16)
-        for i in range(10):
-            ctx.set_source_rgba(0.8, 0.8, 0.8, 1 - i / 5)
-            ctx.arc(w2, h2, i * w / 15, 0, 2 * math.pi)
-            ctx.stroke()
+        ctx.set_source_rgba(0, 0, 0, 0.2)
+        # draw_center_text(ctx, w, h, 'Θ', font_size=300)
+        # draw_center_text(ctx, w, h, '⍰', font_size=300)
+        draw_center_text(ctx, w, h, '⍨', font_size=300)
 
 
 class MetadataChooser(Gtk.Grid):
+    __gsignals__ = {
+        'get-type-changed': (
+            GObject.SIGNAL_RUN_FIRST,  # Run-Order
+            None,                      # Return Type
+            (str, )                    # Parameters
+        )
+    }
+
     def __init__(self, get_type=None, artist=None, album=None, title=None):
         Gtk.Grid.__init__(self)
+
         self.set_row_spacing(2)
         self.set_border_width(4)
 
@@ -205,6 +198,7 @@ class MetadataChooser(Gtk.Grid):
         self._combo.connect('changed', self._on_combo_changed)
         self.attach(self._combo, 0, 0, 1, 1)
 
+        self._cache_counter = 0
         self._entry_map = {}
 
         def add_entry_row(index, name, icon_name, preset):
@@ -288,6 +282,21 @@ class MetadataChooser(Gtk.Grid):
             return key.lower()
         return None
 
+    def show_all_in_database(self, get_type_only=True, amount=-1):
+        self._content_box.clear()
+        selected_type = self.get_selected_type()
+        self._cache_counter = 0
+
+        def _foreach_callback(query, cache):
+            if (not get_type_only) or query.get_type == selected_type:
+                if amount < 0 or self._cache_counter < amount:
+                    template = select_template(query, cache)
+                    self._content_box.add_widget(template)
+                    self._cache_counter += 1
+
+        g.meta_retriever.database.foreach(_foreach_callback)
+        return self._cache_counter
+
     #############
     #  Signals  #
     #############
@@ -320,8 +329,6 @@ class MetadataChooser(Gtk.Grid):
             title=self._entry_map['title'].get_text()
         )
 
-        print(qry)
-
         self._content_box.clear()
         self._search_button.progress = 0.1
 
@@ -340,7 +347,7 @@ class MetadataChooser(Gtk.Grid):
         if required is not None:
             for key, entry in self._entry_map.items():
                 entry.set_sensitive(False)
-                entry.set_placeholder_text('<{v} not needed for {t}>'.format(
+                entry.set_placeholder_text('<{v} not needed for {t}s>'.format(
                     v=key.capitalize(), t=selected.capitalize()
                 ))
 
@@ -348,6 +355,9 @@ class MetadataChooser(Gtk.Grid):
                 entry = self._entry_map[attr]
                 entry.set_sensitive(True)
                 entry.set_placeholder_text('')
+
+        # Transmit the signal:
+        self.emit('get-type-changed', selected)
 
 
 if __name__ == '__main__':

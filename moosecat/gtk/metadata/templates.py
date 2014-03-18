@@ -74,6 +74,7 @@ def add_label_to_grid(grid, index, topic, widget):
     """Add a `widget` and a label with `topic` to the grid at row-index `index`
     """
     left = Gtk.Label('<b>{}:</b>'.format(topic))
+
     left.set_use_markup(True)
     left.set_halign(Gtk.Align.START)
     left.set_hexpand(True)
@@ -84,6 +85,8 @@ def add_label_to_grid(grid, index, topic, widget):
     # Now put it on the same row, both with a singular spacing.
     grid.attach(left, 0, index, 1, 1)
     grid.attach(widget, 1, index, 1, 1)
+
+    return left
 
 
 def result_change_rating(slider, query, cache, control_box):
@@ -96,6 +99,25 @@ def result_change_rating(slider, query, cache, control_box):
     cache.rating = int(round(slider.stars))
     g.meta_retriever.database.replace(cache.checksum, query, cache)
     control_box.settable = False
+
+
+def construct_heading(query):
+    me = query.get_type
+    if me in ['guitartabs', 'lyrics']:
+        return '{m} of {t} by {a}'.format(
+            m=me.capitalize(),
+            t=query.title, a=query.artist
+        )
+    elif me in ['relations', 'tags']:
+        return '{m} for {v}'.format(
+            m=me.capitalize(),
+            v=query.artist or query.album or query.title
+        )
+    elif me in ['artistbio', 'albumreview']:
+        return '{m} for {a}'.format(
+            m=me.capitalize(),
+            v=query.album or query.artist
+        )
 
 
 ###########################################################################
@@ -419,12 +441,15 @@ class TextTemplate(Gtk.Overlay):
             scale=1.25
         )
 
+        heading = construct_heading(query)
+
         # Now insert the text formatted in a nice way.
-        text_buffer.insert_with_tags(
-            text_buffer.get_start_iter(),
-            '{t} by {a}\n\n'.format(t=query.title, a=query.artist),
-            underlined
-        )
+        if heading is not None:
+            text_buffer.insert_with_tags(
+                text_buffer.get_start_iter(),
+                heading + '\n\n',
+                underlined
+            )
         # Insert the main lyrics:
         text_buffer.insert_with_tags(
             text_buffer.get_end_iter(),
@@ -486,8 +511,8 @@ class TextTemplate(Gtk.Overlay):
         self.add_overlay(sep)
         self.add_overlay(grid)
 
-        # Make the whole widget at least 300px wide.
-        self.set_size_request(-1, 450)
+        newlines = cache.data.count(b'\n') + 5
+        self.set_size_request(-1, 100 + newlines * 20)
 
     def _on_textbuffer_changed(self, textbuffer, cache, control_box):
         control_box.settable = True
