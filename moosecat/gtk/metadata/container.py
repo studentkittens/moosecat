@@ -4,7 +4,7 @@
 from moosecat.boot import g
 import moosecat.metadata as metadata
 
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GLib, GObject
 import plyr
 
 
@@ -261,6 +261,9 @@ class MetadataChooser(Gtk.Grid):
         self._content_box = ContentBox()
         self.attach(self._content_box, 0, 6, 1, 1)
 
+        # We can only grab focus when the button actually has a window:
+        GLib.idle_add(self._on_search_button_grab_focus)
+
     def toggle_sensitivity(self, state):
         if state is False:
             # Just make everything insensitive:
@@ -358,6 +361,12 @@ class MetadataChooser(Gtk.Grid):
 
         # Transmit the signal:
         self.emit('get-type-changed', selected)
+
+    def _on_search_button_grab_focus(self):
+        self._search_button.set_can_default(True)
+        self._search_button.set_can_focus(True)
+        self._search_button.grab_default()
+        self._search_button.grab_focus()
 
 
 if __name__ == '__main__':

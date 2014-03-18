@@ -364,8 +364,6 @@ class DatabaseSection(Section):
 
     def __init__(self):
         lsbox = Gtk.ListBox()
-        lsbox.set_margin_top(5)
-
         Section.__init__(self, 'Database', lsbox)
 
         lsbox.set_selection_mode(Gtk.SelectionMode.NONE)
