@@ -7,6 +7,7 @@ import logging
 # Internal:
 from moosecat.boot import g
 from moosecat.gtk.widgets import SlideNotebook
+from moosecat.gtk.browser import DEFAULT_BROWSERS_CLASSES
 
 
 LOGGER = logging.getLogger('BrowserBar')
@@ -25,8 +26,9 @@ class BrowserBar(SlideNotebook):
 
     def collect_browsers(self):
         # Get a List of Gtk Browsers
-        browsers = g.psys.category('GtkBrowser')
-        browsers.sort(key=lambda b: b.priority(), reverse=True)
+        browsers = [browser () for browser in DEFAULT_BROWSERS_CLASSES]
+        # browsers = g.psys.category('GtkBrowser')
+        # browsers.sort(key=lambda b: b.priority(), reverse=True)
 
         for browser in browsers:
             # Tell them to build their GUI up.

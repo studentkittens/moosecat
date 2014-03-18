@@ -1,6 +1,7 @@
 from moosecat.gtk.widgets import PlaylistTreeModel, PlaylistWidget, SimplePopupMenu
-from moosecat.plugins import IGtkBrowser
+from moosecat.gtk.browser import GtkBrowser
 from moosecat.boot import g
+
 from gi.repository import Gtk
 
 
@@ -49,7 +50,7 @@ class DatabasePlaylistWidget(PlaylistWidget):
         print(menu_item)
 
 
-class DatabaseBrowser(IGtkBrowser):
+class DatabaseBrowser(GtkBrowser):
     def do_build(self):
         self._scw = Gtk.ScrolledWindow()
         self._scw.set_policy(

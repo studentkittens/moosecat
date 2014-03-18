@@ -1,8 +1,0 @@
-[Core]
-Name = StoredPlaylistBrowser
-Module = browser_stored_playlists
-
-[Documentation]
-Author = C. Pahl
-Version = 0.1
-Description = A GTK+ Browser to view and manipuldate stored playlists.

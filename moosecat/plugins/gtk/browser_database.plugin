@@ -1,8 +1,0 @@
-[Core]
-Name = DatabaseBrowser
-Module = browser_database
-
-[Documentation]
-Author = C. Pahl
-Version = 0.1
-Description = A Browser for the Gtk UI that shows the current queue, and provides searching abilities.

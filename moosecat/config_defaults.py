@@ -23,13 +23,4 @@ CONFIG_DEFAULTS = {
         }
     },
     'server_profile_active': 'default',
-    'metadata': {
-        'providers': ['all'],
-        'language_aware_only': False,
-        'quality_speed_ratio': 1.0,
-        'redirects': 3,
-        'timeout': 10,
-        'fuzzyness': 4,
-        'verbosity': 0
-    }
 }

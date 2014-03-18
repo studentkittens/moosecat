@@ -1,8 +1,0 @@
-[Core]
-Name = QueueTreeBrowser
-Module = browser_queue_tree
-
-[Documentation]
-Author = C. Pahl
-Version = 0.1
-Description = A Browser for the Gtk UI that shows the current queue in a tree (artist -> album -> title) and provides searching abilities.

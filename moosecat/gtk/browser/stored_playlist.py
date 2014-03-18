@@ -1,9 +1,9 @@
 from moosecat.gtk.widgets import NotebookTab, PlaylistWidget, PlaylistTreeModel
-from moosecat.plugins import IGtkBrowser
+from moosecat.gtk.browser import GtkBrowser
 from moosecat.core import Idle
 from moosecat.boot import g
 
-from gi.repository import Gtk, GObject
+from gi.repository import GLib, Gtk, GObject
 
 
 def _tab_label_from_page_num(notebook, page_num):
@@ -72,7 +72,7 @@ class StoredPlaylistWidget(PlaylistWidget):
             ))
 
 
-class StoredPlaylistBrowser(IGtkBrowser):
+class StoredPlaylistBrowser(GtkBrowser):
     'Actual Browser Implementation putting all together'
     def do_build(self):
         self._notebook = Gtk.Notebook()
@@ -80,6 +80,7 @@ class StoredPlaylistBrowser(IGtkBrowser):
         add_entry.connect('playlist-added', self._on_add_button_clicked)
         self._notebook.set_action_widget(add_entry, Gtk.PackType.END)
         self._notebook.connect('switch-page', self._on_switch_page)
+        self._notebook.set_tab_pos(Gtk.PositionType.BOTTOM)
 
         # a mapping from the playlist names to their corresponding widgets
         self._playlist_to_widget = set()
@@ -169,9 +170,15 @@ class StoredPlaylistBrowser(IGtkBrowser):
         # Create a new playlist widget on demand
         playlist_widget = StoredPlaylistWidget(nbtab.get_playlist_name())
 
+        # Create a nice title label:
+        title = Gtk.Label(
+            '<b>' + GLib.markup_escape_text(nbtab.get_playlist_name()) + '</b>'
+        )
+        title.set_use_markup(True)
+
         # Fill in some life.
         box = self._notebook.get_nth_page(page_num)
-        box.pack_start(Gtk.Label('Old'), False, False, 0)
+        box.pack_start(title, False, False, 0)
         box.pack_start(playlist_widget, True, True, 0)
         box.show_all()
 

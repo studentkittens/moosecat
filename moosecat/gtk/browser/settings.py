@@ -1,8 +1,8 @@
 from gi.repository import Gtk
-from moosecat.plugins import IGtkBrowser
+from moosecat.gtk.browser import GtkBrowser
 
 
-class QueueBrowser(IGtkBrowser):
+class SettingsBrowser(GtkBrowser):
     def do_build(self):
         self._label = Gtk.Label("Oh, well.")
 

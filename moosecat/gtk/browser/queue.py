@@ -1,6 +1,7 @@
 from moosecat.gtk.widgets import PlaylistTreeModel, PlaylistWidget, SimplePopupMenu
-from moosecat.plugins import IGtkBrowser
+from moosecat.gtk.browser import GtkBrowser
 from moosecat.boot import g
+
 from gi.repository import Gtk, Gdk
 
 
@@ -86,7 +87,7 @@ class SidebarCover(Gtk.Image):
                 self._last_query = order.query
 
 
-class QueueBrowser(IGtkBrowser):
+class QueueBrowser(GtkBrowser):
     def do_build(self):
         self._scw = Gtk.ScrolledWindow()
         self._scw.set_policy(

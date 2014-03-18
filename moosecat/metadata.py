@@ -34,12 +34,41 @@ class Retriever(MetadataThreads):
     """
     def __init__(self):
         self._query_dict = {}
-        self._database = plyr.Database(g.CACHE_DIR)
+        self.database = plyr.Database(g.CACHE_DIR)
         MetadataThreads.__init__(
             self,
             self._on_thread,
             self._on_deliver
         )
+
+        # Config Defaults:
+        g.config.add_defaults({
+            'metadata': {
+                'language': 'en',
+                'only_language': False,
+                'qsratio': 1.0,
+                'fuzzyness': 4,
+                'normalization': 'aggressive',
+                'force_utf8': False,
+                'plugmax': 5,
+                'image_min_size': -1,
+                'image_max_size': -1,
+                'timeout': 5.0,
+                'parallel': 4
+            }
+        })
+
+        # Add the provider defaults for all get_types
+        defaults = {}
+        for get_type in plyr.PROVIDERS.keys():
+            defaults[get_type] = ['all']
+
+        # Manually add the special providers:
+        g.config.add_defaults({
+            'metadata': {
+                'providers': defaults
+            }
+        })
 
     def push(self, query, notify_func, cache_received_func=None):
         """Push a new query into the Retriever.
@@ -80,7 +109,7 @@ class Retriever(MetadataThreads):
         )
 
         # Configure to use the database if possible.
-        query.database = self._database
+        query.database = self.database
         if cache_received_func:
             query.callback = self._on_query_callback
 
@@ -136,7 +165,7 @@ class Retriever(MetadataThreads):
         :query: plyr.Query, as returned from configure_query e.g.
         :returns: Boolean.
         '''
-        return self._database.lookup(query)
+        return self.database.lookup(query)
 
     def close(self):
         '''
@@ -216,7 +245,7 @@ def configure_query_by_current_song(get_type, amount=1, img_size=(-1, -1)):
     return qry
 
 
-def configure_query(get_type, artist=None, album=None, title=None, amount=1, img_size=(-1, -1)):
+def configure_query(get_type, artist=None, album=None, title=None, amount=1, img_size=None):
     '''
     Create a :class:`plyr.Query` based on the parameters.
     Not all parameters are required, for cover only artist/album is needed.
@@ -267,22 +296,25 @@ def configure_query(get_type, artist=None, album=None, title=None, amount=1, img
                 title=str(title),
                 number=amount,
                 musictree_path=_get_full_current_song_uri(),
-                force_utf8=True,
+                force_utf8=cfg['metadata.force_utf8'],
                 useragent='moosecat/0.0.1 +(https://github.com/studentkittens/moosecat)',
-                img_size=img_size,
+                img_size=(
+                    cfg['metadata.image_min_size'],
+                    cfg['metadata.image_max_size'],
+                ),
 
                 # Settings dynamically calculated by libglyr
                 # allowed_formats - png, jpg, gif
                 # proxy           - Read from env vars
-                # max_per_plugin  - Determined per get_type, number etc.
                 # parallel        - Determined per get_type
                 # language        - Autodetected from locale
 
                 # Configurable Attributes
+                max_per_plugins=cfg['metadata.plugmax'],
                 verbosity=cfg['metadata.verbosity'],
-                providers=cfg['metadata.providers'],
-                language_aware_only=cfg['metadata.language_aware_only'],
-                qsratio=cfg['metadata.quality_speed_ratio'],
+                providers=cfg['metadata.providers.{t}'.format(t=get_type)],
+                language_aware_only=cfg['metadata.only_language'],
+                qsratio=cfg['metadata.qsratio'],
                 redirects=cfg['metadata.redirects'],
                 timeout=cfg['metadata.timeout'],
                 fuzzyness=cfg['metadata.fuzzyness']

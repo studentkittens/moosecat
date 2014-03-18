@@ -1,8 +1,0 @@
-[Core]
-Name = GtkSettingsBrowser
-Module = browser_settings
-
-[Documentation]
-Author = C. Pahl
-Version = 0.1
-Description = A Browser to see & edit configurations values.

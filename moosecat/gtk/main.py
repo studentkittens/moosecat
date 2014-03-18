@@ -165,6 +165,7 @@ class MoosecatApplication(Gtk.Application):
     def do_activate(self):
         window = MoosecatWindow(self)
         window.connect('delete-event', self.do_close_application)
+        g.register('gtk_main_window', window)
         self.add_window(window)
         window.show_all()
 

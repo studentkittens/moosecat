@@ -17,7 +17,8 @@ def plyr_cache_to_pixbuf(cache, width=None, height=None):
 
     # Decoder for supported image formats
     loader = GdkPixbuf.PixbufLoader()
-    loader.set_size(width, height)
+    if width and height:
+        loader.set_size(width, height)
 
     try:
         # Both calls might raise a PixbufError.

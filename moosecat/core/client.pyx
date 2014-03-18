@@ -214,7 +214,11 @@ cdef class Client:
             return None
         else:
             # Convert input to bytes
-            b_host = bytify(host)
+            if host is not None:
+                b_host = bytify(host)
+            else:
+                b_host = b'localhost'
+
             err = c.mc_connect(self._p(), NULL, b_host, port, timeout_sec)
             if err == NULL:
                 return None
