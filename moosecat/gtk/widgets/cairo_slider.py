@@ -4,11 +4,11 @@ from gi.repository import Gtk, Gdk, GObject
 
 class CairoSlider(Gtk.DrawingArea):
     __gsignals__ = {
-            'percent-change': (
-                    GObject.SIGNAL_RUN_FIRST,  # Run-Order
-                    None,                      # Return Type
-                    ()                         # Parameters
-            )
+        'percent-change': (
+            GObject.SIGNAL_RUN_FIRST,  # Run-Order
+            None,                      # Return Type
+            ()                         # Parameters
+        )
     }
 
     def __init__(self):
@@ -24,11 +24,11 @@ class CairoSlider(Gtk.DrawingArea):
         self._drag_mode = False
 
         # Enable the receival of the appropiate signals:
-        self.add_events(self.get_events()         |
-                Gdk.EventMask.BUTTON_PRESS_MASK   |
-                Gdk.EventMask.BUTTON_RELEASE_MASK |
-                Gdk.EventMask.POINTER_MOTION_MASK |
-                Gdk.EventMask.SCROLL_MASK
+        self.add_events(self.get_events()     |
+            Gdk.EventMask.BUTTON_PRESS_MASK   |
+            Gdk.EventMask.BUTTON_RELEASE_MASK |
+            Gdk.EventMask.POINTER_MOTION_MASK |
+            Gdk.EventMask.SCROLL_MASK
         )
 
         # Signals used to know when redrawing is desired

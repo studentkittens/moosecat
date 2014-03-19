@@ -2,22 +2,27 @@
 # encoding: utf-8
 
 
+from gi.repository import Gtk
+
+from moosecat.gtk.runner import main
+from moosecat.gtk.metadata.settings import SettingsChooser
+
+from moosecat.gtk.browser import GtkBrowser
+
+
 def view_all_in_database(settings_chooser, get_type_only, amount, chooser):
     count = chooser.show_all_in_database(get_type_only, amount)
     settings_chooser.set_database_count(count)
 
 
-if __name__ == '__main__':
-    from gi.repository import Gtk
+class MetadataBrowser(Gtk.Paned, GtkBrowser):
+    def __init__(self):
+        Gtk.Paned.__init__(self)
 
-    from moosecat.gtk.runner import main
-    from moosecat.gtk.metadata.container import MetadataChooser
-    from moosecat.gtk.metadata.settings import SettingsChooser
+    def do_build(self):
+        # TODO:
+        from moosecat.gtk.metadata.container import MetadataChooser
 
-    settings = Gtk.Settings.get_default()
-    # settings.set_property('gtk-application-prefer-dark-theme', True)
-
-    with main(metadata=True) as win:
         settings_chooser = SettingsChooser()
 
         scw = Gtk.ScrolledWindow()
@@ -44,9 +49,28 @@ if __name__ == '__main__':
 
         settings_chooser.update_provider(chooser.get_selected_type())
 
-        paned = Gtk.Paned()
-        paned.pack1(chooser, True, False)
-        paned.pack2(scw, False, True)
+        self.pack1(chooser, True, False)
+        self.pack2(scw, False, True)
 
+    ###################
+    #  Browser Stuff  #
+    ###################
+
+    def get_root_widget(self):
+        return self
+
+    def get_browser_name(self):
+        return 'Metadata'
+
+    def get_browser_icon_name(self):
+        return 'media-optical'
+
+
+if __name__ == '__main__':
+
+
+    with main(metadata=True) as win:
+        chooser = MetadataBrowser()
+        chooser.do_build()
         win.set_default_size(1100, 900)
-        win.add(paned)
+        win.add(chooser)

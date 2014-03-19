@@ -326,6 +326,11 @@ class MetadataChooser(Gtk.Grid):
         # Uh-oh, nothing found? How embarassing.
         if len(order.results) is 0:
             self._content_box.make_empty()
+        else:
+            self._content_box.clear()
+            for cache in sorted(order.results, key=lambda c: c.rating, reverse=True):
+                template = select_template(order.query, cache)
+                self._content_box.add_widget(template)
 
         self.toggle_sensitivity(True)
 

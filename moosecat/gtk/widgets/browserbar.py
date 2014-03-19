@@ -26,7 +26,12 @@ class BrowserBar(SlideNotebook):
 
     def collect_browsers(self):
         # Get a List of Gtk Browsers
-        browsers = [browser () for browser in DEFAULT_BROWSERS_CLASSES]
+        browsers = [browser() for browser in DEFAULT_BROWSERS_CLASSES]
+
+        # TODO: sigh, cleanup
+        from moosecat.gtk.metadata import MetadataBrowser
+        browsers.append(MetadataBrowser())
+
         # browsers = g.psys.category('GtkBrowser')
         # browsers.sort(key=lambda b: b.priority(), reverse=True)
 

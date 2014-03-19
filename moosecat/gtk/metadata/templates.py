@@ -10,7 +10,7 @@ from moosecat.gtk.widgets import StarSlider
 from moosecat.boot import g
 
 # External:
-from gi.repository import Gtk, Gdk, GdkPixbuf, Pango
+from gi.repository import Gtk, Gdk, GdkPixbuf, Pango, GLib
 
 
 ###########################################################################
@@ -68,8 +68,12 @@ def create_rating_slider(cache):
     star_slider = StarSlider(stars=5)
 
     # This is a bit of a hack:
+    def _set_rating():
+        star_slider.stars = cache.rating
+
+    GLib.idle_add(_set_rating)
+
     star_slider.set_size_request(17 * star_slider.width_multiplier(), 10)
-    star_slider.stars = cache.rating
     return star_slider
 
 
@@ -100,7 +104,8 @@ def result_change_rating(slider, query, cache, control_box):
     cache.
     """
     cache.rating = int(round(slider.stars))
-    g.meta_retriever.database.replace(cache.checksum, query, cache)
+    g.meta_retriever.database.edit(query, cache)
+    #g.meta_retriever.database.replace(cache.checksum, query, cache)
     control_box.settable = False
 
 
@@ -211,7 +216,7 @@ class ControlButtonsWidget(Gtk.Box):
         button.set_sensitive(False)
 
     def _result_del(self, button, query, cache, set_button):
-        g.meta_retriever.database.replace(cache.checksum, query, cache)
+        g.meta_retriever.database.replace(cache.checksum, None, None)
         set_button.set_sensitive(True)
         button.set_sensitive(False)
 

@@ -177,6 +177,9 @@ class MoosecatApplication(Gtk.Application):
         # })
 
     def do_startup(self):
+        settings = Gtk.Settings.get_default()
+        settings.set_property('gtk-application-prefer-dark-theme', True)
+
         Gtk.Application.do_startup(self)
 
     def do_close_application(self, window, event):
