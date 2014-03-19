@@ -53,8 +53,6 @@ def listbox_create_labelrow(name, widget, include_colon=True, bold=True):
         ) + bold_end)
         name_label.set_use_markup(True)
 
-
-
     box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=50)
     box.pack_start(name_label, False, True, 0)
     box.pack_end(widget, False, True, 0)
@@ -121,7 +119,7 @@ def construct_heading(query):
     elif me in ['artistbio', 'albumreview']:
         return '{m} for {a}'.format(
             m=me.capitalize(),
-            v=(query.album or query.artist).capitalize()
+            a=(query.album or query.artist).capitalize()
         )
 
 
@@ -262,7 +260,7 @@ def show_in_image_viewer(widget, event, pixbuf):
 
     # Make it show the Cover
     popup.add(CoverWidget(
-        pixbuf, max_width=pixbuf.get_width(), max_height=pixbuf.get_height()
+        pixbuf, max_width=-1, max_height=-1, scale=False
     ))
 
     # Make interaction with the rest not possible
@@ -282,29 +280,57 @@ def show_in_image_viewer(widget, event, pixbuf):
     # Only available when starting the main, not the test-main.
     if hasattr(g, 'gtk_main_window'):
         popup.set_transient_for(g.gtk_main_window)
+
     popup.show_all()
 
 
 # TODO: Make this a widgets.class
 class CoverWidget(Gtk.EventBox):
-    def __init__(self, pixbuf, max_width=200, max_height=-1):
+    def __init__(self, pixbuf, max_width=200, max_height=-1, scale=True):
         Gtk.EventBox.__init__(self)
 
         area = Gtk.DrawingArea()
         area.connect('draw', self._on_draw_background, pixbuf)
 
         self.connect('button-press-event', show_in_image_viewer, pixbuf)
-        self.set_size_request(max_width, max_height)
+
+        self._scale = scale
+        if scale is True:
+            self.set_size_request(max_width, max_height)
+        else:
+            self.set_size_request(
+                pixbuf.get_width(),
+                pixbuf.get_height()
+            )
+
         self.add(area)
 
     def _on_draw_background(self, widget, ctx, pixbuf):
         alloc = widget.get_allocation()
         width, height = pixbuf.get_width(), pixbuf.get_height()
-        fac = float(alloc.width) / max(width, height)
-        asp_width, asp_height = fac * width, fac * height
 
         # Adjust the height allocated by the cover:
-        self.set_size_request(alloc.width, asp_height)
+        if self._scale:
+            fac = float(alloc.width) / max(width, height)
+            asp_width, asp_height = fac * width, fac * height
+            self.set_size_request(alloc.width, asp_height)
+        else:
+            asp_width, asp_height = width, height
+
+        # Prevent overlarge images:
+        screen = Gdk.Screen.get_default()
+        screen_w, screen_h = screen.get_width(), screen.get_height()
+
+        if asp_width > screen_w:
+            asp_height *= screen_w / asp_width
+            asp_width = screen_w
+
+        if asp_height > screen_h:
+            asp_width *= screen_h / asp_height
+            asp_height = screen_h
+
+        if self._scale is False:
+            self.set_size_request(asp_width, asp_height)
 
         # Black outline border.
         border = 5
@@ -394,6 +420,8 @@ class CoverTemplate(Gtk.Box):
 
         self.pack_start(cover, False, False, 0)
         self.pack_start(overlay, True, True, 0)
+
+        self.set_size_request(-1, 180)
 
 
 class TextTemplate(Gtk.Overlay):

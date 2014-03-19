@@ -174,8 +174,6 @@ class ContentBox(Gtk.ScrolledWindow):
         w, h = alloc.width, alloc.height
 
         ctx.set_source_rgba(0, 0, 0, 0.2)
-        # draw_center_text(ctx, w, h, 'Θ', font_size=300)
-        # draw_center_text(ctx, w, h, '⍰', font_size=300)
         draw_center_text(ctx, w, h, '⍨', font_size=300)
 
 
@@ -200,6 +198,7 @@ class MetadataChooser(Gtk.Grid):
 
         self._cache_counter = 0
         self._entry_map = {}
+        self._current_query = None
 
         def add_entry_row(index, name, icon_name, preset):
             box, entry = make_entry_row(name, icon_name)
@@ -251,6 +250,9 @@ class MetadataChooser(Gtk.Grid):
         )
         self._search_button.connect(
             'clicked', self._on_search_results
+        )
+        stop_button.connect(
+            'clicked', self._on_stop_search_results
         )
 
         button_box.pack_start(self._search_button, True, True, 0)
@@ -305,6 +307,9 @@ class MetadataChooser(Gtk.Grid):
     #############
 
     def _on_cache_retrieved(self, order, cache):
+        if order.query is not self._current_query:
+            return
+
         template = select_template(order.query, cache)
         self._content_box.add_widget(template)
 
@@ -313,6 +318,9 @@ class MetadataChooser(Gtk.Grid):
         self._search_button.progress = current / amount
 
     def _on_search_finished(self, order):
+        if order.query is not self._current_query:
+            return
+
         self._search_button.progress = 1.0
 
         # Uh-oh, nothing found? How embarassing.
@@ -325,7 +333,10 @@ class MetadataChooser(Gtk.Grid):
         get_type = self.get_selected_type()
         amount = self._scale.get_value()
 
-        qry = metadata.configure_query(
+        if self._current_query is not None:
+            self._current_query.cancel()
+
+        self._current_query = metadata.configure_query(
             get_type, amount=amount,
             artist=self._entry_map['artist'].get_text(),
             album=self._entry_map['album'].get_text(),
@@ -336,10 +347,13 @@ class MetadataChooser(Gtk.Grid):
         self._search_button.progress = 0.1
 
         g.meta_retriever.push(
-            qry,
+            self._current_query,
             self._on_search_finished,
             self._on_cache_retrieved
         )
+
+    def _on_stop_search_results(self, button):
+        self._current_query = None
 
     def _on_scale_value_changed(self, scale, scale_label):
         scale_label.set_text(str(int(scale.get_value())))

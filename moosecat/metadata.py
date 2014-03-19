@@ -54,7 +54,8 @@ class Retriever(MetadataThreads):
                 'image_min_size': -1,
                 'image_max_size': -1,
                 'timeout': 5.0,
-                'parallel': 4
+                'parallel': 4,
+                'verbosity': 0
             }
         })
 
