@@ -1,6 +1,7 @@
 #!/bin/sh
 
-WAF_VERSION="1.7.9"
+#WAF_VERSION="1.7.9"
+WAF_VERSION="1.7.15"
 
 pre_clean() {
     rm waf .waf-* -rf

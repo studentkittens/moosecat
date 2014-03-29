@@ -1,1 +1,1 @@
-waf && cp build/moosecython.so  moosecat/core/moose.cpython-33m.so
+waf && cp build/moosecython.*so  moosecat/core/moose.cpython-34m.so

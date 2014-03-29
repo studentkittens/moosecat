@@ -8,6 +8,7 @@ import moosecat.gtk.controller as ctrl
 from moosecat.core import Idle
 
 import logging
+import sys
 
 import moosecat.gtk.widgets as widgets
 
@@ -169,7 +170,8 @@ class MoosecatApplication(Gtk.Application):
         self.add_window(window)
         window.show_all()
 
-        ctrl.TrayIcon('')
+        widgets.TrayIconController()
+        # ctrl.TrayIcon('')
 
         # TODO
         # add_keybindings(window, {
@@ -178,7 +180,8 @@ class MoosecatApplication(Gtk.Application):
 
     def do_startup(self):
         settings = Gtk.Settings.get_default()
-        settings.set_property('gtk-application-prefer-dark-theme', True)
+        if '--dark-theme' in sys.argv:
+            settings.set_property('gtk-application-prefer-dark-theme', True)
 
         Gtk.Application.do_startup(self)
 

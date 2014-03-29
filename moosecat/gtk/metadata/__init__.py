@@ -67,8 +67,6 @@ class MetadataBrowser(Gtk.Paned, GtkBrowser):
 
 
 if __name__ == '__main__':
-
-
     with main(metadata=True) as win:
         chooser = MetadataBrowser()
         chooser.do_build()

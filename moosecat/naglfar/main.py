@@ -381,7 +381,7 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 
 
 class GraphPage(Gtk.ScrolledWindow):
-    def __init__(self, width=3500, height=3500):
+    def __init__(self, width=14043, height=9933):
         Gtk.ScrolledWindow.__init__(self)
 
         self._area = Gtk.DrawingArea()
@@ -462,6 +462,10 @@ class GraphPage(Gtk.ScrolledWindow):
                 vx_mapping=self._create_vx_mapping()
             )
             SESSION.data.plot_needs_redraw = False
+
+        ctx.paint()
+        ctx.set_source_rgb(1, 1, 1)
+        ctx.paint()
 
         ctx.set_source_surface(self._surface, 0, 0)
         ctx.paint()

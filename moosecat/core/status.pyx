@@ -108,6 +108,12 @@ cdef class Status:
         def __get__(self):
             return c.mpd_status_get_volume(self._p())
         def __set__(self, vol):
+            if not (0 <= vol <= 100):
+                return
+
+            if vol is self.volume:
+                return
+
             client_send(self._c(), _fmt('setvol', int(vol)))
 
     property repeat:

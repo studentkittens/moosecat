@@ -136,6 +136,7 @@ def _create_logger(name=None, verbosity=logging.DEBUG):
                 return result.replace('[logsymbol]', UNICODE_ICONS[record.levelno])
 
     except ImportError:
+        print('could not import colorlog')
         col_formatter = formatter
     else:
         col_formatter = SymbolFormatter(
