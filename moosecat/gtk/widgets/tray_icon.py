@@ -178,7 +178,13 @@ class TrayIconController:
 
     def _create_menu(self):
         # Note that the visual appearance is already similar to the final menu.
-        # :)
+        # :-)
+
+        is_playing = False
+        with g.client.lock_status() as status:
+            if status.state == Status.Playing:
+                is_playing = True
+
         self._menu = SimplePopupMenu()
         self._menu.simple_add(
             'Show Window',
@@ -193,9 +199,9 @@ class TrayIconController:
         # ------------------------------
         self._menu.simple_add_separator()
         self._menu.simple_add(
-            'Pause',
+            'Play' if is_playing else 'Pause',
             callback=lambda *_: g.client.player_pause(),
-            stock_id='gtk-media-pause'
+            stock_id='gtk-media-play' if is_playing else 'gtk-media-pause'
         )
         self._menu.simple_add(
             'Previous',

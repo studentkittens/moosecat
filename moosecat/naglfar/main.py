@@ -4,10 +4,12 @@
 # Stdlib:
 import os
 import sys
+import time
 import itertools
 import functools
 import logging
 LOGGER = logging.getLogger(__name__)
+from contextlib import contextmanager
 
 # Use deterministic randomness
 import random
@@ -35,6 +37,14 @@ from gi.repository import Gdk
 from gi.repository import GLib
 from gi.repository import Pango
 from gi.repository import GdkPixbuf
+
+
+@contextmanager
+def timeit(topic):
+    start = int(round(time.time() * 1000))
+    yield
+    end = int(round(time.time() * 1000))
+    print(topic, 'took', end - start, 'ms')
 
 
 class ExtraDataNamespace:
@@ -122,9 +132,13 @@ def format_explanation(song_uri):
 
     munin_seed_song = SESSION.mapping[:SESSION.data.seed_song_uri]
     munin_song = SESSION.mapping[:song_uri]
-    overall, detail = SESSION.explain_recommendation(
-        munin_seed_song, munin_song, 10
-    )
+
+    if munin_seed_song is not None:
+        overall, detail = SESSION.explain_recommendation(
+            munin_seed_song, munin_song, 10
+        )
+    else:
+        print('WARNING', song_uri, SESSION.data.seed_song_uri, 'is none')
 
     return '{overall}: {detail}'.format(
         overall=overall,
@@ -382,6 +396,7 @@ class QueuePlaylistWidget(DatabasePlaylistWidget):
 
 class GraphPage(Gtk.ScrolledWindow):
     def __init__(self, width=14043, height=9933):
+    # def __init__(self, width=14043 / 4, height=9933 / 4):
         Gtk.ScrolledWindow.__init__(self)
 
         self._area = Gtk.DrawingArea()
@@ -824,9 +839,10 @@ class RecomControl(Gtk.HBox):
 
         munin_song = SESSION[SESSION.mapping[:current_song_uri]]
         with SESSION.fix_graph():
-            SESSION[SESSION.modify(
-                munin_song, {'rating': slider.stars}
-            )]
+            with timeit('modify'):
+                SESSION[SESSION.modify(
+                    munin_song, {'rating': slider.stars}
+                )]
 
         SESSION.data.plot_needs_redraw = True
 

@@ -67,7 +67,7 @@ class StarSlider(CairoSlider):
 
         ctx.set_source_rgb(i_color.red, i_color.green, i_color.blue)
         ctx.stroke_preserve()
-        ctx.set_source_rgba(0, 0, 0, 0.5)
+        ctx.set_source_rgba(i_color.red, i_color.green, i_color.blue, 0.2)
         ctx.fill_preserve()
         ctx.clip()
         ctx.rectangle(0, 0, self._position, height)
