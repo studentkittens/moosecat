@@ -47,6 +47,8 @@ def make_entry_row(name, icon_name, widget=None):
     image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
     label = Gtk.Label('<b>{}:</b>'.format(name))
     field = widget or Gtk.Entry()
+    if widget is None:
+        field.set_has_frame(False)
     field.set_hexpand(True)
 
     image.set_margin_right(4)
@@ -65,6 +67,8 @@ def make_entry_row(name, icon_name, widget=None):
 class SearchButton(Gtk.Button):
     def __init__(self, cancel_button):
         Gtk.Button.__init__(self)
+        self.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+
         self._cancel_button = cancel_button
 
         image = Gtk.Image.new_from_icon_name(
@@ -173,7 +177,7 @@ class ContentBox(Gtk.ScrolledWindow):
         alloc = widget.get_allocation()
         w, h = alloc.width, alloc.height
 
-        ctx.set_source_rgba(0, 0, 0, 0.2)
+        ctx.set_source_rgba(0, 0, 0, 0.1)
         draw_center_text(ctx, w, h, '⍨', font_size=300)
 
 
@@ -183,6 +187,11 @@ class MetadataChooser(Gtk.Grid):
             GObject.SIGNAL_RUN_FIRST,  # Run-Order
             None,                      # Return Type
             (str, )                    # Parameters
+        ),
+        'toggle-settings': (
+            GObject.SIGNAL_RUN_FIRST,  # Run-Order
+            None,                      # Return Type
+            (bool, )                   # Parameters
         )
     }
 
@@ -255,8 +264,21 @@ class MetadataChooser(Gtk.Grid):
             'clicked', self._on_stop_search_results
         )
 
+        settings_button = Gtk.ToggleButton()
+        settings_button.set_image(Gtk.Image.new_from_icon_name(
+            'gtk-execute', Gtk.IconSize.BUTTON
+        ))
+        settings_button.get_style_context().add_class(
+            Gtk.STYLE_CLASS_SUGGESTED_ACTION
+        )
+        settings_button.connect(
+            'toggled',
+            lambda btn: self.emit('toggle-settings', btn.get_active())
+        )
+
         button_box.pack_start(self._search_button, True, True, 0)
         button_box.pack_start(stop_button, False, False, 0)
+        button_box.pack_start(settings_button, False, False, 0)
 
         self.attach(button_box, 0, 5, 1, 1)
 

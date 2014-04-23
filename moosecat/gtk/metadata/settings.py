@@ -232,7 +232,7 @@ def config_proxy_enum(config_path, values, active=None):
         iterator = combo.get_active_iter()
         if iterator is not None:
             model = combo.get_model()
-            g.config.set(config_path, model[iterator][0])
+            g.config.set(config_path, model[iterator][0].lower())
 
     value = g.config.get(config_path)
     try:
@@ -289,7 +289,7 @@ class SettingsSection(Section):
                 'Normalization',
                 config_proxy_enum(
                     'metadata.normalization',
-                    ['aggressive', 'moderate', 'none'],
+                    ['Aggressive', 'Moderate', 'None'],
                     active=0
                 )
             )
@@ -403,6 +403,9 @@ class DatabaseSection(Section):
 
         view_all_button = Gtk.Button()
         view_all_button.add(button_box)
+        view_all_button.get_style_context().add_class(
+            Gtk.STYLE_CLASS_SUGGESTED_ACTION
+        )
         view_all_button.set_halign(Gtk.Align.END)
         view_all_button.connect(
             'clicked',

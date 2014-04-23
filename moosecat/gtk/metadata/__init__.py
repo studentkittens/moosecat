@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 from moosecat.gtk.runner import main
 from moosecat.gtk.metadata.settings import SettingsChooser
@@ -40,17 +40,29 @@ class MetadataBrowser(Gtk.Paned, GtkBrowser):
             'get-type-changed',
             lambda _, get_type: settings_chooser.update_provider(get_type)
         )
+        chooser.connect(
+            'toggle-settings',
+            lambda _, toggled: self.set_settings_visible(toggled)
+        )
 
         settings_chooser.connect(
             'view-all-in-database',
             view_all_in_database,
             chooser
         )
-
         settings_chooser.update_provider(chooser.get_selected_type())
 
         self.pack1(chooser, True, False)
         self.pack2(scw, False, True)
+
+        GLib.idle_add(lambda: self.set_settings_visible(False))
+
+    def set_settings_visible(self, visible):
+        alloc = self.get_allocation()
+        if not visible:
+            self.set_position(alloc.width)
+        else:
+            self.set_position(alloc.width / 2)
 
     ###################
     #  Browser Stuff  #

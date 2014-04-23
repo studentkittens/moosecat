@@ -13,7 +13,7 @@ from gi.repository import Gtk
 
 
 @contextmanager
-def main(store=False, metadata=False):
+def main(store=False, metadata=False, port=6601):
     win = Gtk.Window()
 
     # Connect to the test-server
@@ -21,7 +21,7 @@ def main(store=False, metadata=False):
         verbosity=logging.DEBUG,
         protocol_machine='idle',
         host='localhost',
-        port=6601
+        port=port
     )
 
     if store:
