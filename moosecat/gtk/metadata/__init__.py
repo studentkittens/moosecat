@@ -62,7 +62,7 @@ class MetadataBrowser(Gtk.Paned, GtkBrowser):
         if not visible:
             self.set_position(alloc.width)
         else:
-            self.set_position(alloc.width / 2)
+            self.set_position(alloc.width / 5 * 3)
 
     ###################
     #  Browser Stuff  #

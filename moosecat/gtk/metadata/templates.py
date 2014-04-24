@@ -3,6 +3,7 @@
 
 # Stdlib:
 import time
+import textwrap
 
 # Internal:
 from moosecat.gtk.utils import plyr_cache_to_pixbuf
@@ -426,7 +427,9 @@ class CoverTemplate(Gtk.Box):
         self.pack_start(cover, False, False, 0)
         self.pack_start(overlay, True, True, 0)
 
-        self.set_size_request(-1, 180)
+        self.set_vexpand(False)
+        self.set_valign(Gtk.Align.START)
+        self.set_size_request(100, 180)
 
 
 class TextTemplate(Gtk.Overlay):
@@ -491,7 +494,7 @@ class TextTemplate(Gtk.Overlay):
         # Insert the main lyrics:
         text_buffer.insert_with_tags(
             text_buffer.get_end_iter(),
-            cache.data.decode('utf-8'),
+            textwrap.fill(cache.data.decode('utf-8'), width=80),
             italic
         )
         # Insert a text padding (sorry, a hack more or less)
@@ -508,8 +511,11 @@ class TextTemplate(Gtk.Overlay):
             control_box
         )
 
+        textview = Gtk.TextView.new_with_buffer(text_buffer)
+        textview.override_background_color(Gtk.StateFlags.NORMAL, bg_color)
+
         scw = Gtk.ScrolledWindow()
-        scw.add(Gtk.TextView.new_with_buffer(text_buffer))
+        scw.add(textview)
 
         self.add(scw)
         self.add_overlay(color_label)
@@ -550,7 +556,7 @@ class TextTemplate(Gtk.Overlay):
         self.add_overlay(grid)
 
         newlines = cache.data.count(b'\n') + 5
-        self.set_size_request(-1, 100 + newlines * 20)
+        self.set_size_request(300, 100 + newlines * 20)
 
     def _on_textbuffer_changed(self, textbuffer, cache, control_box):
         control_box.settable = True
@@ -587,7 +593,7 @@ class ListTemplate(Gtk.Box):
         overlay.add_overlay(control_box)
 
         self.pack_start(overlay, True, True, 0)
-        self.set_size_request(-1, 40)
+        self.set_size_request(100, 40)
 
 
 if __name__ == '__main__':

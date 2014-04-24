@@ -135,12 +135,13 @@ class SearchButton(Gtk.Button):
 class ContentBox(Gtk.ScrolledWindow):
     def __init__(self):
         Gtk.ScrolledWindow.__init__(self)
-        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self._box = Gtk.FlowBox(orientation=Gtk.Orientation.HORIZONTAL)
+        self._box.set_selection_mode(Gtk.SelectionMode.NONE)
         self.set_hexpand(True)
         self.set_vexpand(True)
         self._is_empty = True
         self.add(self._box)
-        self.make_empty()
+        GLib.idle_add(self.make_empty)
 
     def clear(self):
         for child in self._box.get_children():
@@ -148,25 +149,24 @@ class ContentBox(Gtk.ScrolledWindow):
 
     def make_empty(self):
         self.clear()
-
         self._is_empty = True
+        alloc = self.get_allocation()
 
         da = Gtk.DrawingArea()
+        da.set_size_request(alloc.width, alloc.height)
         da.connect('draw', self._render_missing)
-        self._box.pack_start(da, True, True, 0)
-
+        self._box.add(da)
         self.show_all()
 
     def number_of_children(self):
-        return len(list(self._box.get_children())) / 2
+        return len(list(self._box.get_children())) // 2
 
     def add_widget(self, widget):
-        # Remove the "oh, empty Drawing Area
+        # Remove the "oh, empty" Drawing Area
         if self._is_empty:
             self.clear()
             self._is_empty = False
-        self._box.pack_start(widget, False, False, 0)
-        self._box.pack_start(templates.DottedSeparator(), False, False, 0)
+        self._box.add(widget)
         self.show_all()
 
     ##############
@@ -174,9 +174,9 @@ class ContentBox(Gtk.ScrolledWindow):
     ##############
 
     def _render_missing(self, widget, ctx):
-        alloc = widget.get_allocation()
+        alloc = self.get_allocation()
         w, h = alloc.width, alloc.height
-
+        widget.set_size_request(w - w / 10, h - h / 10)
         ctx.set_source_rgba(0, 0, 0, 0.1)
         draw_center_text(ctx, w, h, '⍨', font_size=300)
 
@@ -248,6 +248,9 @@ class MetadataChooser(Gtk.Grid):
             'gtk-quit', Gtk.IconSize.MENU
         )
         stop_button.set_no_show_all(True)
+        stop_button.get_style_context().add_class(
+            Gtk.STYLE_CLASS_SUGGESTED_ACTION
+        )
         stop_button.hide()
 
         self._search_button = SearchButton(stop_button)

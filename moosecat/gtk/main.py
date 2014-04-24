@@ -107,7 +107,8 @@ class ActionContainer(Gtk.Box):
     def __init__(self):
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.HORIZONTAL)
 
-        self.pack_start(align_widget(StarControl()), True, True, 0)
+        # TODO: Move to NowPlaying
+        # self.pack_start(align_widget(StarControl()), True, True, 0)
         self.pack_start(widgets.MenuButton(), True, True, 0)
         self.pack_start(Gtk.VSeparator(), True, True, 1)
 

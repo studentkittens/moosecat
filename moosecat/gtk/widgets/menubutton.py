@@ -11,7 +11,7 @@ from gi.repository import Gtk
 class MenuButton(Gtk.MenuButton):
     def __init__(self):
         Gtk.MenuButton.__init__(self)
-        self.set_margin_top(2)
+        self.set_margin_top(6)
         self.set_margin_bottom(4)
         self.set_margin_left(10)
         self.set_margin_right(4)
