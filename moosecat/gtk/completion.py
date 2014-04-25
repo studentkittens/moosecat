@@ -49,6 +49,7 @@ class FishySearchEntry(GtkSource.View):
 
         # Patterns for Colorization:
         self._patterns = {
+            'qte': re.compile('".*?"'),
             'tag': re.compile('\w+:'),
             'ops': re.compile('(\sAND\s|\sOR\s|\sNOT\s|\.\.|\.\.\.|[\*\+!\|])')
         }
@@ -69,17 +70,12 @@ class FishySearchEntry(GtkSource.View):
 
     def apply_colors(self):
         text = self.get_full_text()
-        quote_start = None
         for idx, char in enumerate(text):
             if char in '()':
                 self.apply_tag('red', idx, idx + 1)
-            elif char is '"':
-                if quote_start is None:
-                    quote_start = idx
-                    continue
-                # Color it:
-                self.apply_tag('green', quote_start, idx + 1)
-                quote_start = None
+
+        for match in self._patterns['qte'].finditer(text):
+            self.apply_tag('green', *match.span())
 
         for match in self._patterns['ops'].finditer(text):
             self.apply_tag('blue', *match.span())
