@@ -75,7 +75,7 @@ static void mc_mtx_free_quotes(void) {
     }                                                             \
 ///////////////////
 
-static bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
+bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
 {
     static const char *tags[] = {
         "uri", "start", "end", "duration",
@@ -125,7 +125,7 @@ static const char *mc_store_qp_is_tag_text(const char *text, size_t len)
 
 ///////////////////
 
-static const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len)
+const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len)
 {
     static const char *abbrev_list[] = {
         ['a'] = "artist:",
@@ -687,11 +687,9 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
             case '!':
                 mc_store_qp_process_operand(data);
                 break;
-
-            default: {
+            default: 
                 mc_store_qp_process_token(data);
                 break;
-            }
             }
         } else {
             mc_store_qp_process_empty(data);

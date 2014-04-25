@@ -355,6 +355,8 @@ cdef extern from "../../lib/store/db.h":
 
 cdef extern from "../../lib/store/db-query-parser.h":
     char *mc_store_qp_parse(char *, char **, int *)
+    char *mc_store_qp_tag_abbrev_to_full(char *, size_t)
+    bool mc_store_qp_is_valid_tag(const char *, size_t)
 
 ###########################################################################
 #                             Misc Interfaces                             #

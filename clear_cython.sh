@@ -1,1 +1,1 @@
-rm -f build/moosecat/core/moose.c; rm -f ./build/moosecat/core/moose.c.12.o; rm build/moosecython.so -f
+rm -f build/moosecat/core/moose.c; rm -f ./build/moosecat/core/moose.c.*.o; rm build/moosecython.so -f

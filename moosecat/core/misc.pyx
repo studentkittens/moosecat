@@ -29,6 +29,10 @@ def register_external_logs(Client client):
     else:
         raise ValueError('client argument may not be None')
 
+###########################################################################
+#                              Query Parsing                              #
+###########################################################################
+
 
 class QueryParseException(Exception):
     '''
@@ -41,6 +45,17 @@ class QueryParseException(Exception):
         self.msg = msg
         self.pos = pos
         Exception.__init__(self, msg)
+
+
+def is_valid_query_tag(tag):
+    b_tag = bytify(tag)
+    return c.mc_store_qp_is_valid_tag(b_tag, len(b_tag))
+
+
+def query_abbrev_to_full(abbrev):
+    b_abbrev = bytify(abbrev)
+    full = stringify(<char *>c.mc_store_qp_tag_abbrev_to_full(b_abbrev, len(b_abbrev)))
+    return full[:-1]
 
 
 def parse_query(query):

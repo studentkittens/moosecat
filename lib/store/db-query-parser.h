@@ -54,6 +54,29 @@
  */
 char *mc_store_qp_parse(const char *query, const char **warning, int *warning_pos);
 
+/**
+ * @brief Convert a abbrev-tag to a full-tag.
+ *
+ * Tags may be abbreviated to save time. This function gives you the full
+ * version.
+ *
+ * @param token The abbrev-tag. 
+ * @param len the length of the tag.
+ *
+ * @return A static string. Do not free.
+ */
+const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len);
+
+/**
+ * @brief Check if this is an valid tag.
+ *
+ * @param tag The tag to check.
+ * @param len The length of the tag.
+ *
+ * @return True if a known tag.
+ */
+bool mc_store_qp_is_valid_tag(const char *tag, size_t len);
+
 
 #endif /* end of include guard: MC_DB_QUERY_PASRSER_HH */
 
