@@ -9,8 +9,13 @@ from gi.repository import GLib, Gtk, Gdk, Pango, GtkSource
 
 # Internal:
 from moosecat.gtk.runner import main
-from moosecat.core import is_valid_query_tag, query_abbrev_to_full
+from moosecat.core import is_valid_query_tag, query_abbrev_to_full, parse_query, QueryParseException
 from moosecat.boot import g
+
+
+def check_completion(text, value):
+    if value.lower().startswith(text):
+        return value[len(text):]
 
 
 class FishySearchEntry(GtkSource.View):
@@ -46,6 +51,9 @@ class FishySearchEntry(GtkSource.View):
             'tag', foreground_rgba=Gdk.RGBA(0.15, 0.6, 0.6),
             weight=Pango.Weight.BOLD
         )
+        buf.create_tag(
+            'error', background_rgba=Gdk.RGBA(1.0, 0.7, 0.7)
+        )
 
         # Patterns for Colorization:
         self._patterns = {
@@ -55,8 +63,7 @@ class FishySearchEntry(GtkSource.View):
         }
 
         self._quote_balanced = True
-        self._current_tag = None
-        self._last_timeout = None
+        self._current_tag = self._last_timeout = None
 
     def get_full_text(self):
         buf = self.get_buffer()
@@ -68,7 +75,6 @@ class FishySearchEntry(GtkSource.View):
         left = text.rfind(' ', 0, right)
         tag = text[left + 1:right]
 
-        print('____TAG: "{}"'.format(tag))
         if len(tag) is 1:
             tag = query_abbrev_to_full(tag)
 
@@ -85,10 +91,7 @@ class FishySearchEntry(GtkSource.View):
                 left = pos
 
         # Nothing found, use start.
-        if left is right:
-            left = 0
-        else:
-            left += 1
+        left = 0 if left is right else left + 1
         return text[left:right + 1].strip().lower()
 
     def apply_tag(self, tag, start, end):
@@ -116,6 +119,51 @@ class FishySearchEntry(GtkSource.View):
             is_tag = is_valid_query_tag(tag) or query_abbrev_to_full(tag)
             self.apply_tag('tag' if is_tag else 'red', *match.span())
 
+    def apply_completion(self, completion):
+        if not completion:
+            return
+
+        buf = self.get_buffer()
+        cursor_pos = buf.get_property('cursor-position')
+        iter_cursor = buf.get_iter_at_offset(cursor_pos)
+        iter_suggestion = buf.get_iter_at_offset(cursor_pos + len(completion))
+
+        # Remember where we inserted our suggestion:
+        buf.create_mark('l', iter_cursor, False)
+        buf.create_mark('r', iter_suggestion, True)
+        buf.insert_with_tags_by_name(iter_cursor, completion, 'grey')
+
+        # Move the cursor back to before the suggestion:
+        self.emit(
+            'move-cursor', Gtk.MovementStep.LOGICAL_POSITIONS,
+            -len(completion), False
+        )
+
+    def apply_query_check(self):
+        text = self.get_full_text()
+
+        try:
+            parse_query(text)
+        except QueryParseException as err:
+            buf = self.get_buffer()
+            iter_l = buf.get_iter_at_offset(err.pos)
+            iter_r = buf.get_iter_at_offset(err.pos)
+            iter_l.backward_word_start()
+            iter_r.forward_word_end()
+
+            buf.create_mark('err_l', iter_l, False)
+            buf.create_mark('err_r', iter_r, True)
+            buf.apply_tag_by_name('error', iter_l, iter_r)
+
+    def remove_error(self):
+        buf = self.get_buffer()
+        marks = buf.get_mark('err_l'), buf.get_mark('err_r')
+        if all(marks):
+            iter_l, iter_r = (buf.get_iter_at_mark(m) for m in marks)
+            buf.remove_tag_by_name('error', iter_l, iter_r)
+            for mark in marks:
+                buf.delete_mark(mark)
+
     def defer_completion(self, text):
         if not text:
             return
@@ -142,7 +190,19 @@ class FishySearchEntry(GtkSource.View):
         buf.delete(iter_l, iter_r)
         for mark in marks:
             buf.delete_mark(mark)
+
         return text
+
+    def check_song(self, song, text):
+        if self._current_tag is not None:
+            test_values = [getattr(song, self._current_tag)]
+        else:
+            test_values = [song.artist, song.album, song.title]
+
+        for test_value in test_values:
+            completion = check_completion(text, test_value)
+            if completion is not None:
+                return completion
 
     #############
     #  Signals  #
@@ -151,60 +211,24 @@ class FishySearchEntry(GtkSource.View):
     def on_do_complete(self, text, cursor_pos):
         self._last_timeout = None
         if not text:
-            return False
+            return
 
         buf = self.get_buffer()
         if cursor_pos != buf.get_property('cursor-position'):
-            return False
+            return
+
+        query = text
+        if self._current_tag is not None:
+            query = '{t}:{v}*'.format(t=self._current_tag, v=text)
 
         completion = None
-
-        if self._current_tag is not None:
-            query = '{tag}:{value}*'.format(tag=self._current_tag, value=text)
-        else:
-            query = text
-
-        def check_completion(text, value):
-            if value.lower().startswith(text):
-                return value[len(text):]
-
-        value = None
         with g.client.store.query(query) as playlist:
             for song in playlist:
-                if self._current_tag is not None:
-                    test_value = getattr(song, self._current_tag)
-                    value = check_completion(text, test_value)
-                else:
-                    for test_value in [song.artist, song.album, song.title]:
-                        value = check_completion(text, test_value)
-                        if value is not None:
-                            break
-                if value is not None:
-                    completion = value
+                completion = self.check_song(song, text)
+                if completion is not None:
                     break
 
-        if completion:
-            iter_cursor = buf.get_iter_at_offset(
-                cursor_pos
-            )
-            iter_suggestion = buf.get_iter_at_offset(
-                cursor_pos + len(completion)
-            )
-
-            # Remember where we inserted our suggestion:
-            buf.create_mark('l', iter_cursor, False)
-            buf.create_mark('r', iter_suggestion, True)
-            buf.insert_with_tags_by_name(
-                iter_cursor, completion, 'grey'
-            )
-
-            # Move the cursor back to before the suggestion:
-            self.emit(
-                'move-cursor', Gtk.MovementStep.LOGICAL_POSITIONS,
-                -len(completion), False
-            )
-
-        return False
+        self.apply_completion(completion)
 
     def on_text_changed(self, text_buffer):
         # Recolor the whole text new.
@@ -212,24 +236,28 @@ class FishySearchEntry(GtkSource.View):
 
     def on_key_press_event(self, widget, event):
         char = chr(Gdk.keyval_to_unicode(event.keyval))
-        suggestion = self.remove_suggestion()
+
+        if char.isprintable() or event.keyval == Gdk.keyval_from_name('BackSpace'):
+            self.remove_suggestion()
+            self.remove_error()
 
         if event.keyval == Gdk.keyval_from_name('Return'):
             # Make it impossible to enter a newline.
             # You still can copy one in though.
+            self.apply_query_check()
             return True
-        elif char is '"':
-            self._quote_balanced = not self._quote_balanced
-            return False
-        elif char is ':':
-            self._current_tag = self.get_tag_at_cursor()
-            return False
-        elif event.keyval == Gdk.keyval_from_name('Tab') and suggestion:
+        elif event.keyval == Gdk.keyval_from_name('Tab'):
+            suggestion = self.remove_suggestion()
             self.get_buffer().insert_at_cursor(suggestion + ' ')
             return True
+
+        if char is '"':
+            self._quote_balanced = not self._quote_balanced
+        elif char is ':':
+            self._current_tag = self.get_tag_at_cursor()
         elif char.isspace():
-            self._current_tag = None
-            return False
+            if self._quote_balanced:
+                self._current_tag = None
         elif char.isprintable():
             text = self.get_full_text() + char
             word = self.get_word_at_cursor(text)
