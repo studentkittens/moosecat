@@ -53,7 +53,7 @@ def is_valid_query_tag(tag):
 
 
 def query_abbrev_to_full(abbrev):
-    b_abbrev = bytify(abbrev)
+    b_abbrev = bytify(abbrev) + b':'
     full = stringify(<char *>c.mc_store_qp_tag_abbrev_to_full(b_abbrev, len(b_abbrev)))
     return full[:-1]
 

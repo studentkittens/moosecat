@@ -54,11 +54,42 @@ class FishySearchEntry(GtkSource.View):
             'ops': re.compile('(\sAND\s|\sOR\s|\sNOT\s|\.\.|\.\.\.|[\*\+!\|])')
         }
 
+        self._quote_balanced = True
+        self._current_tag = None
         self._last_timeout = None
 
     def get_full_text(self):
         buf = self.get_buffer()
         return buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
+
+    def get_tag_at_cursor(self):
+        right = self.get_buffer().get_property('cursor-position')
+        text = self.get_full_text()
+        left = text.rfind(' ', 0, right)
+        tag = text[left + 1:right]
+
+        print('____TAG: "{}"'.format(tag))
+        if len(tag) is 1:
+            tag = query_abbrev_to_full(tag)
+
+        if is_valid_query_tag(tag):
+            return tag
+
+    def get_word_at_cursor(self, text):
+        right = self.get_buffer().get_property('cursor-position')
+        left = -1
+
+        for char in ' :()"' if self._quote_balanced else '":()':
+            pos = text.rfind(char, 0, right)
+            if pos is not -1 and pos > left:
+                left = pos
+
+        # Nothing found, use start.
+        if left is right:
+            left = 0
+        else:
+            left += 1
+        return text[left:right + 1].strip().lower()
 
     def apply_tag(self, tag, start, end):
         buf = self.get_buffer()
@@ -86,52 +117,73 @@ class FishySearchEntry(GtkSource.View):
             self.apply_tag('tag' if is_tag else 'red', *match.span())
 
     def defer_completion(self, text):
-        if len(text) > 1:
-            text = text.strip().lower()
-            if self._last_timeout is not None:
-                GLib.source_remove(self._last_timeout)
+        if not text:
+            return
 
-            timeout = min(300 / len(text), 300)
-            print(timeout)
-            self._last_timeout = GLib.timeout_add(
-                timeout,
-                self.on_do_complete,
-                text
-            )
+        if self._last_timeout is not None:
+            GLib.source_remove(self._last_timeout)
+
+        timeout = min(300 / len(text), 300)
+        self._last_timeout = GLib.timeout_add(
+            timeout,
+            self.on_do_complete,
+            text,
+            self.get_buffer().get_property('cursor-position') + 1
+        )
 
     def remove_suggestion(self):
         buf = self.get_buffer()
-        mark_l, mark_r = buf.get_mark('l'), buf.get_mark('r')
-        if mark_l and mark_r:
-            iter_l = buf.get_iter_at_mark(mark_l)
-            iter_r = buf.get_iter_at_mark(mark_r)
-            text = buf.get_text(iter_l, iter_r, False)
-            buf.delete(iter_l, iter_r)
-            buf.delete_mark(mark_l)
-            buf.delete_mark(mark_r)
-            return text
+        marks = buf.get_mark('l'), buf.get_mark('r')
+        if not any(marks):
+            return None
+
+        iter_l, iter_r = (buf.get_iter_at_mark(m) for m in marks)
+        text = buf.get_text(iter_l, iter_r, False)
+        buf.delete(iter_l, iter_r)
+        for mark in marks:
+            buf.delete_mark(mark)
+        return text
 
     #############
     #  Signals  #
     #############
 
-    def on_do_complete(self, text):
+    def on_do_complete(self, text, cursor_pos):
         self._last_timeout = None
         if not text:
             return False
 
         buf = self.get_buffer()
-        completion = None
-        query = 'artist:{}*'.format(text)
+        if cursor_pos != buf.get_property('cursor-position'):
+            return False
 
-        with g.client.store.query(query, limit_length=1000) as pl:
-            for song in pl:
-                if song.artist.lower().startswith(text):
-                    completion = song.artist[len(text):]
+        completion = None
+
+        if self._current_tag is not None:
+            query = '{tag}:{value}*'.format(tag=self._current_tag, value=text)
+        else:
+            query = text
+
+        def check_completion(text, value):
+            if value.lower().startswith(text):
+                return value[len(text):]
+
+        value = None
+        with g.client.store.query(query) as playlist:
+            for song in playlist:
+                if self._current_tag is not None:
+                    test_value = getattr(song, self._current_tag)
+                    value = check_completion(text, test_value)
+                else:
+                    for test_value in [song.artist, song.album, song.title]:
+                        value = check_completion(text, test_value)
+                        if value is not None:
+                            break
+                if value is not None:
+                    completion = value
                     break
 
         if completion:
-            cursor_pos = buf.get_property('cursor-position')
             iter_cursor = buf.get_iter_at_offset(
                 cursor_pos
             )
@@ -159,39 +211,32 @@ class FishySearchEntry(GtkSource.View):
         self.apply_colors()
 
     def on_key_press_event(self, widget, event):
-        buf = self.get_buffer()
         char = chr(Gdk.keyval_to_unicode(event.keyval))
-
-        # TODO: Handle Backspace. Trigger re-eval.
+        suggestion = self.remove_suggestion()
 
         if event.keyval == Gdk.keyval_from_name('Return'):
             # Make it impossible to enter a newline.
             # You still can copy one in though.
             return True
-        elif event.keyval == Gdk.keyval_from_name('BackSpace'):
-            self.remove_suggestion()
+        elif char is '"':
+            self._quote_balanced = not self._quote_balanced
             return False
-        elif event.keyval == Gdk.keyval_from_name('Tab'):
-            suggestion = self.remove_suggestion()
-            if suggestion is not None:
-                buf.insert_at_cursor(suggestion + ' ')
+        elif char is ':':
+            self._current_tag = self.get_tag_at_cursor()
+            return False
+        elif event.keyval == Gdk.keyval_from_name('Tab') and suggestion:
+            self.get_buffer().insert_at_cursor(suggestion + ' ')
             return True
+        elif char.isspace():
+            self._current_tag = None
+            return False
         elif char.isprintable():
-            # TODO: Properly find last word. Not only spaces matter.
             text = self.get_full_text() + char
-            cursor_position = buf.get_property('cursor-position')
-            fspace_position = text.rfind(' ', 0, cursor_position) + 1
-            text = text[fspace_position:cursor_position + 1]
+            word = self.get_word_at_cursor(text)
+            self.defer_completion(word)
 
-            # Suggest something after some timeout:
-            self.defer_completion(text)
-
-            # Delete the old suggestion:
-            self.remove_suggestion()
-            return False
-        else:
-            # Allow non-printable characters, but do not process them.
-            return False
+        # Allow non-printable characters, but do not process them.
+        return False
 
 ###########################################################################
 #                                  Main                                   #
