@@ -451,6 +451,17 @@ class FishySearchEntryImpl(ViewClass):
 ###########################################################################
 
 
+def get_entry_bg_color():
+    """Get the background color of an Gtk.Entry (hex). We want the same color."""
+    entry = Gtk.Entry()
+    rgb = entry.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
+    return '#{:02x}{:02x}{:02x}'.format(
+        int(0xff * rgb.red),
+        int(0xff * rgb.green),
+        int(0xff * rgb.blue)
+    )
+
+
 class FishyEntryIcon(Gtk.EventBox):
     """Icons around the Searchentry.  """
     __gtype_name__ = 'FishyEntryIcon'
@@ -468,13 +479,12 @@ class FishyEntryIcon(Gtk.EventBox):
         button.connect('clicked', lambda widget: self.emit('clicked'))
 
         # Fix the background color.
-        # TODO: Is probably not white for every theme.
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b"""
-            FishyEntryIcon {
-                background-color: #ffffff;
-            }
-        """)
+        css_provider.load_from_data("""
+            FishyEntryIcon {{
+                background-color: {};
+            }}
+        """.format(get_entry_bg_color()).encode('utf-8'))
 
         # Add the css and fix the button appearance.
         context = Gtk.StyleContext()
@@ -525,7 +535,7 @@ class FishySearchEntry(Gtk.Frame):
         self._entry.connect('trigger-search', self.on_emit_search_changed)
 
         self._lefty = FishyEntryIcon('gtk-find')
-        self._right = FishyEntryIcon('window-close')
+        self._right = FishyEntryIcon('edit-delete')
         self._lefty.connect('clicked', self.on_emit_search_changed)
         self._right.connect('clicked', self.on_right_icon_clicked)
 
@@ -577,30 +587,28 @@ class FishySearchOverlay(Gtk.Overlay):
     def __init__(self):
         Gtk.Overlay.__init__(self)
 
-        entry = FishySearchEntry()
-        entry.set_size_request(400, -1)
-        self.connect('size-allocate', self.on_resize)
-
-        entry.set_hexpand(False)
-        entry.set_vexpand(False)
-        entry.set_valign(Gtk.Align.END)
-        entry.set_halign(Gtk.Align.CENTER)
-
         self._revealer = Gtk.Revealer()
-        self._revealer.add(entry)
-        self.add_overlay(self._revealer)
-        self._revealer.set_transition_duration(750)
+        self._revealer.set_size_request(400, -1)
+        self._revealer.set_hexpand(False)
+        self._revealer.set_vexpand(False)
+        self._revealer.set_valign(Gtk.Align.END)
+        self._revealer.set_halign(Gtk.Align.CENTER)
+
+        self._revealer.add(FishySearchEntry())
+        self._revealer.set_transition_duration(666)
         self._revealer.set_transition_type(
             Gtk.RevealerTransitionType.CROSSFADE
         )
+        self.add_overlay(self._revealer)
+        self.connect('size-allocate', self.on_resize)
         self.hide()
 
     def on_resize(self, widget, alloc):
         # Handle smaller sizes than 400 correctly:
         if alloc.width < 400:
-            self._revealer.get_child().set_size_request(alloc.width, -1)
+            self._revealer.set_size_request(alloc.width, -1)
         else:
-            self._revealer.get_child().set_size_request(400, -1)
+            self._revealer.set_size_request(400, -1)
 
     def hide(self):
         self._revealer.set_reveal_child(False)
