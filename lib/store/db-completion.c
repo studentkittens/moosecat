@@ -19,11 +19,6 @@ typedef struct mc_StoreCompletion {
 //            IMPLEMENTATION              //
 ////////////////////////////////////////////
 
-
-// TODO: Invalidate trees when database changes. 
-//       Hookup for the client-event signal therefore.
-
-
 static art_tree* mc_store_cmpl_create_index(mc_StoreCompletion *self, enum mpd_tag_type tag)
 {
     g_assert(self);
@@ -67,23 +62,9 @@ static int mc_store_cmpl_art_callback(void *data, const unsigned char *key, uint
     return 1;
 }
 
-
-////////////////////////////////////////////
-//               PUBLIC API               //
 ////////////////////////////////////////////
 
-mc_StoreCompletion * mc_store_cmpl_new(struct mc_Store *store)
-{
-    g_assert(store);
-
-    mc_StoreCompletion * self = g_slice_new0(mc_StoreCompletion);
-    self->store = store;
-    return self;
-}
-
-////////////////////////////////////////////
-
-void mc_store_cmpl_free(mc_StoreCompletion *self)
+static void mc_store_cmpl_clear(mc_StoreCompletion *self)
 {
     g_assert(self);
 
@@ -96,6 +77,41 @@ void mc_store_cmpl_free(mc_StoreCompletion *self)
             g_slice_free(art_tree, tree);
         }
     }
+}
+
+////////////////////////////////////////////
+
+static void mc_store_cmpl_client_event(mc_Client *client, enum mpd_idle event, void *user_data)
+{
+    mc_StoreCompletion *self = user_data;
+    mc_store_cmpl_clear(self);
+}
+
+////////////////////////////////////////////
+//               PUBLIC API               //
+////////////////////////////////////////////
+
+mc_StoreCompletion * mc_store_cmpl_new(struct mc_Store *store)
+{
+    g_assert(store);
+
+    mc_StoreCompletion * self = g_slice_new0(mc_StoreCompletion);
+    self->store = store;
+    mc_signal_add_masked(
+        self->store->client, "client-event",
+        mc_store_cmpl_client_event, self, 
+        MPD_IDLE_DATABASE
+    );
+    return self;
+}
+
+////////////////////////////////////////////
+
+void mc_store_cmpl_free(mc_StoreCompletion *self)
+{
+    g_assert(self);
+
+    mc_store_cmpl_clear(self);
 
     self->store = NULL;
     g_slice_free(mc_StoreCompletion, self);
