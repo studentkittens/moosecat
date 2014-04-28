@@ -219,7 +219,6 @@ int main(int argc, char *argv[])
                 } else {
                     g_print("=> No results.\n");
                 }
-
                 mc_store_release(db);
             }
 

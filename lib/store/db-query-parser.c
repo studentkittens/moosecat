@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mpd/tag.h"
+
 
 /* Stores everything the parinsg routines need to know */
 typedef struct {
@@ -75,6 +77,52 @@ static void mc_mtx_free_quotes(void) {
     }                                                             \
 ///////////////////
 
+enum mpd_tag_type mc_store_qp_str_to_tag_enum(const char *tag)
+{
+    if(tag == NULL) {
+        return MPD_TAG_UNKNOWN;
+    }
+
+    if(strcmp(tag, "artist") == 0) {
+        return MPD_TAG_ARTIST; 
+    } else if(strcmp(tag, "album") == 0) {
+        return MPD_TAG_ALBUM;
+    } else if(strcmp(tag, "album_artist") == 0) {
+        return MPD_TAG_ALBUM_ARTIST;
+    } else if(strcmp(tag, "title") == 0) {
+        return MPD_TAG_TITLE;
+    } else if(strcmp(tag, "track") == 0) {
+        return MPD_TAG_TRACK;
+    } else if(strcmp(tag, "name") == 0) {
+        return MPD_TAG_NAME;
+    } else if(strcmp(tag, "genre") == 0) {
+        return MPD_TAG_GENRE;
+    } else if(strcmp(tag, "date") == 0) {
+        return MPD_TAG_DATE;
+    } else if(strcmp(tag, "composer") == 0) {
+        return MPD_TAG_COMPOSER;
+    } else if(strcmp(tag, "performer") == 0) {
+        return MPD_TAG_PERFORMER;
+    } else if(strcmp(tag, "comment") == 0) {
+        return MPD_TAG_COMMENT;
+    } else if(strcmp(tag, "disc") == 0) {
+        return MPD_TAG_DISC;
+    } else if(strcmp(tag, "musicbrainz_artist_id") == 0) {
+        return MPD_TAG_MUSICBRAINZ_ARTISTID;
+    } else if(strcmp(tag, "musicbrainz_album_id") == 0) {
+        return MPD_TAG_MUSICBRAINZ_ALBUMID;
+    } else if(strcmp(tag, "musicbrainz_albumartist_id") == 0) {
+        return MPD_TAG_MUSICBRAINZ_ALBUMARTISTID;
+    } else if(strcmp(tag, "musicbrainz_track_id") == 0) {
+        return MPD_TAG_MUSICBRAINZ_TRACKID;
+    }
+
+    return MPD_TAG_UNKNOWN;
+}
+
+
+///////////////////
+
 bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
 {
     static const char *tags[] = {
@@ -83,7 +131,7 @@ bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
         "album_artist", "track", "name", "genre",
         "composer", "performer", "comment", "disc",
         "musicbrainz_artist_id", "musicbrainz_album_id",
-        "musicbrainz_albumartist_id", "musicbrainz_track",
+        "musicbrainz_albumartist_id", "musicbrainz_track_id",
         "queue_pos", "queue_idx", "always_dummy", "uri_depth",
         NULL
     };

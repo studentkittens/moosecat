@@ -75,3 +75,22 @@ void *mc_stack_at(mc_Stack *self, unsigned at)
         return NULL;
     }
 }
+
+///////////////////////////////
+
+mc_Stack * mc_stack_copy(mc_Stack *self)
+{
+    size_t size = mc_stack_length(self);
+    if(self == NULL || size == 0)
+        return NULL;
+
+    mc_Stack *other = mc_stack_create(size, self->free_func);
+
+    for(size_t i = 0; i < size; ++i) {
+        g_ptr_array_add(other->stack, 
+            g_ptr_array_index(self->stack, i)
+        );
+    }
+
+    return other;
+}

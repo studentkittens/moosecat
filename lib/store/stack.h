@@ -83,5 +83,13 @@ void mc_stack_sort(mc_Stack *self, GCompareFunc func);
  */
 void *mc_stack_at(mc_Stack *self, unsigned at);
 
+
+/**
+ * @brief Copy the stack pointed to by the argument.
+ *
+ * @return A newly allocated, but identical stack.
+ */
+mc_Stack * mc_stack_copy(mc_Stack *self);
+
 #endif /* end of include guard: MC_STORE_STACK_H */
 
