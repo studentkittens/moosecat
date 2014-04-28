@@ -154,16 +154,6 @@ long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack);
  */
 long mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
 
-
-/**
- * @brief 
- *
- * @param self
- *
- * @return 
- */
-mc_Stack * mc_store_get_full_stack_copy(mc_Store *self);
-
 /**
  * @brief Wait for the store to finish it's current operation.
  *

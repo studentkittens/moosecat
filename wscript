@@ -217,7 +217,7 @@ def _find_libmoosecat_src(ctx):
     c_files += ctx.path.ant_glob('lib/misc/*.c')
     c_files += ctx.path.ant_glob('lib/util/*.c')
     c_files += ctx.path.ant_glob('lib/store/*.c')
-    c_files += ctx.path.ant_glob('lib/store/patricia/*.c')
+    c_files += ctx.path.ant_glob('lib/store/libart/*.c')
 
     for exclude in EXCLUDE_FILES:
         exclude_node = ctx.path.make_node(exclude)
@@ -268,6 +268,7 @@ def build(bld):
     build_test_program('lib/samples/test_store_change.c', 'test_store_change')
     build_test_program('lib/samples/test_outputs.c', 'test_outputs')
     build_test_program('lib/samples/test_reconnect.c', 'test_reconnect')
+    build_test_program('lib/samples/test_completion.c', 'test_completion')
     build_test_program('lib/samples/test_gtk.c', 'test_gtk',
         libraries=LIBS + bld.env.LIB_GTK3,
         includes_h=INCLUDES + bld.env.INCLUDES_GTK3

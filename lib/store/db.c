@@ -847,16 +847,6 @@ long mc_store_search_to_stack(
 
 //////////////////////////////
 
-mc_Stack * mc_store_get_full_stack_copy(mc_Store *self) 
-{
-    g_assert(self);
-    
-    mc_stprv_lock_attributes(self);
-    return mc_stack_copy(self->stack);
-}
-
-//////////////////////////////
-
 void mc_store_wait(mc_Store *self)
 {
     mc_jm_wait(self->jm);
