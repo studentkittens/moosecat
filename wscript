@@ -217,6 +217,7 @@ def _find_libmoosecat_src(ctx):
     c_files += ctx.path.ant_glob('lib/misc/*.c')
     c_files += ctx.path.ant_glob('lib/util/*.c')
     c_files += ctx.path.ant_glob('lib/store/*.c')
+    c_files += ctx.path.ant_glob('lib/store/radix/*.c')
 
     for exclude in EXCLUDE_FILES:
         exclude_node = ctx.path.make_node(exclude)
@@ -246,13 +247,13 @@ def build(bld):
 
     def build_test_program(sources, target_name, libraries=LIBS, includes_h=INCLUDES):
         bld.program(
-                source=sources,
-                target=target_name,
-                libdir=['build'],
-                includes=includes_h,
-                lib=libraries,
-                use='moosecat',
-                cflags=CFLAGS
+            source=sources,
+            target=target_name,
+            libdir=['build'],
+            includes=includes_h,
+            lib=libraries,
+            use='moosecat',
+            cflags=CFLAGS
         )
 
         EXCLUDE_FILES.append(sources)
@@ -268,18 +269,18 @@ def build(bld):
     build_test_program('lib/samples/test_outputs.c', 'test_outputs')
     build_test_program('lib/samples/test_reconnect.c', 'test_reconnect')
     build_test_program('lib/samples/test_gtk.c', 'test_gtk',
-            libraries=LIBS + bld.env.LIB_GTK3,
-            includes_h=INCLUDES + bld.env.INCLUDES_GTK3
+        libraries=LIBS + bld.env.LIB_GTK3,
+        includes_h=INCLUDES + bld.env.INCLUDES_GTK3
     )
 
     bld.stlib(
-            source=_find_libmoosecat_src(bld),
-            target='moosecat',
-            install_path='bin',
-            includes=INCLUDES,
-            use='sqlite3',
-            lib=LIBS,
-            cflags=CFLAGS
+        source=_find_libmoosecat_src(bld),
+        target='moosecat',
+        install_path='bin',
+        includes=INCLUDES,
+        use='sqlite3',
+        lib=LIBS,
+        cflags=CFLAGS
     )
 
     # Compile the cython code into build/moose.something.so
