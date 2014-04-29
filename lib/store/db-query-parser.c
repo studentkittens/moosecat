@@ -439,9 +439,9 @@ void mc_store_qp_process_token(mc_StoreParseData *data)
     }
 
 
-    if (strncmp(data->iter, "NOT", token_len) == 0 ||
-            strncmp(data->iter, "AND", token_len) == 0 ||
-            strncmp(data->iter, "OR", token_len)  == 0) {
+    if (strncmp(data->iter, "NOT", 3) == 0 ||
+            strncmp(data->iter, "AND", 3) == 0 ||
+            strncmp(data->iter, "OR", 2)  == 0) {
         /* If no operable was found before, we assume it is a "*" */
         if (data->check.bad_conjunction == true) {
             g_string_append(data->output, "always_dummy:0 ");

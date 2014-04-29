@@ -115,6 +115,12 @@ class FishySearchEntryImpl(ViewClass):
     #  Helper Functions  #
     ######################
 
+    def trigger_explicit(self):
+        if self._last_trigger:
+            GLib.source_remove(self._last_trigger)
+        self._last_trigger = None
+        self.emit('trigger-search')
+
     def clear(self):
         """Clear the content of the Search entry."""
         buf = self.get_buffer()
@@ -162,10 +168,10 @@ class FishySearchEntryImpl(ViewClass):
             iter_l, iter_r = (buf.get_iter_at_mark(m) for m in marks)
             text_l = buf.get_text(buf.get_start_iter(), iter_r, False)
             text_r = buf.get_text(iter_l, buf.get_end_iter(), False)
-            return text_l + text_r
+            return (text_l + text_r).lower().strip()
 
         # We can simply use the full text:
-        return self.get_full_text()
+        return self.get_full_text().lower().strip()
 
     def get_tag_at_cursor(self):
         """Called when encountering a colon.
@@ -387,12 +393,15 @@ class FishySearchEntryImpl(ViewClass):
         if char.isprintable() or event.keyval == Gdk.keyval_from_name('BackSpace'):
             self.remove_suggestion()
             self.remove_error()
+            if not self.get_query():
+                self.trigger_explicit()
+                return False
 
         if event.keyval == Gdk.keyval_from_name('Return'):
             # Make it impossible to enter a newline.
             # You still can copy one in though.
             self.apply_query_check()
-            self.emit('trigger-search')
+            self.trigger_explicit()
             return True
         elif event.keyval == Gdk.keyval_from_name('Tab'):
             # Apply the suggestion.
@@ -400,8 +409,8 @@ class FishySearchEntryImpl(ViewClass):
             self.get_buffer().insert_at_cursor(
                 (suggestion or '') + (self._quote_balanced * ' ')
             )
-            # Filter the Tab.
-            return True
+            self.trigger_explicit()
+            return True  # Filter the Tab.
 
         # Order matters here.
         if char is '"':
@@ -429,7 +438,8 @@ class FishySearchEntryImpl(ViewClass):
             GLib.source_remove(self._last_trigger)
 
         self._last_trigger = GLib.timeout_add(
-            500, self.on_trigger_search_after_timeout
+            max(min(1000 / (len(self.get_query() or 1)), 1000), 400),
+            self.on_trigger_search_after_timeout
         )
 
         # False: Call the default signal handler to inser the char to the View.
@@ -508,8 +518,8 @@ class FishyEntryIcon(Gtk.EventBox):
 
 
 class FishySearchSeparator(Gtk.DrawingArea):
-    """
-    Custom Separator that does not have an transparent background.
+    """Custom Separator that does not have an transparent background.
+
     Gtk.Separator is not usable with Gtk.Overlay you can see a few pixel
     through it.
     """
@@ -559,6 +569,9 @@ class FishySearchEntry(Gtk.Frame):
         box.pack_start(FishySearchSeparator(), False, False, 0)
         box.pack_start(self._right, False, False, 0)
 
+        self._last_query = ''
+        self._full_query = None
+
         align = Gtk.Alignment.new(0, 0, 1, 0)
         align.add(box)
         self.add(align)
@@ -575,16 +588,39 @@ class FishySearchEntry(Gtk.Frame):
         self._lefty.set_tooltip_markup(None)
         self._lefty.set_icon_name('gtk-find')
 
+    def on_full_refresh(self):
+        self._last_query = '*'
+        self._full_query = None
+        self.emit('search-changed', '*')
+
     def on_right_icon_clicked(self, icon):
         """Clear the entry."""
         self._entry.clear()
-        self.emit('search-changed', '*')
+        if self._last_query != '*':
+            self.emit('search-changed', '*')
 
     def on_emit_search_changed(self, widget):
         """Forward the playlist-filter signal"""
         query = self._entry.get_query()
-        if query and self._entry.apply_query_check():
-            self.emit('search-changed', query)
+
+        # We have a new query, cancel the full refresh.
+        if self._full_query:
+            GLib.source_remove(self._full_query)
+            self._full_query = None
+
+        if not query:
+            # Schedule a full refresh and hope it never happens.
+            GLib.timeout_add(300, self.on_full_refresh)
+            return
+
+        if self._last_query == query:
+            return
+
+        if not self._entry.apply_query_check():
+            return
+
+        self._last_query = query
+        self.emit('search-changed', query)
 
 ###########################################################################
 #                             Utility Widgets                             #
@@ -653,4 +689,5 @@ if __name__ == '__main__':
         )
         overlay.add(playlist_widget)
         win.add(overlay)
-        GLib.timeout_add(1000, lambda: overlay.show())
+        win.set_size_request(1000, 500)
+        GLib.timeout_add(500, lambda: overlay.show())
