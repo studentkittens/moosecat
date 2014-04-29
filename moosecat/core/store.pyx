@@ -1,5 +1,6 @@
 cimport binds as c
 from libcpp cimport bool
+from libc.stdlib cimport free
 
 # 'with' statement support
 from contextlib import contextmanager
@@ -94,6 +95,33 @@ cdef class Store:
         cdef c.mc_Store * p = self._p()
         with nogil:
             c.mc_store_wait(p)
+
+    def complete(self, tag, prefix):
+        '''
+        Complete a string of a certan tag (e.g. artist).
+        On the first call a radix-tree is created on the c-side as index
+        for all values of this attributes.
+
+        :param tag: A tag-string.
+        :param prefix: The prefix to complete.
+        '''
+        cdef c.mc_StoreCompletion *completion = c.mc_store_get_completion(self._p())
+
+        b_tag = bytify(tag)
+        tag_id = c.mc_store_qp_str_to_tag_enum(b_tag)
+
+        if tag_id is not c.MPD_TAG_UNKNOWN:
+            if prefix:
+                b_prefix = bytify(prefix)
+                b_suggestion = c.mc_store_cmpl_lookup(completion, tag_id, b_prefix)
+            else:
+                c.mc_store_cmpl_lookup(completion, tag_id, NULL)
+                return None
+
+            if b_suggestion:
+                suggestion = stringify(b_suggestion)
+                free(b_suggestion)
+                return suggestion
 
     @contextmanager
     def query(self, match_clause=None, queue_only=True, limit_length=-1):

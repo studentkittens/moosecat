@@ -77,6 +77,15 @@ const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len);
  */
 bool mc_store_qp_is_valid_tag(const char *tag, size_t len);
 
+/**
+ * @brief Convert a tag string (as used in the parser) to a MPD_TAG_* ID.
+ *
+ * @param tag The string to parse. 
+ *
+ * @return a member of mpd_tag_type.
+ */
+enum mpd_tag_type mc_store_qp_str_to_tag_enum(const char *tag);
+
 
 #endif /* end of include guard: MC_DB_QUERY_PASRSER_HH */
 

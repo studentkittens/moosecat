@@ -334,7 +334,6 @@ cdef extern from "../../lib/store/db.h":
     ctypedef struct mc_Store:
         pass
 
-
     mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
     void mc_store_close(mc_Store *)
     mpd_song *mc_store_song_at(mc_Store *, int)
@@ -351,12 +350,21 @@ cdef extern from "../../lib/store/db.h":
     mc_Stack *mc_store_gw(mc_Store *, int)
     void mc_store_release(mc_Store *)
     mpd_song *mc_store_find_song_by_id(mc_Store *, unsigned)
+    mc_StoreCompletion *mc_store_get_completion(mc_Store*)
 
+cdef extern from "../../lib/store/db-query-parser.h":
+    ctypedef struct mc_StoreCompletion:
+        pass
+
+    mc_StoreCompletion * mc_store_cmpl_new(mc_Store *)
+    void mc_store_cmpl_free(mc_StoreCompletion *)
+    char * mc_store_cmpl_lookup(mc_StoreCompletion *, mpd_tag_type, char *)
 
 cdef extern from "../../lib/store/db-query-parser.h":
     char *mc_store_qp_parse(char *, char **, int *)
     char *mc_store_qp_tag_abbrev_to_full(char *, size_t)
-    bool mc_store_qp_is_valid_tag(const char *, size_t)
+    bool mc_store_qp_is_valid_tag(char *, size_t)
+    mpd_tag_type mc_store_qp_str_to_tag_enum(char *)
 
 ###########################################################################
 #                             Misc Interfaces                             #

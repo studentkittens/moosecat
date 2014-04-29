@@ -11,6 +11,11 @@
 
 #include "../util/job-manager.h"
 
+
+/* Prototype mc_StoreCompletion to prevent circle-include. */
+struct mc_StoreCompletion; 
+
+
 typedef struct mc_Store {
     /* directory db lies in */
     char *db_directory;
@@ -81,6 +86,8 @@ typedef struct mc_Store {
     char * mirrored_host;
 
     GMutex mirrored_mtx;
+
+    struct mc_StoreCompletion* completion;
 
 } mc_Store;
 

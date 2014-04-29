@@ -106,6 +106,11 @@ class FishySearchEntryImpl(ViewClass):
         # The Entry is empy by default, show a default placeholder:
         self.set_placeholder_text()
 
+        # Preload the most common indices:
+        if hasattr(g, 'client'):
+            for tag in ('artist', 'album', 'title'):
+                g.client.store.complete(tag, None)
+
     ######################
     #  Helper Functions  #
     ######################
@@ -326,21 +331,6 @@ class FishySearchEntryImpl(ViewClass):
 
         return text
 
-    def check_song(self, song, text):
-        """Check if a song matches the current suggestion-base.
-
-        This uses the currently set tag (or None) to limit the type.
-        """
-        if self._current_tag is not None:
-            test_values = [getattr(song, self._current_tag)]
-        else:
-            test_values = [song.artist, song.album, song.title]
-
-        # Match criteria: lower-case start is the same.
-        for test_value in test_values:
-            if test_value.lower().startswith(text):
-                return test_value[len(text):]
-
     #####################
     #  Signal Handlers  #
     #####################
@@ -362,17 +352,16 @@ class FishySearchEntryImpl(ViewClass):
             return
 
         # Build the query:
-        query = text
         if self._current_tag is not None:
-            query = '{t}:{v}*'.format(t=self._current_tag, v=text)
+            test_values = [self._current_tag]
+        else:
+            test_values = ('artist', 'album', 'title')
 
-        # Find a nice suggestion. TODO: Might be a bit optimized.
-        completion = None
-        with g.client.store.query(query) as playlist:
-            for song in playlist:
-                completion = self.check_song(song, text)
-                if completion is not None:
-                    break
+        for test_value in test_values:
+            completion = g.client.store.complete(test_value, text)
+            if completion is not None:
+                completion = completion[len(text):]
+                break
 
         # If non-empty, show the completion.
         self.apply_completion(completion)
@@ -627,10 +616,9 @@ class FishySearchOverlay(Gtk.Overlay):
 if __name__ == '__main__':
     from moosecat.gtk.runner import main
 
-    entry = FishySearchOverlay()
-    entry.add(Gtk.Button('Hi.'))
-
     GLib.timeout_add(1000, lambda: entry.show())
 
     with main(store=True, port=6600) as win:
+        entry = FishySearchOverlay()
+        entry.add(Gtk.Button('Hi.'))
         win.add(entry)

@@ -42,11 +42,11 @@ static gboolean timeout_quit(gpointer user_data)
 
 static gboolean timeout_client_change(gpointer user_data)
 {
-    mc_Client * store = user_data;
-    mc_StoreCompletion *cmpl = mc_store_cmpl_new((struct mc_Store *) store);
+    mc_Store *store = user_data;
+    mc_StoreCompletion *cmpl = mc_store_get_completion(store);
+    g_printerr("C %p\n", cmpl);
     g_printerr("P %s\n", mc_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Akrea"));
     g_printerr("P %s\n", mc_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Knork"));
-    mc_store_cmpl_free(cmpl);
     return false;
 }
 
@@ -68,8 +68,8 @@ int main(int argc, char *argv[])
     mc_Store *db = mc_store_create(self, settings);
 
     GMainLoop *loop = g_main_loop_new(NULL, true);
-    g_timeout_add(1000, timeout_client_change, db);
-    g_timeout_add(2000, timeout_quit, loop);
+    g_timeout_add(3000, timeout_client_change, db);
+    g_timeout_add(5000, timeout_quit, loop);
 
     g_main_loop_run(loop);
     g_main_loop_unref(loop);

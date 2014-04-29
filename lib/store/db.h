@@ -2,6 +2,7 @@
 #define DB_GUARD_H
 
 #include "db-store.h"
+#include "db-completion.h"
 
 /*
  * API to serialize songs into
@@ -226,6 +227,21 @@ void mc_store_release(mc_Store *self);
  * @return NULL if not found or a mpd_song struct (do not free!)
  */
 struct mpd_song * mc_store_find_song_by_id(mc_Store * self, unsigned needle_song_id);
+
+/**
+ * @brief Convinience Function to createa mc_StoreCompletion struct.
+ *
+ * The struct will be created on the first call, afterwards the same struct is
+ * returned.  * It will be freed on mc_store_close.
+ * 
+ * You can use mc_store_cmpl_lookup() to get a suggestion for a certain tag and
+ * prefix.
+ *
+ * @param self the store to create the struct on.
+ *
+ * @return a valid mc_StoreCompletion, do not free.
+ */
+mc_StoreCompletion * mc_store_get_completion(mc_Store *self);
 
 
 #endif /* end of include guard: DB_GUARD_H */

@@ -15,8 +15,30 @@ typedef struct mc_StoreCompletion {
     art_tree *trees[MPD_TAG_COUNT];
 } mc_StoreCompletion;
 
+typedef struct mc_StoreCompletionIterTag {
+    mc_StoreCompletion *self;
+    char *result;
+    enum mpd_tag_type tag;
+} mc_StoreCompletionIterTag;
+
 ////////////////////////////////////////////
 //            IMPLEMENTATION              //
+////////////////////////////////////////////
+
+static char * mc_store_cmpl_normalize_string(const char *input)
+{
+    char *utf8_lower = g_utf8_strdown(input, -1);
+    if(utf8_lower != NULL) {
+        char *normalized = g_strstrip(
+            g_utf8_normalize(utf8_lower, -1, G_NORMALIZE_DEFAULT)
+        );
+
+        g_free(utf8_lower);
+        return normalized;
+    }
+    return NULL;
+}
+
 ////////////////////////////////////////////
 
 static art_tree* mc_store_cmpl_create_index(mc_StoreCompletion *self, enum mpd_tag_type tag)
@@ -40,7 +62,12 @@ static art_tree* mc_store_cmpl_create_index(mc_StoreCompletion *self, enum mpd_t
         if(song != NULL) {
             const char *word = mpd_song_get_tag(song, tag, 0);
             if(word != NULL) {
-                art_insert(tree, (unsigned char *)word, strlen(word), song);
+                char *normalized = mc_store_cmpl_normalize_string(word);
+                art_insert(
+                    tree, (unsigned char *)normalized, strlen(normalized),
+                    GINT_TO_POINTER(i)
+                );
+                g_free(normalized);
             }
         }
     }
@@ -53,10 +80,25 @@ static art_tree* mc_store_cmpl_create_index(mc_StoreCompletion *self, enum mpd_t
 
 ////////////////////////////////////////////
 
-static int mc_store_cmpl_art_callback(void *data, const unsigned char *key, uint32_t key_len, void *value)
+static int mc_store_cmpl_art_callback(void *user_data, const unsigned char *key, uint32_t key_len, void *value)
 {
     /* copy the first suggestion, key is not nul-terminated. */
-    *((char **)data) = g_strndup((const char *)key, key_len);
+    mc_StoreCompletionIterTag *data = user_data;
+    int song_idx = GPOINTER_TO_INT(value);
+
+    mc_stprv_lock_attributes(data->self->store); {
+        struct mpd_song *song = mc_stack_at(data->self->store->stack, song_idx);
+        if(song != NULL) {
+            /* Try to retrieve the original song */
+            data->result = g_strdup(mpd_song_get_tag(song, data->tag, 0));
+        }
+    } 
+    mc_stprv_unlock_attributes(data->self->store);
+
+    if(data->result == NULL) {
+        /* Fallback */
+        data->result = g_strndup((const char *)key, key_len);
+    }
 
     /* stop right after the first suggestion */
     return 1;
@@ -65,7 +107,7 @@ static int mc_store_cmpl_art_callback(void *data, const unsigned char *key, uint
 ////////////////////////////////////////////
 
 static void mc_store_cmpl_clear(mc_StoreCompletion *self)
-{
+ {
     g_assert(self);
 
     for(size_t i = 0; i < MPD_TAG_COUNT; ++i) {
@@ -135,12 +177,18 @@ char * mc_store_cmpl_lookup(mc_StoreCompletion *self, enum mpd_tag_type tag, con
         return NULL;
     }
 
+    char *normalized_key = mc_store_cmpl_normalize_string(key);
+    if(normalized_key == NULL) {
+        return NULL;
+    }
+
     /* libart copies the chars, so we do not need to lock the database here */
-    char *suggestion = NULL;
+    mc_StoreCompletionIterTag data = {.self = self, .tag = tag, .result = NULL};
     art_iter_prefix(
-        tree, (unsigned char *)key, strlen(key),
-        mc_store_cmpl_art_callback, &suggestion
+        tree, (unsigned char *)normalized_key, strlen(key),
+        mc_store_cmpl_art_callback, &data
     );
 
-    return suggestion;
+    g_free(normalized_key);
+    return data.result;
 }

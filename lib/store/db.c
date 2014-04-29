@@ -335,8 +335,13 @@ static void mc_store_shutdown(mc_Store * self)
     mc_stprv_close_handle(self, true);
     self->handle = NULL;
 
-    if (self->settings->use_memory_db == false)
+    if (self->settings->use_memory_db == false) {
         g_unlink(MC_STORE_TMP_DB_PATH);
+    }
+
+    if(self->completion != NULL) {
+        mc_store_cmpl_free(self->completion);
+    }
 
     g_free(db_path);
 }
@@ -901,4 +906,17 @@ struct mpd_song * mc_store_find_song_by_id(mc_Store * self, unsigned needle_song
         return song;
     }
     return NULL;
+}
+
+//////////////////////////////
+
+mc_StoreCompletion * mc_store_get_completion(mc_Store *self) 
+{
+    g_assert(self);
+
+    if(self->completion == NULL) {
+        self->completion = mc_store_cmpl_new(self);
+    }
+
+    return self->completion;
 }
