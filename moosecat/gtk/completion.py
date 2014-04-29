@@ -118,7 +118,7 @@ class FishySearchEntryImpl(ViewClass):
     def trigger_explicit(self):
         if self._last_trigger:
             GLib.source_remove(self._last_trigger)
-        self._last_trigger = None
+            self._last_trigger = None
         self.emit('trigger-search')
 
     def clear(self):
@@ -393,7 +393,9 @@ class FishySearchEntryImpl(ViewClass):
         if char.isprintable() or event.keyval == Gdk.keyval_from_name('BackSpace'):
             self.remove_suggestion()
             self.remove_error()
-            if not self.get_query():
+
+        if event.keyval == Gdk.keyval_from_name('BackSpace'):
+            if len(self.get_full_text()) is 1:
                 self.trigger_explicit()
                 return False
 
@@ -438,7 +440,7 @@ class FishySearchEntryImpl(ViewClass):
             GLib.source_remove(self._last_trigger)
 
         self._last_trigger = GLib.timeout_add(
-            max(min(1000 / (len(self.get_query() or 1)), 1000), 400),
+            max(min(1000 / (len(self.get_query()) or 1), 1000), 400),
             self.on_trigger_search_after_timeout
         )
 
@@ -610,7 +612,7 @@ class FishySearchEntry(Gtk.Frame):
 
         if not query:
             # Schedule a full refresh and hope it never happens.
-            GLib.timeout_add(300, self.on_full_refresh)
+            GLib.timeout_add(666, self.on_full_refresh)
             return
 
         if self._last_query == query:
