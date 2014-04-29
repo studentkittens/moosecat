@@ -440,15 +440,17 @@ class FishySearchEntryImpl(ViewClass):
 ###########################################################################
 
 
-def get_entry_bg_color():
-    """Get the background color of an Gtk.Entry (hex). We want the same color."""
+def get_entry_bg_color(flag=Gtk.StateFlags.NORMAL, use_hex=True):
+    "Get the background color of an Gtk.Entry (hex). We want the same color."
     entry = Gtk.Entry()
-    rgb = entry.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
-    return '#{:02x}{:02x}{:02x}'.format(
-        int(0xff * rgb.red),
-        int(0xff * rgb.green),
-        int(0xff * rgb.blue)
-    )
+    rgb = entry.get_style_context().get_background_color(flag)
+    if use_hex:
+        return '#{:02x}{:02x}{:02x}'.format(
+            int(0xff * rgb.red),
+            int(0xff * rgb.green),
+            int(0xff * rgb.blue)
+        )
+    return rgb
 
 
 class FishyEntryIcon(Gtk.EventBox):
@@ -505,6 +507,28 @@ class FishyEntryIcon(Gtk.EventBox):
             child.set_tooltip_markup(tooltip)
 
 
+class FishySearchSeparator(Gtk.DrawingArea):
+    """
+    Custom Separator that does not have an transparent background.
+    Gtk.Separator is not usable with Gtk.Overlay you can see a few pixel
+    through it.
+    """
+    def __init__(self, horizontal=True):
+        Gtk.DrawingArea.__init__(self)
+        self._bg = get_entry_bg_color(flag=Gtk.StateFlags.ACTIVE, use_hex=False)
+
+        if horizontal:
+            self.set_size_request(1, -1)
+        else:
+            self.set_size_request(-1, 1)
+
+        self.connect('draw', self.on_draw)
+
+    def on_draw(self, da, ctx):
+        ctx.set_source_rgb(self._bg.red, self._bg.green, self._bg.blue)
+        ctx.paint()
+
+
 class FishySearchEntry(Gtk.Frame):
     """The actual completion-entry widget. Use this in the application.
 
@@ -530,9 +554,9 @@ class FishySearchEntry(Gtk.Frame):
 
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         box.pack_start(self._lefty, False, False, 0)
-        box.pack_start(Gtk.HSeparator(), False, False, 0)
+        box.pack_start(FishySearchSeparator(), False, False, 0)
         box.pack_start(self._entry, True, True, 0)
-        box.pack_start(Gtk.HSeparator(), False, False, 0)
+        box.pack_start(FishySearchSeparator(), False, False, 0)
         box.pack_start(self._right, False, False, 0)
 
         align = Gtk.Alignment.new(0, 0, 1, 0)
@@ -554,13 +578,13 @@ class FishySearchEntry(Gtk.Frame):
     def on_right_icon_clicked(self, icon):
         """Clear the entry."""
         self._entry.clear()
+        self.emit('search-changed', '*')
 
     def on_emit_search_changed(self, widget):
         """Forward the playlist-filter signal"""
         query = self._entry.get_query()
         if query and self._entry.apply_query_check():
             self.emit('search-changed', query)
-
 
 ###########################################################################
 #                             Utility Widgets                             #
@@ -615,10 +639,18 @@ class FishySearchOverlay(Gtk.Overlay):
 
 if __name__ == '__main__':
     from moosecat.gtk.runner import main
+    from moosecat.gtk.widgets import BrowserBar
+    from moosecat.gtk.browser.queue import QueuePlaylistWidget
 
-    GLib.timeout_add(1000, lambda: entry.show())
+    def search_changed(entry, query, playlist_widget):
+        playlist_widget.do_search(query)
 
     with main(store=True, port=6600) as win:
-        entry = FishySearchOverlay()
-        entry.add(Gtk.Button('Hi.'))
-        win.add(entry)
+        playlist_widget = QueuePlaylistWidget()
+        overlay = FishySearchOverlay()
+        overlay.get_entry().connect(
+            'search-changed', search_changed, playlist_widget
+        )
+        overlay.add(playlist_widget)
+        win.add(overlay)
+        GLib.timeout_add(1000, lambda: overlay.show())

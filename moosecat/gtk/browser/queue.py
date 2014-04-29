@@ -9,7 +9,13 @@ class QueuePlaylistWidget(PlaylistWidget):
     'The content of a Notebook Tab, implementing a custom search for Playlists'
     def __init__(self):
         PlaylistWidget.__init__(self, col_names=(
-            '<pixbuf>:', 'Track', 'Artist', 'Album', 'Title', 'Date', 'Genre'
+            ('<pixbuf>:', 30),
+            ('Track', 50),
+            ('Artist', 150),
+            ('Album', 200),
+            ('Title', 250),
+            ('Date', 100),
+            ('Genre', 200)
         ))
         self._create_menu()
 
@@ -28,13 +34,13 @@ class QueuePlaylistWidget(PlaylistWidget):
         with g.client.store.query(query, queue_only=True) as playlist:
             self.set_model(PlaylistTreeModel([
                 ('gtk-yes' if song.queue_id == queue_id else 'gtk',
-                song.track,
-                song.artist or song.album_artist,
-                song.album,
-                song.title,
-                song.date,
-                song.genre,
-                song.queue_id) for song in playlist
+                    song.track,
+                    song.artist or song.album_artist,
+                    song.album,
+                    song.title,
+                    song.date,
+                    song.genre,
+                    song.queue_id) for song in playlist
             ], n_columns=7))
 
     def do_row_activated(self, row):
