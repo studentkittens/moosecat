@@ -28,6 +28,7 @@ class KeyHandler:
         if callback is not None:
             LOGGER.debug('Keypress ' + event.string + ' on ' + str(widget))
             rc = callback(self._widget, event)
+            print('called. also:', rc)
             return bool(rc) if rc is not None else True
         return False
 
@@ -39,8 +40,8 @@ def parse_key_descr(descr):
 def add_keybindings(widget, key_dict, enable_extra_events=False):
     if enable_extra_events:
         widget.add_events(
-                Gdk.EventMask.BUTTON_PRESS_MASK |
-                Gdk.EventMask.BUTTON_RELEASE_MASK
+            Gdk.EventMask.BUTTON_PRESS_MASK |
+            Gdk.EventMask.BUTTON_RELEASE_MASK
         )
 
     handler = KeyHandler(widget, key_dict)

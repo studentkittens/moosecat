@@ -18,6 +18,7 @@ except ImportError:
 
 # Internal:
 from moosecat.boot import g
+from moosecat.gtk.utils import add_keybindings
 from moosecat.core import \
     is_valid_query_tag, query_abbrev_to_full, \
     parse_query, QueryParseException
@@ -59,6 +60,7 @@ class FishySearchEntryImpl(ViewClass):
 
         # Move the text a bit down, so it's centered. Sadly, hardcoded.
         self.set_border_window_size(Gtk.TextWindowType.TOP, 8)
+        self.set_can_focus(True)
 
         ######################################
         #  Text Tags for Syntax Highlighting #
@@ -408,9 +410,10 @@ class FishySearchEntryImpl(ViewClass):
         elif event.keyval == Gdk.keyval_from_name('Tab'):
             # Apply the suggestion.
             suggestion = self.remove_suggestion()
-            self.get_buffer().insert_at_cursor(
-                (suggestion or '') + (self._quote_balanced * ' ')
-            )
+            if suggestion:
+                self.get_buffer().insert_at_cursor(
+                    suggestion + (self._quote_balanced * ' ')
+                )
             self.trigger_explicit()
             return True  # Filter the Tab.
 
@@ -480,6 +483,7 @@ class FishyEntryIcon(Gtk.EventBox):
 
         # Forward the clicked-signal.
         button.connect('clicked', lambda widget: self.emit('clicked'))
+        button.set_can_focus(False)
 
         # Fix the background color.
         css_provider = Gtk.CssProvider()
@@ -578,6 +582,10 @@ class FishySearchEntry(Gtk.Frame):
         align.add(box)
         self.add(align)
 
+    def get_widget(self):
+        """Returns the TextView widget that should receive focus"""
+        return self._entry
+
     def on_parse_error(self, entry, pos, msg):
         """Show an error and a tooltip"""
         self._lefty.set_icon_name('dialog-error')
@@ -599,7 +607,7 @@ class FishySearchEntry(Gtk.Frame):
         """Clear the entry."""
         self._entry.clear()
         if self._last_query != '*':
-            self.emit('search-changed', '*')
+            GLib.timeout_add(10, lambda: self.emit('search-changed', '*'))
 
     def on_emit_search_changed(self, widget):
         """Forward the playlist-filter signal"""
@@ -645,7 +653,8 @@ class FishySearchOverlay(Gtk.Overlay):
         self._revealer.set_valign(Gtk.Align.END)
         self._revealer.set_halign(Gtk.Align.CENTER)
 
-        self._revealer.add(FishySearchEntry())
+        entry = FishySearchEntry()
+        self._revealer.add(entry)
         self._revealer.set_transition_duration(666)
         self._revealer.set_transition_type(
             Gtk.RevealerTransitionType.CROSSFADE
@@ -654,6 +663,10 @@ class FishySearchOverlay(Gtk.Overlay):
         self.connect('size-allocate', self.on_resize)
         self.hide()
 
+        add_keybindings(entry.get_widget(), {
+            '<Ctrl>e': lambda view, key: self.hide()
+        })
+
     def on_resize(self, widget, alloc):
         # Handle smaller sizes than 400 correctly:
         if alloc.width < 400:
@@ -661,11 +674,25 @@ class FishySearchOverlay(Gtk.Overlay):
         else:
             self._revealer.set_size_request(400, -1)
 
+    def add(self, child):
+        add_keybindings(child, {
+            '<Ctrl>e': lambda view, key: self.show(),
+            '/': lambda view, key: self.show(),
+        })
+
+        Gtk.Overlay.add(self, child)
+
     def hide(self):
         self._revealer.set_reveal_child(False)
+        if self.get_child():
+            self.get_child().grab_focus()
+
+        return True
 
     def show(self):
         self._revealer.set_reveal_child(True)
+        self._revealer.get_child().grab_focus()
+        return True
 
     def get_entry(self):
         return self._revealer.get_child()

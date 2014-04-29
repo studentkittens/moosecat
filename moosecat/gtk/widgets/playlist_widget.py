@@ -22,7 +22,10 @@ class PlaylistWidget(Gtk.ScrolledWindow):
         # Treeview Configuration
         self._view = Gtk.TreeView(model=None)
         self._view.set_fixed_height_mode(True)
-        self._view.set_rules_hint(True)
+        # self._view.set_rules_hint(True)
+        self._view.set_enable_search(False)
+        self._view.set_search_column(-1)
+
         self._view.connect('row-activated', self._on_row_activated)
         self._view.connect('button-press-event', self._on_button_press_event)
 
