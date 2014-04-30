@@ -5,7 +5,7 @@ from gi.repository import Gtk, Pango, GObject, GLib
 # Code below is somewhat optimized and is a little harder to read then I'd like.
 # Things to note:
 #  * Access of iter_.user_data is slow, so always save a reference
-#  * Access of user_data is slow (involces g_property_get())
+#  * Access of user_data is slow (involves g_property_get())
 #  * Only suitable for Lists, not for Trees.
 
 
@@ -41,7 +41,7 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
             return (False, None)
 
     def do_iter_next(self, iter_):
-        """Returns an iter pointing to the next column or None.
+        """Returns an iter pointing to the next row or None.
 
         The implementation returns a 2-tuple (bool, TreeIter|None).
         """
@@ -51,6 +51,14 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
             return (True, iter_)
         elif ud < self._num_rows_minus_one:
             iter_.user_data = ud + 1
+            return (True, iter_)
+        else:
+            return (False, None)
+
+    def do_iter_previous(self, iter_):
+        ud = iter_.user_data
+        if ud > 0:
+            iter_.user_data = ud - 1
             return (True, iter_)
         else:
             return (False, None)

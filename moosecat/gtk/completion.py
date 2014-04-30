@@ -318,7 +318,7 @@ class FishySearchEntryImpl(ViewClass):
 
         # Calculate the timeout. 300 is the max. 100 the min.
         self._last_timeout = GLib.timeout_add(
-            max(min(400 / len(text), 400), 100),
+            max(min(300 / len(text), 300), 100),
             self.on_do_complete,
             text,
             self.get_buffer().get_property('cursor-position') + 1
