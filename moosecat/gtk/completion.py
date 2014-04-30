@@ -702,6 +702,27 @@ class FishySearchOverlay(Gtk.Overlay):
 ###########################################################################
 
 
+def remove_ctrlf():
+    # TODO: Hack, write nicer.
+    css_provider = Gtk.CssProvider()
+    css_provider.load_from_data("""
+        @binding-set unbind_search {
+            unbind "<Control>f";
+        }
+
+        GtkTreeView {
+            gtk-key-bindings: unbind_search;
+        }
+    """.encode('utf-8'))
+
+    context = Gtk.StyleContext()
+    context.add_provider_for_screen(
+        Gdk.Screen.get_default(),
+        css_provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_USER
+    )
+
+
 if __name__ == '__main__':
     from moosecat.gtk.runner import main
     from moosecat.gtk.widgets import BrowserBar
@@ -709,6 +730,8 @@ if __name__ == '__main__':
 
     def search_changed(entry, query, playlist_widget):
         playlist_widget.do_search(query)
+
+    remove_ctrlf()
 
     with main(store=True, port=6600) as win:
         playlist_widget = QueuePlaylistWidget()

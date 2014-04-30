@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, Gdk, GLib
 from moosecat.boot import boot_base, boot_store, boot_metadata, shutdown_application, g
 from moosecat.gtk.utils import add_keybindings
 import moosecat.gtk.controller as ctrl
