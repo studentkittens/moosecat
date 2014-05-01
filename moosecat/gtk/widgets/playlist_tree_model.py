@@ -1,5 +1,5 @@
 from gi.repository import Gtk, Pango, GObject, GLib
-
+from functools import lru_cache
 
 # Note:
 # Code below is somewhat optimized and is a little harder to read then I'd like.
@@ -11,6 +11,8 @@ from gi.repository import Gtk, Pango, GObject, GLib
 
 class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
     def __init__(self, data, n_columns=None):
+        super(PlaylistTreeModel, self).__init__()
+
         self.data = data
         self._num_rows = len(self.data)
         self._num_rows_minus_one = self._num_rows - 1
@@ -21,8 +23,7 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         else:
             self._n_columns = n_columns
 
-        GObject.GObject.__init__(self)
-
+    @lru_cache(maxsize=256)
     def __getitem__(self, path):
         return self.data[path.get_indices()[0]]
 
@@ -67,13 +68,15 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
         """True if iter has children."""
         return False
 
-    def do_iter_nth_child(self, iter_, n):
+    def do_iter_nth_child(self, parent, n):
         """Return iter that is set to the nth child of iter."""
         # We've got a flat list here, so iter_ is always None and the
         # nth child is the row.
-        iter_ = Gtk.TreeIter()
-        iter_.user_data = n
-        return (True, iter_)
+        if parent is None and 0 <= n < self._num_rows:
+            iter_ = Gtk.TreeIter()
+            iter_.user_data = n
+            return (True, iter_)
+        return (False, None)
 
     def do_get_path(self, iter_):
         """Returns tree path references by iter."""
@@ -95,7 +98,6 @@ class PlaylistTreeModel(GObject.GObject, Gtk.TreeModel):
 
     def do_get_column_type(self, column):
         """Returns the type of the column."""
-        # Here we only have strings.
         return str
 
     def do_get_flags(self):

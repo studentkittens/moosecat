@@ -1,17 +1,16 @@
 #!/usr/bin/env python
-#encoding: utf-8
+# encoding: utf-8
+
 import subprocess
 import urllib.request
 import traceback
 import shutil
 import zipfile
+import glob
 import sys
 import os
 
-
 from waflib import Logs
-from waflib import Task
-from waflib.TaskGen import feature, after_method
 from waflib.Tools import waf_unit_test
 
 # Global:
@@ -20,13 +19,17 @@ APPNAME = 'moosecat'
 VERSION = '0.0.1'
 
 # Needed/Adviceable flags:
-CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-g', '-O']
+CFLAGS = ['-std=c99', '-pipe', '-fPIC', '-g', '-O', '-lto']
 
 # Optional flags:
 CFLAGS += ['-Wall', '-W', '-Wno-unused-parameter', '-Wno-unused-value']
 
 # Sqlite Flags:
-CFLAGS += ['-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1', '-DSQLITE_ENABLE_FTS3', '-DSQLITE_ENABLE_FTS3_PARENTHESIS']
+CFLAGS += [
+    '-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1',
+    '-DSQLITE_ENABLE_FTS3',
+    '-DSQLITE_ENABLE_FTS3_PARENTHESIS'
+]
 
 # These files are not built into libmoosecat.so
 EXCLUDE_FILES = []
@@ -37,9 +40,6 @@ EXCLUDE_FILES = []
 ###########################################################################
 
 
-TEMP_PATH = 'extracted'
-
-
 def download_sqlite_amalgamation(url):
     try:
         if os.path.exists('ext/sqlite'):
@@ -48,7 +48,8 @@ def download_sqlite_amalgamation(url):
             Logs.info('  [DOWNLOADING]: {url}'.format(url=url))
             zipped_file = download(url)
             Logs.info('  [EXTRACTING]: {zipfl}'.format(zipfl=zipped_file))
-            extracted_files = extract(zipped_file)
+            zipfile.ZipFile(zipped_file, 'r').extractall()
+            extracted_files = glob.glob('sqlite3*.[ch]')
             Logs.info('  [COPYING]: {files}'.format(files=extracted_files))
             copy(extracted_files)
             Logs.info('  [CLEANING]')
@@ -68,24 +69,11 @@ def download(url):
         Logs.warn('Invalid URL? {error}'.format(error=err))
 
 
-def extract(zfile):
-    try:
-        zipfile.ZipFile(zfile, 'r').extractall()
-        shutil.move(zfile[:-4], TEMP_PATH)
-        files = os.listdir(TEMP_PATH)
-        return [os.path.join(TEMP_PATH, x) for x in files if x.upper() != 'SHELL.C']
-    except shutil.Error:
-        Log.warn('path {temp} already exists.'.format(TEMP_PATH))
-
-
 def copy(files):
     try:
         cpath = 'ext/sqlite'
         hpath = 'ext/sqlite/inc'
-        if not os.path.exists(cpath):
-            os.mkdir(cpath)
-        if not os.path.exists(hpath):
-            os.mkdir(hpath)
+        os.makedirs('ext/sqlite/inc', exist_ok=True)
         for f in files:
             if f.endswith('c'):
                 shutil.copy(f, cpath)
@@ -97,8 +85,8 @@ def copy(files):
 
 def clean(zfile):
     try:
-        shutil.move(zfile, TEMP_PATH)
-        shutil.rmtree(TEMP_PATH, ignore_errors=True)
+        os.remove(zfile)
+        os.remove('shell.c')
     except shutil.Error as err:
         print('Error during clean up. {error}'.format(error=err))
 
@@ -111,9 +99,11 @@ def options(opt):
         opt.load('compiler_c')
         opt.load('python')
         opt.load('cython')
-        #opt.load('cython_cache', tooldir='.')
+        # opt.load('cython_cache', tooldir='.')
 
-        opt.add_option('--runtests', action='store', default=False, help='Build & Run tests')
+        opt.add_option(
+            '--runtests', action='store', default=False, help='Build & Run tests'
+        )
 
 
 def define_config_h(conf):
@@ -168,7 +158,7 @@ def configure(conf):
 
     # Get the SQLite source
     Logs.info("Retrieving SQLite source")
-    SQLITE_AMALGAMATION = 'http://www.sqlite.org/2013/sqlite-amalgamation-3071601.zip'
+    SQLITE_AMALGAMATION = 'http://sqlite.org/snapshot/sqlite-amalgamation-201404281756.zip'
     download_sqlite_amalgamation(SQLITE_AMALGAMATION)
 
     # Try to find git
@@ -176,27 +166,27 @@ def configure(conf):
 
     # Use pkg-config to find out l/cflags
     conf.check_cfg(
-            package='glib-2.0',
-            uselib_store='GLIB',
-            args='--libs --cflags'
+        package='glib-2.0',
+        uselib_store='GLIB',
+        args='--libs --cflags'
     )
 
     conf.check_cfg(
-            package='gtk+-2.0',
-            uselib_store='GTK3',
-            args='--libs --cflags'
+        package='gtk+-2.0',
+        uselib_store='GTK3',
+        args='--libs --cflags'
     )
 
     conf.check_cfg(
-            package='zlib',
-            uselib_store='ZLIB',
-            args='--libs --cflags'
+        package='zlib',
+        uselib_store='ZLIB',
+        args='--libs --cflags'
     )
 
     conf.check_cfg(
-            package='avahi-glib avahi-client',
-            uselib_store='AVAHI_GLIB',
-            args='--libs --cflags'
+        package='avahi-glib avahi-client',
+        uselib_store='AVAHI_GLIB',
+        args='--libs --cflags'
     )
 
     # Create lib/config.h. Includes basic Version/Feature Info.
@@ -231,13 +221,6 @@ def _find_libmoosecat_src(ctx):
 
 
 def _find_cython_src(ctx):
-    '''
-    Find all .pyx files in moosecat/core,
-    and return them.
-    '''
-    #if ctx.options.cython_dev:
-    #    return ctx.path.ant_glob('moosecat/core/*.pyx')
-    #else:
     return 'moosecat/core/moose.pyx'
 
 
@@ -258,7 +241,7 @@ def build(bld):
 
         EXCLUDE_FILES.append(sources)
 
-    #build_test_program('lib/misc/metadata-threads.c', 'mdthreads')
+    # build_test_program('lib/misc/metadata-threads.c', 'mdthreads')
     build_test_program('lib/samples/test_status_timer.c', 'test_status_timer')
     build_test_program('lib/samples/test_command_list.c', 'test_command_list')
     build_test_program('lib/samples/test_client.c', 'test_client')
@@ -269,7 +252,8 @@ def build(bld):
     build_test_program('lib/samples/test_outputs.c', 'test_outputs')
     build_test_program('lib/samples/test_reconnect.c', 'test_reconnect')
     build_test_program('lib/samples/test_completion.c', 'test_completion')
-    build_test_program('lib/samples/test_gtk.c', 'test_gtk',
+    build_test_program(
+        'lib/samples/test_gtk.c', 'test_gtk',
         libraries=LIBS + bld.env.LIB_GTK3,
         includes_h=INCLUDES + bld.env.INCLUDES_GTK3
     )
@@ -298,14 +282,14 @@ def build(bld):
     if bld.options.runtests:
         for path in bld.path.ant_glob('test/lib/**/*.c'):
             bld.program(
-                    features='test',
-                    source=path.relpath(),
-                    target='test_' + os.path.basename(path.abspath()),
-                    includes=INCLUDES,
-                    lib=LIBS,
-                    install_path='bin',
-                    use='moosecat',
-                    cflags=CFLAGS
+                features='test',
+                source=path.relpath(),
+                target='test_' + os.path.basename(path.abspath()),
+                includes=INCLUDES,
+                lib=LIBS,
+                install_path='bin',
+                use='moosecat',
+                cflags=CFLAGS
             )
 
         bld.add_post_fun(waf_unit_test.summary)

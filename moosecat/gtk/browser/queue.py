@@ -5,6 +5,18 @@ from moosecat.boot import g
 from gi.repository import Gtk, Gdk
 
 
+from contextlib import contextmanager
+import time
+
+
+@contextmanager
+def timeit(topic):
+    start = int(round(time.time() * 1000))
+    yield
+    end = int(round(time.time() * 1000))
+    print(topic, 'took', end - start, 'ms')
+
+
 class QueuePlaylistWidget(PlaylistWidget):
     'The content of a Notebook Tab, implementing a custom search for Playlists'
     def __init__(self):
@@ -27,12 +39,12 @@ class QueuePlaylistWidget(PlaylistWidget):
     def do_search(self, query):
         # Get the QueueId of the currently playing song.
         queue_id = -1
-        with g.client.lock_currentsong() as song:
-            if song is not None:
-                queue_id = song.queue_id
+        with g.client.lock_currentsong() as current_song:
+            if current_song is not None:
+                queue_id = current_song.queue_id
 
         with g.client.store.query(query, queue_only=True) as playlist:
-            self.set_model(PlaylistTreeModel([
+            model = PlaylistTreeModel([
                 ('gtk-yes' if song.queue_id == queue_id else 'gtk',
                     song.track,
                     song.artist or song.album_artist,
@@ -41,7 +53,8 @@ class QueuePlaylistWidget(PlaylistWidget):
                     song.date,
                     song.genre,
                     song.queue_id) for song in playlist
-            ], n_columns=7))
+            ], n_columns=7)
+            self.set_model(model)
 
     def do_row_activated(self, row):
         *_, queue_id = row
