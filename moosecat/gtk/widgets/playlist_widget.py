@@ -1,6 +1,7 @@
 from gi.repository import Gtk, Gdk
 from moosecat.core import parse_query, QueryParseException
 from moosecat.gtk.widgets import PlaylistTreeModel
+from moosecat.gtk.widgets.action_dialog import create_action_popover
 from moosecat.gtk.utils import add_keybindings
 
 
@@ -8,8 +9,29 @@ import logging
 LOGGER = logging.getLogger('playlist_widget')
 
 
+def make_configure_row(label, widget):
+    label_widget = Gtk.Label()
+    label_widget.set_use_markup(True)
+    label_widget.set_markup('<b>' + label + '</b>')
+    label_widget.set_halign(Gtk.Align.START)
+
+    widget.set_halign(Gtk.Align.END)
+
+    box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    box.pack_start(label_widget, True, True, 0)
+    box.pack_start(widget, False, False, 0)
+    box.set_hexpand(True)
+    box.set_halign(Gtk.Align.FILL)
+    return box
+
+
+class ColumnConfigurator(Gtk.ListBox):
+    def __init__(self):
+        Gtk.ListBox.__init__(self)
+
+
 class PlaylistWidget(Gtk.ScrolledWindow):
-    def __init__(self, col_names=(('Artist', 150), ('Album', 200), ('Title', 250))):
+    def __init__(self, col_names=(('Artist', 150, 1.0), ('Album', 200, 0.0), ('Title', 250, 1.0))):
         Gtk.ScrolledWindow.__init__(self)
         self.set_policy(
             Gtk.PolicyType.AUTOMATIC,
@@ -36,7 +58,7 @@ class PlaylistWidget(Gtk.ScrolledWindow):
         selection = self._view.get_selection()
         selection.set_mode(Gtk.SelectionMode.MULTIPLE)
 
-        for i, (text, width) in enumerate(col_names):
+        for i, (text, width, align) in enumerate(col_names):
             # TODO: Think of a clearer API
             if '<pixbuf>' in text:
                 _, header = text.split(':', maxsplit=1)
@@ -54,10 +76,14 @@ class PlaylistWidget(Gtk.ScrolledWindow):
             else:
                 renderer = Gtk.CellRendererText()
                 renderer.set_fixed_height_from_font(1)
+                renderer.set_alignment(align, 0.5)
                 col = Gtk.TreeViewColumn(text, renderer, text=i)
 
+            col.set_alignment(align)
             col.set_min_width(width)
             col.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+            col.set_clickable(True)
+            col.connect('clicked', self.on_column_clicked)
             self._view.append_column(col)
 
         # Fill it initially with the full Queue
@@ -110,6 +136,27 @@ class PlaylistWidget(Gtk.ScrolledWindow):
     ###########################
     #  Signal Implementation  #
     ###########################
+
+    def on_column_clicked(self, column):
+        scale = Gtk.Scale.new_with_range(
+            Gtk.Orientation.HORIZONTAL,
+            0.0, 1.0, 0.05
+        )
+        scale.set_size_request(170, -1)
+
+        entry = Gtk.Entry()
+        entry.set_size_request(170, -1)
+
+        grid = Gtk.Grid()
+        grid.set_border_width(5)
+        grid.attach(make_configure_row('Name:', entry), 0, 0, 1, 1)
+        grid.attach(make_configure_row('Alignment:', scale), 0, 1, 1, 1)
+
+        popover = create_action_popover(
+            column.get_button(), grid,
+            'Configure Column'
+        )
+        popover.show_all()
 
     def _on_row_activated(self, view, path, tv_column):
         self.do_row_activated(self._model.data_from_path(path))

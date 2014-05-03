@@ -21,13 +21,13 @@ class QueuePlaylistWidget(PlaylistWidget):
     'The content of a Notebook Tab, implementing a custom search for Playlists'
     def __init__(self):
         PlaylistWidget.__init__(self, col_names=(
-            ('<pixbuf>:', 30),
-            ('Track', 50),
-            ('Artist', 150),
-            ('Album', 200),
-            ('Title', 250),
-            ('Date', 100),
-            ('Genre', 200)
+            ('<pixbuf>:', 30, 0.0),
+            ('Track', 50, 1.0),
+            ('Artist', 150, 0.0),
+            ('Album', 200, 1.0),
+            ('Title', 250, 0.0),
+            ('Date', 100, 0),
+            ('Genre', 200, 1)
         ))
         self._create_menu()
 
@@ -37,6 +37,9 @@ class QueuePlaylistWidget(PlaylistWidget):
         self.set_menu(menu)
 
     def do_search(self, query):
+        with timeit('set_none'):
+            self.set_model(None)
+
         # Get the QueueId of the currently playing song.
         queue_id = -1
         with g.client.lock_currentsong() as current_song:
@@ -44,17 +47,19 @@ class QueuePlaylistWidget(PlaylistWidget):
                 queue_id = current_song.queue_id
 
         with g.client.store.query(query, queue_only=True) as playlist:
-            model = PlaylistTreeModel([
-                ('gtk-yes' if song.queue_id == queue_id else 'gtk',
-                    song.track,
-                    song.artist or song.album_artist,
-                    song.album,
-                    song.title,
-                    song.date,
-                    song.genre,
-                    song.queue_id) for song in playlist
-            ], n_columns=7)
-            self.set_model(model)
+            with timeit('create_model'):
+                model = PlaylistTreeModel([
+                    ('gtk-yes' if song.queue_id == queue_id else 'gtk',
+                        song.track,
+                        song.artist or song.album_artist,
+                        song.album,
+                        song.title,
+                        song.date,
+                        song.genre,
+                        song.queue_id) for song in playlist
+                ], n_columns=7)
+            with timeit('set_model'):
+                self.set_model(model)
 
     def do_row_activated(self, row):
         *_, queue_id = row
