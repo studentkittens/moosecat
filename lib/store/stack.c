@@ -5,9 +5,9 @@
 
 ///////////////////////////////
 
-mc_Playlist *mc_stack_create(long size_hint, GDestroyNotify free_func)
+MoosePlaylist *moose_stack_create(long size_hint, GDestroyNotify free_func)
 {
-    mc_Playlist *self = g_new0(mc_Playlist, 1);
+    MoosePlaylist *self = g_new0(MoosePlaylist, 1);
 
     if (self != NULL) {
         self->free_func = free_func;
@@ -21,21 +21,21 @@ mc_Playlist *mc_stack_create(long size_hint, GDestroyNotify free_func)
 
 ///////////////////////////////
 
-void mc_stack_append(mc_Playlist *self, void *ptr)
+void moose_stack_append(MoosePlaylist *self, void *ptr)
 {
     g_ptr_array_add(self->stack, ptr);
 }
 
 ///////////////////////////////
 
-void mc_stack_clear(mc_Playlist *self)
+void moose_stack_clear(MoosePlaylist *self)
 {
     g_ptr_array_set_size(self->stack, 0);
 }
 
 ///////////////////////////////
 
-void mc_stack_free(mc_Playlist *self)
+void moose_stack_free(MoosePlaylist *self)
 {
     if (self == NULL)
         return;
@@ -46,7 +46,7 @@ void mc_stack_free(mc_Playlist *self)
 
 ///////////////////////////////
 
-unsigned mc_stack_length(mc_Playlist *self)
+unsigned moose_stack_length(MoosePlaylist *self)
 {
     if (self == NULL)
         return 0;
@@ -56,7 +56,7 @@ unsigned mc_stack_length(mc_Playlist *self)
 
 ///////////////////////////////
 
-void mc_stack_sort(mc_Playlist *self, GCompareFunc func)
+void moose_stack_sort(MoosePlaylist *self, GCompareFunc func)
 {
     if (self == NULL || func == NULL)
         return;
@@ -66,9 +66,9 @@ void mc_stack_sort(mc_Playlist *self, GCompareFunc func)
 
 ///////////////////////////////
 
-void *mc_stack_at(mc_Playlist *self, unsigned at)
+void *moose_stack_at(MoosePlaylist *self, unsigned at)
 {
-    if(at < mc_stack_length(self)) {
+    if(at < moose_stack_length(self)) {
         return g_ptr_array_index(self->stack, at);
     } else {
         g_error("Invalid index for stack %p: %d\n", self, at);
@@ -78,13 +78,13 @@ void *mc_stack_at(mc_Playlist *self, unsigned at)
 
 ///////////////////////////////
 
-mc_Playlist * mc_stack_copy(mc_Playlist *self)
+MoosePlaylist * moose_stack_copy(MoosePlaylist *self)
 {
-    size_t size = mc_stack_length(self);
+    size_t size = moose_stack_length(self);
     if(self == NULL || size == 0)
         return NULL;
 
-    mc_Playlist *other = mc_stack_create(size, self->free_func);
+    MoosePlaylist *other = moose_stack_create(size, self->free_func);
 
     for(size_t i = 0; i < size; ++i) {
         g_ptr_array_add(other->stack, 

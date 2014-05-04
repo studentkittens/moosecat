@@ -17,9 +17,9 @@ cdef bytify(string):
     return string.encode('UTF-8')
 
 
-cdef client_send(c.mc_Client * client, b_full_command):
+cdef client_send(c.MooseClient * client, b_full_command):
     'Send a raw byte command to the client core'
-    return c.mc_client_send(client, b_full_command)
+    return c.moose_client_send(client, b_full_command)
 
 
 def _fmt(command, *args):

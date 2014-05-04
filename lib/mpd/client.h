@@ -16,20 +16,20 @@
 /**
  * @brief Initialize client.
  *
- * This is called for you by mc_create()
+ * This is called for you by moose_create()
  *
  * @param self the client to operate on
  */
-void mc_client_init(mc_Client *self);
+void moose_client_init(MooseClient *self);
 
 /**
  * @brief Destroy client internal structures.
  *
- * This is called for you by mc_free()
+ * This is called for you by moose_free()
  *
  * @param self the client to operate on
  */
-void mc_client_destroy(mc_Client *self);
+void moose_client_destroy(MooseClient *self);
 
 /**
  * @brief Send a command to the server
@@ -39,9 +39,9 @@ void mc_client_destroy(mc_Client *self);
  * @param self the client to operate on
  * @param command the command to send 
  *
- * @return an ID you can pass to mc_client_recv
+ * @return an ID you can pass to moose_client_recv
  */
-long mc_client_send(mc_Client *self, const char *command);
+long moose_client_send(MooseClient *self, const char *command);
 
 /**
  * @brief Receive the response of a command
@@ -54,26 +54,26 @@ long mc_client_send(mc_Client *self, const char *command);
  *
  * @return true on success, false on error
  */
-bool mc_client_recv(mc_Client *self, long job_id);
+bool moose_client_recv(MooseClient *self, long job_id);
 
 /**
  * @brief Shortcut for send/recv
  *
  * @param self the client to operate on 
- * @param command same as with mc_client_send
+ * @param command same as with moose_client_send
  *
- * @return same as mc_client_recv
+ * @return same as moose_client_recv
  */
-bool mc_client_run(mc_Client *self, const char *command);
+bool moose_client_run(MooseClient *self, const char *command);
 
 /**
- * @brief Check if mc_client_begin() was called, but not mc_client_commit()
+ * @brief Check if moose_client_begin() was called, but not moose_client_commit()
  *
  * @param self the client to operate on
  *
  * @return true if active
  */
-bool mc_client_command_list_is_active(mc_Client *self);
+bool moose_client_command_list_is_active(MooseClient *self);
 
 
 /**
@@ -83,7 +83,7 @@ bool mc_client_command_list_is_active(mc_Client *self);
  *
  * @param self the Client to operate on
  */
-void mc_client_wait(mc_Client *self);
+void moose_client_wait(MooseClient *self);
 
 
 /**
@@ -91,13 +91,13 @@ void mc_client_wait(mc_Client *self);
  *
  * All following commands are hold back and send at once.
  *
- * Use the ID returned by mc_client_commit() to
+ * Use the ID returned by moose_client_commit() to
  * wait for it, if needed.
  *
  *
  * @param self the client to operate on
  */
-void mc_client_begin(mc_Client *self);
+void moose_client_begin(MooseClient *self);
 
 
 
@@ -108,7 +108,7 @@ void mc_client_begin(mc_Client *self);
  *
  * @return 
  */
-long mc_client_commit(mc_Client *self);
+long moose_client_commit(MooseClient *self);
 
 
 #endif /* end of include guard: CLIENT_H */

@@ -8,25 +8,25 @@
  *
  * @param self the store to initialzie stored playlist support
  */
-void mc_stprv_spl_init(mc_Store *self);
+void moose_stprv_spl_init(MooseStore *self);
 
 /**
- * @brief Destroy all ressources allocated by mc_stprv_spl_init()
+ * @brief Destroy all ressources allocated by moose_stprv_spl_init()
  *
- * @param self the store you called mc_stprv_spl_init on
+ * @param self the store you called moose_stprv_spl_init on
  */
-void mc_stprv_spl_destroy(mc_Store *self);
+void moose_stprv_spl_destroy(MooseStore *self);
 
 /**
  * @brief Update stored playlists from MPD
  *
  * - This will only fetch metadata about the playlist. 
- *   use mc_stprv_spl_load to actually load them
+ *   use moose_stprv_spl_load to actually load them
  * - This will drop orphanded playlists.
  *
  * @param self the store to update.
  */
-void mc_stprv_spl_update(mc_Store *self);
+void moose_stprv_spl_update(MooseStore *self);
 
 /**
  * @brief Load a certain playlist. 
@@ -36,7 +36,7 @@ void mc_stprv_spl_update(mc_Store *self);
  * @param store the store to load them to.
  * @param playlist a mpd_playlist struct 
  */
-bool mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist);
+bool moose_stprv_spl_load(MooseStore *store, struct mpd_playlist *playlist);
 
 /**
  * @brief Load a playlist by it's name.
@@ -44,7 +44,7 @@ bool mc_stprv_spl_load(mc_Store *store, struct mpd_playlist *playlist);
  * @param store the store to load them to
  * @param playlist_name  a playlist name
  */
-bool mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_name);
+bool moose_stprv_spl_load_by_playlist_name(MooseStore *store, const char *playlist_name);
 
 /**
  * @brief Search in a Playlist
@@ -56,7 +56,7 @@ bool mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_na
  *
  * @return Number of selected songs.
  */
-int mc_stprv_spl_select_playlist(mc_Store *store, mc_Playlist *out_stack, const char *playlist_name, const char *match_clause);
+int moose_stprv_spl_select_playlist(MooseStore *store, MoosePlaylist *out_stack, const char *playlist_name, const char *match_clause);
 
 /**
  * @brief Select all loaded mpd_playlists object to a stack.
@@ -66,7 +66,7 @@ int mc_stprv_spl_select_playlist(mc_Store *store, mc_Playlist *out_stack, const 
  *
  * @return Number of laoded playlists
  */
-int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Playlist *stack);
+int moose_stprv_spl_get_loaded_playlists(MooseStore *store, MoosePlaylist *stack);
 
 /**
  * @brief Return a list of a all known mpd_playlists structs
@@ -76,7 +76,7 @@ int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Playlist *stack);
  *
  * @return number of appended playlisyts
  */
-int mc_stprv_spl_get_known_playlists(mc_Store *store, mc_Playlist *stack);
+int moose_stprv_spl_get_known_playlists(MooseStore *store, MoosePlaylist *stack);
 
 #endif /* end of include guard: MC_DB_STORED_PLAYLIST_HH */
 

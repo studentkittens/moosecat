@@ -215,11 +215,11 @@ cdef extern from "mpd/client.h":
 # So it needs to be two levels up.
 cdef extern from "../../lib/mpd/protocol.h":
 
-    ctypedef enum mc_PmType:
+    ctypedef enum MoosePmType:
         PM_IDLE 'MC_PM_IDLE'
         PM_COMMAND 'MC_PM_COMMAND'
 
-    ctypedef enum mc_LogLevel:
+    ctypedef enum MooseLogLevel:
         LOG_CRITICAL 'MC_LOG_CRITICAL'
         LOG_ERROR    'MC_LOG_ERROR'
         LOG_WARNING  'MC_LOG_WARNING'
@@ -230,7 +230,7 @@ cdef extern from "../../lib/mpd/protocol.h":
     #  Structures  #
     ################
 
-    ctypedef struct mc_Client:
+    ctypedef struct MooseClient:
         pass
 
     #############
@@ -238,51 +238,51 @@ cdef extern from "../../lib/mpd/protocol.h":
     #############
 
     # Network:
-    mc_Client *mc_create(mc_PmType)
-    char *mc_connect( mc_Client *, void *, const char *, int, float)
-    bool mc_is_connected(mc_Client *)
-    char *mc_disconnect(mc_Client *)
-    void mc_free(mc_Client *)
+    MooseClient *moose_create(MoosePmType)
+    char *moose_connect( MooseClient *, void *, const char *, int, float)
+    bool moose_is_connected(MooseClient *)
+    char *moose_disconnect(MooseClient *)
+    void moose_free(MooseClient *)
 
     # These two shall remain hidden, so the Python layer
     # is uanableto screw with the connection.
-    # mpd_connection *mc_get(mc_Client *)
-    # void mc_put(mc_Client *)
+    # mpd_connection *moose_get(MooseClient *)
+    # void moose_put(MooseClient *)
 
     # Signals:
-    void mc_signal_add(mc_Client *, const char *, void *, void *)
-    void mc_signal_add_masked(mc_Client *, const char *, void *, void *, mpd_idle )
-    void mc_signal_rm(mc_Client *, const char *, void *)
-    void mc_signal_dispatch(mc_Client *, const char *, ...)
-    int mc_signal_length(mc_Client *, const char *)
+    void moose_signal_add(MooseClient *, const char *, void *, void *)
+    void moose_signal_add_masked(MooseClient *, const char *, void *, void *, mpd_idle )
+    void moose_signal_rm(MooseClient *, const char *, void *)
+    void moose_signal_dispatch(MooseClient *, const char *, ...)
+    int moose_signal_length(MooseClient *, const char *)
 
     # Meta:
-    void mc_force_sync(mc_Client *, mpd_idle events)
-    const char *mc_get_host(mc_Client *)
-    unsigned mc_get_port(mc_Client *)
-    float mc_get_timeout(mc_Client *)
+    void moose_force_sync(MooseClient *, mpd_idle events)
+    const char *moose_get_host(MooseClient *)
+    unsigned moose_get_port(MooseClient *)
+    float moose_get_timeout(MooseClient *)
 
     # Status Timer
-    void mc_status_timer_register(mc_Client *, int, bool)
-    void mc_status_timer_unregister(mc_Client *)
-    bool mc_status_timer_is_active(mc_Client *)
+    void moose_status_timer_register(MooseClient *, int, bool)
+    void moose_status_timer_unregister(MooseClient *)
+    bool moose_status_timer_is_active(MooseClient *)
 
     # Outputs:
-    bool mc_outputs_get_state(mc_Client *, const char *)
-    const char ** mc_outputs_get_names(mc_Client *)
-    bool mc_outputs_set_state(mc_Client *, const char *, bool)
+    bool moose_outputs_get_state(MooseClient *, const char *)
+    const char ** moose_outputs_get_names(MooseClient *)
+    bool moose_outputs_set_state(MooseClient *, const char *, bool)
 
     # Locking:
-    mpd_status * mc_lock_status(mc_Client *)
-    mpd_stats * mc_lock_statistics(mc_Client *)
-    mpd_song * mc_lock_current_song(mc_Client *)
-    const char * mc_get_replay_gain_mode(mc_Client *)
-    void mc_unlock_status(mc_Client *)
-    void mc_unlock_statistics(mc_Client *)
-    void mc_unlock_current_song(mc_Client *)
-    void mc_lock_outputs(mc_Client *)
-    void mc_unlock_outputs(mc_Client *)
-    void mc_block_till_sync(mc_Client *) nogil
+    mpd_status * moose_lock_status(MooseClient *)
+    mpd_stats * moose_lock_statistics(MooseClient *)
+    mpd_song * moose_lock_current_song(MooseClient *)
+    const char * moose_get_replay_gain_mode(MooseClient *)
+    void moose_unlock_status(MooseClient *)
+    void moose_unlock_statistics(MooseClient *)
+    void moose_unlock_current_song(MooseClient *)
+    void moose_lock_outputs(MooseClient *)
+    void moose_unlock_outputs(MooseClient *)
+    void moose_block_till_sync(MooseClient *) nogil
 
 
 ###########################################################################
@@ -290,15 +290,15 @@ cdef extern from "../../lib/mpd/protocol.h":
 ###########################################################################
 
 cdef extern from "../../lib/mpd/client.h":
-    void mc_client_init(mc_Client *)
-    void mc_client_destroy(mc_Client *)
-    long mc_client_send(mc_Client *, const char *)
-    bool mc_client_recv(mc_Client *, long) nogil
-    bool mc_client_run(mc_Client *, const char *) nogil
-    bool mc_client_command_list_is_active(mc_Client *)
-    void mc_client_wait(mc_Client *) nogil
-    void mc_client_begin(mc_Client *)
-    long mc_client_commit(mc_Client *)
+    void moose_client_init(MooseClient *)
+    void moose_client_destroy(MooseClient *)
+    long moose_client_send(MooseClient *, const char *)
+    bool moose_client_recv(MooseClient *, long) nogil
+    bool moose_client_run(MooseClient *, const char *) nogil
+    bool moose_client_command_list_is_active(MooseClient *)
+    void moose_client_wait(MooseClient *) nogil
+    void moose_client_begin(MooseClient *)
+    long moose_client_commit(MooseClient *)
 
 
 ###########################################################################
@@ -306,114 +306,114 @@ cdef extern from "../../lib/mpd/client.h":
 ###########################################################################
 
 cdef extern from "../../lib/store/stack.h":
-    ctypedef struct mc_Playlist:
+    ctypedef struct MoosePlaylist:
         pass
 
-    mc_Playlist * mc_stack_create (long, void *)
-    void mc_stack_append (mc_Playlist *, void *)
-    void mc_stack_free (mc_Playlist *)
-    void mc_stack_clear (mc_Playlist *)
-    unsigned mc_stack_length (mc_Playlist *)
-    void mc_stack_sort (mc_Playlist *, void *)
-    void * mc_stack_at(mc_Playlist *, unsigned)
+    MoosePlaylist * moose_stack_create (long, void *)
+    void moose_stack_append (MoosePlaylist *, void *)
+    void moose_stack_free (MoosePlaylist *)
+    void moose_stack_clear (MoosePlaylist *)
+    unsigned moose_stack_length (MoosePlaylist *)
+    void moose_stack_sort (MoosePlaylist *, void *)
+    void * moose_stack_at(MoosePlaylist *, unsigned)
 
 
 cdef extern from "../../lib/store/db-settings.h":
-    ctypedef struct mc_StoreSettings:
+    ctypedef struct MooseStoreSettings:
         bool use_memory_db
         bool use_compression
         char *db_directory
         char *tokenizer
 
-    mc_StoreSettings * mc_store_settings_new ()
-    void mc_store_settings_destroy (mc_StoreSettings *)
-    void mc_store_settings_set_db_directory(mc_StoreSettings *, const char *)
+    MooseStoreSettings * moose_store_settings_new ()
+    void moose_store_settings_destroy (MooseStoreSettings *)
+    void moose_store_settings_set_db_directory(MooseStoreSettings *, const char *)
 
 
 cdef extern from "../../lib/store/db.h":
-    ctypedef struct mc_Store:
+    ctypedef struct MooseStore:
         pass
 
-    mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings)
-    void mc_store_close(mc_Store *)
-    mpd_song *mc_store_song_at(mc_Store *, int)
-    int mc_store_total_songs(mc_Store *)
-    long mc_store_playlist_load(mc_Store *, const char *)
-    long mc_store_playlist_select_to_stack(mc_Store *, mc_Playlist *, const char *, const char *)
-    long mc_store_dir_select_to_stack(mc_Store *, mc_Playlist *, const char *, int)
-    long mc_store_playlist_get_all_loaded(mc_Store *, mc_Playlist *)
-    long mc_store_playlist_get_all_known(mc_Store *, mc_Playlist *)
-    long mc_store_search_to_stack(mc_Store *, const char *, bool, mc_Playlist *, int)
-    void mc_store_wait(mc_Store *) nogil
-    void mc_store_wait_for_job(mc_Store *, int) nogil
-    mc_Playlist *mc_store_get_result(mc_Store *, int)
-    mc_Playlist *mc_store_gw(mc_Store *, int)
-    void mc_store_release(mc_Store *)
-    mpd_song *mc_store_find_song_by_id(mc_Store *, unsigned)
-    mc_StoreCompletion *mc_store_get_completion(mc_Store*)
+    MooseStore *moose_store_create(MooseClient *client, MooseStoreSettings *settings)
+    void moose_store_close(MooseStore *)
+    mpd_song *moose_store_song_at(MooseStore *, int)
+    int moose_store_total_songs(MooseStore *)
+    long moose_store_playlist_load(MooseStore *, const char *)
+    long moose_store_playlist_select_to_stack(MooseStore *, MoosePlaylist *, const char *, const char *)
+    long moose_store_dir_select_to_stack(MooseStore *, MoosePlaylist *, const char *, int)
+    long moose_store_playlist_get_all_loaded(MooseStore *, MoosePlaylist *)
+    long moose_store_playlist_get_all_known(MooseStore *, MoosePlaylist *)
+    long moose_store_search_to_stack(MooseStore *, const char *, bool, MoosePlaylist *, int)
+    void moose_store_wait(MooseStore *) nogil
+    void moose_store_wait_for_job(MooseStore *, int) nogil
+    MoosePlaylist *moose_store_get_result(MooseStore *, int)
+    MoosePlaylist *moose_store_gw(MooseStore *, int)
+    void moose_store_release(MooseStore *)
+    mpd_song *moose_store_find_song_by_id(MooseStore *, unsigned)
+    MooseStoreCompletion *moose_store_get_completion(MooseStore*)
 
 cdef extern from "../../lib/store/db-query-parser.h":
-    ctypedef struct mc_StoreCompletion:
+    ctypedef struct MooseStoreCompletion:
         pass
 
-    mc_StoreCompletion * mc_store_cmpl_new(mc_Store *)
-    void mc_store_cmpl_free(mc_StoreCompletion *)
-    char * mc_store_cmpl_lookup(mc_StoreCompletion *, mpd_tag_type, char *)
+    MooseStoreCompletion * moose_store_cmpl_new(MooseStore *)
+    void moose_store_cmpl_free(MooseStoreCompletion *)
+    char * moose_store_cmpl_lookup(MooseStoreCompletion *, mpd_tag_type, char *)
 
 cdef extern from "../../lib/store/db-query-parser.h":
-    char *mc_store_qp_parse(char *, char **, int *)
-    char *mc_store_qp_tag_abbrev_to_full(char *, size_t)
-    bool mc_store_qp_is_valid_tag(char *, size_t)
-    mpd_tag_type mc_store_qp_str_to_tag_enum(char *)
+    char *moose_store_qp_parse(char *, char **, int *)
+    char *moose_store_qp_tag_abbrev_to_full(char *, size_t)
+    bool moose_store_qp_is_valid_tag(char *, size_t)
+    mpd_tag_type moose_store_qp_str_to_tag_enum(char *)
 
 ###########################################################################
 #                             Misc Interfaces                             #
 ###########################################################################
 
 cdef extern from "../../lib/misc/bug-report.h":
-    char * mc_misc_bug_report (mc_Client * client)
+    char * moose_misc_bug_report (MooseClient * client)
 
 cdef extern from "../../lib/misc/posix-signal.h":
-    void mc_misc_register_posix_signal (mc_Client * client)
+    void moose_misc_register_posix_signal (MooseClient * client)
 
 cdef extern from "../../lib/misc/external-logs.h":
-    void mc_misc_catch_external_logs(mc_Client *)
+    void moose_misc_catch_external_logs(MooseClient *)
 
 cdef extern from "../../lib/misc/metadata-threads.h":
-    ctypedef struct mc_MetadataThreads:
+    ctypedef struct MooseMetadataThreads:
         pass
 
-    mc_MetadataThreads * mc_mdthreads_new(void *, void *, void *, int)
-    void mc_mdthreads_push(mc_MetadataThreads *, void *)
-    void mc_mdthreads_forward(mc_MetadataThreads *, void *)
-    void mc_mdthreads_free(mc_MetadataThreads *)
+    MooseMetadataThreads * moose_mdthreads_new(void *, void *, void *, int)
+    void moose_mdthreads_push(MooseMetadataThreads *, void *)
+    void moose_mdthreads_forward(MooseMetadataThreads *, void *)
+    void moose_mdthreads_free(MooseMetadataThreads *)
 
 cdef extern from "../../lib/misc/zeroconf.h":
-    cdef struct mc_ZeroconfBrowser:
+    cdef struct MooseZeroconfBrowser:
         pass
 
-    cdef struct mc_ZeroconfServer:
+    cdef struct MooseZeroconfServer:
         pass
 
-    cdef enum mc_ZeroconfState:
+    cdef enum MooseZeroconfState:
         ZEROCONF_STATE_UNCONNECTED 'MC_ZEROCONF_STATE_UNCONNECTED'
         ZEROCONF_STATE_CONNECTED   'MC_ZEROCONF_STATE_CONNECTED'
         ZEROCONF_STATE_ERROR       'MC_ZEROCONF_STATE_ERROR'
         ZEROCONF_STATE_CHANGED     'MC_ZEROCONF_STATE_CHANGED'
         ZEROCONF_STATE_ALL_FOR_NOW 'MC_ZEROCONF_STATE_ALL_FOR_NOW'
 
-    mc_ZeroconfBrowser * mc_zeroconf_new(const char *)
-    void mc_zeroconf_destroy(mc_ZeroconfBrowser *)
-    void mc_zeroconf_register(mc_ZeroconfBrowser *, void *, void *)
-    mc_ZeroconfState mc_zeroconf_get_state(mc_ZeroconfBrowser *)
-    const char * mc_zeroconf_get_error(mc_ZeroconfBrowser *)
-    mc_ZeroconfServer ** mc_zeroconf_get_server(mc_ZeroconfBrowser *)
-    const char * mc_zeroconf_server_get_host(mc_ZeroconfServer *)
-    const char * mc_zeroconf_server_get_addr(mc_ZeroconfServer *)
-    const char * mc_zeroconf_server_get_name(mc_ZeroconfServer *)
-    const char * mc_zeroconf_server_get_type(mc_ZeroconfServer *)
-    const char * mc_zeroconf_server_get_domain(mc_ZeroconfServer *)
-    unsigned mc_zeroconf_server_get_port(mc_ZeroconfServer *)
+    MooseZeroconfBrowser * moose_zeroconf_new(const char *)
+    void moose_zeroconf_destroy(MooseZeroconfBrowser *)
+    void moose_zeroconf_register(MooseZeroconfBrowser *, void *, void *)
+    MooseZeroconfState moose_zeroconf_get_state(MooseZeroconfBrowser *)
+    const char * moose_zeroconf_get_error(MooseZeroconfBrowser *)
+    MooseZeroconfServer ** moose_zeroconf_get_server(MooseZeroconfBrowser *)
+    const char * moose_zeroconf_server_get_host(MooseZeroconfServer *)
+    const char * moose_zeroconf_server_get_addr(MooseZeroconfServer *)
+    const char * moose_zeroconf_server_get_name(MooseZeroconfServer *)
+    const char * moose_zeroconf_server_get_type(MooseZeroconfServer *)
+    const char * moose_zeroconf_server_get_domain(MooseZeroconfServer *)
+    unsigned moose_zeroconf_server_get_port(MooseZeroconfServer *)
 
 
 cdef extern from "../../lib/config.h":

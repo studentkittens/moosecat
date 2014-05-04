@@ -12,7 +12,7 @@
  *
  * @return a newly allocated string
  */
-char *mc_misc_bug_report(mc_Client *client);
+char *moose_misc_bug_report(MooseClient *client);
 
 #endif /* end of include guard: MC_BUG_REPORT_H */
 

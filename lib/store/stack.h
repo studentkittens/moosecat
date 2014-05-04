@@ -13,7 +13,7 @@
 typedef struct {
     GPtrArray *stack;
     GDestroyNotify free_func;
-} mc_Playlist;
+} MoosePlaylist;
 
 /**
  * @brief Create a new stack
@@ -23,7 +23,7 @@ typedef struct {
  *
  * @return a newly allocated stack
  */
-mc_Playlist *mc_stack_create(long size_hint, GDestroyNotify free_func);
+MoosePlaylist *moose_stack_create(long size_hint, GDestroyNotify free_func);
 
 /**
  * @brief Append a new element to the stack.
@@ -33,7 +33,7 @@ mc_Playlist *mc_stack_create(long size_hint, GDestroyNotify free_func);
  * @param self the stack to operate on
  * @param ptr the addr to add
  */
-void mc_stack_append(mc_Playlist *self, void *ptr);
+void moose_stack_append(MoosePlaylist *self, void *ptr);
 
 /**
  * @brief Free the stack
@@ -43,7 +43,7 @@ void mc_stack_append(mc_Playlist *self, void *ptr);
  *
  * @param self the stack to operate on
  */
-void mc_stack_free(mc_Playlist *self);
+void moose_stack_free(MoosePlaylist *self);
 
 /**
  * @brief Clear contents of stack totally.
@@ -52,7 +52,7 @@ void mc_stack_free(mc_Playlist *self);
  *
  * @param self the stack to operate on
  */
-void mc_stack_clear(mc_Playlist *self);
+void moose_stack_clear(MoosePlaylist *self);
 
 /**
  * @brief Calculates the length of the stack
@@ -61,7 +61,7 @@ void mc_stack_clear(mc_Playlist *self);
  *
  * @return the length from 0 - UINT_MAX
  */
-unsigned mc_stack_length(mc_Playlist *self);
+unsigned moose_stack_length(MoosePlaylist *self);
 
 /**
  * @brief Sort the stack.
@@ -69,7 +69,7 @@ unsigned mc_stack_length(mc_Playlist *self);
  * @param self the stack to operate on.
  * @param func a GCompareFunc.
  */
-void mc_stack_sort(mc_Playlist *self, GCompareFunc func);
+void moose_stack_sort(MoosePlaylist *self, GCompareFunc func);
 
 /**
  * @brief Access elememts indexed.
@@ -77,11 +77,11 @@ void mc_stack_sort(mc_Playlist *self, GCompareFunc func);
  * For performance reasons, this is an inline macro.
  *
  * @param self the stack to operate on
- * @param at an integer from 0 - mc_stack_length()
+ * @param at an integer from 0 - moose_stack_length()
  *
  * @return a void* being at that place.
  */
-void *mc_stack_at(mc_Playlist *self, unsigned at);
+void *moose_stack_at(MoosePlaylist *self, unsigned at);
 
 
 /**
@@ -89,7 +89,7 @@ void *mc_stack_at(mc_Playlist *self, unsigned at);
  *
  * @return A newly allocated, but identical stack.
  */
-mc_Playlist * mc_stack_copy(mc_Playlist *self);
+MoosePlaylist * moose_stack_copy(MoosePlaylist *self);
 
 #endif /* end of include guard: MC_STORE_STACK_H */
 

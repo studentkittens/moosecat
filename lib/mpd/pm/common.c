@@ -44,14 +44,14 @@ GIOCondition mpd_async_to_gio(mpd_async_event events)
 
 ///////////////////////////
 
-mpd_connection *mpd_connect(mc_Client *self, const char *host, int port, float timeout, char **err)
+mpd_connection *mpd_connect(MooseClient *self, const char *host, int port, float timeout, char **err)
 {
     mpd_connection *con = mpd_connection_new(host, port, timeout * 1000);
 
     if (con && mpd_connection_get_error(con) != MPD_ERROR_SUCCESS) {
         char *error_message = g_strdup(mpd_connection_get_error_message(con));
         /* Report the error, but don't try to handle it in that early stage */
-        mc_shelper_report_error_without_handling(self, con);
+        moose_shelper_report_error_without_handling(self, con);
 
         if (err != NULL) {
             *err = error_message;

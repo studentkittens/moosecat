@@ -52,7 +52,7 @@
  * @warning_pos: (OUT) If warning is filled, the position inside the string is written in here.
  * @returns: A newly allocated string containing a valid FTS Query.
  */
-char *mc_store_qp_parse(const char *query, const char **warning, int *warning_pos);
+char *moose_store_qp_parse(const char *query, const char **warning, int *warning_pos);
 
 /**
  * @brief Convert a abbrev-tag to a full-tag.
@@ -65,7 +65,7 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
  *
  * @return A static string. Do not free.
  */
-const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len);
+const char *moose_store_qp_tag_abbrev_to_full(const char *token, size_t len);
 
 /**
  * @brief Check if this is an valid tag.
@@ -75,7 +75,7 @@ const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len);
  *
  * @return True if a known tag.
  */
-bool mc_store_qp_is_valid_tag(const char *tag, size_t len);
+bool moose_store_qp_is_valid_tag(const char *tag, size_t len);
 
 /**
  * @brief Convert a tag string (as used in the parser) to a MPD_TAG_* ID.
@@ -84,7 +84,7 @@ bool mc_store_qp_is_valid_tag(const char *tag, size_t len);
  *
  * @return a member of mpd_tag_type.
  */
-enum mpd_tag_type mc_store_qp_str_to_tag_enum(const char *tag);
+enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char *tag);
 
 
 #endif /* end of include guard: MC_DB_QUERY_PASRSER_HH */

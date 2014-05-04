@@ -2,16 +2,16 @@
 #include <glib.h>
 
 /* Prototype because of cyclic dependency */
-struct mc_Client;
+struct MooseClient;
 
 
 /**
  * @brief Data Structured used for Updating Status/Song/Stats
  */
-typedef struct mc_UpdateData {
+typedef struct MooseUpdateData {
     GAsyncQueue *event_queue;
     GThread *update_thread;
-    struct mc_Client *client;
+    struct MooseClient *client;
     GRecMutex 
         mtx_current_song,
         mtx_status,
@@ -42,30 +42,30 @@ typedef struct mc_UpdateData {
         enum mpd_state state;
     } last_song_data;
 
-} mc_UpdateData;
+} MooseUpdateData;
 
 /**
- * @brief Allocate a new mc_UpdateData 
+ * @brief Allocate a new MooseUpdateData 
  *
  * @param self The client to associate this structure to.
  *
- * @return a newly allocated structure, free with mc_update_data_destroy
+ * @return a newly allocated structure, free with moose_update_data_destroy
  */
-mc_UpdateData * mc_update_data_new(struct mc_Client *self);
+MooseUpdateData * moose_update_data_new(struct MooseClient *self);
 
 /**
- * @brief Free the ressources allocated by mc_update_data_new
+ * @brief Free the ressources allocated by moose_update_data_new
  *
  * @param data the allocated data
  */
-void mc_update_data_destroy(mc_UpdateData *data);
+void moose_update_data_destroy(MooseUpdateData *data);
 
 /**
  * @brief Delete currentsong/status/stats and set them to NULL
  *
  * @param data UpdateData to do this on 
  */
-void mc_update_reset(mc_UpdateData *data);
+void moose_update_reset(MooseUpdateData *data);
 
 /**
  * @brief Push a new event to the Update Thread.
@@ -75,7 +75,7 @@ void mc_update_reset(mc_UpdateData *data);
  * @param data the UpdateData to operate on 
  * @param event a bitmask of mpd_idle events 
  */
-void mc_update_data_push(mc_UpdateData *data, enum mpd_idle event);
+void moose_update_data_push(MooseUpdateData *data, enum mpd_idle event);
 
 /**
  * @brief Activate the Status Timer.
@@ -87,8 +87,8 @@ void mc_update_data_push(mc_UpdateData *data, enum mpd_idle event);
  * @param repeat_ms Interval in ms
  * @param trigger_event If true the client-event callbacks are invoked 
  */
-void mc_update_register_status_timer(
-    struct mc_Client *self,
+void moose_update_register_status_timer(
+    struct MooseClient *self,
     int repeat_ms,
     bool trigger_event);
 
@@ -97,7 +97,7 @@ void mc_update_register_status_timer(
  *
  * @param self the client to operate on
  */
-void mc_update_unregister_status_timer(struct mc_Client *self);
+void moose_update_unregister_status_timer(struct MooseClient *self);
 
 /**
  * @brief Check if the status timer is registered 
@@ -106,7 +106,7 @@ void mc_update_unregister_status_timer(struct mc_Client *self);
  *
  * @return True if active.
  */
-bool mc_update_status_timer_is_active(struct mc_Client *self);
+bool moose_update_status_timer_is_active(struct MooseClient *self);
 
 /**
  * @brief Block till next update finished. 
@@ -115,4 +115,4 @@ bool mc_update_status_timer_is_active(struct mc_Client *self);
  *
  * @param data corresponding data
  */
-void mc_update_block_till_sync(mc_UpdateData * data);
+void moose_update_block_till_sync(MooseUpdateData * data);

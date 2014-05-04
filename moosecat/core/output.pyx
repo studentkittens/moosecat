@@ -35,14 +35,14 @@ cdef class AudioOutput:
         False  # Finally!
     '''
     cdef const char * _output_name
-    cdef c.mc_Client * _client
+    cdef c.MooseClient * _client
 
     def __cinit__(self):
         'You should not instance this yourself'
         self._output_name = NULL
         self._client = NULL
 
-    cdef _init(self, const char * output, c.mc_Client * client):
+    cdef _init(self, const char * output, c.MooseClient * client):
         'Meant for the Cython side'
         self._output_name = output
         self._client = client
@@ -51,9 +51,9 @@ cdef class AudioOutput:
     property enabled:
         'Getter/Setter: Check if the output is enabled, or make it active.'
         def __get__(self):
-            return c.mc_outputs_get_state(self._client, self._output_name)
+            return c.moose_outputs_get_state(self._client, self._output_name)
         def __set__(self, state):
-            c.mc_outputs_set_state(self._client, self._output_name, int(state))
+            c.moose_outputs_set_state(self._client, self._output_name, int(state))
 
     property name:
         'Getter: Get the name of the output like in the mpd.conf.'

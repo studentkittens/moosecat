@@ -1,12 +1,12 @@
-#ifndef mc_priv_signal_H
-#define mc_priv_signal_H
+#ifndef moose_priv_signal_H
+#define moose_priv_signal_H
 
 #include <glib.h>
 #include <mpd/client.h>
 #include <stdarg.h>
 
 /* Prototyoe it here */
-struct mc_Client;
+struct MooseClient;
 
 ///////////////////////////////
 
@@ -21,7 +21,7 @@ typedef enum {
     /* -> Add new callbacks here <- */
     MC_SIGNAL_VALID_COUNT,
     MC_SIGNAL_UNKNOWN
-} mc_SignalType;
+} MooseSignalType;
 
 typedef struct {
     /* Holds a list of callbacks,
@@ -44,69 +44,69 @@ typedef struct {
      */
     GRecMutex api_mtx;
 
-} mc_SignalList;
+} MooseSignalList;
 
 ///////////////////////////////
 
-typedef enum mc_LogLevels {
+typedef enum MooseLogLevels {
     MC_LOG_CRITICAL = 1 << 0,
     MC_LOG_ERROR    = 1 << 1,
     MC_LOG_WARNING  = 1 << 2,
     MC_LOG_INFO     = 1 << 3,
     MC_LOG_DEBUG    = 1 << 4
-} mc_LogLevel;
+} MooseLogLevel;
 
 ///////////////////////////////
 
 /* Event callback */
-typedef void (* mc_ClientEventCallback)(struct mc_Client *, enum mpd_idle, void *user_data);
+typedef void (* MooseClientEventCallback)(struct MooseClient *, enum mpd_idle, void *user_data);
 
 /* Logging callback */
-typedef void (* mc_LoggingCallback)(struct mc_Client *, const char *err_msg, mc_LogLevel level, void *user_data);
+typedef void (* MooseLoggingCallback)(struct MooseClient *, const char *err_msg, MooseLogLevel level, void *user_data);
 
 /* Connection change callback */
-typedef void (* mc_ConnectivityCallback)(struct mc_Client *, bool server_changed, bool was_connected, void *user_data);
+typedef void (* MooseConnectivityCallback)(struct MooseClient *, bool server_changed, bool was_connected, void *user_data);
 
 ///////////////////////////////
 
-void  mc_priv_signal_list_init(mc_SignalList *list);
+void  moose_priv_signal_list_init(MooseSignalList *list);
 
-void mc_priv_signal_add(
-    mc_SignalList *list,
+void moose_priv_signal_add(
+    MooseSignalList *list,
     const char *signal_name,
     bool call_first,
     void *callback_func,
     void *user_data);
 
-void mc_priv_signal_add_masked(
-    mc_SignalList *list,
+void moose_priv_signal_add_masked(
+    MooseSignalList *list,
     const char *signal_name,
     bool call_first,
     void *callback_func,
     void *user_data,
     enum mpd_idle mask);
 
-void mc_priv_signal_rm(
-    mc_SignalList *list,
+void moose_priv_signal_rm(
+    MooseSignalList *list,
     const char *signal_name,
     void *callback_addr);
 
-void mc_priv_signal_report_event_v(
-    mc_SignalList   *list,
+void moose_priv_signal_report_event_v(
+    MooseSignalList   *list,
     const char *signal_name,
     va_list args);
 
-void mc_priv_signal_report_event(
-    mc_SignalList   *list,
+void moose_priv_signal_report_event(
+    MooseSignalList   *list,
     const char *signal_name,
     ...);
 
-void mc_priv_signal_list_destroy(
-    mc_SignalList *list);
+void moose_priv_signal_list_destroy(
+    MooseSignalList *list);
 
-int mc_priv_signal_length(
-    mc_SignalList *list,
+int moose_priv_signal_length(
+    MooseSignalList *list,
     const char *signal_name);
 
-#endif /* end of include guard: mc_priv_signal_H */
+#endif /* end of include guard: moose_priv_signal_H */
 

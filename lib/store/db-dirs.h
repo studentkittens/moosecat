@@ -7,14 +7,14 @@
  * @param self Store to insert it inot
  * @param path what path you want to insert
  */
-void mc_stprv_dir_insert(mc_Store *self, const char *path);
+void moose_stprv_dir_insert(MooseStore *self, const char *path);
 
 /**
  * @brief Delete all contents from the dir table.
  *
  * @param self the store to operate on
  */
-void mc_stprv_dir_delete(mc_Store *self);
+void moose_stprv_dir_delete(MooseStore *self);
 
 /**
  * @brief Query the database
@@ -26,21 +26,21 @@ void mc_stprv_dir_delete(mc_Store *self);
  *
  * @return number of matches
  */
-int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth);
+int moose_stprv_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, const char *directory, int depth);
 
 /**
  * @brief Compile all SQL statements
  *
  * @param self Store to operate on
  */
-void mc_stprv_dir_prepare_statemtents(mc_Store *self);
+void moose_stprv_dir_prepare_statemtents(MooseStore *self);
 
 /**
  * @brief Free all prepared statements
  *
  * @param self Store to operate on 
  */
-void mc_stprv_dir_finalize_statements(mc_Store *self);
+void moose_stprv_dir_finalize_statements(MooseStore *self);
 
 #endif /* end of include guard: MC_DB_DIRS_HH */
 

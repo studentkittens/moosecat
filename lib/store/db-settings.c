@@ -1,9 +1,9 @@
 #include <glib.h>
 #include "db-settings.h"
 
-mc_StoreSettings *mc_store_settings_new(void)
+MooseStoreSettings *moose_store_settings_new(void)
 {
-    mc_StoreSettings *self = g_new0(mc_StoreSettings, 1);
+    MooseStoreSettings *self = g_new0(MooseStoreSettings, 1);
     g_assert(self);
     self->use_memory_db = true;
     self->use_compression = true;
@@ -14,14 +14,14 @@ mc_StoreSettings *mc_store_settings_new(void)
 
 ///////////////////////////////
 
-void mc_store_settings_destroy(mc_StoreSettings *self)
+void moose_store_settings_destroy(MooseStoreSettings *self)
 {
     g_free(self);
 }
 
 ///////////////////////////////
 
-void mc_store_settings_set_db_directory(mc_StoreSettings *self, const char *db_directory)
+void moose_store_settings_set_db_directory(MooseStoreSettings *self, const char *db_directory)
 {
     g_assert(self);
 

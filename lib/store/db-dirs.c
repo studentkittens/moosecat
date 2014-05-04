@@ -43,11 +43,11 @@ const char *dirs_sql_stmts[] = {
 
 ///////////////////
 
-void mc_stprv_dir_prepare_statemtents(mc_Store *self)
+void moose_stprv_dir_prepare_statemtents(MooseStore *self)
 {
     g_assert(self);
 
-    self->sql_dir_stmts = mc_stprv_prepare_all_statements_listed(
+    self->sql_dir_stmts = moose_stprv_prepare_all_statements_listed(
             self, dirs_sql_stmts,
             0, SQL_DIR_STMT_COUNT
     );
@@ -55,22 +55,22 @@ void mc_stprv_dir_prepare_statemtents(mc_Store *self)
 
 ///////////////////
 
-void mc_stprv_dir_finalize_statements(mc_Store *self)
+void moose_stprv_dir_finalize_statements(MooseStore *self)
 {
-    mc_stprv_finalize_statements(self, self->sql_dir_stmts, 0, SQL_DIR_STMT_COUNT);
+    moose_stprv_finalize_statements(self, self->sql_dir_stmts, 0, SQL_DIR_STMT_COUNT);
     self->sql_dir_stmts = NULL;
 }
 
 ///////////////////
 
-void mc_stprv_dir_insert(mc_Store *self, const char *path)
+void moose_stprv_dir_insert(MooseStore *self, const char *path)
 {
     g_assert(self);
     g_assert(path);
     int pos_idx = 1;
     int error_id = SQLITE_OK;
     bind_txt(self, DIR_INSERT, pos_idx, path, error_id);
-    bind_int(self, DIR_INSERT, pos_idx, mc_path_get_depth(path), error_id);
+    bind_int(self, DIR_INSERT, pos_idx, moose_path_get_depth(path), error_id);
 
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot bind stuff to INSERT statement");
@@ -88,7 +88,7 @@ void mc_stprv_dir_insert(mc_Store *self, const char *path)
 
 //////////////////
 
-void mc_stprv_dir_delete(mc_Store *self)
+void moose_stprv_dir_delete(MooseStore *self)
 {
     g_assert(self);
 
@@ -100,7 +100,7 @@ void mc_stprv_dir_delete(mc_Store *self)
 
 //////////////////
 
-int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth)
+int moose_stprv_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, const char *directory, int depth)
 {
     g_assert(self);
     g_assert(stack);
@@ -138,7 +138,7 @@ int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char 
         while (sqlite3_step(select_stmt) == SQLITE_ROW) {
             const char *rowid = (const char *) sqlite3_column_text(select_stmt, 0);
             const char *path = (const char *) sqlite3_column_text(select_stmt, 1);
-            mc_stack_append(stack, g_strjoin(":", rowid, path, NULL));
+            moose_stack_append(stack, g_strjoin(":", rowid, path, NULL));
             ++returned;
         }
 

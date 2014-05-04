@@ -7,17 +7,17 @@
  * @brief A class to implement a Job Queue with cancellation and Priority in a
  * dead simple way.
  */
-struct mc_JobManager;
+struct MooseJobManager;
 
 /**
  * @brief Callback that is called when one job is executed.
  *
  * @param jm: The jobmanager structure.
- * @param cancel: a pointer to a bollean that can be checked with mc_jm_check_cancel()
- * @param user_data: Data that can be passed to mc_jm_send()
+ * @param cancel: a pointer to a bollean that can be checked with moose_jm_check_cancel()
+ * @param user_data: Data that can be passed to moose_jm_send()
  */
-typedef void * (* mc_JobManagerCallback)(
-        struct mc_JobManager *jm, /* JobManger executing the Job                                  */
+typedef void * (* MooseJobManagerCallback)(
+        struct MooseJobManager *jm, /* JobManger executing the Job                                  */
         volatile bool *cancel,    /* Pointer to check periodically if the operation was cancelled */
         void *user_data,          /* user data passed to the executor                             */
         void *job_data            /* user data passed to the executor                             */
@@ -29,9 +29,9 @@ typedef void * (* mc_JobManagerCallback)(
  * @param on_execute: Callback to call on execution of a job (may not be NULL.)
  * @param user_data: Userdata that is passed to the callback once per job manager.
  *
- * @return a newly allocated mc_JobManager, pass to mc_store_close() when done.
+ * @return a newly allocated MooseJobManager, pass to moose_store_close() when done.
  */
-struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute, void *user_data);
+struct MooseJobManager *moose_jm_create(MooseJobManagerCallback on_execute, void *user_data);
 
 /**
  * @brief Check in a callback is this job should be cancelled. 
@@ -45,7 +45,7 @@ struct mc_JobManager *mc_jm_create(mc_JobManagerCallback on_execute, void *user_
  *
  * @return bool if you should cancel your operation.
  */
-bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel);
+bool moose_jm_check_cancel(struct MooseJobManager *jm, volatile bool *cancel);
 
 /**
  * @brief Send a new Job to the Manger.
@@ -56,22 +56,22 @@ bool mc_jm_check_cancel(struct mc_JobManager *jm, volatile bool *cancel);
  *
  * @return a unique integer, being the id of the job.
  */
-long mc_jm_send(struct mc_JobManager *jm, int priority, void *user_data);
+long moose_jm_send(struct MooseJobManager *jm, int priority, void *user_data);
 
 /**
  * @brief Blocks until the internal Queue is empty. (No jobs currently processed)
  *
  * @param jm: Jobmanager to wait on.
  */
-void mc_jm_wait(struct mc_JobManager *jm);
+void moose_jm_wait(struct MooseJobManager *jm);
 
 /**
  * @brief Wait for the Job specified by ID to finish.
  *
  * @param jm The job manager you started the job on.
- * @param job_id the ID obtained by mc_jm_send()
+ * @param job_id the ID obtained by moose_jm_send()
  */
-void mc_jm_wait_for_id(struct mc_JobManager *jm, int job_id);
+void moose_jm_wait_for_id(struct MooseJobManager *jm, int job_id);
 
 /**
  * @brief Get the result of a job.
@@ -80,21 +80,21 @@ void mc_jm_wait_for_id(struct mc_JobManager *jm, int job_id);
  *       or if the result is not computed yet!
  *
  * @param jm The job manager to operate on.
- * @param job_id Id of the job, obtained from mc_jm_send()
+ * @param job_id Id of the job, obtained from moose_jm_send()
  *
  * @return the void * pointer returned by your callback.
  */
-void * mc_jm_get_result(struct mc_JobManager *jm, int job_id);
+void * moose_jm_get_result(struct MooseJobManager *jm, int job_id);
 
 /**
  * @brief Free all data associated with this Job Manager.
  *
  * Note: This will send a termination job, with highest priority.
- *       Call mc_jm_wait() before if you want to wait for the jobs to finish.
+ *       Call moose_jm_wait() before if you want to wait for the jobs to finish.
  *  
  * @param jm Job Manager to close.
  */
-void mc_jm_close(struct mc_JobManager *jm);
+void moose_jm_close(struct MooseJobManager *jm);
 
 #endif /* end of include guard: MC_JOB_MANAGER_H */
 

@@ -14,12 +14,12 @@
 
 
 /**
- * @brief Create an mc_Client
+ * @brief Create an MooseClient
  *
- * See mc_IdleClient for more description.
+ * See MooseIdleClient for more description.
  *
  * @return a newly allocated connector
  */
-mc_Client *mc_create_cmnder(long connection_timeout_ms);
+MooseClient *moose_create_cmnder(long connection_timeout_ms);
 
 #endif /* end of include guard: CMND_CORE_H */

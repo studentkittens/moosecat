@@ -20,7 +20,7 @@
 
 
 #define REPORT_SQL_ERROR(store, message)                                                           \
-    mc_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
+    moose_shelper_report_error_printf (store->client, "[%s:%d] %s -> %s (#%d)",                       \
                                     __FILE__, __LINE__, message,                                   \
                                     sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
  

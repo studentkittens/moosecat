@@ -14,7 +14,7 @@
 typedef gboolean(* MCAsyncQueueWatchFunc)(GAsyncQueue *, gpointer);
 
 /**
- * mc_async_queue_watch_new:
+ * moose_async_queue_watch_new:
  * @param queue the #GAsyncQueue to watch
  * @param iteration_timeout max timeout for mainloop's poll(),
  *                          high timeouts are ressource friendly, but less responsive.
@@ -30,7 +30,7 @@ typedef gboolean(* MCAsyncQueueWatchFunc)(GAsyncQueue *, gpointer);
  *
  * @return the ID of the new #GSource
  */
-guint mc_async_queue_watch_new(
+guint moose_async_queue_watch_new(
     GAsyncQueue *queue,
     gint iteration_timeout,
     MCAsyncQueueWatchFunc callback,

@@ -10,7 +10,7 @@ static void forward_log(const gchar *log_domain,
                         const gchar *message,
                         gpointer user_data)
 {
-    mc_Client *self = user_data;
+    MooseClient *self = user_data;
     const char *log_level_string = NULL;
 
     switch (log_level) {
@@ -42,12 +42,12 @@ static void forward_log(const gchar *log_domain,
         log_level_string = "Unknown";
     }
 
-    mc_shelper_report_error_printf(self, "%s-%s: %s\n", log_domain, log_level_string, message);
+    moose_shelper_report_error_printf(self, "%s-%s: %s\n", log_domain, log_level_string, message);
 }
 
 //////////////////////
 
-static void mc_register_log_domains(const char *domain, mc_Client *self)
+static void moose_register_log_domains(const char *domain, MooseClient *self)
 {
     GLogLevelFlags flags = (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL| G_LOG_FLAG_RECURSION);
     g_log_set_handler(domain, flags, forward_log, self);
@@ -55,8 +55,8 @@ static void mc_register_log_domains(const char *domain, mc_Client *self)
 
 //////////////////////
 
-void mc_misc_catch_external_logs(mc_Client *self)
+void moose_misc_catch_external_logs(MooseClient *self)
 {
-    mc_register_log_domains("GLib", self);
-    mc_register_log_domains("GLib-GObject", self);
+    moose_register_log_domains("GLib", self);
+    moose_register_log_domains("GLib-GObject", self);
 }

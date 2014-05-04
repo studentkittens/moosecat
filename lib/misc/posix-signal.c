@@ -11,11 +11,11 @@
 #include "posix-signal.h"
 #include "bug-report.h"
 
-static volatile mc_Client *gl_client = NULL;
+static volatile MooseClient *gl_client = NULL;
 
 ///////////////////////////////
 
-static void mc_print_backtrace(void)
+static void moose_print_backtrace(void)
 {
 #ifdef G_OS_UNIX
     const int bt_length = 10;
@@ -42,17 +42,17 @@ static void mc_print_backtrace(void)
 
 ///////////////////////////////
 
-static void mc_priv_signal_handler(int signal)
+static void moose_priv_signal_handler(int signal)
 {
     switch (signal) {
     case SIGFPE:
     case SIGABRT:
     case SIGSEGV:
         g_print("\n\nFATAL: libmoosecat received a terminal signal: %s\n\n", g_strsignal(signal));
-        gchar *bug_report = mc_misc_bug_report((mc_Client *) gl_client);
+        gchar *bug_report = moose_misc_bug_report((MooseClient *) gl_client);
         g_print("%s", bug_report);
         g_free(bug_report);
-        mc_print_backtrace();
+        moose_print_backtrace();
         g_print("Most recent call first. I'm going to die now. Please debug me.\n\n");
         break;
     }
@@ -60,7 +60,7 @@ static void mc_priv_signal_handler(int signal)
 
 ///////////////////////////////
 
-void mc_misc_register_posix_signal(mc_Client *client)
+void moose_misc_register_posix_signal(MooseClient *client)
 {
     if (client == NULL)
         return;
@@ -70,5 +70,5 @@ void mc_misc_register_posix_signal(mc_Client *client)
     int catch_signals[] = {SIGSEGV, SIGABRT, SIGFPE};
 
     for (int i = 0; i < (int)(sizeof(catch_signals) / sizeof(int)); i++)
-        signal(catch_signals[i], mc_priv_signal_handler);
+        signal(catch_signals[i], moose_priv_signal_handler);
 }

@@ -34,7 +34,7 @@ Don't do this: ::
 cimport binds as c
 
 
-cdef status_from_ptr(c.mpd_status * ptr, c.mc_Client * client):
+cdef status_from_ptr(c.mpd_status * ptr, c.MooseClient * client):
     'Instance a new Status() with the underlying mpd_status ptr'
     if ptr != NULL:
         return Status()._init(ptr, client)
@@ -58,7 +58,7 @@ cdef class Status:
 
     # Actual c-level struct
     cdef c.mpd_status * _status
-    cdef c.mc_Client * _client
+    cdef c.MooseClient * _client
 
     ################
     #  Allocation  #
@@ -73,13 +73,13 @@ cdef class Status:
         else:
             raise ValueError('mpd_status pointer is null for this instance!')
 
-    cdef c.mc_Client * _c(self) except NULL:
+    cdef c.MooseClient * _c(self) except NULL:
         if self._client!= NULL:
             return self._client
         else:
             raise ValueError('_client pointer is null for this instance!')
 
-    cdef object _init(self, c.mpd_status * status, c.mc_Client * client):
+    cdef object _init(self, c.mpd_status * status, c.MooseClient * client):
         self._status = status
         self._client = client
         return self
@@ -297,7 +297,7 @@ cdef class Status:
         Possible values: ['off', 'album', 'track', 'auto']
         '''
         def __get__(self):
-            return stringify(<char *>c.mc_get_replay_gain_mode(self._c()))
+            return stringify(<char *>c.moose_get_replay_gain_mode(self._c()))
 
         def __set__(self, mode):
             if mode in ['off', 'album', 'track', 'auto']:

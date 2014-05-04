@@ -16,11 +16,11 @@ enum {
 };
 
 typedef struct {
-    mc_Client *client;
-    mc_Store *store;
+    MooseClient *client;
+    MooseStore *store;
     GtkTreeModel *model;
     GtkTreeView *view;
-    mc_Playlist *song_buf;
+    MoosePlaylist *song_buf;
     GTimer *profile_timer;
 } EntryTag;
 
@@ -40,17 +40,17 @@ static void update_view(EntryTag *tag, const char *search_text)
     gdouble select_time, gui_time, parse_time;
     GtkTreeIter iter;
     g_timer_start(tag->profile_timer);
-    mc_stack_clear(tag->song_buf);
+    moose_stack_clear(tag->song_buf);
 
     GTimer *parse_timer = g_timer_new();
     g_timer_start(parse_timer);
-    char *query = mc_store_qp_parse(search_text, NULL, NULL);
+    char *query = moose_store_qp_parse(search_text, NULL, NULL);
     parse_time = g_timer_elapsed(parse_timer, NULL);
 
 
-    mc_store_gw(tag->store, mc_store_search_to_stack(tag->store, query, true, tag->song_buf, -1));
+    moose_store_gw(tag->store, moose_store_search_to_stack(tag->store, query, true, tag->song_buf, -1));
 
-    int found = mc_stack_length(tag->song_buf);
+    int found = moose_stack_length(tag->song_buf);
 
     select_time = g_timer_elapsed(tag->profile_timer, NULL);
 
@@ -67,7 +67,7 @@ static void update_view(EntryTag *tag, const char *search_text)
     gtk_list_store_clear(list_store);
 
     for (int i = 0; i < found; i++) {
-        struct mpd_song *song = mc_stack_at(tag->song_buf, i);
+        struct mpd_song *song = moose_stack_at(tag->song_buf, i);
         gtk_list_store_append(list_store, &iter);
         gtk_list_store_set(list_store, &iter,
                            COLUMN_ARTIST, mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
@@ -76,7 +76,7 @@ static void update_view(EntryTag *tag, const char *search_text)
                            -1);
     }
 
-    mc_store_release(tag->store);
+    moose_store_release(tag->store);
 
     gtk_tree_view_set_model(GTK_TREE_VIEW(tag->view), model); /* Re-attach model to view */
     g_object_unref(model);
@@ -108,7 +108,7 @@ static gboolean window_closed(GtkWidget *widget, GdkEvent *event, gpointer user_
     return FALSE;
 }
 
-static void on_client_update(mc_Client *self, enum mpd_idle event, void *user_data)
+static void on_client_update(MooseClient *self, enum mpd_idle event, void *user_data)
 {
     (void) self;
     (void) event;
@@ -122,17 +122,17 @@ static EntryTag *setup_client(void)
     EntryTag *rc = NULL;
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer *setup_timer = g_timer_new();
-    mc_Client *client = mc_create(MC_PM_COMMAND);
-    mc_connect(client, NULL, "localhost", 6600, 2.0);
+    MooseClient *client = moose_create(MC_PM_COMMAND);
+    moose_connect(client, NULL, "localhost", 6600, 2.0);
 
-    if (client && mc_is_connected(client)) {
+    if (client && moose_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
-        mc_StoreSettings *settings = mc_store_settings_new();
+        MooseStoreSettings *settings = moose_store_settings_new();
         settings->use_memory_db = FALSE;
         settings->use_compression = FALSE;
 
-        mc_Store *store = mc_store_create(client, settings);
+        MooseStore *store = moose_store_create(client, settings);
         db_setup = g_timer_elapsed(setup_timer, NULL);
 
         if (store != NULL) {
@@ -142,16 +142,16 @@ static EntryTag *setup_client(void)
             rc->profile_timer = g_timer_new();
 
             int number_of_songs = 1000;
-            struct mpd_stats * stats = mc_lock_statistics(client);
+            struct mpd_stats * stats = moose_lock_statistics(client);
             if(stats != NULL) {
                 number_of_songs = mpd_stats_get_number_of_songs(stats);
             }
-            mc_unlock_statistics(client);
+            moose_unlock_statistics(client);
 
-            rc->song_buf = mc_stack_create(number_of_songs + 1, NULL);
+            rc->song_buf = moose_stack_create(number_of_songs + 1, NULL);
         }
 
-        mc_signal_add_masked(client, "client-event",
+        moose_signal_add_masked(client, "client-event",
                                    on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
     }
 
@@ -162,8 +162,8 @@ static EntryTag *setup_client(void)
 
 static void bringdown_client(EntryTag *tag)
 {
-    mc_stack_free(tag->song_buf);
-    mc_store_close(tag->store);
+    moose_stack_free(tag->song_buf);
+    moose_store_close(tag->store);
 }
 
 static void build_gui(EntryTag *tag)

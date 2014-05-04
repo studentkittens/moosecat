@@ -9,9 +9,9 @@
 ///////////////////////////////
 
 static void print_logging(
-    G_GNUC_UNUSED mc_Client *self,
+    G_GNUC_UNUSED MooseClient *self,
     const char * message,
-    mc_LogLevel level,
+    MooseLogLevel level,
     G_GNUC_UNUSED gpointer user_data)
 {
     g_printerr("Logging(%d): %s\n", level, message);
@@ -20,7 +20,7 @@ static void print_logging(
 ///////////////////////////////
 
 static void print_event(
-    mc_Client *self,
+    MooseClient *self,
     enum mpd_idle event,
     void *user_data)
 {
@@ -30,13 +30,13 @@ static void print_event(
 ///////////////////////////////
 
 static void print_connectivity(
-    mc_Client *self,
+    MooseClient *self,
     bool server_changed,
     bool was_connected,
     G_GNUC_UNUSED void *user_data)
 {
     g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
-            server_changed, was_connected, mc_is_connected(self)
+            server_changed, was_connected, moose_is_connected(self)
     );
 }
 
@@ -53,11 +53,11 @@ static gboolean timeout_quit(gpointer user_data)
 
 static gboolean timeout_client_change(gpointer user_data)
 {
-    mc_Store *store = user_data;
-    mc_StoreCompletion *cmpl = mc_store_get_completion(store);
+    MooseStore *store = user_data;
+    MooseStoreCompletion *cmpl = moose_store_get_completion(store);
     g_printerr("C %p\n", cmpl);
-    g_printerr("P %s\n", mc_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Akrea"));
-    g_printerr("P %s\n", mc_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Knork"));
+    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Akrea"));
+    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Knork"));
     return false;
 }
 
@@ -65,18 +65,18 @@ static gboolean timeout_client_change(gpointer user_data)
 
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const *argv[])
 {
-    mc_Client *self = mc_create(MC_PM_IDLE);
+    MooseClient *self = moose_create(MC_PM_IDLE);
 
-    mc_connect(self, NULL, "localhost", 6600, 10.0);
-    mc_signal_add(self, "logging", print_logging, NULL);
-    mc_signal_add(self, "client-event", print_event, NULL);
-    mc_signal_add(self, "connectivity", print_connectivity, NULL);
-    mc_misc_register_posix_signal(self);
+    moose_connect(self, NULL, "localhost", 6600, 10.0);
+    moose_signal_add(self, "logging", print_logging, NULL);
+    moose_signal_add(self, "client-event", print_event, NULL);
+    moose_signal_add(self, "connectivity", print_connectivity, NULL);
+    moose_misc_register_posix_signal(self);
 
-    mc_StoreSettings *settings = mc_store_settings_new();
+    MooseStoreSettings *settings = moose_store_settings_new();
     settings->use_memory_db = TRUE;
     settings->use_compression = FALSE;
-    mc_Store *db = mc_store_create(self, settings);
+    MooseStore *db = moose_store_create(self, settings);
 
     GMainLoop *loop = g_main_loop_new(NULL, true);
     g_timeout_add(3000, timeout_client_change, db);
@@ -85,7 +85,7 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const *argv[])
     g_main_loop_run(loop);
     g_main_loop_unref(loop);
 
-    mc_store_close(db);
-    mc_store_settings_destroy(settings);
-    mc_free(self);
+    moose_store_close(db);
+    moose_store_settings_destroy(settings);
+    moose_free(self);
 }

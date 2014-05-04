@@ -205,7 +205,7 @@ static const char *_sql_stmts[] = {
 //     ATTRIBUTE LOCKING      //
 ////////////////////////////////
 
-void mc_stprv_lock_attributes(mc_Store *self)
+void moose_stprv_lock_attributes(MooseStore *self)
 {
     g_assert(self);
 
@@ -214,7 +214,7 @@ void mc_stprv_lock_attributes(mc_Store *self)
 
 ////////////////////////////////
 
-void mc_stprv_unlock_attributes(mc_Store *self)
+void moose_stprv_unlock_attributes(MooseStore *self)
 {
     g_assert(self);
 
@@ -234,33 +234,33 @@ void mc_stprv_unlock_attributes(mc_Store *self)
  * since they rely on already created tables. That's why we
  * have to insert the values manually.
  */
-void mc_stprv_insert_meta_attributes(mc_Store *self)
+void moose_stprv_insert_meta_attributes(MooseStore *self)
 {
 
     char *insert_meta_sql = NULL;
     int queue_version = -1;
-    struct mpd_status * status = mc_lock_status(self->client);
+    struct mpd_status * status = moose_lock_status(self->client);
 
     if(status != NULL) {
         queue_version = mpd_status_get_queue_version(status);
     }
-    mc_unlock_status(self->client);
+    moose_unlock_status(self->client);
 
     if(status != NULL) {
         time_t db_update_time = 0;
-        struct mpd_stats * stats = mc_lock_statistics(self->client);
+        struct mpd_stats * stats = moose_lock_statistics(self->client);
         if(stats != NULL) {
             db_update_time = mpd_stats_get_db_update_time(stats);
         }
-        mc_unlock_statistics(self->client);
+        moose_unlock_statistics(self->client);
 
         if(stats != NULL) {
             insert_meta_sql = sqlite3_mprintf(SQL_CODE(META),
                     db_update_time,
                     queue_version,
                     MC_DB_SCHEMA_VERSION,
-                    mc_get_port(self->client),
-                    mc_get_host(self->client)
+                    moose_get_port(self->client),
+                    moose_get_host(self->client)
             );
         }
     }
@@ -275,7 +275,7 @@ void mc_stprv_insert_meta_attributes(mc_Store *self)
 
 ////////////////////////////////
 
-bool mc_stprv_create_song_table(mc_Store *self)
+bool moose_stprv_create_song_table(MooseStore *self)
 {
     g_assert(self);
 
@@ -293,7 +293,7 @@ bool mc_stprv_create_song_table(mc_Store *self)
         }
 
         if (found == false) {
-            mc_shelper_report_error_printf(
+            moose_shelper_report_error_printf(
                     self->client,
                     "Tokenizer ,,%s'' is unknown. Defaulting to 'porter'.",
                     self->settings->tokenizer
@@ -320,7 +320,7 @@ bool mc_stprv_create_song_table(mc_Store *self)
 
 ////////////////////////////////
 
-void mc_stprv_prepare_all_statements(mc_Store *self)
+void moose_stprv_prepare_all_statements(MooseStore *self)
 {
     g_assert(self);
 
@@ -334,7 +334,7 @@ void mc_stprv_prepare_all_statements(mc_Store *self)
         REPORT_SQL_ERROR(self, "Cannot create dummy meta table. Expect some warnings.");
     }
 
-    self->sql_prep_stmts = mc_stprv_prepare_all_statements_listed(
+    self->sql_prep_stmts = moose_stprv_prepare_all_statements_listed(
             self,
             _sql_stmts,
             STMT_SQL_NEED_TO_PREPARE_COUNT + 1,
@@ -344,7 +344,7 @@ void mc_stprv_prepare_all_statements(mc_Store *self)
 
 ////////////////////////////////
 
-sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_Store *self, const char **sql_stmts, int offset, int n_stmts)
+sqlite3_stmt **moose_stprv_prepare_all_statements_listed(MooseStore *self, const char **sql_stmts, int offset, int n_stmts)
 {
     g_assert(self);
     sqlite3_stmt **stmt_list = NULL;
@@ -379,7 +379,7 @@ sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_Store *self, const char
  *
  * Returns: true on success.
  */
-bool mc_strprv_open_memdb(mc_Store *self)
+bool moose_strprv_open_memdb(MooseStore *self)
 {
     g_assert(self);
     const char *db_name = (self->settings->use_memory_db) ? ":memory:" : MC_STORE_TMP_DB_PATH;
@@ -390,12 +390,12 @@ bool mc_strprv_open_memdb(mc_Store *self)
         return false;
     }
 
-    return mc_stprv_create_song_table(self);
+    return moose_stprv_create_song_table(self);
 }
 
 ////////////////////////////////
 
-void mc_stprv_finalize_statements(mc_Store *self, sqlite3_stmt **stmts, int offset, int n_stmts)
+void moose_stprv_finalize_statements(MooseStore *self, sqlite3_stmt **stmts, int offset, int n_stmts)
 {
     g_assert(self);
     g_assert(stmts);
@@ -415,10 +415,10 @@ void mc_stprv_finalize_statements(mc_Store *self, sqlite3_stmt **stmts, int offs
 
 ////////////////////////////////
 
-void mc_stprv_close_handle(mc_Store *self, bool free_statements)
+void moose_stprv_close_handle(MooseStore *self, bool free_statements)
 {
     if(free_statements) {
-        mc_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
+        moose_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
         self->sql_prep_stmts = NULL;
     }
 
@@ -430,7 +430,7 @@ void mc_stprv_close_handle(mc_Store *self, bool free_statements)
 
 ////////////////////////////////
 
-void mc_stprv_begin(mc_Store *self)
+void moose_stprv_begin(MooseStore *self)
 {
     if (sqlite3_step(SQL_STMT(self, BEGIN)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute BEGIN");
@@ -439,7 +439,7 @@ void mc_stprv_begin(mc_Store *self)
 
 ////////////////////////////////
 
-void mc_stprv_commit(mc_Store *self)
+void moose_stprv_commit(MooseStore *self)
 {
     if (sqlite3_step(SQL_STMT(self, COMMIT)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute COMMIT");
@@ -448,7 +448,7 @@ void mc_stprv_commit(mc_Store *self)
 
 ////////////////////////////////
 
-void mc_stprv_delete_songs_table(mc_Store *self)
+void moose_stprv_delete_songs_table(MooseStore *self)
 {
     if (sqlite3_step(SQL_STMT(self, DELETE_ALL)) != SQLITE_DONE)
         REPORT_SQL_ERROR(self, "WARNING: Cannot delete table contentes of 'songs'");
@@ -462,12 +462,12 @@ void mc_stprv_delete_songs_table(mc_Store *self)
  * This inserts all attributes of the song, even if they are not set,
  * or not used in moosecat itself
  *
- * You should call mc_stprv_begin and mc_stprv_commit before/after
+ * You should call moose_stprv_begin and moose_stprv_commit before/after
  * inserting, especially if inserting many songs.
  *
  * A prepared statement is used for simplicity & speed reasons.
  */
-bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
+bool moose_stprv_insert_song(MooseStore *db, struct mpd_song *song)
 {
     int error_id = SQLITE_OK;
     int pos_idx = 1;
@@ -502,7 +502,7 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
     /* Constant Value. See Create statement. */
     bind_int(db, INSERT, pos_idx,  0, error_id);
 
-    bind_int(db, INSERT, pos_idx, mc_path_get_depth(mpd_song_get_uri(song)), error_id);
+    bind_int(db, INSERT, pos_idx, moose_path_get_depth(mpd_song_get_uri(song)), error_id);
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
@@ -525,7 +525,7 @@ bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song)
 
 ////////////////////////////////
 
-static gint mc_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b) 
+static gint moose_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b) 
 {                                                                                   
     if (a && b) {                                                                   
         int pos_a = mpd_song_get_pos(* ((struct mpd_song **) a)); 
@@ -540,7 +540,7 @@ static gint mc_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer
     } else return +1; /* to sort NULL at the end */ 
 }
 
-static gint mc_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstpointer b) 
+static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstpointer b) 
 {                                                                                   
     if (a && b) {                                                                   
         struct mpd_song * sa = (* ((struct mpd_song **) a));
@@ -562,10 +562,10 @@ static gint mc_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstp
  *
  * This is more of a fun excercise, than a real speedup.
  */ 
-static struct mpd_song * mc_stprv_find_idx(mc_Playlist * stack, struct mpd_song * key)
+static struct mpd_song * moose_stprv_find_idx(MoosePlaylist * stack, struct mpd_song * key)
 {
     int l = 0;
-    int r = mc_stack_length(stack) - 1;
+    int r = moose_stack_length(stack) - 1;
     int qr1 = 0, qr3 = 0, mid = 0;
 
     while(l <= r) {
@@ -573,9 +573,9 @@ static struct mpd_song * mc_stprv_find_idx(mc_Playlist * stack, struct mpd_song 
         qr1 = l + (r - l) / 4;
         qr3 = l + (r - l) * 3 / 4;
 
-        struct mpd_song * at_mid = mc_stack_at(stack, mid);
-        struct mpd_song * at_qr1 = mc_stack_at(stack, qr1);
-        struct mpd_song * at_qr3 = mc_stack_at(stack, qr3);
+        struct mpd_song * at_mid = moose_stack_at(stack, mid);
+        struct mpd_song * at_qr1 = moose_stack_at(stack, qr1);
+        struct mpd_song * at_qr3 = moose_stack_at(stack, qr3);
 
         if(at_mid == key || key == at_qr1 || key == at_qr3) {
             int result_idx = 0;
@@ -586,7 +586,7 @@ static struct mpd_song * mc_stprv_find_idx(mc_Playlist * stack, struct mpd_song 
             } else {
                 result_idx = qr3;
             }
-            return mc_stack_at(stack, result_idx);
+            return moose_stack_at(stack, result_idx);
         } else if (key < at_mid && key < at_qr1) {
             r = qr1 - 1;
         } else if (key < at_mid && key > at_qr1) {
@@ -604,13 +604,13 @@ static struct mpd_song * mc_stprv_find_idx(mc_Playlist * stack, struct mpd_song 
 
 ////////////////////////////////
 
-static mc_Playlist * mc_stprv_build_queue_content(mc_Store *self, mc_Playlist *to_filter)
+static MoosePlaylist * moose_stprv_build_queue_content(MooseStore *self, MoosePlaylist *to_filter)
 {
     g_assert(self);
 
     int error_id = SQLITE_OK;
     sqlite3_stmt *select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
-    mc_Playlist *queue_songs = mc_stack_create(mc_stack_length(to_filter) / 2, NULL);
+    MoosePlaylist *queue_songs = moose_stack_create(moose_stack_length(to_filter) / 2, NULL);
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int stack_idx = sqlite3_column_int(select_stmt, 0);
@@ -618,11 +618,11 @@ static mc_Playlist * mc_stprv_build_queue_content(mc_Store *self, mc_Playlist *t
             continue;
         }
 
-        struct mpd_song *queue_song = mc_stprv_find_idx(
-            to_filter, mc_stack_at(self->stack, stack_idx - 1)
+        struct mpd_song *queue_song = moose_stprv_find_idx(
+            to_filter, moose_stack_at(self->stack, stack_idx - 1)
         );
         if(queue_song != NULL) {
-            mc_stack_append(queue_songs, queue_song);
+            moose_stack_append(queue_songs, queue_song);
         }
     }
 
@@ -650,17 +650,17 @@ static mc_Playlist * mc_stprv_build_queue_content(mc_Store *self, mc_Playlist *t
  *
  * Returns: number of actually found songs, or -1 on error.
  */
-int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Playlist *stack, int limit_len)
+int moose_stprv_select_to_stack(MooseStore *self, const char *match_clause, bool queue_only, MoosePlaylist *stack, int limit_len)
 {
     int error_id = SQLITE_OK, pos_id = 1;
     limit_len = (limit_len < 0) ? INT_MAX : limit_len;
 
     const char * warning = NULL;
     int warning_pos = -1;
-    gchar *match_clause_dup = mc_store_qp_parse(match_clause, &warning, &warning_pos);
+    gchar *match_clause_dup = moose_store_qp_parse(match_clause, &warning, &warning_pos);
 
     if(warning != NULL) {
-        mc_shelper_report_error_printf(
+        moose_shelper_report_error_printf(
                 self->client,
                 "database: Query Parse Error: %d:%s", warning_pos, warning
         );
@@ -688,7 +688,7 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int song_idx = sqlite3_column_int(select_stmt, 0);
-        struct mpd_song *selected = mc_stack_at(self->stack, song_idx - 1);
+        struct mpd_song *selected = moose_stack_at(self->stack, song_idx - 1);
 
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
@@ -697,7 +697,7 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
          * We can do that a lot faster anyways;
          * */
         if (queue_only == false || ((int)mpd_song_get_pos(selected) > -1)) {
-            mc_stack_append(stack, selected);
+            moose_stack_append(stack, selected);
         }
     }
 
@@ -711,17 +711,17 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
 
     /* sort by position in queue if queue_only is passed. */
     if (queue_only) {
-        mc_stack_sort(stack, mc_stprv_select_impl_sort_func_by_stack_ptr);
-        mc_Playlist * queue = mc_stprv_build_queue_content(self, stack);
-        mc_stack_clear(stack);
-        for(unsigned i = 0; i < mc_stack_length(queue); ++i) {
-            mc_stack_append(stack, mc_stack_at(queue, i));
+        moose_stack_sort(stack, moose_stprv_select_impl_sort_func_by_stack_ptr);
+        MoosePlaylist * queue = moose_stprv_build_queue_content(self, stack);
+        moose_stack_clear(stack);
+        for(unsigned i = 0; i < moose_stack_length(queue); ++i) {
+            moose_stack_append(stack, moose_stack_at(queue, i));
         }
         stack = queue;
-        mc_stack_sort(stack, mc_stprv_select_impl_sort_func_by_pos);
+        moose_stack_sort(stack, moose_stprv_select_impl_sort_func_by_pos);
     }
 
-    return mc_stack_length(stack);
+    return moose_stack_length(stack);
 }
 
 ////////////////////////////////
@@ -746,7 +746,7 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
  ** If the operation is successful, SQLITE_OK is returned. Otherwise, if
  ** an error occurs, an SQLite error code is returned.
  */
-void mc_stprv_load_or_save(mc_Store *self, bool is_save, const char *db_path)
+void moose_stprv_load_or_save(MooseStore *self, bool is_save, const char *db_path)
 {
     sqlite3 *pFile;           /* Database connection opened on zFilename */
     sqlite3_backup *pBackup;  /* Backup object used to copy data */
@@ -813,7 +813,7 @@ if (pair.value) {                                             \
  *
  * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
  */
-void mc_stprv_deserialize_songs(mc_Store *self)
+void moose_stprv_deserialize_songs(MooseStore *self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
@@ -899,19 +899,19 @@ void mc_stprv_deserialize_songs(mc_Store *self)
         feed_tag(MPD_TAG_MUSICBRAINZ_ALBUMID, SQL_COL_MUSICBRAINZ_ALBUM_ID, stmt, song, pair);
         feed_tag(MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID, stmt, song, pair);
         feed_tag(MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
-        mc_stack_append(self->stack, song);
+        moose_stack_append(self->stack, song);
 
         ++progress_counter;
     }
 
     /* Tell the user we're so happy, we shat a database */
-    mc_shelper_report_progress(
+    moose_shelper_report_progress(
             self->client, true,
             "database: deserialized %d songs from local db. (took %2.3f)",
             progress_counter, g_timer_elapsed(timer, NULL)
     );
-    mc_shelper_report_operation_finished(self->client, MC_OP_DB_UPDATED);
-    mc_shelper_report_operation_finished(self->client, MC_OP_QUEUE_UPDATED);
+    moose_shelper_report_operation_finished(self->client, MC_OP_DB_UPDATED);
+    moose_shelper_report_operation_finished(self->client, MC_OP_QUEUE_UPDATED);
     g_timer_destroy(timer);
 
     if (error_id != SQLITE_DONE) {
@@ -937,7 +937,7 @@ void mc_stprv_deserialize_songs(mc_Store *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_song_count(mc_Store *self)
+int moose_stprv_get_song_count(MooseStore *self)
 {
     int song_count = -1;
     select_meta_attribute(self, COUNT, sqlite3_column_int, song_count, ABS, int);
@@ -946,7 +946,7 @@ int mc_stprv_get_song_count(mc_Store *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_db_version(mc_Store *self)
+int moose_stprv_get_db_version(MooseStore *self)
 {
     int db_version = 0;
     select_meta_attribute(self, SELECT_META_DB_VERSION, sqlite3_column_int, db_version, ABS, int);
@@ -955,7 +955,7 @@ int mc_stprv_get_db_version(mc_Store *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_pl_version(mc_Store *self)
+int moose_stprv_get_pl_version(MooseStore *self)
 {
     int pl_version = 0;
     select_meta_attribute(self, SELECT_META_PL_VERSION, sqlite3_column_int, pl_version, ABS, int);
@@ -964,7 +964,7 @@ int mc_stprv_get_pl_version(mc_Store *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_sc_version(mc_Store *self)
+int moose_stprv_get_sc_version(MooseStore *self)
 {
     int sc_version = 0;
     select_meta_attribute(self, SELECT_META_SC_VERSION, sqlite3_column_int, sc_version, ABS, int);
@@ -973,7 +973,7 @@ int mc_stprv_get_sc_version(mc_Store *self)
 
 ////////////////////////////////
 
-int mc_stprv_get_mpd_port(mc_Store *self)
+int moose_stprv_get_mpd_port(MooseStore *self)
 {
     int mpd_port = 0;
     select_meta_attribute(self, SELECT_META_MPD_PORT, sqlite3_column_int, mpd_port, ABS, int);
@@ -982,7 +982,7 @@ int mc_stprv_get_mpd_port(mc_Store *self)
 
 ////////////////////////////////
 
-char *mc_stprv_get_mpd_host(mc_Store *self)
+char *moose_stprv_get_mpd_host(MooseStore *self)
 {
     char *mpd_host = NULL;
     select_meta_attribute(self, SELECT_META_MPD_HOST, sqlite3_column_text, mpd_host, g_strdup, char *);
@@ -991,7 +991,7 @@ char *mc_stprv_get_mpd_host(mc_Store *self)
 
 /////////////////// QUEUE STUFF ////////////////////
 
-int mc_stprv_queue_clip(mc_Store *self, int since_pos)
+int moose_stprv_queue_clip(MooseStore *self, int since_pos)
 {
     g_assert(self);
 
@@ -1018,7 +1018,7 @@ int mc_stprv_queue_clip(mc_Store *self, int since_pos)
 
 ///////////////////
 
-void mc_stprv_queue_update_stack_posid(mc_Store *self)
+void moose_stprv_queue_update_stack_posid(MooseStore *self)
 {
     g_assert(self);
     int error_id = SQLITE_OK;
@@ -1034,7 +1034,7 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
         int row_idx  = sqlite3_column_int(select_stmt, 0);
 
         if (row_idx > 0) {
-            struct mpd_song *song = mc_stack_at(self->stack, row_idx - 1);
+            struct mpd_song *song = moose_stack_at(self->stack, row_idx - 1);
 
             if (song != NULL) {
                 unsigned queue_pos = sqlite3_column_int(select_stmt, 1);
@@ -1055,8 +1055,8 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
     sqlite3_reset(select_stmt);
     
     /* Reset all songs of the database to -1/-1 that were not in the queue */
-    for(unsigned i = 0; i < mc_stack_length(self->stack); ++i) {
-        struct mpd_song * song = mc_stack_at(self->stack, i);
+    for(unsigned i = 0; i < moose_stack_length(self->stack); ++i) {
+        struct mpd_song * song = moose_stack_at(self->stack, i);
         if(song != NULL) {
             if(!g_hash_table_lookup(already_seen_ids, song)) {
                 /* Warning: -1 is casted to unsigned int and late back */
@@ -1071,7 +1071,7 @@ void mc_stprv_queue_update_stack_posid(mc_Store *self)
 
 ///////////////////
 
-void mc_stprv_queue_insert_posid(mc_Store *self, int pos, int idx, const char *file)
+void moose_stprv_queue_insert_posid(MooseStore *self, int pos, int idx, const char *file)
 {
     int pos_idx = 1, error_id = SQLITE_OK;
     bind_txt(self, QUEUE_INSERT_ROW, pos_idx, file, error_id);

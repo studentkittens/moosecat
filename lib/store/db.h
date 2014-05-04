@@ -6,51 +6,51 @@
 
 /*
  * API to serialize songs into
- * a persistent DB mc_Store
+ * a persistent DB MooseStore
  */
 
 /**
- * @brief Create a new mc_Store.
+ * @brief Create a new MooseStore.
  *
  * @param directory the path to the containing dir
  * @param client a connection to operate on.
  *
  * If no db exist yet at this place (assuming it is a valid path),
  * then a new empy is created with a Query-Version of 0.
- * A call to mc_store_update will therefore insert the whole queue to the list.
+ * A call to moose_store_update will therefore insert the whole queue to the list.
  *
- * If the db is already created, a call to mc_store_update() will only
+ * If the db is already created, a call to moose_store_update() will only
  * insert the latest differences (which might be enourmous too,
  * since mpd returns all changes behind a certain ID)
  *
  * The name of the db will me moosecat_$host:$port
  *
- * @return a new mc_Store , free with mc_store_close()
+ * @return a new MooseStore , free with moose_store_close()
  */
-mc_Store *mc_store_create(mc_Client *client, mc_StoreSettings *settings);
+MooseStore *moose_store_create(MooseClient *client, MooseStoreSettings *settings);
 
 /**
- * @brief Close the mc_Store.
+ * @brief Close the MooseStore.
  *
  * This will write the data on disk, and close all connections,
  * held by libgda.
  *
  * @param self the store to close.
  */
-void mc_store_close(mc_Store *self);
+void moose_store_close(MooseStore *self);
 
 /**
  * @brief Returns a mpd_song at some index
  *
- * This is effectively only useful on mc_store_dir_select_to_stack
+ * This is effectively only useful on moose_store_dir_select_to_stack
  * (which returns a list of files, prefixed with IDs or -1 in case of a directory)
  *
  * @param self the store to operate on.
- * @param idx the index (0 - mc_store_total_songs())
+ * @param idx the index (0 - moose_store_total_songs())
  *
  * @return an mpd_song. DO NOT FREE!
  */
-struct mpd_song *mc_store_song_at(mc_Store *self, int idx);
+struct mpd_song *moose_store_song_at(MooseStore *self, int idx);
 
 /**
  * @brief Returns the total number of songs stored in the database.
@@ -61,7 +61,7 @@ struct mpd_song *mc_store_song_at(mc_Store *self, int idx);
  *
  * @return a number between 0 and fucktuple.
  */
-int mc_store_total_songs(mc_Store *self);
+int moose_store_total_songs(MooseStore *self);
 
 ///// PLAYLIST HANDLING ////
 
@@ -75,10 +75,10 @@ int mc_store_total_songs(mc_Store *self);
  *
  * @return a job id
  */
-long mc_store_playlist_load(mc_Store *self, const char *playlist_name);
+long moose_store_playlist_load(MooseStore *self, const char *playlist_name);
 
 /**
- * @brief Queries the contents of a playlist in a similar fashion as mc_store_search_out does.
+ * @brief Queries the contents of a playlist in a similar fashion as moose_store_search_out does.
  *
  * On succes, stack is filled with mpd_songs up to $return_value songs.
  *
@@ -89,7 +89,7 @@ long mc_store_playlist_load(mc_Store *self, const char *playlist_name);
  *
  * @return a job id
  */
-long mc_store_playlist_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *playlist_name, const char *match_clause);
+long moose_store_playlist_select_to_stack(MooseStore *self, MoosePlaylist *stack, const char *playlist_name, const char *match_clause);
 
 /**
  * @brief List a directory in MPD's database.
@@ -101,7 +101,7 @@ long mc_store_playlist_select_to_stack(mc_Store *self, mc_Playlist *stack, const
  *
  * @return a job id
  */
-long mc_store_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth);
+long moose_store_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, const char *directory, int depth);
 
 /**
  * @brief return a stack of the loaded playlists. Not the actually ones there.
@@ -111,12 +111,12 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char
  *
  * @return a job id
  */
-long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Playlist *stack);
+long moose_store_playlist_get_all_loaded(MooseStore *self, MoosePlaylist *stack);
 
 /**
  * @brief Returns a stack with mpd_playlists of all KNOWN playlists (not loaded)
  *
- * Only free the stack with mc_stack_free(). Not the playlists!
+ * Only free the stack with moose_stack_free(). Not the playlists!
  * 
  *
  * @param self the store to operate on
@@ -124,7 +124,7 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Playlist *stack);
  *
  * @return a job id
  */
-long mc_store_playlist_get_all_known(mc_Store *self, mc_Playlist *stack);
+long moose_store_playlist_get_all_known(MooseStore *self, MoosePlaylist *stack);
 
 /**
  * @brief search the Queue or the whole Database.
@@ -136,24 +136,24 @@ long mc_store_playlist_get_all_known(mc_Store *self, mc_Playlist *stack);
  * @param limit_len limit the length of the return. negative numbers dont limit.
  *
  * Direclty after calling this function you will have no results yet in the stack.
- * You should call mc_store_wait_for_job() to wait for it to be filled.
+ * You should call moose_store_wait_for_job() to wait for it to be filled.
  *
  * Example:
  *
- *      mc_Playlist * stack = mc_stack_create(50, NULL);
- *      int job_id = mc_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
+ *      MoosePlaylist * stack = moose_stack_create(50, NULL);
+ *      int job_id = moose_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
  *      // You can other things than waiting here.
- *      mc_store_wait_for_job(store, job_id);
- *      mc_store_lock(store);
- *      for(int i = 0; i < mc_stack_length(stack); ++i) {
- *          printf("%s\n", mpd_song_tag(mc_stack_at(i), MPD_TAG_TITLE, 0));
+ *      moose_store_wait_for_job(store, job_id);
+ *      moose_store_lock(store);
+ *      for(int i = 0; i < moose_stack_length(stack); ++i) {
+ *          printf("%s\n", mpd_song_tag(moose_stack_at(i), MPD_TAG_TITLE, 0));
  *      }
- *      mc_store_unlock(store);
+ *      moose_store_unlock(store);
  *      
  *
  * @return a Job id
  */
-long mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Playlist *stack, int limit_len);
+long moose_store_search_to_stack(MooseStore *self, const char *match_clause, bool queue_only, MoosePlaylist *stack, int limit_len);
 
 /**
  * @brief Wait for the store to finish it's current operation.
@@ -162,7 +162,7 @@ long mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool que
  *
  * @param self the store to operate on.
  */
-void mc_store_wait(mc_Store *self);
+void moose_store_wait(MooseStore *self);
 
 /**
  * @brief Wait for a certain job to complete.
@@ -170,36 +170,36 @@ void mc_store_wait(mc_Store *self);
  * This can be useful at times when you want to fire an operation to
  * the database, but do not want for it to complete and do other things in 
  * the meanwhile. After some time you can get the result with
- * mc_store_get_result()
+ * moose_store_get_result()
  *
  * @param self the store to operate on
  * @param job_id a job id to wait on (acquired by the above functions)
  */
-void mc_store_wait_for_job(mc_Store *self, int job_id);
+void moose_store_wait_for_job(MooseStore *self, int job_id);
 
 /**
  * @brief Get a result from a job.
  *
  * Note: This function does NOT wait. To be sure that the result is there
- *       you should call mc_store_wait_for_job() previously.
+ *       you should call moose_store_wait_for_job() previously.
  *
  * @param self the store to operate on.
  * @param job_id the job id obtained from one of the above functions.
  *
- * @return a mc_Playlist containing the results you wanted.
+ * @return a MoosePlaylist containing the results you wanted.
  */
-mc_Playlist *mc_store_get_result(mc_Store *self, int job_id);
+MoosePlaylist *moose_store_get_result(MooseStore *self, int job_id);
 
 
 /**
- * @brief Shortcur for mc_store_wait_for_job and mc_store_get_result
+ * @brief Shortcur for moose_store_wait_for_job and moose_store_get_result
  *
  * @param self the store to operate on
  * @param job_id job_id to wait on and get the result from
  *
- * @return same as mc_store_get_result
+ * @return same as moose_store_get_result
  */
-mc_Playlist *mc_store_gw(mc_Store *self, int job_id);
+MoosePlaylist *moose_store_gw(MooseStore *self, int job_id);
 
 
 /**
@@ -211,7 +211,7 @@ mc_Playlist *mc_store_gw(mc_Store *self, int job_id);
  *
  * @param self the store you had the ressources from
  */
-void mc_store_release(mc_Store *self);
+void moose_store_release(MooseStore *self);
 
 /**
  * @brief Find a song by it's ID in the database. 
@@ -219,29 +219,29 @@ void mc_store_release(mc_Store *self);
  * This is often used and therefore implemented for convienience/speed in C.
  * Note: This has linear complexity since it needs to scan the whole list.
  *
- * You need to call mc_store_release() after done using the song.
+ * You need to call moose_store_release() after done using the song.
  *
  * @param self the Store to search on. 
  * @param needle_song_id
  *
  * @return NULL if not found or a mpd_song struct (do not free!)
  */
-struct mpd_song * mc_store_find_song_by_id(mc_Store * self, unsigned needle_song_id);
+struct mpd_song * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_id);
 
 /**
- * @brief Convinience Function to createa mc_StoreCompletion struct.
+ * @brief Convinience Function to createa MooseStoreCompletion struct.
  *
  * The struct will be created on the first call, afterwards the same struct is
- * returned.  * It will be freed on mc_store_close.
+ * returned.  * It will be freed on moose_store_close.
  * 
- * You can use mc_store_cmpl_lookup() to get a suggestion for a certain tag and
+ * You can use moose_store_cmpl_lookup() to get a suggestion for a certain tag and
  * prefix.
  *
  * @param self the store to create the struct on.
  *
- * @return a valid mc_StoreCompletion, do not free.
+ * @return a valid MooseStoreCompletion, do not free.
  */
-mc_StoreCompletion * mc_store_get_completion(mc_Store *self);
+MooseStoreCompletion * moose_store_get_completion(MooseStore *self);
 
 
 #endif /* end of include guard: DB_GUARD_H */

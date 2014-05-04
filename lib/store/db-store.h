@@ -12,16 +12,16 @@
 #include "../util/job-manager.h"
 
 
-/* Prototype mc_StoreCompletion to prevent circle-include. */
-struct mc_StoreCompletion; 
+/* Prototype MooseStoreCompletion to prevent circle-include. */
+struct MooseStoreCompletion; 
 
 
-typedef struct mc_Store {
+typedef struct MooseStore {
     /* directory db lies in */
     char *db_directory;
 
     /* songstack - a place for mpd_songs to live in */
-    mc_Playlist *stack;
+    MoosePlaylist *stack;
 
     /* handle to sqlite */
     sqlite3 *handle;
@@ -33,10 +33,10 @@ typedef struct mc_Store {
     sqlite3_stmt **sql_dir_stmts;
 
     /* client associated with this store */
-    mc_Client *client;
+    MooseClient *client;
 
     /* Various user defined settings go here */
-    mc_StoreSettings *settings;
+    MooseStoreSettings *settings;
 
     /* Write database to disk?
      * on changes this gets set to True 
@@ -46,7 +46,7 @@ typedef struct mc_Store {
     /* Support for stored playlists */
     struct {
         /* A stack of mpd_playlists (all of them, loaded or not) */
-        mc_Playlist *stack;
+        MoosePlaylist *stack;
 
         /* Sql statements for stored playlists */
         sqlite3_stmt *select_tables_stmt;
@@ -63,7 +63,7 @@ typedef struct mc_Store {
     bool force_update_plchanges;
 
     /* Job manager used to process database tasks in the background */
-    struct mc_JobManager *jm;
+    struct MooseJobManager *jm;
 
     /* Locked when setting an attribute, or reading from one 
      * Attributes are:
@@ -87,8 +87,8 @@ typedef struct mc_Store {
 
     GMutex mirrored_mtx;
 
-    struct mc_StoreCompletion* completion;
+    struct MooseStoreCompletion* completion;
 
-} mc_Store;
+} MooseStore;
 
 #endif /* end of include guard: MC_DB_STORE_HH */

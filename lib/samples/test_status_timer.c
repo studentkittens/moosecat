@@ -5,7 +5,7 @@
 
 
 static void signal_event(
-    mc_Client *u_conn,
+    MooseClient *u_conn,
     enum mpd_idle event,
     void *user_data)
 {
@@ -26,11 +26,11 @@ int main(void)
 {
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
-    mc_Client * client = mc_create(MC_PM_COMMAND);
-    mc_signal_add(client, "client-event", signal_event, loop);
-    mc_status_timer_register(client, 50, true);
-    mc_misc_register_posix_signal(client);
-    mc_connect(client, NULL, "localhost", 6600, 2.0);
+    MooseClient * client = moose_create(MC_PM_COMMAND);
+    moose_signal_add(client, "client-event", signal_event, loop);
+    moose_status_timer_register(client, 50, true);
+    moose_misc_register_posix_signal(client);
+    moose_connect(client, NULL, "localhost", 6600, 2.0);
 
     /* BLOCKS */
     {
@@ -38,6 +38,6 @@ int main(void)
     }
     g_main_loop_unref(loop);
 
-    mc_free(client);
+    moose_free(client);
     return EXIT_SUCCESS;
 }

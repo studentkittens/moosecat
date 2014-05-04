@@ -1,21 +1,21 @@
 #include "../api.h"
 
 
-static void zeroconf_callback(struct mc_ZeroconfBrowser * self, void * user_data) 
+static void zeroconf_callback(struct MooseZeroconfBrowser * self, void * user_data) 
 {
-    switch(mc_zeroconf_get_state(self)) {
+    switch(moose_zeroconf_get_state(self)) {
         case MC_ZEROCONF_STATE_CHANGED: {
             g_printerr("SERVER_LIST:\n");
-            struct mc_ZeroconfServer ** server = mc_zeroconf_get_server(self);
+            struct MooseZeroconfServer ** server = moose_zeroconf_get_server(self);
             for(int i = 0; server[i]; ++i) {
-                struct mc_ZeroconfServer * s = server[i];
+                struct MooseZeroconfServer * s = server[i];
                 g_printerr("   %s %s %s %s %s %u\n",
-                        mc_zeroconf_server_get_host(s),
-                        mc_zeroconf_server_get_name(s),
-                        mc_zeroconf_server_get_type(s),
-                        mc_zeroconf_server_get_domain(s),
-                        mc_zeroconf_server_get_addr(s),
-                        mc_zeroconf_server_get_port(s)
+                        moose_zeroconf_server_get_host(s),
+                        moose_zeroconf_server_get_name(s),
+                        moose_zeroconf_server_get_type(s),
+                        moose_zeroconf_server_get_domain(s),
+                        moose_zeroconf_server_get_addr(s),
+                        moose_zeroconf_server_get_port(s)
                 );
             }
             g_free(server);
@@ -23,7 +23,7 @@ static void zeroconf_callback(struct mc_ZeroconfBrowser * self, void * user_data
         }
         case MC_ZEROCONF_STATE_ERROR: {
             g_printerr("-> Uh oh, some error happended: %s\n", 
-                    mc_zeroconf_get_error(self)
+                    moose_zeroconf_get_error(self)
             );
             break;
         }
@@ -42,17 +42,17 @@ static void zeroconf_callback(struct mc_ZeroconfBrowser * self, void * user_data
 
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const *argv[])
 {
-    struct mc_ZeroconfBrowser * browser = mc_zeroconf_new(NULL);
+    struct MooseZeroconfBrowser * browser = moose_zeroconf_new(NULL);
     if(browser != NULL) {
-        if(mc_zeroconf_get_state(browser) != MC_ZEROCONF_STATE_UNCONNECTED) {
+        if(moose_zeroconf_get_state(browser) != MC_ZEROCONF_STATE_UNCONNECTED) {
             GMainLoop * loop = g_main_loop_new(NULL, FALSE);
-            mc_zeroconf_register(browser, zeroconf_callback, loop);
+            moose_zeroconf_register(browser, zeroconf_callback, loop);
             g_main_loop_run(loop);
             g_main_loop_unref(loop);
         } else {
             g_printerr("No avahi daemon running.\n");
         }
-        mc_zeroconf_destroy(browser);
+        moose_zeroconf_destroy(browser);
     }
 
     return 0;

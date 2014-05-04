@@ -2,9 +2,9 @@
 #define MC_DB_OPERATIONS_H
 
 /**
- * Enumeration of all operations understood by mc_store_job_execute_callback()
+ * Enumeration of all operations understood by moose_store_job_execute_callback()
  *
- * A name and priority can be given to the enum in mc_JobNames and mc_JobPrios
+ * A name and priority can be given to the enum in MooseJobNames and MooseJobPrios
  * in db.c (somewhere at the top)
  */
 typedef enum {
@@ -23,26 +23,26 @@ typedef enum {
     MC_OPER_WRITE_DATABASE  = 1 << 11, /* Write Database to disk, making a backup              */
     MC_OPER_FIND_SONG_BY_ID = 1 << 12, /* Find a song by it's SongID                           */
     MC_OPER_ENUM_MAX        = 1 << 13, /* Highest Value in this Enum                           */
-} mc_StoreOperation;
+} MooseStoreOperation;
 
 /**
  * @brief List all Songs from the Database and write them to the Database.
  *
- * The function prototype is compatible to mc_JobManager.
+ * The function prototype is compatible to MooseJobManager.
  *
  * @param store The Store passed.
  * @param cancel A flag indicating the desired cancellation of a Job.
  */
-void mc_store_oper_listallinfo(mc_Store *store, volatile bool *cancel);
+void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel);
 
 /**
  * @brief List all changes of the Queue since the last time.
  *
- * The function prototype is compatible to mc_JobManager.
+ * The function prototype is compatible to MooseJobManager.
  *
  * @param store The Store passed.
  * @param cancel A flag indicating the desired cancellation of a Job.
  */
-void mc_store_oper_plchanges(mc_Store *store, volatile bool *cancel);
+void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel);
 
 #endif /* end of include guard: MC_DB_OPERATIONS_H */

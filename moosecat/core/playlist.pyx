@@ -11,31 +11,31 @@ cdef class Playlist:
         * ``__getitem__`` - Get a song at a specific position.
         * ``__len__`` - get the length of the playlist with ``len()``
 
-    For those seeking implementation details: :class:`.Playlist` is a wrapper for ``mc_Playlist``.
+    For those seeking implementation details: :class:`.Playlist` is a wrapper for ``MoosePlaylist``.
     '''
-    cdef c.mc_Playlist * _stack
-    cdef c.mc_Client * _client
+    cdef c.MoosePlaylist * _stack
+    cdef c.MooseClient * _client
 
-    cdef _init(self, c.mc_Playlist * stack, c.mc_Client * client):
+    cdef _init(self, c.MoosePlaylist * stack, c.MooseClient * client):
         self._stack = stack
         self._client = client
         return self
 
-    cdef c.mc_Client * _c(self) except NULL:
+    cdef c.MooseClient * _c(self) except NULL:
         if self._client != NULL:
             return self._client
         else:
-            raise ValueError('mc_Client pointer is null for this instance!')
+            raise ValueError('MooseClient pointer is null for this instance!')
 
-    cdef c.mc_Playlist * _p(self) except NULL:
+    cdef c.MoosePlaylist * _p(self) except NULL:
         if self._stack != NULL:
             return self._stack
         else:
-            raise ValueError('mc_Playlist pointer is null for this instance!')
+            raise ValueError('MoosePlaylist pointer is null for this instance!')
 
     def __iter__(self):
         def iterator():
-            cdef int length = c.mc_stack_length(self._p())
+            cdef int length = c.moose_stack_length(self._p())
             for i in range(length):
                 yield self[i]
 
@@ -43,12 +43,12 @@ cdef class Playlist:
 
     def __getitem__(self, idx):
         'Get a song at a certain position out of the Playlist'
-        cdef int length = c.mc_stack_length(self._p())
+        cdef int length = c.moose_stack_length(self._p())
         if idx < length:
-            return song_from_ptr(<c.mpd_song*>c.mc_stack_at(self._p(), idx))
+            return song_from_ptr(<c.mpd_song*>c.moose_stack_at(self._p(), idx))
         else:
             raise IndexError('Index out of Playlist\'s range')
 
     def __len__(self):
         'Get the length of the Playlist'
-        return c.mc_stack_length(self._p())
+        return c.moose_stack_length(self._p())

@@ -6,7 +6,7 @@
 /* version */
 #include "../config.h"
 
-char *mc_misc_bug_report(mc_Client *client)
+char *moose_misc_bug_report(MooseClient *client)
 {
     bool is_connected = false;
     const unsigned disconnected_version[] = {0, 0, 0};
@@ -14,12 +14,12 @@ char *mc_misc_bug_report(mc_Client *client)
     double timeout = -1.0;
     const char *host = "<not connected>";
     int port = -1;
-    mc_PmType pm = 0;
+    MoosePmType pm = 0;
 
     if (client != NULL) {
-        if (mc_is_connected(client)) {
+        if (moose_is_connected(client)) {
             is_connected = true;
-            struct mpd_connection *connection = mc_get(client);
+            struct mpd_connection *connection = moose_get(client);
 
             if (connection != NULL) {
                 server_version = mpd_connection_get_server_version(connection);
@@ -32,7 +32,7 @@ char *mc_misc_bug_report(mc_Client *client)
         port = client->_port;
         pm = client->_pm;
         g_rec_mutex_unlock(&client->_client_attr_mutex);
-        mc_put(client);
+        moose_put(client);
     }
 
     return g_strdup_printf(

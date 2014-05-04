@@ -11,17 +11,17 @@
  * On thread dispatch and mainthread dispatch a callback is called.
  */ 
 
-struct _mc_MetadataThreads;
+struct _MooseMetadataThreads;
 
-typedef void * (* mc_MetadataCallback)(
-    struct _mc_MetadataThreads *, /* self      */
+typedef void * (* MooseMetadataCallback)(
+    struct _MooseMetadataThreads *, /* self      */
     void *,                       /* data      */
     void *                        /* user_data */
 );
 
 ///////////////////////
 
-typedef struct _mc_MetadataThreads {
+typedef struct _MooseMetadataThreads {
     /* Thread Pool to distribute the jobs */
     GThreadPool * pool;
 
@@ -34,17 +34,17 @@ typedef struct _mc_MetadataThreads {
     /* Callback called when the thread is ready
      * Call your blockings calls here.
      * */
-    mc_MetadataCallback thread_callback;
+    MooseMetadataCallback thread_callback;
 
     /* Callback called when the thread had a result
      * and the result is available on the main thread.
      */
-    mc_MetadataCallback deliver_callback;
+    MooseMetadataCallback deliver_callback;
     
     /* User data for *both* callbacks 
      */
     gpointer user_data;
-} mc_MetadataThreads;
+} MooseMetadataThreads;
 
 ///////////////////////
 
@@ -60,9 +60,9 @@ typedef struct _mc_MetadataThreads {
  *
  * @return 
  */
-mc_MetadataThreads * mc_mdthreads_new(
-    mc_MetadataCallback thread_callback,
-    mc_MetadataCallback deliver_callback,
+MooseMetadataThreads * moose_mdthreads_new(
+    MooseMetadataCallback thread_callback,
+    MooseMetadataCallback deliver_callback,
     void * user_data,
     int max_threads
 );
@@ -74,7 +74,7 @@ mc_MetadataThreads * mc_mdthreads_new(
  * @param self The Pool to call on.
  * @param data The data package to pass in.
  */
-void mc_mdthreads_push(mc_MetadataThreads * self, void * data);
+void moose_mdthreads_push(MooseMetadataThreads * self, void * data);
 
 /**
  * @brief This is useful for pushing individual results to the mainloop early.
@@ -87,14 +87,14 @@ void mc_mdthreads_push(mc_MetadataThreads * self, void * data);
  * @param self The Pool.
  * @param result the data to forward to the mainthread.
  */
-void mc_mdthreads_forward(mc_MetadataThreads * self, void * result);
+void moose_mdthreads_forward(MooseMetadataThreads * self, void * result);
 
 /**
  * @brief Free the Pool.
  *
  * @param self Well, guess.
  */
-void mc_mdthreads_free(mc_MetadataThreads * self);
+void moose_mdthreads_free(MooseMetadataThreads * self);
 
 #endif /* end of include guard: MC_METADATA_THREADS_H */
 

@@ -29,7 +29,7 @@ typedef struct {
 
 //////////////////////
 
-static gint mc_async_queue_watch_calc_next_timeout(
+static gint moose_async_queue_watch_calc_next_timeout(
     gint prev_timeout,
     gdouble x,
     guint min,
@@ -59,7 +59,7 @@ static gint mc_async_queue_watch_calc_next_timeout(
 
 //////////////////////
 
-static gboolean mc_async_queue_watch_check(GSource *source)
+static gboolean moose_async_queue_watch_check(GSource *source)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     return (g_async_queue_length(watch->queue) > 0);
@@ -67,21 +67,21 @@ static gboolean mc_async_queue_watch_check(GSource *source)
 
 //////////////////////
 
-static gboolean mc_async_queue_watch_prepare(GSource *source, gint *timeout)
+static gboolean moose_async_queue_watch_prepare(GSource *source, gint *timeout)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     *timeout = watch->iteration_timeout;
-    return mc_async_queue_watch_check(source);
+    return moose_async_queue_watch_check(source);
 }
 
 //////////////////////
 
-static gboolean mc_async_queue_watch_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+static gboolean moose_async_queue_watch_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     MCAsyncQueueWatchFunc cb = (MCAsyncQueueWatchFunc) callback;
     /* Calculate next timeout */
-    watch->iteration_timeout = mc_async_queue_watch_calc_next_timeout(
+    watch->iteration_timeout = moose_async_queue_watch_calc_next_timeout(
                                    watch->iteration_timeout,
                                    g_timer_elapsed(watch->iteration_timer, NULL),
                                    watch->timeout_min,
@@ -100,7 +100,7 @@ static gboolean mc_async_queue_watch_dispatch(GSource *source, GSourceFunc callb
 
 //////////////////////
 
-static void mc_async_queue_watch_finalize(GSource *source)
+static void moose_async_queue_watch_finalize(GSource *source)
 {
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
 
@@ -113,24 +113,24 @@ static void mc_async_queue_watch_finalize(GSource *source)
 
 //////////////////////
 
-static GSourceFuncs mc_async_queue_watch_funcs = {
-    mc_async_queue_watch_prepare,
-    mc_async_queue_watch_check,
-    mc_async_queue_watch_dispatch,
-    mc_async_queue_watch_finalize,
+static GSourceFuncs moose_async_queue_watch_funcs = {
+    moose_async_queue_watch_prepare,
+    moose_async_queue_watch_check,
+    moose_async_queue_watch_dispatch,
+    moose_async_queue_watch_finalize,
     NULL,
     NULL
 };
 
 //////////////////////
 
-guint mc_async_queue_watch_new(GAsyncQueue *queue,
+guint moose_async_queue_watch_new(GAsyncQueue *queue,
                                gint iteration_timeout,
                                MCAsyncQueueWatchFunc callback,
                                gpointer user_data,
                                GMainContext *context)
 {
-    GSource *source = g_source_new(&mc_async_queue_watch_funcs, sizeof(MCAsyncQueueWatch));
+    GSource *source = g_source_new(&moose_async_queue_watch_funcs, sizeof(MCAsyncQueueWatch));
     MCAsyncQueueWatch *watch = (MCAsyncQueueWatch *) source;
     watch->timeout_min = 1;
     watch->timeout_max = 60;

@@ -3,6 +3,6 @@
 
 #include "../mpd/protocol.h"
 
-void mc_misc_catch_external_logs(mc_Client *self);
+void moose_misc_catch_external_logs(MooseClient *self);
 
 #endif /* end of include guard: MC_EXTERNAL_LOGS */

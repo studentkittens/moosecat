@@ -14,7 +14,7 @@
 typedef enum {
     MC_PM_IDLE = 0,
     MC_PM_COMMAND
-} mc_PmType;
+} MoosePmType;
 
 
 /* Hack to distinguish between seek and player (pause, play) events.
@@ -23,8 +23,8 @@ typedef enum {
 #define MPD_IDLE_SEEK MPD_IDLE_MESSAGE << 1
 
 /* Prototype Update struct */
-struct mc_UpdateData;
-struct mc_OutputsData;
+struct MooseUpdateData;
+struct MooseOutputsData;
 
 
 /**
@@ -36,43 +36,43 @@ struct mc_OutputsData;
  *    - Notifying you on events / errors / connection-changes
  *    - Send commands to the server.
  */
-typedef struct mc_Client {
+typedef struct MooseClient {
     /*
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char *(* do_connect)(struct mc_Client *, GMainContext *context, const char *, int, float);
+    char *(* do_connect)(struct MooseClient *, GMainContext *context, const char *, int, float);
 
     /*
      * Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    struct mpd_connection *(* do_get)(struct mc_Client *);
+    struct mpd_connection *(* do_get)(struct MooseClient *);
 
     /*
      * Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put)(struct mc_Client *);
+    void (* do_put)(struct MooseClient *);
 
     /*
      * Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    bool (* do_disconnect)(struct mc_Client *);
+    bool (* do_disconnect)(struct MooseClient *);
 
     /**
      * Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    bool (* do_is_connected)(struct mc_Client *);
+    bool (* do_is_connected)(struct MooseClient *);
 
     /*
      * Free the connector. disconnect() won't free it!
      * May be NULL
      */
-    void (* do_free)(struct mc_Client *);
+    void (* do_free)(struct MooseClient *);
 
     /////////////////////////////
     //    Actual Variables     //
@@ -95,19 +95,19 @@ typedef struct mc_Client {
 
     /* Only used for bug_report.c */
     float _timeout;
-    mc_PmType _pm;
+    MoosePmType _pm;
 
     /* Signal functions are stored in here */
-    mc_SignalList _signals;
+    MooseSignalList _signals;
 
     /* Outputs of MPD */
-    struct mc_OutputsData * _outputs;
+    struct MooseOutputsData * _outputs;
 
     /* Data Used by the Status/Song/Stats Update Module */
-    struct mc_UpdateData *_update_data;
+    struct MooseUpdateData *_update_data;
 
     /* Job Dispatcher */
-    struct mc_JobManager *jm;
+    struct MooseJobManager *jm;
 
     struct {
         /* Id of command list job */
@@ -116,10 +116,10 @@ typedef struct mc_Client {
         GList *commands;
     } command_list;
     
-    /* The thread mc_create() was called from */
+    /* The thread moose_create() was called from */
     GThread * initial_thread;
 
-} mc_Client;
+} MooseClient;
 
 ///////////////////
 ///////////////////
@@ -138,9 +138,9 @@ typedef struct mc_Client {
  *
  * @param protocol_machine the name of the protocol machine
  *
- * @return a newly allocated mc_Client, free with mc_free()
+ * @return a newly allocated MooseClient, free with moose_free()
  */
-mc_Client *mc_create(mc_PmType pm);
+MooseClient *moose_create(MoosePmType pm);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
@@ -159,8 +159,8 @@ mc_Client *mc_create(mc_PmType pm);
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-char *mc_connect(
-    mc_Client *self,
+char *moose_connect(
+    MooseClient *self,
     GMainContext *context,
     const char *host,
     int port,
@@ -174,14 +174,14 @@ char *mc_connect(
  *
  * @return a working mpd_connection or NULL
  */
-struct mpd_connection *mc_get(mc_Client *self);
+struct mpd_connection *moose_get(MooseClient *self);
 
 /**
  * @brief Put conenction back to event listening
  *
  * @param self the connector to operate on
  */
-void mc_put(mc_Client *self);
+void moose_put(MooseClient *self);
 
 /**
  * @brief Checks if the connector is connected.
@@ -190,7 +190,7 @@ void mc_put(mc_Client *self);
  *
  * @return true when connected
  */
-bool mc_is_connected(mc_Client *self);
+bool moose_is_connected(MooseClient *self);
 
 /**
  * @brief Disconnect connection and free all.
@@ -199,16 +199,16 @@ bool mc_is_connected(mc_Client *self);
  *
  * @return a error string, or NULL if no error happened
  */
-char *mc_disconnect(mc_Client *self);
+char *moose_disconnect(MooseClient *self);
 
 /**
  * @brief Free all data associated with this connector.
  *
- * You have to call mc_disconnect beforehand!
+ * You have to call moose_disconnect beforehand!
  *
  * @param self the connector to operate on
  */
-void mc_free(mc_Client *self);
+void moose_free(MooseClient *self);
 
 ///////////////////////////////
 
@@ -216,9 +216,9 @@ void mc_free(mc_Client *self);
  * @brief Add a function that shall be called on a certain event.
  *
  * There are currently 3 valid signal names:
- * - "client-event", See mc_ClientEventCallback
- * - "connectivity", See mc_ConnectivityCallback
- * - "logging",      See mc_LoggingCallback
+ * - "client-event", See MooseClientEventCallback
+ * - "connectivity", See MooseConnectivityCallback
+ * - "logging",      See MooseLoggingCallback
  *
  * Callback Order
  * --------------
@@ -232,14 +232,14 @@ void mc_free(mc_Client *self);
  * @param callback_func the function to call. Prototype depends on signal_name.
  * @param user_data optional user_data to pass to the function.
  */
-void mc_signal_add(
-    mc_Client *self,
+void moose_signal_add(
+    MooseClient *self,
     const char *signal_name,
     void *callback_func,
     void *user_data);
 
 /**
- * @brief Same as mc_signal_add, but only
+ * @brief Same as moose_signal_add, but only
  *
  * The mask param has only effect on the client-event.
  *
@@ -249,8 +249,8 @@ void mc_signal_add(
  * @param user_data
  * @param mask
  */
-void mc_signal_add_masked(
-    mc_Client *self,
+void moose_signal_add_masked(
+    MooseClient *self,
     const char *signal_name,
     void *callback_func,
     void *user_data,
@@ -263,8 +263,8 @@ void mc_signal_add_masked(
  * @param signal_name the signal name this function was registered on.
  * @param callback_addr the addr. of the registered function.
  */
-void mc_signal_rm(
-    mc_Client *self,
+void moose_signal_rm(
+    MooseClient *self,
     const char *signal_name,
     void *callback_addr);
 
@@ -275,8 +275,8 @@ void mc_signal_rm(
  * @param signal_name the name of the signal to dispatch.
  * @param ... variable args. See above.
  */
-void mc_signal_dispatch(
-    mc_Client *self,
+void moose_signal_dispatch(
+    MooseClient *self,
     const char *signal_name,
     ...);
 
@@ -290,8 +290,8 @@ void mc_signal_dispatch(
  *
  * @return 0 - inf
  */
-int mc_signal_length(
-    mc_Client *self,
+int moose_signal_length(
+    MooseClient *self,
     const char *signal_name);
 
 /**
@@ -303,8 +303,8 @@ int mc_signal_length(
  * @param self the client to operate on.
  * @param events an eventmask. Pass INT_MAX to update all.
  */
-void mc_force_sync(
-    mc_Client *self,
+void moose_force_sync(
+    MooseClient *self,
     enum mpd_idle events);
 
 /**
@@ -316,7 +316,7 @@ void mc_force_sync(
  *
  * @return the hostname, do not free or change it!
  */
-const char *mc_get_host(mc_Client *self);
+const char *moose_get_host(MooseClient *self);
 
 /**
  * @brief Get the Port being currently connected to.
@@ -325,7 +325,7 @@ const char *mc_get_host(mc_Client *self);
  *
  * @return the port or -1 on error.
  */
-unsigned mc_get_port(mc_Client *self);
+unsigned moose_get_port(MooseClient *self);
 
 /**
  * @brief Get the currently set timeout.
@@ -334,13 +334,13 @@ unsigned mc_get_port(mc_Client *self);
  *
  * @return the timeout in seconds, or -1 on error.
  */
-float mc_get_timeout(mc_Client *self);
+float moose_get_timeout(MooseClient *self);
 
 /**
  * @brief Activate a status timer
  *
  * This will cause moosecat to schedule status update every repeat_ms ms.
- * Call mc_status_timer_unregister to deactivate it.
+ * Call moose_status_timer_unregister to deactivate it.
  *
  * This is useful for kbit rate changes which will only be update when
  * an idle event requires it.
@@ -349,8 +349,8 @@ float mc_get_timeout(mc_Client *self);
  * @param repeat_ms repeat interval
  * @param trigger_event
  */
-void mc_status_timer_register(
-    mc_Client *self,
+void moose_status_timer_register(
+    MooseClient *self,
     int repeat_ms,
     bool trigger_event);
 
@@ -359,8 +359,8 @@ void mc_status_timer_register(
  *
  * @param self the client to operate on.
  */
-void mc_status_timer_unregister(
-    mc_Client *self);
+void moose_status_timer_unregister(
+    MooseClient *self);
 
 /**
  * @brief Returns ttue if the status timer is ative
@@ -369,7 +369,7 @@ void mc_status_timer_unregister(
  *
  * @return false on inactive status timer
  */
-bool mc_status_timer_is_active(mc_Client *self);
+bool moose_status_timer_is_active(MooseClient *self);
 
 
 /**
@@ -380,7 +380,7 @@ bool mc_status_timer_is_active(mc_Client *self);
  *
  * @return -1 on "no such name", 0 if disabled, 1 if enabled
  */
-bool mc_outputs_get_state(mc_Client *self, const char *output_name);
+bool moose_outputs_get_state(MooseClient *self, const char *output_name);
 
 /**
  * @brief Get a list of known output names
@@ -390,14 +390,14 @@ bool mc_outputs_get_state(mc_Client *self, const char *output_name);
  * @return a NULL terminated list of names,
  *         free the list (not the contents) with free() when done
  */
-const char ** mc_outputs_get_names(mc_Client *self);
+const char ** moose_outputs_get_names(MooseClient *self);
 
 /**
  * @brief Set the state of a Output (enabled or disabled)
  *
  * This can also be accomplished with:
  *
- *    mc_client_send("output_switch horst 1"); 
+ *    moose_client_send("output_switch horst 1"); 
  *
  *  to enable the output horst. This is just a convinience command.
  *
@@ -408,7 +408,7 @@ const char ** mc_outputs_get_names(mc_Client *self);
  *
  * @return True if an output with this name could be found.
  */
-bool mc_outputs_set_state(mc_Client *self, const char *output_name, bool state);
+bool moose_outputs_set_state(MooseClient *self, const char *output_name, bool state);
 
 /**
  * @brief Lock against modification of the current mpd_status object
@@ -425,106 +425,106 @@ bool mc_outputs_set_state(mc_Client *self, const char *output_name, bool state);
  *
  *  Therefore you lock the song explicitly and unlock it again when you're done.
  *
- *  struct mpd_status * status = mc_lock_status(client);
+ *  struct mpd_status * status = moose_lock_status(client);
  *  if(status != NULL) {
  *      mpd_status_get_song_id(status);  // 70
  *      mpd_status_get_song_id(status);  // 70
  *  }
- *  mc_unlock_status(client);
+ *  moose_unlock_status(client);
  * 
  * Unlock always. Even if status is NULL!
  *
  * This is the only way to get the status object. 
  *
- * The status lock is also used for mc_get_replay_gain_status()
+ * The status lock is also used for moose_get_replay_gain_status()
  *
  * @param self the client holding the object
  *
  * @return the locked mpd_status
  */
-struct mpd_status * mc_lock_status(mc_Client *self);
+struct mpd_status * moose_lock_status(MooseClient *self);
 
 
 /**
  * @brief Get the current replay gain mode ("album", "track", "auto", "off")
  *
- * Before calling this you should call mc_lock_status()
+ * Before calling this you should call moose_lock_status()
  *
  * @param self the client to get the replay_gain_mode from .
  *
  * @return a const string. Do not free.
  */
-const char * mc_get_replay_gain_mode(mc_Client * self);
+const char * moose_get_replay_gain_mode(MooseClient * self);
 
 /**
- * @brief The pendant to mc_lock_status()
+ * @brief The pendant to moose_lock_status()
  *
- * See mc_lock_status() for a more detailed description/example.
+ * See moose_lock_status() for a more detailed description/example.
  *
  * @param self the client holding the status
  */
-void mc_unlock_status(mc_Client *self);
+void moose_unlock_status(MooseClient *self);
 
 /**
  * @brief Lock the current statistics. 
  *
- * See mc_lock_status() for a detailed description.
+ * See moose_lock_status() for a detailed description.
  *
  * @param self the client that holds the current statistics
  *
  * @return a locked struct mpd_stats
  */
-struct mpd_stats * mc_lock_statistics(mc_Client *self);
+struct mpd_stats * moose_lock_statistics(MooseClient *self);
 
 
 /**
- * @brief The pendant to mc_lock_statistics()
+ * @brief The pendant to moose_lock_statistics()
  *
- * See mc_lock_status() for a more detailed description/example.
+ * See moose_lock_status() for a more detailed description/example.
  *
  * @param self the client holding the statistics
  */
-void mc_unlock_statistics(mc_Client *self);
+void moose_unlock_statistics(MooseClient *self);
 
 /**
  * @brief Lock the current song. 
  *
- * See mc_lock_status() for a detailed description.
+ * See moose_lock_status() for a detailed description.
  *
  * @param self the client that holds the current song
  *
  * @return a locked struct mpd_song
  */
-struct mpd_song * mc_lock_current_song(mc_Client *self);
+struct mpd_song * moose_lock_current_song(MooseClient *self);
 
 /**
- * @brief The pendant to mc_lock_current_song()
+ * @brief The pendant to moose_lock_current_song()
  *
- * See mc_lock_status() for a more detailed description/example.
+ * See moose_lock_status() for a more detailed description/example.
  *
  * @param self the client holding the current song 
  */
-void mc_unlock_current_song(mc_Client *self);
+void moose_unlock_current_song(MooseClient *self);
 
 /**
  * @brief Lock the current set of outputs. 
  *
- * See mc_lock_status() for a detailed description.
+ * See moose_lock_status() for a detailed description.
  *
- * Use mc_outputs_get_names() to acquire a list of names
+ * Use moose_outputs_get_names() to acquire a list of names
  *
  * @param self the client that holds the current set of outputs
  */
-void mc_lock_outputs(mc_Client *self);
+void moose_lock_outputs(MooseClient *self);
 
 /**
- * @brief The pendant to mc_lock_outputs()
+ * @brief The pendant to moose_lock_outputs()
  *
- * See mc_lock_status() for a more detailed description/example.
+ * See moose_lock_status() for a more detailed description/example.
  *
  * @param self the client holding the current set of outouts
  */
-void mc_unlock_outputs(mc_Client *self);
+void moose_unlock_outputs(MooseClient *self);
 
 
 /**
@@ -535,6 +535,6 @@ void mc_unlock_outputs(mc_Client *self);
  *
  * @param self client to wait upon on
  */
-void mc_block_till_sync(mc_Client *self);
+void moose_block_till_sync(MooseClient *self);
 
 #endif /* end of include guard: PROTOCOL_H */

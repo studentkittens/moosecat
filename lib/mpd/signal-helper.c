@@ -19,11 +19,11 @@ static char * compose_error_msg(const char *topic, const char *src)
 
 ///////////////////////////////
 
-static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_connection *cconn, bool handle_fatal)
+static bool moose_shelper_report_error_impl(struct MooseClient *self, struct mpd_connection *cconn, bool handle_fatal)
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
-            mc_signal_dispatch(
+            moose_signal_dispatch(
                     self, "logging", self,
                     "Connection to MPD was closed (IsFatal=maybe?)",
                     MC_LOG_WARNING,
@@ -65,11 +65,11 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
         /* On really fatal error we better disconnect,
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
-            mc_priv_signal_report_event(&self->_signals, "_fatal_error", self);
+            moose_priv_signal_report_event(&self->_signals, "_fatal_error", self);
         }
 
         /* Dispatch the error to the users */
-        mc_shelper_report_error_printf(
+        moose_shelper_report_error_printf(
                 self,
                 "ErrID=%d: %s (IsFatal=%s)",
                 error,
@@ -85,22 +85,22 @@ static bool mc_shelper_report_error_impl(struct mc_Client *self, struct mpd_conn
 
 ///////////////////////////////
 
-bool mc_shelper_report_error(struct mc_Client *self, struct mpd_connection *cconn)
+bool moose_shelper_report_error(struct MooseClient *self, struct mpd_connection *cconn)
 {
-    return mc_shelper_report_error_impl(self, cconn, true);
+    return moose_shelper_report_error_impl(self, cconn, true);
 }
 
 ///////////////////////////////
 
-bool mc_shelper_report_error_without_handling(struct mc_Client *self, struct mpd_connection *cconn)
+bool moose_shelper_report_error_without_handling(struct MooseClient *self, struct mpd_connection *cconn)
 {
-    return mc_shelper_report_error_impl(self, cconn, false);
+    return moose_shelper_report_error_impl(self, cconn, false);
 }
 
 ///////////////////////////////
 
-void mc_shelper_report_error_printf(
-    struct mc_Client *self,
+void moose_shelper_report_error_printf(
+    struct MooseClient *self,
     const char *format, ...)
 {
     char *full_string = NULL;
@@ -108,7 +108,7 @@ void mc_shelper_report_error_printf(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR, FALSE);
+        moose_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR, FALSE);
     }
 
     va_end(list_ptr);
@@ -116,8 +116,8 @@ void mc_shelper_report_error_printf(
 
 ///////////////////////////////
 
-void mc_shelper_report_progress(
-    struct mc_Client *self,
+void moose_shelper_report_progress(
+    struct MooseClient *self,
     G_GNUC_UNUSED bool print_newline,
     const char *format, ...)
 {
@@ -126,7 +126,7 @@ void mc_shelper_report_progress(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        mc_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO, TRUE);
+        moose_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO, TRUE);
     }
 
     va_end(list_ptr);
@@ -134,8 +134,8 @@ void mc_shelper_report_progress(
 
 ///////////////////////////////
 
-void mc_shelper_report_connectivity(
-    struct mc_Client *self,
+void moose_shelper_report_connectivity(
+    struct MooseClient *self,
     const char *new_host,
     int new_port,
     float new_timeout)
@@ -158,9 +158,9 @@ void mc_shelper_report_connectivity(
 
 
     /* Dispatch *after* host being set */
-    mc_signal_dispatch(self, "connectivity", 
+    moose_signal_dispatch(self, "connectivity", 
             self, server_changed,
-            mc_is_connected(self)
+            moose_is_connected(self)
     );
 }
 
@@ -175,15 +175,15 @@ static const char *signal_to_name_table[] = {
 
 static const unsigned signal_to_name_table_size = sizeof(signal_to_name_table) / sizeof(const char *) / 2;
 
-void mc_shelper_report_operation_finished(
-    struct mc_Client *self,
-    mc_OpFinishedEnum op)
+void moose_shelper_report_operation_finished(
+    struct MooseClient *self,
+    MooseOpFinishedEnum op)
 {
     g_assert(self);
     const char *operation;
 
     if(op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
-        mc_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
+        moose_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
     }
 }

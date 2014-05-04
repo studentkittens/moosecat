@@ -41,7 +41,7 @@ typedef struct {
         const char **msg;
     } warning;
 
-} mc_StoreParseData;
+} MooseStoreParseData;
 
 ///////////////////
 
@@ -51,14 +51,14 @@ GRegex * REGEX_QUOTES = NULL,
 G_LOCK_DEFINE_STATIC(REGEX_QUOTES);
 G_LOCK_DEFINE_STATIC(REGEX_RANGES);
 
-static void mc_mtx_free_ranges(void) {
+static void moose_mtx_free_ranges(void) {
     G_LOCK(REGEX_RANGES); {
         g_regex_unref(REGEX_RANGES);
     } 
     G_UNLOCK(REGEX_RANGES);
 }
 
-static void mc_mtx_free_quotes(void) {
+static void moose_mtx_free_quotes(void) {
     G_LOCK(REGEX_QUOTES); {
         g_regex_unref(REGEX_QUOTES);
     } 
@@ -77,7 +77,7 @@ static void mc_mtx_free_quotes(void) {
     }                                                             \
 ///////////////////
 
-enum mpd_tag_type mc_store_qp_str_to_tag_enum(const char *tag)
+enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char *tag)
 {
     if(tag == NULL) {
         return MPD_TAG_UNKNOWN;
@@ -123,7 +123,7 @@ enum mpd_tag_type mc_store_qp_str_to_tag_enum(const char *tag)
 
 ///////////////////
 
-bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
+bool moose_store_qp_is_valid_tag(const char *tag, size_t len)
 {
     static const char *tags[] = {
         "uri", "start", "end", "duration",
@@ -151,7 +151,7 @@ bool mc_store_qp_is_valid_tag(const char *tag, size_t len)
 
 ///////////////////
 
-static const char *mc_store_qp_is_tag_text(const char *text, size_t len)
+static const char *moose_store_qp_is_tag_text(const char *text, size_t len)
 {
     if (len == 0)
         return NULL;
@@ -173,7 +173,7 @@ static const char *mc_store_qp_is_tag_text(const char *text, size_t len)
 
 ///////////////////
 
-const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len)
+const char *moose_store_qp_tag_abbrev_to_full(const char *token, size_t len)
 {
     static const char *abbrev_list[] = {
         ['a'] = "artist:",
@@ -202,7 +202,7 @@ const char *mc_store_qp_tag_abbrev_to_full(const char *token, size_t len)
 
 ///////////////////
 
-static void mc_store_qp_write_string(mc_StoreParseData *data, const char *string, size_t len)
+static void moose_store_qp_write_string(MooseStoreParseData *data, const char *string, size_t len)
 {
     const char *iter = string;
 
@@ -220,7 +220,7 @@ static void mc_store_qp_write_string(mc_StoreParseData *data, const char *string
 
 ///////////////////
 
-void mc_store_qp_process_single_word(mc_StoreParseData *data, const char *text, size_t len)
+void moose_store_qp_process_single_word(MooseStoreParseData *data, const char *text, size_t len)
 {
     if (len < 1) {
         return;
@@ -228,7 +228,7 @@ void mc_store_qp_process_single_word(mc_StoreParseData *data, const char *text, 
 
 #define TAG(name, last)                            \
         g_string_append(data->output, name);       \
-        mc_store_qp_write_string(data, text, len); \
+        moose_store_qp_write_string(data, text, len); \
         if(text[len-1] != '*') {                   \
             g_string_append_c(data->output, '*');  \
         }                                          \
@@ -248,21 +248,21 @@ void mc_store_qp_process_single_word(mc_StoreParseData *data, const char *text, 
 
 ///////////////////
 
-void mc_store_qp_process_text(mc_StoreParseData *data, const char *text, size_t len)
+void moose_store_qp_process_text(MooseStoreParseData *data, const char *text, size_t len)
 {
     bool is_tag = false;
     const char *tag_middle = NULL;
 
-    if ((tag_middle = mc_store_qp_is_tag_text(text, len)) != NULL) {
-        const char *full = mc_store_qp_tag_abbrev_to_full(text, len);
+    if ((tag_middle = moose_store_qp_is_tag_text(text, len)) != NULL) {
+        const char *full = moose_store_qp_tag_abbrev_to_full(text, len);
         int rest_len = 0;
 
         if (full == NULL) {
-            if (mc_store_qp_is_valid_tag(text, tag_middle - text) == false) {
+            if (moose_store_qp_is_valid_tag(text, tag_middle - text) == false) {
                 WARNING(data, "Invalid tag name.");
             }
 
-            mc_store_qp_write_string(data, text, tag_middle-text + 1);
+            moose_store_qp_write_string(data, text, tag_middle-text + 1);
         } else {
             g_string_append(data->output, full);
         }
@@ -278,12 +278,12 @@ void mc_store_qp_process_text(mc_StoreParseData *data, const char *text, size_t 
         }
 
         /* Skip : */
-        mc_store_qp_write_string(data, tag_middle, rest_len);
+        moose_store_qp_write_string(data, tag_middle, rest_len);
         g_string_append_unichar(data->output, ' ');
     } else if (data->check.was_tag) {
-        mc_store_qp_write_string(data, text, len);
+        moose_store_qp_write_string(data, text, len);
     } else {
-        mc_store_qp_process_single_word(data, text, len);
+        moose_store_qp_process_single_word(data, text, len);
         g_string_append_unichar(data->output, ' ');
     }
 
@@ -294,7 +294,7 @@ void mc_store_qp_process_text(mc_StoreParseData *data, const char *text, size_t 
 
 
 
-static const char *mc_store_qp_special_char_to_full(char c)
+static const char *moose_store_qp_special_char_to_full(char c)
 {
     switch (c) {
     case '+':
@@ -311,7 +311,7 @@ static const char *mc_store_qp_special_char_to_full(char c)
 
 ///////////////////
 
-bool mc_store_qp_check_is_soft_token(const char *iter)
+bool moose_store_qp_check_is_soft_token(const char *iter)
 {
     gunichar c = g_utf8_get_char(iter);
 
@@ -326,7 +326,7 @@ bool mc_store_qp_check_is_soft_token(const char *iter)
 
 ///////////////////
 
-bool mc_store_qp_check_is_near_token(char *iter)
+bool moose_store_qp_check_is_near_token(char *iter)
 {
     gunichar c = g_utf8_get_char(iter);
 
@@ -338,13 +338,13 @@ bool mc_store_qp_check_is_near_token(char *iter)
         return true;
 
     default:
-        return mc_store_qp_check_is_soft_token(iter);
+        return moose_store_qp_check_is_soft_token(iter);
     }
 }
 
 ///////////////////
 
-gunichar mc_store_qp_get_prev_char(mc_StoreParseData *data, const char *current_pos)
+gunichar moose_store_qp_get_prev_char(MooseStoreParseData *data, const char *current_pos)
 {
     char *pprev = g_utf8_find_prev_char(data->query, current_pos);
 
@@ -357,23 +357,23 @@ gunichar mc_store_qp_get_prev_char(mc_StoreParseData *data, const char *current_
 
 ///////////////////
 
-bool mc_store_qp_check_if_single_token(mc_StoreParseData *data)
+bool moose_store_qp_check_if_single_token(MooseStoreParseData *data)
 {
     char *pprev = g_utf8_find_prev_char(data->query, data->iter);
     char *pnext = g_utf8_next_char(data->iter);
 
-    bool left  = (pprev == NULL) || mc_store_qp_check_is_near_token(pprev);
-    bool right = (pnext == NULL) || mc_store_qp_check_is_near_token(pnext);
+    bool left  = (pprev == NULL) || moose_store_qp_check_is_near_token(pprev);
+    bool right = (pnext == NULL) || moose_store_qp_check_is_near_token(pnext);
 
     return left && right;
 }
 
 ///////////////////
 
-void mc_store_qp_process_star(mc_StoreParseData *data)
+void moose_store_qp_process_star(MooseStoreParseData *data)
 {
     /* If a star is a single word it matches everything */
-    if (mc_store_qp_check_if_single_token(data)) {
+    if (moose_store_qp_check_if_single_token(data)) {
         g_string_append(data->output, "always_dummy:0 ");
         data->check.was_tag = false;
     } else if (data->previous_char == '\\') {
@@ -386,7 +386,7 @@ void mc_store_qp_process_star(mc_StoreParseData *data)
 
 ///////////////////
 
-void mc_store_qp_process_operand(mc_StoreParseData *data)
+void moose_store_qp_process_operand(MooseStoreParseData *data)
 {
     /* You cannot do something like "a: AND b",
      * Since an empty tag is not valid */
@@ -406,14 +406,14 @@ void mc_store_qp_process_operand(mc_StoreParseData *data)
     if (data->previous_char == '\\') {
         g_string_append_unichar(data->output, data->current_char);
     } else {
-        g_string_append(data->output, mc_store_qp_special_char_to_full(data->current_char));
+        g_string_append(data->output, moose_store_qp_special_char_to_full(data->current_char));
         data->check.was_tag = false;
     }
 }
 
 ///////////////////
 
-void mc_store_qp_process_token(mc_StoreParseData *data)
+void moose_store_qp_process_token(MooseStoreParseData *data)
 {
     int token_len = 0;
     const char *end_token = data->iter;
@@ -424,7 +424,7 @@ void mc_store_qp_process_token(mc_StoreParseData *data)
 
         /* If one was found, we may need to repeat, due to a escaping \ */
         if (end_token != NULL) {
-            if (mc_store_qp_get_prev_char(data, end_token) == '\\') {
+            if (moose_store_qp_get_prev_char(data, end_token) == '\\') {
                 end_token++;
                 continue;
             } else {
@@ -456,7 +456,7 @@ void mc_store_qp_process_token(mc_StoreParseData *data)
         /* Next token to parse is assumed to be
          * valid to (AND OR NOT) */
         data->check.bad_conjunction = false;
-        mc_store_qp_process_text(data, data->iter, token_len);
+        moose_store_qp_process_text(data, data->iter, token_len);
     }
 
     /* Jump over the parsed area */
@@ -465,7 +465,7 @@ void mc_store_qp_process_token(mc_StoreParseData *data)
 
 ///////////////////
 
-void mc_store_qp_process_empty(mc_StoreParseData *data)
+void moose_store_qp_process_empty(MooseStoreParseData *data)
 {
     switch (data->current_char) {
         /* Make some statistics */
@@ -503,7 +503,7 @@ void mc_store_qp_process_empty(mc_StoreParseData *data)
 
 ///////////////////
 
-bool mc_store_qp_str_is_empty(const char *str) 
+bool moose_store_qp_str_is_empty(const char *str) 
 {
     if (str != NULL) {
         while(*str) {
@@ -519,9 +519,9 @@ bool mc_store_qp_str_is_empty(const char *str)
 
 ///////////////////
 
-static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
+static gboolean moose_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
 {
-    mc_StoreParseData* parse_data = data;
+    MooseStoreParseData* parse_data = data;
     char * tag = g_match_info_fetch(info, 1);
 
     if(tag == NULL || *tag == 0) {
@@ -562,7 +562,7 @@ static gboolean mc_store_qp_quote_eval_cb(const GMatchInfo *info, GString  *res,
 }
 
 
-static char * mc_store_qp_preprocess_quotationmarks(const char *query, mc_StoreParseData * data) 
+static char * moose_store_qp_preprocess_quotationmarks(const char *query, MooseStoreParseData * data) 
 {
     if(query == NULL) 
         return NULL;
@@ -573,11 +573,11 @@ static char * mc_store_qp_preprocess_quotationmarks(const char *query, mc_StoreP
                 "(\\w:\\s*|)\"(\\s*\\w:\\s*|)(.*?)\"", G_REGEX_OPTIMIZE, 0, NULL
             );
 
-            atexit(mc_mtx_free_quotes);
+            atexit(moose_mtx_free_quotes);
         }
 
         char * result = g_regex_replace_eval(
-            REGEX_QUOTES, query, -1, 0, 0, mc_store_qp_quote_eval_cb, data, NULL
+            REGEX_QUOTES, query, -1, 0, 0, moose_store_qp_quote_eval_cb, data, NULL
         );
 
     /* } */
@@ -587,9 +587,9 @@ static char * mc_store_qp_preprocess_quotationmarks(const char *query, mc_StoreP
 
 ///////////////////
 
-static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
+static gboolean moose_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res, gpointer data) 
 {
-    mc_StoreParseData* parse_data = data;
+    MooseStoreParseData* parse_data = data;
     char * tag = g_match_info_fetch(info, 1);
 
     if(tag != NULL && *tag == 0) {
@@ -654,7 +654,7 @@ static gboolean mc_store_qp_range_eval_cb(const GMatchInfo *info, GString  *res,
  *
  * This works well enough for the small numbers we usually have for music.
  * */
-static char * mc_store_qp_preprocess_ranges(const char *query, mc_StoreParseData * data) 
+static char * moose_store_qp_preprocess_ranges(const char *query, MooseStoreParseData * data) 
 {
     if(query == NULL) 
         return NULL;
@@ -665,11 +665,11 @@ static char * mc_store_qp_preprocess_ranges(const char *query, mc_StoreParseData
                 "(\\w:|)(\\d*)(\\.{2,3})(\\d+)", G_REGEX_OPTIMIZE, 0, NULL
             );
         
-            atexit(mc_mtx_free_ranges);
+            atexit(moose_mtx_free_ranges);
         }
 
         char * result = g_regex_replace_eval(
-            REGEX_RANGES, query, -1, 0, 0, mc_store_qp_range_eval_cb, data, NULL
+            REGEX_RANGES, query, -1, 0, 0, moose_store_qp_range_eval_cb, data, NULL
         );
     /* } */
     G_UNLOCK(REGEX_RANGES);
@@ -679,21 +679,21 @@ static char * mc_store_qp_preprocess_ranges(const char *query, mc_StoreParseData
 
 ///////////////////
 
-static char * mc_store_qp_preprocess(const char *query, mc_StoreParseData * data)
+static char * moose_store_qp_preprocess(const char *query, MooseStoreParseData * data)
 {
-    char * step_one = mc_store_qp_preprocess_quotationmarks(query, data);
-    char * step_two = mc_store_qp_preprocess_ranges(step_one, data);
+    char * step_one = moose_store_qp_preprocess_quotationmarks(query, data);
+    char * step_two = moose_store_qp_preprocess_ranges(step_one, data);
     g_free(step_one);
     return step_two;
 }
 
 ///////////////////
 
-char *mc_store_qp_parse(const char *query, const char **warning, int *warning_pos)
+char *moose_store_qp_parse(const char *query, const char **warning, int *warning_pos)
 {
-    mc_StoreParseData sdata;
-    mc_StoreParseData *data = &sdata;
-    memset(data, 0, sizeof(mc_StoreParseData));
+    MooseStoreParseData sdata;
+    MooseStoreParseData *data = &sdata;
+    memset(data, 0, sizeof(MooseStoreParseData));
 
     /* Make warnings work */
     data->warning.msg = warning;
@@ -707,12 +707,12 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
         return NULL;
     }
 
-    if(mc_store_qp_str_is_empty(query)) {
+    if(moose_store_qp_str_is_empty(query)) {
         return NULL;
     }
 
     /* Everything else is 0 for now */
-    data->query = mc_store_qp_preprocess(query, data);
+    data->query = moose_store_qp_preprocess(query, data);
     data->query_len = strlen(query);
     data->iter = data->query;
     data->output = g_string_sized_new(data->query_len);
@@ -723,24 +723,24 @@ char *mc_store_qp_parse(const char *query, const char **warning, int *warning_po
     /* Loop over all utf8 glyphs */
     while (*(data->iter)) {
         data->current_char = g_utf8_get_char(data->iter);
-        data->previous_char = mc_store_qp_get_prev_char(data, data->iter);
+        data->previous_char = moose_store_qp_get_prev_char(data, data->iter);
 
-        if (!mc_store_qp_check_is_soft_token(data->iter)) {
+        if (!moose_store_qp_check_is_soft_token(data->iter)) {
             switch (data->current_char) {
             case '*':
-                mc_store_qp_process_star(data);
+                moose_store_qp_process_star(data);
                 break;
             case '+':
             case '|':
             case '!':
-                mc_store_qp_process_operand(data);
+                moose_store_qp_process_operand(data);
                 break;
             default: 
-                mc_store_qp_process_token(data);
+                moose_store_qp_process_token(data);
                 break;
             }
         } else {
-            mc_store_qp_process_empty(data);
+            moose_store_qp_process_empty(data);
         }
 
         /* Hop to the next char or stop */

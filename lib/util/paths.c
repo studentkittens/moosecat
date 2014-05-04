@@ -1,6 +1,6 @@
 #include <glib.h>
 
-int mc_path_get_depth(const char *dir_path)
+int moose_path_get_depth(const char *dir_path)
 {
     int dir_depth = 0;
     char *cursor = (char *) dir_path;

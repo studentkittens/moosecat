@@ -8,56 +8,56 @@
  *
  * Returns true on success.
  */
-bool mc_strprv_open_memdb(mc_Store *self);
+bool moose_strprv_open_memdb(MooseStore *self);
 
 /**
  * @brief Insert a single song to the db.
  *
- * You should call mc_stprv_begin/commit before and after.
+ * You should call moose_stprv_begin/commit before and after.
  */
-bool mc_stprv_insert_song(mc_Store *db, struct mpd_song *song);
+bool moose_stprv_insert_song(MooseStore *db, struct mpd_song *song);
 
 /**
  * @brief Update the db's meta table.
  */
-void mc_stprv_insert_meta_attributes(mc_Store *self);
+void moose_stprv_insert_meta_attributes(MooseStore *self);
 
 /**
  * @brief Compile all sqlite3_stmt objects.
  *
  * Needed before any calls after open_memdb
  */
-void mc_stprv_prepare_all_statements(mc_Store *self);
+void moose_stprv_prepare_all_statements(MooseStore *self);
 
 /**
- * @brief Initialize the statement buffer of mc_Store
+ * @brief Initialize the statement buffer of MooseStore
  */
-sqlite3_stmt **mc_stprv_prepare_all_statements_listed(mc_Store *self, const char **sql_stmts, int offset, int n_stmts);
+sqlite3_stmt **moose_stprv_prepare_all_statements_listed(MooseStore *self, const char **sql_stmts, int offset, int n_stmts);
 
 /**
- * @brief Deinitialize the statement buffer of mc_Store
+ * @brief Deinitialize the statement buffer of MooseStore
  */
-void mc_stprv_finalize_statements(mc_Store *self, sqlite3_stmt **stmts, int offset, int n_stmts);
+void moose_stprv_finalize_statements(MooseStore *self, sqlite3_stmt **stmts, int offset, int n_stmts);
 
 /**
  * @brief Creates the (empty) song table.
  */
-bool mc_stprv_create_song_table(mc_Store *self);
+bool moose_stprv_create_song_table(MooseStore *self);
 
 /**
  * @brief Execute COMMIT;
  */
-void mc_stprv_commit(mc_Store *self);
+void moose_stprv_commit(MooseStore *self);
 
 /**
  * @brief Execute BEGIN IMMEDIATE;
  */
-void mc_stprv_begin(mc_Store *self);
+void moose_stprv_begin(MooseStore *self);
 
 /**
  * @brief DELETE FROM SONGS;
  */
-void mc_stprv_delete_songs_table(mc_Store *self);
+void moose_stprv_delete_songs_table(MooseStore *self);
 
 /**
  * @brief load or save a memory db to/from disk.
@@ -66,91 +66,91 @@ void mc_stprv_delete_songs_table(mc_Store *self);
  *
  * @returns 0 on success, an SQLITE errcode otherwise.
  */
-void mc_stprv_load_or_save(mc_Store *self, bool is_save, const char *db_path);
+void moose_stprv_load_or_save(MooseStore *self, bool is_save, const char *db_path);
 
 /**
  * @brief Load songs from previously saved database into stack.
  */
-void mc_stprv_deserialize_songs(mc_Store *self);
+void moose_stprv_deserialize_songs(MooseStore *self);
 
 /**
- * @brief Same as mc_stprv_select_to_buf, but use stack instead of buf.
+ * @brief Same as moose_stprv_select_to_buf, but use stack instead of buf.
  *
  * @param self store to operate on
  * @param match_clause FTS match clause
  * @param queue_only limit search to queue?
- * @param stack an mc_Playlist, ideally preallocated to the expected size.
+ * @param stack an MoosePlaylist, ideally preallocated to the expected size.
  * @param limit_len Max songs to select, or -1 for no limit
  *
  * @return the number of selected songs.
  */
-int mc_stprv_select_to_stack(
-    mc_Store *self,
+int moose_stprv_select_to_stack(
+    MooseStore *self,
     const char *match_clause,
     bool queue_only,
-    mc_Playlist *stack,
+    MoosePlaylist *stack,
     int limit_len);
 
 /**
  * @brief get server db version
  */
-int mc_stprv_get_db_version(mc_Store *self);
+int moose_stprv_get_db_version(MooseStore *self);
 
 /**
  * @brief get playlist version
  */
-int mc_stprv_get_pl_version(mc_Store *self);
+int moose_stprv_get_pl_version(MooseStore *self);
 
 /**
  * @brief get schema version (only to check if db is old)
  */
-int mc_stprv_get_sc_version(mc_Store *self);
+int moose_stprv_get_sc_version(MooseStore *self);
 
 /**
  * @brief get mpd port to the db where this belongs to.
  */
-int mc_stprv_get_mpd_port(mc_Store *self);
+int moose_stprv_get_mpd_port(MooseStore *self);
 
 /**
  * @brief select count(*) from songs;
  */
-int mc_stprv_get_song_count(mc_Store *self);
+int moose_stprv_get_song_count(MooseStore *self);
 
 /**
  * @brief get mpd host in the meta table.
  *
  * Free return value if no longer used.
  */
-char *mc_stprv_get_mpd_host(mc_Store *self);
+char *moose_stprv_get_mpd_host(MooseStore *self);
 
 /**
  * @brief Clear pos/id in the songs table (to -1)
  */
-int mc_stprv_queue_clip(mc_Store *self, int since_pos);
+int moose_stprv_queue_clip(MooseStore *self, int since_pos);
 
 /**
  * @brief Update a song, identified by file's pos/id to pos/idx
  */
-void mc_stprv_queue_insert_posid(mc_Store *self, int pos, int idx, const char *file);
+void moose_stprv_queue_insert_posid(MooseStore *self, int pos, int idx, const char *file);
 
 /**
  * @brief Update the song's stack songs pos/id according to the songs table.
  */
-void mc_stprv_queue_update_stack_posid(mc_Store *self);
+void moose_stprv_queue_update_stack_posid(MooseStore *self);
 
 /**
  * @brief Close the sqlite3 handle
  */
-void mc_stprv_close_handle(mc_Store *self, bool free_statements);
+void moose_stprv_close_handle(MooseStore *self, bool free_statements);
 
 /**
  * @brief Lock self->stack and self->spl.stack for change
  */
-void mc_stprv_lock_attributes(mc_Store *self);
+void moose_stprv_lock_attributes(MooseStore *self);
 
 /**
- * @brief Unlock previous lock by mc_stprv_lock_attributes()
+ * @brief Unlock previous lock by moose_stprv_lock_attributes()
  */
-void mc_stprv_unlock_attributes(mc_Store *self);
+void moose_stprv_unlock_attributes(MooseStore *self);
 
 #endif /* end of include guard: MC_DB_PRIVATE_H */

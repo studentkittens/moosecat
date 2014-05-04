@@ -177,7 +177,7 @@ static void zerr(int ret)
 
 ///////////////////////////////
 
-bool mc_gzip(const char *file_path)
+bool moose_gzip(const char *file_path)
 {
     g_assert(file_path != NULL);
     bool rc = true;
@@ -210,7 +210,7 @@ bool mc_gzip(const char *file_path)
 
 ///////////////////////////////
 
-bool mc_gunzip(const char *file_path)
+bool moose_gunzip(const char *file_path)
 {
     g_assert(file_path != NULL);
     bool rc = true;

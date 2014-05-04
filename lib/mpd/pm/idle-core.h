@@ -4,7 +4,7 @@
 #define IDLE_CORE_H
 
 /**
- * @brief Create an mc_Client
+ * @brief Create an MooseClient
  *
  * @brief Connector using only one connection and the idle command.
  *
@@ -17,6 +17,6 @@
  *
  * @return a newly allocated connector
  */
-mc_Client *mc_create_idler(void);
+MooseClient *moose_create_idler(void);
 
 #endif /* end of include guard: IDLE_CORE_H */

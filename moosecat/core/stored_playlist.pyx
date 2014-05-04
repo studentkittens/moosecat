@@ -19,7 +19,7 @@ cdef class StoredPlaylist(Playlist):
         cdef char * name(self):
             return <char *>c.mpd_playlist_get_path(self._pl())
 
-        cdef _init_stored_playlist(self, c.mc_Playlist *stack, c.mc_Client *client, c.mpd_playlist *playlist):
+        cdef _init_stored_playlist(self, c.MoosePlaylist *stack, c.MooseClient *client, c.mpd_playlist *playlist):
             self._playlist = playlist
             return Playlist._init(self, stack, client)
 

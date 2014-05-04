@@ -20,7 +20,7 @@
 /* define to cast a parent conneself to the
  * concrete idle conneself
  */
-#define child(obj) ((mc_IdleClient *)obj)
+#define child(obj) ((MooseIdleClient *)obj)
 
 ///////////////////////
 // Private Interface //
@@ -29,7 +29,7 @@
 
 typedef struct {
     /* Parent "class" */
-    mc_Client logic;
+    MooseClient logic;
 
     /* Normal connection to mpd, on top of async_mpd_conn */
     mpd_connection *con;
@@ -58,7 +58,7 @@ typedef struct {
     /* Mutex with descriptive name */
     GMutex one_thread_only_mtx;
 
-} mc_IdleClient;
+} MooseIdleClient;
 
 ///////////////////////////////////////////
 
@@ -68,7 +68,7 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
 ///////////////////////////////////////////
 
 static void idler_report_error(
-    mc_IdleClient *self,
+    MooseIdleClient *self,
     G_GNUC_UNUSED enum mpd_error error,
     const char *error_msg)
 {
@@ -76,14 +76,14 @@ static void idler_report_error(
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        mc_signal_dispatch((mc_Client *) self, "logging", self, error_msg, MC_LOG_ERROR, FALSE);
+        moose_signal_dispatch((MooseClient *) self, "logging", self, error_msg, MC_LOG_ERROR, FALSE);
     }
     self->is_running_extern = FALSE;
 }
 
 ///////////////////////////////////////////
 
-static bool idler_check_and_report_async_error(mc_IdleClient *self)
+static bool idler_check_and_report_async_error(MooseIdleClient *self)
 {
     g_assert(self);
     enum mpd_error error = mpd_async_get_error(self->async_mpd_conn);
@@ -99,7 +99,7 @@ static bool idler_check_and_report_async_error(mc_IdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_add_watch_kitten(mc_IdleClient *self)
+static void idler_add_watch_kitten(MooseIdleClient *self)
 {
     g_assert(self);
 
@@ -120,7 +120,7 @@ static void idler_add_watch_kitten(mc_IdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_remove_watch_kitten(mc_IdleClient *self)
+static void idler_remove_watch_kitten(MooseIdleClient *self)
 {
     if (self->watch_source_id != 0) {
         g_source_remove(self->watch_source_id);
@@ -131,7 +131,7 @@ static void idler_remove_watch_kitten(mc_IdleClient *self)
 
 ///////////////////////////////////////////
 
-static bool idler_leave(mc_IdleClient *self)
+static bool idler_leave(MooseIdleClient *self)
 {
     bool rc = true;
 
@@ -157,7 +157,7 @@ static bool idler_leave(mc_IdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_enter(mc_IdleClient *self)
+static void idler_enter(MooseIdleClient *self)
 {
     if (self->is_in_idle_mode == false &&
             self->is_running_extern == false) {
@@ -175,7 +175,7 @@ static void idler_enter(mc_IdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_dispatch_events(mc_IdleClient *self, enum mpd_idle events)
+static void idler_dispatch_events(MooseIdleClient *self, enum mpd_idle events)
 {
     g_assert(self);
     /* Clients can now use the connection.
@@ -187,8 +187,8 @@ static void idler_dispatch_events(mc_IdleClient *self, enum mpd_idle events)
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        // mc_shelper_report_client_event((mc_Client *)self, events);
-        mc_force_sync((mc_Client *)self, events);
+        // moose_shelper_report_client_event((MooseClient *)self, events);
+        moose_force_sync((MooseClient *)self, events);
     }
     self->is_running_extern = FALSE;
     /* reenter idle-mode (we did not leave by calling idler_leave though!) */
@@ -197,7 +197,7 @@ static void idler_dispatch_events(mc_IdleClient *self, enum mpd_idle events)
 
 ///////////////////////////////////////////
 
-static bool idler_process_received(mc_IdleClient *self)
+static bool idler_process_received(MooseIdleClient *self)
 {
     g_assert(self);
     char *line = NULL;
@@ -245,7 +245,7 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
     g_assert(source);
     g_assert(data);
 
-    mc_IdleClient *self = (mc_IdleClient *) data;
+    MooseIdleClient *self = (MooseIdleClient *) data;
     enum mpd_async_event events = gio_to_mpd_async(condition);
 
     /* We need to lock here because in the meantime a get/put 
@@ -295,7 +295,7 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
 ///////////////////////////////////////////
 
 /* code that is shared for connect/disconnect */
-static void idler_reset_struct(mc_IdleClient *self)
+static void idler_reset_struct(MooseIdleClient *self)
 {
     /* Initially there is no watchkitteh, 0 tells us that */
     self->watch_source_id = 0;
@@ -311,12 +311,12 @@ static void idler_reset_struct(mc_IdleClient *self)
 /////////////////// API ///////////////////
 ///////////////////////////////////////////
 
-static char *idler_do_connect(mc_Client *parent, GMainContext *context, const char *host, int port, float timeout)
+static char *idler_do_connect(MooseClient *parent, GMainContext *context, const char *host, int port, float timeout)
 {
     (void) context;
     g_assert(parent);
 
-    mc_IdleClient *self = child(parent);
+    MooseIdleClient *self = child(parent);
 
     g_mutex_lock(&self->one_thread_only_mtx);
 
@@ -353,9 +353,9 @@ failure:
 
 ///////////////////////
 
-static bool idler_do_is_connected(mc_Client * client)
+static bool idler_do_is_connected(MooseClient * client)
 {
-    mc_IdleClient * self = child(client);
+    MooseIdleClient * self = child(client);
 
     g_mutex_lock(&self->one_thread_only_mtx);
     bool result = (self && self->con);
@@ -365,7 +365,7 @@ static bool idler_do_is_connected(mc_Client * client)
 
 ///////////////////////
 
-static mpd_connection *idler_do_get(mc_Client *self)
+static mpd_connection *idler_do_get(MooseClient *self)
 {
     g_assert(self);
 
@@ -377,7 +377,7 @@ static mpd_connection *idler_do_get(mc_Client *self)
 
 ///////////////////////
 
-static void idler_do_put(mc_Client *self)
+static void idler_do_put(MooseClient *self)
 {
     g_assert(self);
 
@@ -388,10 +388,10 @@ static void idler_do_put(mc_Client *self)
 
 //////////////////////
 
-static bool idler_do_disconnect(mc_Client *parent)
+static bool idler_do_disconnect(MooseClient *parent)
 {
     if (idler_do_is_connected(parent)) {
-        mc_IdleClient *self = child(parent);
+        MooseIdleClient *self = child(parent);
 
         g_mutex_lock(&self->one_thread_only_mtx);
 
@@ -426,15 +426,15 @@ static bool idler_do_disconnect(mc_Client *parent)
 
 //////////////////////
 
-static void idler_do_free(mc_Client *parent)
+static void idler_do_free(MooseClient *parent)
 {
     g_assert(parent);
 
     /* Make sure wrong acces gets punished */
-    mc_IdleClient *self = child(parent);
+    MooseIdleClient *self = child(parent);
     g_mutex_clear(&self->one_thread_only_mtx);
 
-    memset(self, 0, sizeof(mc_IdleClient));
+    memset(self, 0, sizeof(MooseIdleClient));
     g_free(self);
 }
 
@@ -442,9 +442,9 @@ static void idler_do_free(mc_Client *parent)
 // Public Interface //
 //////////////////////
 
-mc_Client *mc_create_idler(void)
+MooseClient *moose_create_idler(void)
 {
-    mc_IdleClient *self = g_new0(mc_IdleClient, 1);
+    MooseIdleClient *self = g_new0(MooseIdleClient, 1);
 
     /* Define the logic of this connector */
     self->logic.do_disconnect = idler_do_disconnect;
@@ -455,5 +455,5 @@ mc_Client *mc_create_idler(void)
     self->logic.do_is_connected = idler_do_is_connected;
 
     g_mutex_init(&self->one_thread_only_mtx);
-    return (mc_Client *) self;
+    return (MooseClient *) self;
 }

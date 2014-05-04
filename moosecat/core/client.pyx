@@ -16,7 +16,7 @@ import logging
 '''
 moosecat.core.Client implements the Client.
 
-It is a wrapper around libmoosecat's mc_Client,
+It is a wrapper around libmoosecat's MooseClient,
 but also integrates the Database-Access.
 
 Basic Features:
@@ -47,7 +47,7 @@ cdef object LOG_LEVEL_MAP = {
 }
 
 
-cdef loglevel_to_string(c.mc_LogLevel level):
+cdef loglevel_to_string(c.MooseLogLevel level):
     for key, value in LOG_LEVEL_MAP.items():
         if value == level:
             return key
@@ -74,7 +74,7 @@ def log_exception(func):
 # Also it would add stuff to the callstack.
 
 cdef void _wrap_ClientEventCallback(
-    c.mc_Client * client,
+    c.MooseClient * client,
     c.mpd_idle event,
     object data
 ) with gil:
@@ -85,9 +85,9 @@ cdef void _wrap_ClientEventCallback(
 
 
 cdef void _wrap_LoggingCallback(
-    c.mc_Client * client,
+    c.MooseClient * client,
     char * msg,
-    c.mc_LogLevel level,
+    c.MooseLogLevel level,
     object data
 ) with gil:
     try:
@@ -98,7 +98,7 @@ cdef void _wrap_LoggingCallback(
 
 
 cdef void _wrap_ConnectivityCallback(
-    c.mc_Client * client,
+    c.MooseClient * client,
     bool server_changed,
     bool was_connected,
     object data
@@ -167,33 +167,33 @@ class Idle:
     SEEK = c.MPD_IDLE_SEEK
 
 cdef class Client:
-    cdef c.mc_Client * _cl
-    cdef c.mc_Store * _store
+    cdef c.MooseClient * _cl
+    cdef c.MooseStore * _store
     cdef object _store_wrapper
     cdef object _signal_data_map
 
     def __cinit__(self, protocol_machine='idle'):
         '''
-        Create the initial mc_Client structure.
+        Create the initial MooseClient structure.
         This is not connected yet.
         '''
         if protocol_machine == 'idle':
-            self._cl = c.mc_create(c.PM_IDLE)
+            self._cl = c.moose_create(c.PM_IDLE)
         else:
-            self._cl = c.mc_create(c.PM_COMMAND)
+            self._cl = c.moose_create(c.PM_COMMAND)
 
         self._store = NULL
         self._store_wrapper = None
         self._signal_data_map = {}
 
-    cdef c.mc_Client * _p(self):
+    cdef c.MooseClient * _p(self):
         return self._cl
 
     def __dealloc__(self):
         '''
-        Disconnect the Client, and free the mc_p()ient structure.
+        Disconnect the Client, and free the moose_p()ient structure.
         '''
-        c.mc_free(self._p())
+        c.moose_free(self._p())
 
     def store_is_initialized(self):
         return not (self._store_wrapper is None)
@@ -219,7 +219,7 @@ cdef class Client:
             else:
                 b_host = b'localhost'
 
-            err = c.mc_connect(self._p(), NULL, b_host, port, timeout_sec)
+            err = c.moose_connect(self._p(), NULL, b_host, port, timeout_sec)
             if err == NULL:
                 return None
             else:
@@ -236,7 +236,7 @@ cdef class Client:
         Will trigger the connectivity signal.
         '''
         cdef char * err = NULL
-        err = c.mc_disconnect(self._p())
+        err = c.moose_disconnect(self._p())
         return (err == NULL)
 
     def sync(self, event_mask=0xFFFFFFFFF):
@@ -249,7 +249,7 @@ cdef class Client:
         :param event_mask: Bit OR'd combinations of the event you want to emulate
         '''
         cdef c.mpd_idle event = event_mask
-        c.mc_force_sync(self._p(), event)
+        c.moose_force_sync(self._p(), event)
 
     #############
     #  Signals  #
@@ -306,7 +306,7 @@ cdef class Client:
                 print('Warning: Unknown signal passed. This should not happen.')
 
             if c_func != NULL:
-                c.mc_signal_add_masked(
+                c.moose_signal_add_masked(
                         self._p(), b_name,
                         <void*> c_func,
                         <void*> data, mask
@@ -315,7 +315,7 @@ cdef class Client:
     def signal_rm(self, signal_name, func):
         'Remove a signal from the callable list'
         with self._valid_signal_name(signal_name) as b_name:
-            c.mc_signal_rm(self._p(), b_name, <void*> func)
+            c.moose_signal_rm(self._p(), b_name, <void*> func)
 
             # Remove the ref to the internally hold callback data,
             # so this can get garbage collected, properly counted.
@@ -324,7 +324,7 @@ cdef class Client:
     def signal_count(self, signal_name):
         'Return the number of registerd signals'
         with self._valid_signal_name(signal_name) as b_name:
-            return c.mc_signal_length(self._p(), b_name)
+            return c.moose_signal_length(self._p(), b_name)
 
     def signal_dispatch(self, signal_name, *args):
         'Dispatch a signal manually'
@@ -333,21 +333,21 @@ cdef class Client:
         cdef int server_changed = 0
         cdef int was_connected = 0
         cdef char * error_msg = NULL
-        cdef c.mc_LogLevel log_level = c.MC_LOG_INFO
+        cdef c.MooseLogLevel log_level = c.MC_LOG_INFO
 
         with self._valid_signal_name(signal_name) as b_name:
             # Check the signal-name, and dispatch it differently.
             if signal_name == 'client-event':
                 event = int(args[0])
-                c.mc_signal_dispatch(self._p(), b_name, self._p(), event)
+                c.moose_signal_dispatch(self._p(), b_name, self._p(), event)
             elif signal_name == 'connectivity':
                 server_changed = int(args[0])
                 was_connected = int(args[1])
-                c.mc_signal_dispatch(self._p(), b_name,self._p(), server_changed, was_connected)
+                c.moose_signal_dispatch(self._p(), b_name,self._p(), server_changed, was_connected)
             elif signal_name == 'logging':
                 error_msg = args[0]
                 log_level = LOG_LEVEL_MAP.get(args[1], c.MC_LOG_INFO)
-                c.mc_signal_dispatch(self._p(), b_name, self._p(), error_msg, log_level)
+                c.moose_signal_dispatch(self._p(), b_name, self._p(), error_msg, log_level)
 
     def signal(self, signal_name, mask=None):
         'For use as a decorator over a function.'
@@ -369,11 +369,11 @@ cdef class Client:
         :param repeat_ms: Number of seconds to wait betwenn status updates.
         :param trigger_idle: If the idle-signal shall be called.
         '''
-        c.mc_status_timer_register(self._p(), repeat_ms, trigger_idle)
+        c.moose_status_timer_register(self._p(), repeat_ms, trigger_idle)
 
     def status_timer_shutdown(self):
         'Reverse a previous call to status_timer_activate()'
-        c.mc_status_timer_unregister(self._p())
+        c.moose_status_timer_unregister(self._p())
 
     ################
     #  Properties  #
@@ -382,28 +382,28 @@ cdef class Client:
     property status_timer_is_active:
         'Check if this Client currently is auto-querying status updates'
         def __get__(self):
-            return c.mc_status_timer_is_active(self._p())
+            return c.moose_status_timer_is_active(self._p())
 
     property is_connected:
         'Check if this Client is still connected  to the server'
         def __get__(self):
-            return c.mc_is_connected(self._p())
+            return c.moose_is_connected(self._p())
 
     property timeout:
         'Get the timeout in seconds which is set for this client'
         def __get__(self):
-            return c.mc_get_timeout(self._p())
+            return c.moose_get_timeout(self._p())
 
     property host:
         'Get the host this client is currently connected to'
         def __get__(self):
-            b_host = <char*>c.mc_get_host(self._p())
+            b_host = <char*>c.moose_get_host(self._p())
             return stringify(b_host)
 
     property port:
         'Get the port this client is currently connected to'
         def __get__(self):
-            return c.mc_get_port(self._p())
+            return c.moose_get_port(self._p())
 
     property signal_names:
         'A list of valid signal names. (May be used to verfiy.)'
@@ -414,18 +414,18 @@ cdef class Client:
     def lock_status(self):
         'Get the current :class:`.Status` object and takes care of locking.'
         try:
-            yield status_from_ptr(c.mc_lock_status(self._p()), self._p())
+            yield status_from_ptr(c.moose_lock_status(self._p()), self._p())
         finally:
-            c.mc_unlock_status(self._p())
+            c.moose_unlock_status(self._p())
 
     @contextmanager
     def lock_currentsong(self):
         'Get the current :class:`.Song` object and takes care of locking.'
         try:
 
-            yield song_from_ptr(c.mc_lock_current_song(self._p()))
+            yield song_from_ptr(c.moose_lock_current_song(self._p()))
         finally:
-            c.mc_unlock_current_song(self._p())
+            c.moose_unlock_current_song(self._p())
 
     @contextmanager
     def lock_nextsong(self):
@@ -446,9 +446,9 @@ cdef class Client:
     def lock_statistics(self):
         'Get the current :class:`.Statistics` object and takes care of locking.'
         try:
-            yield statistics_from_ptr(c.mc_lock_statistics(self._p()))
+            yield statistics_from_ptr(c.moose_lock_statistics(self._p()))
         finally:
-            c.mc_unlock_statistics(self._p())
+            c.moose_unlock_statistics(self._p())
 
     @contextmanager
     def lock_all(self):
@@ -476,8 +476,8 @@ cdef class Client:
         cdef const char ** output_names = NULL
 
         try:
-            c.mc_lock_outputs(self._p())
-            output_names = c.mc_outputs_get_names(self._p())
+            c.moose_lock_outputs(self._p())
+            output_names = c.moose_outputs_get_names(self._p())
             return_list = []
             if output_names != NULL:
                 i = 0
@@ -486,7 +486,7 @@ cdef class Client:
                     i += 1
             yield return_list
         finally:
-            c.mc_unlock_outputs(self._p())
+            c.moose_unlock_outputs(self._p())
 
 
     property store:
@@ -591,7 +591,7 @@ cdef class Client:
         :returns: true if server accepted the password.
         '''
         job_id = client_send(self._p(), _fmt('password', password))
-        return c.mc_client_recv(self._p(), job_id)
+        return c.moose_client_recv(self._p(), job_id)
 
     def player_seek(self, seconds, song=None):
         '''
@@ -768,11 +768,11 @@ cdef class Client:
             >>> # got sended.
         '''
         if self.is_connected:
-            c.mc_client_begin(self._p())
+            c.moose_client_begin(self._p())
             try:
                 yield
             finally:
-                c.mc_client_commit(self._p())
+                c.moose_client_commit(self._p())
         else:
             raise RuntimeError('No connection - unable to do command list.')
 
@@ -789,7 +789,7 @@ cdef class Client:
 
         Will only block when connected.
         '''
-        c.mc_block_till_sync(self._p())
+        c.moose_block_till_sync(self._p())
 
     def raw_send(self, command, *args):
         '''
@@ -800,10 +800,10 @@ cdef class Client:
         return client_send(self._p(), _fmt(command, *args))
 
     def raw_recv(self, job_id):
-        return c.mc_client_recv(self._p(), job_id)
+        return c.moose_client_recv(self._p(), job_id)
 
     def raw_run(self, command, *args):
-        return c.mc_client_recv(self._p(), client_send(self._p(), _fmt(command, *args)))
+        return c.moose_client_recv(self._p(), client_send(self._p(), _fmt(command, *args)))
 
     ###########################################################
     #  Stored Playlist Functions that require mpd interaction #

@@ -7,14 +7,14 @@
 #include "signal.h"
 
 /* Only prototype needed */
-struct mc_Client;
+struct MooseClient;
 
-typedef enum mc_OpFinishedEnum {
+typedef enum MooseOpFinishedEnum {
     MC_OP_DB_UPDATED,
     MC_OP_QUEUE_UPDATED,
     MC_OP_SPL_UPDATED,
     MC_OP_SPL_LIST_UPDATED
-} mc_OpFinishedEnum;
+} MooseOpFinishedEnum;
 
 ///////////////////////////////
 
@@ -24,7 +24,7 @@ typedef enum mc_OpFinishedEnum {
  * Checks the connection for error, checks
  * if the error is fatal (if any), and also handles
  * it by calling mpd_connection_clear_error,
- * and, if it's fatal, mc_disconnect.
+ * and, if it's fatal, moose_disconnect.
  *
  * The callback is called **after** cleaning up,
  * which allows the callee to reconnect if it desires too.
@@ -34,22 +34,22 @@ typedef enum mc_OpFinishedEnum {
  * @param self the client to operate on
  * @param cconn libmpdclient's mpd_connection
  */
-bool mc_shelper_report_error(
-    struct mc_Client *self,
+bool moose_shelper_report_error(
+    struct MooseClient *self,
     struct mpd_connection *cconn);
 
 /**
- * @brief Same as mc_shelper_report_error, but do no handle actual error (by disconnecting)
+ * @brief Same as moose_shelper_report_error, but do no handle actual error (by disconnecting)
  *
  * @param self the client to operate on
  * @param cconn libmpdclient's mpd_connection
  */
-bool mc_shelper_report_error_without_handling(
-    struct mc_Client *self,
+bool moose_shelper_report_error_without_handling(
+    struct MooseClient *self,
     struct mpd_connection *cconn);
 
 /**
- * @brief Same as mc_shelper_report_error, but in a printf like fashion.
+ * @brief Same as moose_shelper_report_error, but in a printf like fashion.
  *
  * Errors will be assumed to be non-fatal.
  *
@@ -57,8 +57,8 @@ bool mc_shelper_report_error_without_handling(
  * @param format printf format
  * @param ... varargs
  */
-void mc_shelper_report_error_printf(
-    struct mc_Client *self,
+void moose_shelper_report_error_printf(
+    struct MooseClient *self,
     const char *format, ...);
 
 /**
@@ -72,8 +72,8 @@ void mc_shelper_report_error_printf(
  * @param format a printf format
  * @param ... varargs as with printf
  */
-void mc_shelper_report_progress(
-    struct mc_Client *self,
+void moose_shelper_report_progress(
+    struct MooseClient *self,
     bool print_newline,
     const char *format,
     ...);
@@ -90,8 +90,8 @@ void mc_shelper_report_progress(
  * @param new_port the new port passed to connect()
  * @param new_timeout the new timeout passed to connect()
  */
-void mc_shelper_report_connectivity(
-    struct mc_Client *self,
+void moose_shelper_report_connectivity(
+    struct MooseClient *self,
     const char *new_host,
     int new_port,
     float new_timeout);
@@ -100,12 +100,12 @@ void mc_shelper_report_connectivity(
  * @brief Dispatch the op-finished signal
  *
  * @param self the client to operate on.
- * @param op a member of mc_OpFinishedEnum
+ * @param op a member of MooseOpFinishedEnum
  *           to indicate what kind of thing finished.
  */
-void mc_shelper_report_operation_finished(
-    struct mc_Client *self,
-    mc_OpFinishedEnum op);
+void moose_shelper_report_operation_finished(
+    struct MooseClient *self,
+    MooseOpFinishedEnum op);
 
 #endif /* end of include guard: MC_SIGNAL_HELPER_H */
 

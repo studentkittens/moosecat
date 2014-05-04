@@ -3,11 +3,11 @@
 #include "update.h"
 #include "outputs.h"
 
-mc_OutputsData * mc_priv_outputs_new(mc_Client *self)
+MooseOutputsData * moose_priv_outputs_new(MooseClient *self)
 {
     g_assert(self);
 
-    mc_OutputsData * data = g_slice_new0(mc_OutputsData);
+    MooseOutputsData * data = g_slice_new0(MooseOutputsData);
     data->client = self;
     data->outputs = g_hash_table_new_full(
             g_str_hash,
@@ -21,7 +21,7 @@ mc_OutputsData * mc_priv_outputs_new(mc_Client *self)
 
 ///////////////////
 
-void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event)
+void moose_priv_outputs_update(MooseOutputsData *data, enum mpd_idle event)
 {
     g_assert(data);
     g_assert(data->client);
@@ -29,11 +29,11 @@ void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event)
     if ((event & MPD_IDLE_OUTPUT) == 0)
         return /* because of no relevant event */;
 
-    struct mpd_connection *conn = mc_get(data->client);
+    struct mpd_connection *conn = moose_get(data->client);
 
     if(conn != NULL) {
         if (mpd_send_outputs(conn) == false) {
-            mc_shelper_report_error(data->client, conn);
+            moose_shelper_report_error(data->client, conn);
         } else {
             struct mpd_output *output = NULL;
             GHashTable * new_table = g_hash_table_new_full(
@@ -54,24 +54,24 @@ void mc_priv_outputs_update(mc_OutputsData *data, enum mpd_idle event)
             /* Lock before setting the actual data
              * (in case someone is reading it right now)
              */
-            mc_lock_outputs(data->client);
+            moose_lock_outputs(data->client);
             {
                 g_hash_table_destroy(data->outputs);
                 data->outputs = new_table;
             }
-            mc_unlock_outputs(data->client);
+            moose_unlock_outputs(data->client);
         }
 
         if(mpd_response_finish(conn) == false) {
-            mc_shelper_report_error(data->client, conn);
+            moose_shelper_report_error(data->client, conn);
         }
     }
-    mc_put(data->client);
+    moose_put(data->client);
 }
 
 ///////////////////
 
-static struct mpd_output *mc_priv_outputs_find(mc_OutputsData *data, const char *output_name) 
+static struct mpd_output *moose_priv_outputs_find(MooseOutputsData *data, const char *output_name) 
 {
     g_assert(data);
 
@@ -80,11 +80,11 @@ static struct mpd_output *mc_priv_outputs_find(mc_OutputsData *data, const char 
 
 ///////////////////
 
-int mc_priv_outputs_name_to_id(mc_OutputsData *data, const char *output_name)
+int moose_priv_outputs_name_to_id(MooseOutputsData *data, const char *output_name)
 {
     g_assert(data);
 
-    struct mpd_output *op = mc_priv_outputs_find(data, output_name);
+    struct mpd_output *op = moose_priv_outputs_find(data, output_name);
     int result = -1;
     if (op != NULL) {
         result = mpd_output_get_id(op);
@@ -96,11 +96,11 @@ int mc_priv_outputs_name_to_id(mc_OutputsData *data, const char *output_name)
 
 ///////////////////
 
-bool mc_priv_outputs_get_state(mc_OutputsData *data, const char *output_name)
+bool moose_priv_outputs_get_state(MooseOutputsData *data, const char *output_name)
 {
     g_assert(data);
 
-    struct mpd_output *op = mc_priv_outputs_find(data, output_name);
+    struct mpd_output *op = moose_priv_outputs_find(data, output_name);
     int result = -1;
 
     if (op != NULL) {
@@ -112,7 +112,7 @@ bool mc_priv_outputs_get_state(mc_OutputsData *data, const char *output_name)
 
 ///////////////////
 
-const char ** mc_priv_outputs_get_names(mc_OutputsData *data) 
+const char ** moose_priv_outputs_get_names(MooseOutputsData *data) 
 {
     g_assert(data);
 
@@ -141,19 +141,19 @@ const char ** mc_priv_outputs_get_names(mc_OutputsData *data)
 
 ///////////////////
 
-bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bool state)
+bool moose_priv_outputs_set_state(MooseOutputsData *data, const char *output_name, bool state)
 {
     g_assert(data);
 
     bool found = false;
-    struct mpd_output *op = mc_priv_outputs_find(data, output_name);
+    struct mpd_output *op = moose_priv_outputs_find(data, output_name);
     if(op != NULL) {
         if(!!mpd_output_get_enabled(op) != !!state) {
             found = true;
             char * output_switch_cmd = g_strdup_printf(
                     "output_switch %s %d", output_name, (state) ? 1 : 0
             );
-            mc_client_send(data->client, output_switch_cmd);
+            moose_client_send(data->client, output_switch_cmd);
             g_free(output_switch_cmd);
         }
     }
@@ -163,16 +163,16 @@ bool mc_priv_outputs_set_state(mc_OutputsData *data, const char *output_name, bo
 
 ///////////////////
 
-void mc_priv_outputs_destroy(mc_OutputsData *data)
+void moose_priv_outputs_destroy(MooseOutputsData *data)
 {
     g_assert(data);
 
-    mc_lock_outputs(data->client);
+    moose_lock_outputs(data->client);
 
     g_hash_table_destroy(data->outputs);
     data->outputs = NULL;
 
-    mc_unlock_outputs(data->client);
+    moose_unlock_outputs(data->client);
 
-    g_slice_free(mc_OutputsData, data);
+    g_slice_free(MooseOutputsData, data);
 }
