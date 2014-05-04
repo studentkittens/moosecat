@@ -26,3 +26,8 @@ lib/config.h
 
 # Coredumps
 core
+
+# Scons
+.sconf_temp
+.sconstemp
+test_*

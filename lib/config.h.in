@@ -1,0 +1,29 @@
+#ifndef MC_CONFIG_H
+#define MC_CONFIG_H
+
+#ifndef True
+    #define True true
+#endif
+#ifndef False
+    #define False false
+#endif
+
+#define HAVE_GLIB {HAVE_GLIB}
+#define HAVE_GTK3 {HAVE_GTK3}
+#define HAVE_ZLIB {HAVE_ZLIB}
+#define HAVE_AVAHI_GLIB {HAVE_AVAHI_GLIB}
+#define MC_VERSION "{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}"
+#define MC_VERSION_MAJOR {VERSION_MAJOR}
+#define MC_VERSION_MINOR {VERSION_MINOR}
+#define MC_VERSION_PATCH {VERSION_PATCH}
+#define MC_VERSION_GIT_REVISION "{VERSION_GIT_REVISION}"
+
+
+/* Might come in useful */
+#define MC_CHECK_VERSION(X,Y,Z) (0  \
+    || X <= MC_VERSION_MAJOR        \
+    || Y <= MC_VERSION_MINOR        \
+    || Z <= MC_VERSION_MICRO        \
+)
+
+#endif

@@ -118,7 +118,7 @@ def define_config_h(conf):
     conf.define('MC_VERSION_PATCH', version_numbers[2])
 
     if not conf.env.GIT == []:
-        current_rev = subprocess.check_output([conf.env.GIT, 'log', '--pretty=format:"%h"', '-n 1'])
+        current_rev = subprocess.check_output([conf.env.GIT, 'log', '--pretty=format:"%h"', '-n 1 | head -1'])
         conf.define('MC_VERSION_GIT_REVISION', str(current_rev, 'UTF-8')[1:-1])
     else:
         conf.define('MC_VERSION_GIT_REVISION', '[unknown]')

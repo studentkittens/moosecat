@@ -171,7 +171,7 @@ static void build_gui(EntryTag *tag)
     /* instance */
     tag->model = create_model();
     GtkWidget *wnd = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    GtkWidget *box = gtk_vbox_new(false, 2);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     GtkWidget *ent = gtk_entry_new();
     GtkWidget *tvw = gtk_tree_view_new_with_model(tag->model);
     GtkWidget *scw = gtk_scrolled_window_new(NULL, NULL);
@@ -205,7 +205,7 @@ static void build_gui(EntryTag *tag)
     /* packing */
     gtk_container_add(GTK_CONTAINER(scw), tvw);
     gtk_box_pack_start(GTK_BOX(box), scw, true, true, 1);
-    gtk_box_pack_start(GTK_BOX(box), gtk_hseparator_new(), false, false, 3);
+    gtk_box_pack_start(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), false, false, 3);
     gtk_box_pack_start(GTK_BOX(box), ent, false, false, 1);
     gtk_container_add(GTK_CONTAINER(wnd), box);
     gtk_widget_show_all(wnd);
