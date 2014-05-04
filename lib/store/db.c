@@ -448,7 +448,7 @@ static void mc_store_update_callback(
 static void mc_store_connectivity_callback(
     mc_Client *client,
     bool server_changed,
-    bool was_connected,
+    G_GNUC_UNUSED bool was_connected,
     mc_Store *self)
 {
     g_assert(self && client && self->client == client);
@@ -482,10 +482,10 @@ static void mc_store_connectivity_callback(
 //////////////////////////////
 
 void *mc_store_job_execute_callback(
-        struct mc_JobManager *jm,  /* store->jm */
-        volatile bool *cancel_op,  /* Check if the operation should be cancelled */
-        void *user_data,           /* store */
-        void *job_data             /* operation data */
+        G_GNUC_UNUSED struct mc_JobManager *jm,  /* store->jm */
+        volatile bool *cancel_op,                /* Check if the operation should be cancelled */
+        void *user_data,                         /* store */
+        void *job_data                           /* operation data */
 )
 {
     void * result = NULL;

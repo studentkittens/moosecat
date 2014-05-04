@@ -2,7 +2,6 @@
 #include "protocol.h"
 #include "outputs.h"
 #include "signal-helper.h"
-#include "../compiler.h"
 
 ////////////////////////
 
@@ -29,7 +28,7 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 /* This will be sended (as Integer) 
  * to the Queue to break out of the poll loop
  */
-#define THREAD_TERMINATOR (1 << 15)
+#define THREAD_TERMINATOR (MPD_IDLE_MESSAGE)
 
 /* Little hack:
  *

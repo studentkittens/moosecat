@@ -76,7 +76,7 @@ static bool handle_queue_add(mc_Client *self, struct mpd_connection *conn, const
 
 ///////////////////
 
-static bool handle_queue_clear(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_queue_clear(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_clear(conn),
@@ -251,7 +251,7 @@ static bool handle_queue_move_range(mc_Client *self, struct mpd_connection *conn
 
 ///////////////////
 
-static bool handle_next(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_next(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_next(conn),
@@ -276,7 +276,7 @@ static bool handle_password(mc_Client *self, struct mpd_connection *conn, const 
 
 ///////////////////
 
-static bool handle_pause(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_pause(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_toggle_pause(conn),
@@ -288,7 +288,7 @@ static bool handle_pause(mc_Client *self, struct mpd_connection *conn, const cha
 
 ///////////////////
 
-static bool handle_play(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_play(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_play(conn),
@@ -371,7 +371,7 @@ static bool handle_playlist_move(mc_Client *self, struct mpd_connection *conn, c
 
 ///////////////////
 
-static bool handle_previous(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_previous(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_previous(conn),
@@ -596,7 +596,7 @@ static bool handle_setvol(mc_Client *self, struct mpd_connection *conn, const ch
 
 ///////////////////
 
-static bool handle_queue_shuffle(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_queue_shuffle(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_shuffle(conn),
@@ -620,7 +620,7 @@ static bool handle_single(mc_Client *self, struct mpd_connection *conn, const ch
 
 ///////////////////
 
-static bool handle_stop(mc_Client *self, struct mpd_connection *conn, const char **argv)
+static bool handle_stop(mc_Client *self, struct mpd_connection *conn, G_GNUC_UNUSED const char **argv)
 {
     COMMAND(
         mpd_run_stop(conn),
@@ -866,8 +866,8 @@ static char mc_client_command_list_is_start_or_end(const char *command)
 ///////////////////
 
 static void * mc_client_command_dispatcher(
-        struct mc_JobManager *jm,
-        volatile bool *cancel,
+        G_GNUC_UNUSED struct mc_JobManager *jm,
+        G_GNUC_UNUSED volatile bool *cancel,
         void *user_data,
         void *job_data) 
 {

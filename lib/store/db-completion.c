@@ -123,7 +123,11 @@ static void mc_store_cmpl_clear(mc_StoreCompletion *self)
 
 ////////////////////////////////////////////
 
-static void mc_store_cmpl_client_event(mc_Client *client, enum mpd_idle event, void *user_data)
+static void mc_store_cmpl_client_event(
+    G_GNUC_UNUSED  mc_Client *client,
+    G_GNUC_UNUSED enum mpd_idle event,
+    void *user_data
+)
 {
     mc_StoreCompletion *self = user_data;
     mc_store_cmpl_clear(self);

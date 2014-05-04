@@ -248,7 +248,7 @@ for pkg in DEPS.keys():
 
 
 if 'CC' in os.environ:
-    conf.env.Replace(CXX=os.environ['CC'])
+    conf.env.Replace(CC=os.environ['CC'])
     print(">> Using compiler " + os.environ['CC'])
 
 
@@ -264,7 +264,7 @@ if 'LDFLAGS' in os.environ:
 
 # Needed/Adviceable flags:
 conf.env.Append(CCFLAGS=[
-    '-std=c99', '-pipe', '-fPIC', '-g', '-O1', '-lto'
+    '-std=c11', '-pipe', '-fPIC', '-g', '-O1', '-lto'
 ])
 
 # Optional flags:

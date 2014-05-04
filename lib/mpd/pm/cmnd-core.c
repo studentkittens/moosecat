@@ -2,7 +2,6 @@
 #include "common.h"
 #include "../../util/gasyncqueue-watch.h"
 #include "../../util/sleep-grained.h"
-#include "../../compiler.h"
 #include "../protocol.h"
 #include "../signal-helper.h"
 
@@ -133,7 +132,7 @@ static void cmnder_set_run_listener(mc_CmndClient * self, GThread *thread, volat
 
 ///////////////////
 
-static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
+static gpointer cmnder_listener_thread(gpointer data)
 {
     mc_CmndClient *self = child(data);
     enum mpd_idle events = 0;
@@ -186,7 +185,7 @@ static mc_cc_hot gpointer cmnder_listener_thread(gpointer data)
 
 static void cmnder_create_glib_adapter(
     mc_CmndClient *self,
-    GMainContext *context)
+    G_GNUC_UNUSED GMainContext *context)
 {
     if (self->listener_thread == NULL) {
         self->listener_thread = g_thread_new("listener", cmnder_listener_thread, self);

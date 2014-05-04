@@ -118,7 +118,7 @@ void mc_shelper_report_error_printf(
 
 void mc_shelper_report_progress(
     struct mc_Client *self,
-    bool print_newline,
+    G_GNUC_UNUSED bool print_newline,
     const char *format, ...)
 {
     char *full_string = NULL;

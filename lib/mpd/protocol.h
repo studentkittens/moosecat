@@ -5,9 +5,6 @@
 /* Signal System */
 #include "signal.h"
 
-/* Compiler macros */
-#include "../compiler.h"
-
 /* Job Dispatcher */
 #include "../util/job-manager.h"
 
@@ -143,7 +140,7 @@ typedef struct mc_Client {
  *
  * @return a newly allocated mc_Client, free with mc_free()
  */
-mc_cc_malloc mc_Client *mc_create(mc_PmType pm);
+mc_Client *mc_create(mc_PmType pm);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.

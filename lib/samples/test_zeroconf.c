@@ -40,7 +40,7 @@ static void zeroconf_callback(struct mc_ZeroconfBrowser * self, void * user_data
 }
 
 
-int main(int argc, char const *argv[])
+int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const *argv[])
 {
     struct mc_ZeroconfBrowser * browser = mc_zeroconf_new(NULL);
     if(browser != NULL) {

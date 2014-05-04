@@ -1,7 +1,6 @@
 #include "../api.h"
 #include "../util/job-manager.h"
 
-
 static void send_some_commands(mc_Client *client)
 {
     for(int i = 0; i < 100; ++i) {
@@ -10,7 +9,11 @@ static void send_some_commands(mc_Client *client)
     }
 }
 
-static void * execute(struct mc_JobManager *jm, volatile bool *cancel, void *user_data, void *job_data)
+static void * execute(
+    G_GNUC_UNUSED struct mc_JobManager *jm,
+    G_GNUC_UNUSED volatile bool *cancel,
+    void *user_data,
+    G_GNUC_UNUSED void *job_data)
 {
     mc_Client *client = user_data;
     mc_signal_dispatch(client, "logging", client, "test123", MC_LOG_ERROR, FALSE);
@@ -18,12 +21,19 @@ static void * execute(struct mc_JobManager *jm, volatile bool *cancel, void *use
     return NULL;
 }
 
-static void event_cb(mc_Client *client, enum mpd_idle events, gpointer user_data)
+static void event_cb(
+    G_GNUC_UNUSED mc_Client *client,
+    enum mpd_idle events,
+    G_GNUC_UNUSED gpointer user_data)
 {
     g_printerr("Client Event = %u\n", events);
 }
 
-static void logging_cb(mc_Client *client, const char *message, mc_LogLevel level, gpointer user_data)
+static void logging_cb(
+    G_GNUC_UNUSED mc_Client *client,
+    const char *message,
+    G_GNUC_UNUSED mc_LogLevel level,
+    G_GNUC_UNUSED gpointer user_data)
 {
     g_printerr("Logging: %s on %p\n", message, g_thread_self());
 }

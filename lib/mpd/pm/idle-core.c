@@ -67,7 +67,10 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
 
 ///////////////////////////////////////////
 
-static void idler_report_error(mc_IdleClient *self, enum mpd_error error, const char *error_msg)
+static void idler_report_error(
+    mc_IdleClient *self,
+    G_GNUC_UNUSED enum mpd_error error,
+    const char *error_msg)
 {
     g_assert(self);
     self->is_in_idle_mode = FALSE;

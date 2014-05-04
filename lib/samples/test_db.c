@@ -7,7 +7,11 @@
 
 ///////////////////////////////
 
-static void print_logging(mc_Client *self, const char * message, mc_LogLevel level, gpointer user_data)
+static void print_logging(
+    G_GNUC_UNUSED mc_Client *self,
+    const char * message,
+    mc_LogLevel level,
+    G_GNUC_UNUSED gpointer user_data)
 {
     g_printerr("Logging(%d): %s\n", level, message);
 }
@@ -21,7 +25,11 @@ static void print_event(mc_Client *self, enum mpd_idle event, void *user_data)
 
 ///////////////////////////////
 
-static void print_connectivity(mc_Client *self, bool server_changed, bool was_connected, void *user_data)
+static void print_connectivity(
+    mc_Client *self,
+    bool server_changed,
+    bool was_connected,
+    G_GNUC_UNUSED void *user_data)
 {
     g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
             server_changed, was_connected, mc_is_connected(self)

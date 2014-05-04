@@ -5,7 +5,6 @@
 #include <mpd/client.h>
 
 #include "signal.h"
-#include "../compiler.h"
 
 /* Only prototype needed */
 struct mc_Client;
@@ -73,7 +72,7 @@ void mc_shelper_report_error_printf(
  * @param format a printf format
  * @param ... varargs as with printf
  */
-mc_cc_printf(3,4) void mc_shelper_report_progress(
+void mc_shelper_report_progress(
     struct mc_Client *self,
     bool print_newline,
     const char *format,
