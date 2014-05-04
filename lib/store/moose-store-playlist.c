@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "stack.h"
+#include "moose-store-playlist.h"
 
 ///////////////////////////////
 

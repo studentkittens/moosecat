@@ -4,7 +4,7 @@
 #include <sqlite3.h>
 #include <glib.h>
 
-#include "stack.h"
+#include "moose-store-playlist.h"
 #include "db-settings.h"
 
 #include "../mpd/protocol.h"

@@ -305,7 +305,7 @@ cdef extern from "../../lib/mpd/client.h":
 #                                Database                                 #
 ###########################################################################
 
-cdef extern from "../../lib/store/stack.h":
+cdef extern from "../../lib/store/moose-store-playlist.h":
     ctypedef struct MoosePlaylist:
         pass
 
