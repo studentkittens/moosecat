@@ -9,7 +9,13 @@ class DatabasePlaylistWidget(PlaylistWidget):
     'The content of a Notebook Tab, implementing a custom search for Playlists'
     def __init__(self):
         PlaylistWidget.__init__(self, col_names=(
-            '<pixbuf>:', 'Track', 'Artist', 'Album', 'Title', 'Date', 'Genre'
+            ('<pixbuf>:', 20, 0),
+            ('Track', 25, 0),
+            ('Artist', 100, 0),
+            ('Album', 150, 0),
+            ('Title', 200, 0),
+            ('Date', 70, 0),
+            ('Genre', 150, 0)
         ))
         self._create_menu()
 
