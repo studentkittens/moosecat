@@ -89,7 +89,7 @@ long mc_store_playlist_load(mc_Store *self, const char *playlist_name);
  *
  * @return a job id
  */
-long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause);
+long mc_store_playlist_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *playlist_name, const char *match_clause);
 
 /**
  * @brief List a directory in MPD's database.
@@ -101,7 +101,7 @@ long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const ch
  *
  * @return a job id
  */
-long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth);
+long mc_store_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth);
 
 /**
  * @brief return a stack of the loaded playlists. Not the actually ones there.
@@ -111,7 +111,7 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *d
  *
  * @return a job id
  */
-long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
+long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Playlist *stack);
 
 /**
  * @brief Returns a stack with mpd_playlists of all KNOWN playlists (not loaded)
@@ -124,7 +124,7 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack);
  *
  * @return a job id
  */
-long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack);
+long mc_store_playlist_get_all_known(mc_Store *self, mc_Playlist *stack);
 
 /**
  * @brief search the Queue or the whole Database.
@@ -140,7 +140,7 @@ long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack);
  *
  * Example:
  *
- *      mc_Stack * stack = mc_stack_create(50, NULL);
+ *      mc_Playlist * stack = mc_stack_create(50, NULL);
  *      int job_id = mc_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
  *      // You can other things than waiting here.
  *      mc_store_wait_for_job(store, job_id);
@@ -153,7 +153,7 @@ long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack);
  *
  * @return a Job id
  */
-long mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len);
+long mc_store_search_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Playlist *stack, int limit_len);
 
 /**
  * @brief Wait for the store to finish it's current operation.
@@ -186,9 +186,9 @@ void mc_store_wait_for_job(mc_Store *self, int job_id);
  * @param self the store to operate on.
  * @param job_id the job id obtained from one of the above functions.
  *
- * @return a mc_Stack containing the results you wanted.
+ * @return a mc_Playlist containing the results you wanted.
  */
-mc_Stack *mc_store_get_result(mc_Store *self, int job_id);
+mc_Playlist *mc_store_get_result(mc_Store *self, int job_id);
 
 
 /**
@@ -199,7 +199,7 @@ mc_Stack *mc_store_get_result(mc_Store *self, int job_id);
  *
  * @return same as mc_store_get_result
  */
-mc_Stack *mc_store_gw(mc_Store *self, int job_id);
+mc_Playlist *mc_store_gw(mc_Store *self, int job_id);
 
 
 /**

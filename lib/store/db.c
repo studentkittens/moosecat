@@ -30,7 +30,7 @@ typedef struct {
     bool queue_only;
     int length_limit;
     int dir_depth;
-    mc_Stack *out_stack;
+    mc_Playlist *out_stack;
     unsigned needle_song_id;
 } mc_JobData;
 
@@ -169,12 +169,12 @@ static char *mc_store_construct_full_dbpath(mc_Store *self, const char *director
  *
  * @return a Stack with one element containg one song or NULL.
  */
-mc_Stack * mc_store_find_song_by_id_impl(mc_Store *self, unsigned needle_song_id) { 
+mc_Playlist * mc_store_find_song_by_id_impl(mc_Store *self, unsigned needle_song_id) { 
     unsigned length = mc_stack_length(self->stack);
     for(unsigned i = 0; i < length; ++i) {
         struct mpd_song * song = mc_stack_at(self->stack, i);
         if(song != NULL && mpd_song_get_id(song) == needle_song_id) {
-            mc_Stack * stack = mc_stack_create(1, NULL);
+            mc_Playlist * stack = mc_stack_create(1, NULL);
             if(stack != NULL) {
                 /* return a stack with one element
                  * (because that's what the interfaces wants :/)
@@ -772,7 +772,7 @@ long mc_store_playlist_load(mc_Store *self, const char *playlist_name)
 
 //////////////////////////////
 
-long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const char *playlist_name, const char *match_clause)
+long mc_store_playlist_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *playlist_name, const char *match_clause)
 {
     g_assert(self);
     g_assert(stack);
@@ -790,7 +790,7 @@ long mc_store_playlist_select_to_stack(mc_Store *self, mc_Stack *stack, const ch
 
 //////////////////////////////
 
-long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
+long mc_store_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth)
 { 
     g_assert(self);
     g_assert(stack);
@@ -806,7 +806,7 @@ long mc_store_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *d
 
 //////////////////////////////
 
-long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
+long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Playlist *stack)
 {
     g_assert(self);
     g_assert(stack);
@@ -820,7 +820,7 @@ long mc_store_playlist_get_all_loaded(mc_Store *self, mc_Stack *stack)
 
 //////////////////////////////
 
-long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack)
+long mc_store_playlist_get_all_known(mc_Store *self, mc_Playlist *stack)
 {
     g_assert(self);
     g_assert(stack);
@@ -836,7 +836,7 @@ long mc_store_playlist_get_all_known(mc_Store *self, mc_Stack *stack)
 
 long mc_store_search_to_stack(
         mc_Store *self, const char *match_clause,
-        bool queue_only, mc_Stack *stack, int limit_len
+        bool queue_only, mc_Playlist *stack, int limit_len
     )
 {
     mc_JobData * data = g_new0(mc_JobData, 1);
@@ -866,14 +866,14 @@ void mc_store_wait_for_job(mc_Store *self, int job_id)
 
 //////////////////////////////
 
-mc_Stack *mc_store_get_result(mc_Store *self, int job_id)
+mc_Playlist *mc_store_get_result(mc_Store *self, int job_id)
 {
     return mc_jm_get_result(self->jm, job_id);
 }
 
 //////////////////////////////
 
-mc_Stack *mc_store_gw(mc_Store *self, int job_id)
+mc_Playlist *mc_store_gw(mc_Store *self, int job_id)
 {
     mc_store_wait_for_job(self, job_id);
     return mc_store_get_result(self, job_id);
@@ -900,7 +900,7 @@ struct mpd_song * mc_store_find_song_by_id(mc_Store * self, unsigned needle_song
 
     unsigned job_id = mc_jm_send(self->jm, mc_JobPrios[MC_OPER_FIND_SONG_BY_ID], data);
     mc_store_wait_for_job(self, job_id);
-    mc_Stack * stack = mc_store_get_result(self, job_id);
+    mc_Playlist * stack = mc_store_get_result(self, job_id);
     if(stack != NULL && mc_stack_length(stack) > 0) {
         struct mpd_song * song = mc_stack_at(stack, 0);
         return song;

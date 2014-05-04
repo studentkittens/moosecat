@@ -306,16 +306,16 @@ cdef extern from "../../lib/mpd/client.h":
 ###########################################################################
 
 cdef extern from "../../lib/store/stack.h":
-    ctypedef struct mc_Stack:
+    ctypedef struct mc_Playlist:
         pass
 
-    mc_Stack * mc_stack_create (long, void *)
-    void mc_stack_append (mc_Stack *, void *)
-    void mc_stack_free (mc_Stack *)
-    void mc_stack_clear (mc_Stack *)
-    unsigned mc_stack_length (mc_Stack *)
-    void mc_stack_sort (mc_Stack *, void *)
-    void * mc_stack_at(mc_Stack *, unsigned)
+    mc_Playlist * mc_stack_create (long, void *)
+    void mc_stack_append (mc_Playlist *, void *)
+    void mc_stack_free (mc_Playlist *)
+    void mc_stack_clear (mc_Playlist *)
+    unsigned mc_stack_length (mc_Playlist *)
+    void mc_stack_sort (mc_Playlist *, void *)
+    void * mc_stack_at(mc_Playlist *, unsigned)
 
 
 cdef extern from "../../lib/store/db-settings.h":
@@ -339,15 +339,15 @@ cdef extern from "../../lib/store/db.h":
     mpd_song *mc_store_song_at(mc_Store *, int)
     int mc_store_total_songs(mc_Store *)
     long mc_store_playlist_load(mc_Store *, const char *)
-    long mc_store_playlist_select_to_stack(mc_Store *, mc_Stack *, const char *, const char *)
-    long mc_store_dir_select_to_stack(mc_Store *, mc_Stack *, const char *, int)
-    long mc_store_playlist_get_all_loaded(mc_Store *, mc_Stack *)
-    long mc_store_playlist_get_all_known(mc_Store *, mc_Stack *)
-    long mc_store_search_to_stack(mc_Store *, const char *, bool, mc_Stack *, int)
+    long mc_store_playlist_select_to_stack(mc_Store *, mc_Playlist *, const char *, const char *)
+    long mc_store_dir_select_to_stack(mc_Store *, mc_Playlist *, const char *, int)
+    long mc_store_playlist_get_all_loaded(mc_Store *, mc_Playlist *)
+    long mc_store_playlist_get_all_known(mc_Store *, mc_Playlist *)
+    long mc_store_search_to_stack(mc_Store *, const char *, bool, mc_Playlist *, int)
     void mc_store_wait(mc_Store *) nogil
     void mc_store_wait_for_job(mc_Store *, int) nogil
-    mc_Stack *mc_store_get_result(mc_Store *, int)
-    mc_Stack *mc_store_gw(mc_Store *, int)
+    mc_Playlist *mc_store_get_result(mc_Store *, int)
+    mc_Playlist *mc_store_gw(mc_Store *, int)
     void mc_store_release(mc_Store *)
     mpd_song *mc_store_find_song_by_id(mc_Store *, unsigned)
     mc_StoreCompletion *mc_store_get_completion(mc_Store*)

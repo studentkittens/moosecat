@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     mc_Store *store = mc_store_create(client, NULL);
     mc_store_wait(store);
 
-    mc_Stack *songs = mc_stack_create(10000, NULL);
+    mc_Playlist *songs = mc_stack_create(10000, NULL);
     GTimer *pl_timer = g_timer_new();
 
     mc_store_playlist_load(store, argv[1]);

@@ -562,7 +562,7 @@ static gint mc_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstp
  *
  * This is more of a fun excercise, than a real speedup.
  */ 
-static struct mpd_song * mc_stprv_find_idx(mc_Stack * stack, struct mpd_song * key)
+static struct mpd_song * mc_stprv_find_idx(mc_Playlist * stack, struct mpd_song * key)
 {
     int l = 0;
     int r = mc_stack_length(stack) - 1;
@@ -604,13 +604,13 @@ static struct mpd_song * mc_stprv_find_idx(mc_Stack * stack, struct mpd_song * k
 
 ////////////////////////////////
 
-static mc_Stack * mc_stprv_build_queue_content(mc_Store *self, mc_Stack *to_filter)
+static mc_Playlist * mc_stprv_build_queue_content(mc_Store *self, mc_Playlist *to_filter)
 {
     g_assert(self);
 
     int error_id = SQLITE_OK;
     sqlite3_stmt *select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
-    mc_Stack *queue_songs = mc_stack_create(mc_stack_length(to_filter) / 2, NULL);
+    mc_Playlist *queue_songs = mc_stack_create(mc_stack_length(to_filter) / 2, NULL);
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int stack_idx = sqlite3_column_int(select_stmt, 0);
@@ -650,7 +650,7 @@ static mc_Stack * mc_stprv_build_queue_content(mc_Store *self, mc_Stack *to_filt
  *
  * Returns: number of actually found songs, or -1 on error.
  */
-int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Stack *stack, int limit_len)
+int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queue_only, mc_Playlist *stack, int limit_len)
 {
     int error_id = SQLITE_OK, pos_id = 1;
     limit_len = (limit_len < 0) ? INT_MAX : limit_len;
@@ -712,7 +712,7 @@ int mc_stprv_select_to_stack(mc_Store *self, const char *match_clause, bool queu
     /* sort by position in queue if queue_only is passed. */
     if (queue_only) {
         mc_stack_sort(stack, mc_stprv_select_impl_sort_func_by_stack_ptr);
-        mc_Stack * queue = mc_stprv_build_queue_content(self, stack);
+        mc_Playlist * queue = mc_stprv_build_queue_content(self, stack);
         mc_stack_clear(stack);
         for(unsigned i = 0; i < mc_stack_length(queue); ++i) {
             mc_stack_append(stack, mc_stack_at(queue, i));

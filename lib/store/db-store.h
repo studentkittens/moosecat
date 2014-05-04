@@ -21,7 +21,7 @@ typedef struct mc_Store {
     char *db_directory;
 
     /* songstack - a place for mpd_songs to live in */
-    mc_Stack *stack;
+    mc_Playlist *stack;
 
     /* handle to sqlite */
     sqlite3 *handle;
@@ -46,7 +46,7 @@ typedef struct mc_Store {
     /* Support for stored playlists */
     struct {
         /* A stack of mpd_playlists (all of them, loaded or not) */
-        mc_Stack *stack;
+        mc_Playlist *stack;
 
         /* Sql statements for stored playlists */
         sqlite3_stmt *select_tables_stmt;

@@ -56,7 +56,7 @@ bool mc_stprv_spl_load_by_playlist_name(mc_Store *store, const char *playlist_na
  *
  * @return Number of selected songs.
  */
-int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const char *playlist_name, const char *match_clause);
+int mc_stprv_spl_select_playlist(mc_Store *store, mc_Playlist *out_stack, const char *playlist_name, const char *match_clause);
 
 /**
  * @brief Select all loaded mpd_playlists object to a stack.
@@ -66,7 +66,7 @@ int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const cha
  *
  * @return Number of laoded playlists
  */
-int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack);
+int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Playlist *stack);
 
 /**
  * @brief Return a list of a all known mpd_playlists structs
@@ -76,7 +76,7 @@ int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack);
  *
  * @return number of appended playlisyts
  */
-int mc_stprv_spl_get_known_playlists(mc_Store *store, mc_Stack *stack);
+int mc_stprv_spl_get_known_playlists(mc_Store *store, mc_Playlist *stack);
 
 #endif /* end of include guard: MC_DB_STORED_PLAYLIST_HH */
 

@@ -46,7 +46,7 @@ static art_tree* mc_store_cmpl_create_index(mc_StoreCompletion *self, enum mpd_t
     g_assert(self);
     g_assert(tag < MPD_TAG_COUNT);
 
-    mc_Stack * copy = mc_stack_create(1000, NULL);
+    mc_Playlist * copy = mc_stack_create(1000, NULL);
     mc_store_gw(self->store,
         mc_store_search_to_stack(
             self->store, "*", FALSE, copy, -1

@@ -134,7 +134,7 @@ cdef class Store:
 
         :returns: a Playlist object with the requested songs. None if nothing found.
         '''
-        cdef c.mc_Stack * result = NULL
+        cdef c.mc_Playlist * result = NULL
         cdef int job_id = 0
 
         # Preallocation strategy
@@ -237,7 +237,7 @@ cdef class Store:
     cdef c.mpd_playlist * _stored_playlist_get_by_name(self, b_name):
         'Find a mpd_playlist by its name'
         cdef c.mpd_playlist * result = NULL
-        cdef c.mc_Stack * stack = c.mc_stack_create(10, NULL)
+        cdef c.mc_Playlist * stack = c.mc_stack_create(10, NULL)
 
         try:
             job_id = c.mc_store_playlist_get_all_loaded(self._p(), stack)
@@ -279,7 +279,7 @@ cdef class Store:
         :returns: a Playlist with the specified songs.
         '''
         # Create a buffer for the songs
-        cdef c.mc_Stack * stack = c.mc_stack_create(0, NULL)
+        cdef c.mc_Playlist * stack = c.mc_stack_create(0, NULL)
         cdef c.mpd_playlist * playlist = NULL
 
         if stack != NULL:
@@ -318,7 +318,7 @@ cdef class Store:
     #  Properties  #
     ################
 
-    cdef _make_playlist_names(self, c.mc_Stack * stack):
+    cdef _make_playlist_names(self, c.mc_Playlist * stack):
             cdef int i = 0
             cdef int length = c.mc_stack_length(stack)
 
@@ -343,7 +343,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.mc_Stack * pl_names = c.mc_stack_create(10, NULL)
+            cdef c.mc_Playlist * pl_names = c.mc_stack_create(10, NULL)
             job_id = c.mc_store_playlist_get_all_known(self._p(), pl_names)
             c.mc_store_wait_for_job(self._p(), job_id)
 
@@ -360,7 +360,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.mc_Stack * pl_names = c.mc_stack_create(10, NULL)
+            cdef c.mc_Playlist * pl_names = c.mc_stack_create(10, NULL)
             job_id = c.mc_store_playlist_get_all_loaded(self._p(), pl_names)
             c.mc_store_wait_for_job(self._p(), job_id)
 

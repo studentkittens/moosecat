@@ -538,14 +538,14 @@ static int mc_stprv_spl_bsearch_cmp(const void *key, const void *array)
 
 ///////////////////
 
-static int mc_stprv_spl_filter_id_list(mc_Store *store, GPtrArray *song_ptr_array, const char *match_clause, mc_Stack *out_stack)
+static int mc_stprv_spl_filter_id_list(mc_Store *store, GPtrArray *song_ptr_array, const char *match_clause, mc_Playlist *out_stack)
 {
     /* Roughly estimate the number of song pointer to expect */
     int preallocations = mc_stack_length(store->stack) /
                         (((match_clause) ? MAX(strlen(match_clause), 1) : 1) * 2);
 
     /* Temp. container to hold the query on the database */
-    mc_Stack *db_songs = mc_stack_create(preallocations, NULL);
+    mc_Playlist *db_songs = mc_stack_create(preallocations, NULL);
 
     if(mc_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
         for(size_t i = 0; i < mc_stack_length(db_songs); ++i) {
@@ -572,7 +572,7 @@ static int mc_stprv_spl_filter_id_list(mc_Store *store, GPtrArray *song_ptr_arra
 
 ///////////////////
 
-int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const char *playlist_name, const char *match_clause)
+int mc_stprv_spl_select_playlist(mc_Store *store, mc_Playlist *out_stack, const char *playlist_name, const char *match_clause)
 {
     g_assert(store);
     g_assert(playlist_name);
@@ -659,7 +659,7 @@ int mc_stprv_spl_select_playlist(mc_Store *store, mc_Stack *out_stack, const cha
 
 ///////////////////
 
-int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack)
+int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Playlist *stack)
 {
     g_assert(store);
     g_assert(stack);
@@ -697,7 +697,7 @@ int mc_stprv_spl_get_loaded_playlists(mc_Store *store, mc_Stack *stack)
 
 ///////////////////
 
-int mc_stprv_spl_get_known_playlists(mc_Store *store, mc_Stack *stack)
+int mc_stprv_spl_get_known_playlists(mc_Store *store, mc_Playlist *stack)
 {
     for(unsigned i = 0; i < mc_stack_length(store->spl.stack); ++i) { 
         mc_stack_append(stack, mc_stack_at(store->spl.stack, i));

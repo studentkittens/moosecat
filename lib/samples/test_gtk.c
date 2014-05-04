@@ -20,7 +20,7 @@ typedef struct {
     mc_Store *store;
     GtkTreeModel *model;
     GtkTreeView *view;
-    mc_Stack *song_buf;
+    mc_Playlist *song_buf;
     GTimer *profile_timer;
 } EntryTag;
 

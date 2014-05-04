@@ -100,7 +100,7 @@ void mc_stprv_dir_delete(mc_Store *self)
 
 //////////////////
 
-int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth)
+int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth)
 {
     g_assert(self);
     g_assert(stack);

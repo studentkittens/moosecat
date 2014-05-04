@@ -11,12 +11,12 @@ cdef class Playlist:
         * ``__getitem__`` - Get a song at a specific position.
         * ``__len__`` - get the length of the playlist with ``len()``
 
-    For those seeking implementation details: :class:`.Playlist` is a wrapper for ``mc_Stack``.
+    For those seeking implementation details: :class:`.Playlist` is a wrapper for ``mc_Playlist``.
     '''
-    cdef c.mc_Stack * _stack
+    cdef c.mc_Playlist * _stack
     cdef c.mc_Client * _client
 
-    cdef _init(self, c.mc_Stack * stack, c.mc_Client * client):
+    cdef _init(self, c.mc_Playlist * stack, c.mc_Client * client):
         self._stack = stack
         self._client = client
         return self
@@ -27,11 +27,11 @@ cdef class Playlist:
         else:
             raise ValueError('mc_Client pointer is null for this instance!')
 
-    cdef c.mc_Stack * _p(self) except NULL:
+    cdef c.mc_Playlist * _p(self) except NULL:
         if self._stack != NULL:
             return self._stack
         else:
-            raise ValueError('mc_Stack pointer is null for this instance!')
+            raise ValueError('mc_Playlist pointer is null for this instance!')
 
     def __iter__(self):
         def iterator():

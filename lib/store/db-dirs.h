@@ -26,7 +26,7 @@ void mc_stprv_dir_delete(mc_Store *self);
  *
  * @return number of matches
  */
-int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Stack *stack, const char *directory, int depth);
+int mc_stprv_dir_select_to_stack(mc_Store *self, mc_Playlist *stack, const char *directory, int depth);
 
 /**
  * @brief Compile all SQL statements

@@ -13,7 +13,7 @@
 typedef struct {
     GPtrArray *stack;
     GDestroyNotify free_func;
-} mc_Stack;
+} mc_Playlist;
 
 /**
  * @brief Create a new stack
@@ -23,7 +23,7 @@ typedef struct {
  *
  * @return a newly allocated stack
  */
-mc_Stack *mc_stack_create(long size_hint, GDestroyNotify free_func);
+mc_Playlist *mc_stack_create(long size_hint, GDestroyNotify free_func);
 
 /**
  * @brief Append a new element to the stack.
@@ -33,7 +33,7 @@ mc_Stack *mc_stack_create(long size_hint, GDestroyNotify free_func);
  * @param self the stack to operate on
  * @param ptr the addr to add
  */
-void mc_stack_append(mc_Stack *self, void *ptr);
+void mc_stack_append(mc_Playlist *self, void *ptr);
 
 /**
  * @brief Free the stack
@@ -43,7 +43,7 @@ void mc_stack_append(mc_Stack *self, void *ptr);
  *
  * @param self the stack to operate on
  */
-void mc_stack_free(mc_Stack *self);
+void mc_stack_free(mc_Playlist *self);
 
 /**
  * @brief Clear contents of stack totally.
@@ -52,7 +52,7 @@ void mc_stack_free(mc_Stack *self);
  *
  * @param self the stack to operate on
  */
-void mc_stack_clear(mc_Stack *self);
+void mc_stack_clear(mc_Playlist *self);
 
 /**
  * @brief Calculates the length of the stack
@@ -61,7 +61,7 @@ void mc_stack_clear(mc_Stack *self);
  *
  * @return the length from 0 - UINT_MAX
  */
-unsigned mc_stack_length(mc_Stack *self);
+unsigned mc_stack_length(mc_Playlist *self);
 
 /**
  * @brief Sort the stack.
@@ -69,7 +69,7 @@ unsigned mc_stack_length(mc_Stack *self);
  * @param self the stack to operate on.
  * @param func a GCompareFunc.
  */
-void mc_stack_sort(mc_Stack *self, GCompareFunc func);
+void mc_stack_sort(mc_Playlist *self, GCompareFunc func);
 
 /**
  * @brief Access elememts indexed.
@@ -81,7 +81,7 @@ void mc_stack_sort(mc_Stack *self, GCompareFunc func);
  *
  * @return a void* being at that place.
  */
-void *mc_stack_at(mc_Stack *self, unsigned at);
+void *mc_stack_at(mc_Playlist *self, unsigned at);
 
 
 /**
@@ -89,7 +89,7 @@ void *mc_stack_at(mc_Stack *self, unsigned at);
  *
  * @return A newly allocated, but identical stack.
  */
-mc_Stack * mc_stack_copy(mc_Stack *self);
+mc_Playlist * mc_stack_copy(mc_Playlist *self);
 
 #endif /* end of include guard: MC_STORE_STACK_H */
 

@@ -79,7 +79,7 @@ void mc_stprv_deserialize_songs(mc_Store *self);
  * @param self store to operate on
  * @param match_clause FTS match clause
  * @param queue_only limit search to queue?
- * @param stack an mc_Stack, ideally preallocated to the expected size.
+ * @param stack an mc_Playlist, ideally preallocated to the expected size.
  * @param limit_len Max songs to select, or -1 for no limit
  *
  * @return the number of selected songs.
@@ -88,7 +88,7 @@ int mc_stprv_select_to_stack(
     mc_Store *self,
     const char *match_clause,
     bool queue_only,
-    mc_Stack *stack,
+    mc_Playlist *stack,
     int limit_len);
 
 /**
