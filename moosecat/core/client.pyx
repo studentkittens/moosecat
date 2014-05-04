@@ -34,7 +34,7 @@ Used headers:
 
     lib/mpd/protocol.h
     lib/mpd/client.h
-    lib/store/db.h
+    lib/store/moose-store.h
 '''
 
 

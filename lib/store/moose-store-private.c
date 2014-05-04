@@ -1,6 +1,6 @@
-#include "db-private.h"
-#include "db-macros.h"
-#include "db-query-parser.h"
+#include "moose-store-private.h"
+#include "moose-store-macros.h"
+#include "moose-store-query-parser.h"
 
 #include "../mpd/signal-helper.h"
 #include "../mpd/update.h"

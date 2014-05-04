@@ -3,12 +3,12 @@
 #include "../mpd/update.h"
 #include "../util/gzip.h"
 
-#include "db-stored-playlists.h"
-#include "db-operations.h"
-#include "db-private.h"
-#include "db-macros.h"
-#include "db-dirs.h"
-#include "db.h"
+#include "moose-store-stored-playlists.h"
+#include "moose-store-operations.h"
+#include "moose-store-private.h"
+#include "moose-store-macros.h"
+#include "moose-store-dirs.h"
+#include "moose-store.h"
 
 /* g_unlink() */
 #include <glib/gstdio.h>

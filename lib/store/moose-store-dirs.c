@@ -1,6 +1,6 @@
-#include "db-private.h"
-#include "db-dirs.h"
-#include "db-macros.h"
+#include "moose-store-private.h"
+#include "moose-store-dirs.h"
+#include "moose-store-macros.h"
 
 #include "../mpd/signal-helper.h"
 #include "../util/paths.h"

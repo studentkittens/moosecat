@@ -1,7 +1,7 @@
-#include "db-store.h"
-#include "db-dirs.h"
-#include "db-macros.h"
-#include "db-private.h"
+#include "moose-store-store.h"
+#include "moose-store-dirs.h"
+#include "moose-store-macros.h"
+#include "moose-store-private.h"
 
 #include "../mpd/client.h"
 #include "../mpd/signal-helper.h"

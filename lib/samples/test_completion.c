@@ -1,6 +1,6 @@
 #include "../mpd/protocol.h"
-#include "../store/db.h"
-#include "../store/db-completion.h"
+#include "../store/moose-store.h"
+#include "../store/moose-store-completion.h"
 #include "../misc/posix-signal.h"
 
 #include <string.h>

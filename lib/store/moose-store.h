@@ -1,8 +1,8 @@
 #ifndef DB_GUARD_H
 #define DB_GUARD_H
 
-#include "db-store.h"
-#include "db-completion.h"
+#include "moose-store-store.h"
+#include "moose-store-completion.h"
 
 /*
  * API to serialize songs into

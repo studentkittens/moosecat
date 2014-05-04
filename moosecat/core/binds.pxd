@@ -318,7 +318,7 @@ cdef extern from "../../lib/store/moose-store-playlist.h":
     void * moose_stack_at(MoosePlaylist *, unsigned)
 
 
-cdef extern from "../../lib/store/db-settings.h":
+cdef extern from "../../lib/store/moose-store-settings.h":
     ctypedef struct MooseStoreSettings:
         bool use_memory_db
         bool use_compression
@@ -330,7 +330,7 @@ cdef extern from "../../lib/store/db-settings.h":
     void moose_store_settings_set_db_directory(MooseStoreSettings *, const char *)
 
 
-cdef extern from "../../lib/store/db.h":
+cdef extern from "../../lib/store/moose-store.h":
     ctypedef struct MooseStore:
         pass
 
@@ -352,7 +352,7 @@ cdef extern from "../../lib/store/db.h":
     mpd_song *moose_store_find_song_by_id(MooseStore *, unsigned)
     MooseStoreCompletion *moose_store_get_completion(MooseStore*)
 
-cdef extern from "../../lib/store/db-query-parser.h":
+cdef extern from "../../lib/store/moose-store-query-parser.h":
     ctypedef struct MooseStoreCompletion:
         pass
 
@@ -360,7 +360,7 @@ cdef extern from "../../lib/store/db-query-parser.h":
     void moose_store_cmpl_free(MooseStoreCompletion *)
     char * moose_store_cmpl_lookup(MooseStoreCompletion *, mpd_tag_type, char *)
 
-cdef extern from "../../lib/store/db-query-parser.h":
+cdef extern from "../../lib/store/moose-store-query-parser.h":
     char *moose_store_qp_parse(char *, char **, int *)
     char *moose_store_qp_tag_abbrev_to_full(char *, size_t)
     bool moose_store_qp_is_valid_tag(char *, size_t)

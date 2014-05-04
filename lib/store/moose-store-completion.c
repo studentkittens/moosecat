@@ -3,9 +3,9 @@
 #include <string.h>
 
 /* Internal */
-#include "db.h"
-#include "db-private.h"
-#include "db-completion.h"
+#include "moose-store.h"
+#include "moose-store-private.h"
+#include "moose-store-completion.h"
 
 /* Internal, but not mine */
 #include "libart/art.h"

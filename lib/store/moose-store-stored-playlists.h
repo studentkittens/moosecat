@@ -1,7 +1,7 @@
 #ifndef MC_DB_STORED_PLAYLIST_HH
 #define MC_DB_STORED_PLAYLIST_HH
 
-#include "db-store.h"
+#include "moose-store-store.h"
 
 /**
  * @brief Init self->spl.*

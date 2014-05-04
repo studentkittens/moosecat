@@ -1,5 +1,5 @@
 #include <glib.h>
-#include "db-settings.h"
+#include "moose-store-settings.h"
 
 MooseStoreSettings *moose_store_settings_new(void)
 {

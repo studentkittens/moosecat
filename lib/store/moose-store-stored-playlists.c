@@ -41,9 +41,9 @@
 
 ///////////////////
 
-#include "db-private.h"
-#include "db-stored-playlists.h"
-#include "db-macros.h"
+#include "moose-store-private.h"
+#include "moose-store-stored-playlists.h"
+#include "moose-store-macros.h"
 
 #include "../mpd/client.h"
 #include "../mpd/signal-helper.h"

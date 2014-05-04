@@ -5,7 +5,7 @@
 #include <glib.h>
 
 #include "moose-store-playlist.h"
-#include "db-settings.h"
+#include "moose-store-settings.h"
 
 #include "../mpd/protocol.h"
 

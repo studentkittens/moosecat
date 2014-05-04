@@ -1,5 +1,5 @@
 #include "../mpd/protocol.h"
-#include "../store/db.h"
+#include "../store/moose-store.h"
 #include "../misc/posix-signal.h"
 
 #include <string.h>

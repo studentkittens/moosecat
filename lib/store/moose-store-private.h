@@ -1,7 +1,7 @@
 #ifndef MC_DB_PRIVATE_H
 #define MC_DB_PRIVATE_H
 
-#include "db-store.h"
+#include "moose-store-store.h"
 
 /**
  * @brief Open a :memory: db
