@@ -2,13 +2,14 @@
 # encoding: utf-8
 
 import os
+import re
 import sys
+import shutil
 import codecs
 import subprocess
 
 import urllib
 import traceback
-import shutil
 import zipfile
 import glob
 
@@ -132,6 +133,7 @@ def FindLibmoosecatSource():
     c_files += Glob('lib/misc/*.c')
     c_files += Glob('lib/util/*.c')
     c_files += Glob('lib/store/*.c')
+    c_files += Glob('lib/gtk/*.c')
     c_files += Glob('lib/store/libart/*.c')
     c_files += ['ext/sqlite/sqlite3.c']
     return c_files
@@ -267,7 +269,7 @@ conf.env.Append(CCFLAGS=[
 
 # Optional flags:
 conf.env.Append(CFLAGS=[
-    '-Wall', '-W', '-Wno-unused-parameter', '-Wno-unused-value'
+    '-Wall', '-W'
 ])
 
 # Sqlite Flags (needed):
@@ -303,10 +305,31 @@ for node in Glob('lib/samples/test_*.c'):
 # Method that calls routines neccessary to create shared library.
 def cythonPseudoBuilder(env, source):
     c_code = env.CythonBuilder(source)
-    env.SharedLibrary(
+
+    # Hack: Find out the python version:
+    py_version = '34m'
+    for entry in env['CPPPATH']:
+        match = re.match('.*python(\d\.\d.*)', entry)
+        if match:
+            py_version = match.group(1).replace('.', '')
+            break
+
+    cython_lib = env.SharedLibrary(
         source, c_code,
         LIBS=env['LIBS'] + [lib, 'm', 'dl'],
         LIBPATH='.'
+    )
+
+    # This is currently Unix-specific.
+    py_extension_file = '{name}.cpython-{version}.so'.format(
+        name=os.path.basename(source),
+        version=py_version
+    )
+    py_extension_file = os.path.join(os.path.dirname(source), py_extension_file)
+    Command(
+        target=py_extension_file,
+        source=cython_lib[0],
+        action=Move("$TARGET", "$SOURCE")
     )
 
 env.AddMethod(cythonPseudoBuilder, 'Cython')
