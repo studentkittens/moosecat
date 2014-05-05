@@ -30,4 +30,4 @@ core
 # Scons
 .sconf_temp
 .sconstemp
-test_*
+test-*

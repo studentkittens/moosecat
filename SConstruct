@@ -293,7 +293,7 @@ env.AlwaysBuild(
 lib = env.StaticLibrary('moosecat', FindLibmoosecatSource())
 
 
-for node in Glob('lib/samples/test_*.c'):
+for node in Glob('lib/samples/test-*.c'):
     name = str(node).split('/')[-1]
     if name.endswith('.c'):
         name = name[:-2]
