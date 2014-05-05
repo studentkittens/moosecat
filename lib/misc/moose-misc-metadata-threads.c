@@ -2,7 +2,7 @@
 #include "moose-misc-metadata-threads.h"
 
 /* moose_async_queue_watch_new */
-#include "../util/gasyncqueue-watch.h"
+#include "../util/moose-util-gasyncqueue-watch.h"
 
 ////////////////////////
 // INTERNAL CALLBACKS //

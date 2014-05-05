@@ -3,7 +3,7 @@
 #include "moose-store-macros.h"
 
 #include "../mpd/moose-mpd-signal-helper.h"
-#include "../util/paths.h"
+#include "../util/moose-util-paths.h"
 
 #include <glib.h>
 #include <string.h>

@@ -4,7 +4,7 @@
 
 #include "../mpd/moose-mpd-signal-helper.h"
 #include "../mpd/moose-mpd-update.h"
-#include "../util/paths.h"
+#include "../util/moose-util-paths.h"
 
 /* strlen() */
 #include <string.h>

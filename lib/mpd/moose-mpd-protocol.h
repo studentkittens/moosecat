@@ -6,7 +6,7 @@
 #include "moose-mpd-signal.h"
 
 /* Job Dispatcher */
-#include "../util/job-manager.h"
+#include "../util/moose-util-job-manager.h"
 
 #ifndef PROTOCOL_H
 #define PROTOCOL_H

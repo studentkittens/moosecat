@@ -13,7 +13,7 @@
  *    - misc changes on the API
  */
 
-#include "gasyncqueue-watch.h"
+#include "moose-util-gasyncqueue-watch.h"
 
 /**
  * @brief: GSource for watching a GAsyncQueue in the main loop

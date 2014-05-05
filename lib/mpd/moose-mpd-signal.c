@@ -1,7 +1,7 @@
 #include "moose-mpd-signal.h"
 #include "moose-mpd-protocol.h"
 
-#include "../util/gasyncqueue-watch.h"
+#include "../util/moose-util-gasyncqueue-watch.h"
 
 // memset
 #include <string.h>

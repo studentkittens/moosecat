@@ -1,4 +1,4 @@
-#include "sleep-grained.h"
+#include "moose-util-sleep-grained.h"
 
 void moose_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *check)
 {

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "gzip.h"
+#include "moose-util-gzip.h"
 
 #define CHUNK 16384
 

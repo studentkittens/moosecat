@@ -1,5 +1,5 @@
 #include "../api.h"
-#include "../util/job-manager.h"
+#include "../util/moose-util-job-manager.h"
 
 static void send_some_commands(MooseClient *client)
 {

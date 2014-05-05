@@ -1,7 +1,7 @@
 #include "moose-mpd-cmnd-core.h"
 #include "moose-mpd-common.h"
-#include "../../util/gasyncqueue-watch.h"
-#include "../../util/sleep-grained.h"
+#include "../../util/moose-util-gasyncqueue-watch.h"
+#include "../../util/moose-util-sleep-grained.h"
 #include "../moose-mpd-protocol.h"
 #include "../moose-mpd-signal-helper.h"
 

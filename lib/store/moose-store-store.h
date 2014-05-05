@@ -9,7 +9,7 @@
 
 #include "../mpd/moose-mpd-protocol.h"
 
-#include "../util/job-manager.h"
+#include "../util/moose-util-job-manager.h"
 
 
 /* Prototype MooseStoreCompletion to prevent circle-include. */
