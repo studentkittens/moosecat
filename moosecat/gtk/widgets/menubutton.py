@@ -29,7 +29,7 @@ class MenuButton(Gtk.MenuButton):
         self.set_direction(Gtk.ArrowType.DOWN)
         self.set_popup(menu)
         self.set_image(
-            Gtk.Image.new_from_icon_name('gtk-execute', Gtk.IconSize.MENU)
+            Gtk.Image.new_from_icon_name('emblem-system-symbolic', Gtk.IconSize.MENU)
         )
 
 

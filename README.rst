@@ -2,112 +2,59 @@
 MOOSECAT
 ========
 
-It's moosetastic_!
-
-
-.. figure:: https://raw.github.com/studentkittens/moosecat/master/gfx/mockup3.png
-   :scale: 25%
+.. figure:: https://raw.github.com/studentkittens/moosecat/master/screenshot.png
+   :scale: 30%
    :align: center
    
-   This is a mockup. Don't panic.
+   A Work-In-Progress Screenshot.
 
-#################################
-OH WOW, *ANOTHER* musicpd CLIENT?
-#################################
 
-There are only 240 (`I counted them`_) clients out there.
-So here's our little contribution to get up to 256 clients.
+~~~~~~~~~~~~~~~~~~~~~~~~
+*Another* MusicPD client?
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-FEATURES/GOALS
-~~~~~~~~~~~~~~
+There are only 240 (`I counted them`_) clients out there. So what? Not even a
+byte full. Sorry for the bad pun.
 
-Since moosecat is a full featured client, we only list the special features, 
-that only a few other clients have. 
+.. warning::
 
-* **Database Caching.**
-  
-    **Fast** and intellgigent searching.
-
-    A SQLite cache is built on startup, and is used instead of musicpd's internal
-    search commands. On the next startup it is loaded from disk which is a lot
-    faster if the server is on a remote machine. \*
-
-    To get most out of SQLite the built-in `FullTextSearch` Extension is used,
-    which does quite some indexing, but delivers awesome performance.
-
-    \* A Raspberry Pi in our case.
-
-* **Playlist Manipulation in the style of** `mpdc`_.
-
-    It is not exactly sure yet how this will be implemented, but 
-    it should not be a large problem 
-
-    (This is a TODO Point in design)
-
-* **Good on Ressouces: Performance-critical stuff is written in C.**
-
-    Even while the database sounds like poor memory usage, it is quite
-    efficient! Only ~11MB is used for the database, which can be stored
-    in memory or on disk - as the user likes. When moosecat shuts down, 
-    it is also able to compress the database to ~2MB.
-
-    Since a database is used the amount of network traffic is also significantly 
-    lowered in normal usage. (On startup is a lot more of course ☻)
-
-* **Plugins!**
-
-    Moosecat sports an awesome Tag-based Plugin System, that is easy to use and understand.
-    Every extended feature can be enabled or disabled as the user likes.
-
-    External Plugins are possible via Python Eggs.
-
-* **GUI-Agnostic.**
-
-    All musicpd related code and all plugins are located in the core. 
-    The core itself is partly written in C (*libmoosecat*) and partly
-    in Cython. A PyGtk-GUI or an Ncurses-UI might be written relatively
-    easy and share a lot code with each else.
-
-* **Strong Emphasis on Tests**
-
-    The current goal is to develop a *mpc* client as first milestone, which
-    is very well tested by automated unittests. 
-
-    We even have a FakeMusicpd Server that is used to provide a clean counterpart
-    for the client. It can also be used to startup moosecat without a proper server 
-    anywhere.
-
-* **Strong Metadata Support**
-
-    We do not mean Tagging here.
-
-    We mean: Coverart, Lyrics, Artistbiographies, Related Links, Album reviews,
-    Artistphotos and other stuff. 
-
-    All served by `liblgyr`. (via `plyr`)
-
+    It's not released and in a very flaky developement state currently.
+    But most of the stuff works. No documentation yet, though.
 
 -------
 
-~~~~~~~~~~~~~~~~
-NOTES FOR MYSELF
-~~~~~~~~~~~~~~~~
+~~~~~~~~
+FEATURES
+~~~~~~~~
+
+It's a full-fledged client, so here are the differences to other clients of this
+class:
+
+- `Auto Completion`_.
+- `Fast Playlist Filtering`_.
+- Intelligent Playlists via `libmunin`_ (coming soon).
+- Metadata-Retrieval via `libglyr`_.
+- A Powerful Query Syntax.
+- GObject-based, written in C and Python.
+- Zeroconf-Support.
+- Uses a SQLite-cache for faster startup.
+- Aims to have nice and extendable code.
+- Gtk+-3.0 UI (in work) and ncurses interface (coming someday).
+
+-------
+
+~~~~~~~~~~~~
+DEPENDENCIES
+~~~~~~~~~~~~
 
 C-Side-Stuff::
 
-    sudo pacman -S libmpdclient glib
+    sudo pacman -S libmpdclient avahi gtk3 python-gobject scons zlib
 
 Python-Stuff::
 
-    sudo pacman -S python-yaml cython
+    sudo pacman -S python-yaml cython 
     sudo pip install
-
-~~~~~~~~~~~~~~
-DOCUMENTATION
-~~~~~~~~~~~~~~
-
-The source is well annotated, but there's no user documentation yet.
-Come back when it's done.
 
 -------
 
@@ -120,7 +67,7 @@ CONTRIBUTING
 3. Commit your changes. (``git commit -am "Fixed it all."``)
 4. Check if your commit message is good. (If not: ``git commit --amend``)
 5. Push to the branch (``git push origin my_markup``)
-6. Open a `Pull Request`.
+6. Open a `Pull Request`_.
 7. Enjoy a refreshing ClubMate and wait.
 
 -------
@@ -131,16 +78,15 @@ AUTHORS
 
 Here's a list of people to blame:
 
-===================================  ==========================  ========================================
+===================================  ==========================  ===========================================
 *Christopher* **<sahib>** *Pahl*     https://github.com/sahib    He started it all. He also breaks it all
-*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Pluginsystem
+*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Pluginsystem, Metadata Chooser
 *Christoph* **<kitteh>** *Piechula*  https://github.com/qitta    Moral boosts, Ideas for Pluginsystem 
-===================================  ==========================  ========================================
+===================================  ==========================  ===========================================
 
-.. _moosetastic: http://www.urbandictionary.com/define.php?term=moosetastic
-.. _`I counted them`: http://mpd.wikia.com/wiki/Clients
-.. _mpdc: http://nhrx.org/mpdc/
-.. _FullTextSearch: http://www.sqlite.org/fts3.html
+.. _I counted them`: http://mpd.wikia.com/wiki/Clients
 .. _`Pull Request`: http://github.com/studentkittens/moosecat/pulls
-.. _libglyr: http://github.com/sahib/glyr
-.. _plyr: http://github.com/sahib/python-glyr
+.. _`Auto Completion`: https://dl.dropboxusercontent.com/u/12859833/completion.avi
+.. _`Fast Playlist Filtering`: https://dl.dropboxusercontent.com/u/12859833/playlist_filter.avi
+.. _`libmunin`: https://github.com/sahib/libmunin  
+.. _`libglyr`: https://github.com/sahib/libglyr  

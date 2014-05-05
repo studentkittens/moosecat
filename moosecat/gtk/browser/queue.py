@@ -2,7 +2,7 @@ from moosecat.gtk.widgets import PlaylistTreeModel, PlaylistWidget, SimplePopupM
 from moosecat.gtk.browser import GtkBrowser
 from moosecat.boot import g
 
-from gi.repository import Gtk, Gdk
+from gi.repository import GLib, Gtk, Gdk
 
 
 from contextlib import contextmanager
@@ -30,6 +30,7 @@ class QueuePlaylistWidget(PlaylistWidget):
             ('Genre', 200, 1)
         ))
         self._create_menu()
+        GLib.timeout_add(100, lambda: self.do_search('*'))
 
     def _create_menu(self):
         menu = SimplePopupMenu()
@@ -111,7 +112,7 @@ class SidebarCover(Gtk.Image):
                 self._last_query = order.query
 
 
-class QueueBrowser(GtkBrowser):
+class QueueBrowser_(GtkBrowser):
     def do_build(self):
         self._scw = Gtk.ScrolledWindow()
         self._scw.set_policy(
@@ -156,6 +157,59 @@ class QueueBrowser(GtkBrowser):
     #######################
     #  IGtkBrowser Stuff  #
     #######################
+
+    def get_root_widget(self):
+        'Return the root widget of your browser window.'
+        return self._overlay
+
+    def get_browser_name(self):
+        'Get the name of the browser (displayed in the sidebar)'
+        return 'Queue'
+
+    def get_browser_icon_name(self):
+        return Gtk.STOCK_FIND
+
+    def priority(self):
+        return 90
+
+def remove_ctrlf():
+    # TODO: Hack, write nicer.
+    css_provider = Gtk.CssProvider()
+    css_provider.load_from_data("""
+        @binding-set unbind_search {
+            unbind "<Control>f";
+        }
+
+        GtkTreeView {
+            gtk-key-bindings: unbind_search;
+        }
+    """.encode('utf-8'))
+
+    context = Gtk.StyleContext()
+    context.add_provider_for_screen(
+        Gdk.Screen.get_default(),
+        css_provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_USER
+    )
+
+
+class QueueBrowser(GtkBrowser):
+    def do_build(self):
+        from moosecat.gtk.completion import FishySearchOverlay
+
+        playlist_widget = QueuePlaylistWidget()
+
+        def search_changed(entry, query, playlist_widget):
+            playlist_widget.do_search(query)
+
+        remove_ctrlf()
+
+        self._overlay = FishySearchOverlay()
+        self._overlay.get_entry().connect(
+            'search-changed', search_changed, playlist_widget
+        )
+        self._overlay.add(playlist_widget)
+        GLib.timeout_add(500, lambda: self._overlay.show())
 
     def get_root_widget(self):
         'Return the root widget of your browser window.'
