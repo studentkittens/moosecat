@@ -1,4 +1,4 @@
-#include "zeroconf.h"
+#include "moose-misc-zeroconf.h"
 
 #include <glib.h>
 #include <glib/gprintf.h>

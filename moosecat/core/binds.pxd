@@ -370,13 +370,10 @@ cdef extern from "../../lib/store/moose-store-query-parser.h":
 #                             Misc Interfaces                             #
 ###########################################################################
 
-cdef extern from "../../lib/misc/bug-report.h":
-    char * moose_misc_bug_report (MooseClient * client)
-
-cdef extern from "../../lib/misc/external-logs.h":
+cdef extern from "../../lib/misc/moose-misc-external-logs.h":
     void moose_misc_catch_external_logs(MooseClient *)
 
-cdef extern from "../../lib/misc/metadata-threads.h":
+cdef extern from "../../lib/misc/moose-misc-metadata-threads.h":
     ctypedef struct MooseMetadataThreads:
         pass
 
@@ -385,7 +382,7 @@ cdef extern from "../../lib/misc/metadata-threads.h":
     void moose_mdthreads_forward(MooseMetadataThreads *, void *)
     void moose_mdthreads_free(MooseMetadataThreads *)
 
-cdef extern from "../../lib/misc/zeroconf.h":
+cdef extern from "../../lib/misc/moose-misc-zeroconf.h":
     cdef struct MooseZeroconfBrowser:
         pass
 
@@ -413,7 +410,7 @@ cdef extern from "../../lib/misc/zeroconf.h":
     unsigned moose_zeroconf_server_get_port(MooseZeroconfServer *)
 
 
-cdef extern from "../../lib/config.h":
+cdef extern from "../../lib/moose-config.h":
     enum:
         VERSION               'MC_VERSION'
         VERSION_MAJOR         'MC_VERSION_MAJOR'

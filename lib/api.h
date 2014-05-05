@@ -2,8 +2,8 @@
 #define MOOSECAT_API_HH
 
 /* All relevant headers are included here */
-#include "misc/external-logs.h"
-#include "misc/zeroconf.h"
+#include "misc/moose-misc-external-logs.h"
+#include "misc/moose-misc-zeroconf.h"
 
 #include "mpd/moose-mpd-protocol.h"
 #include "mpd/moose-mpd-client.h"

@@ -1,5 +1,5 @@
 /* Own header */
-#include "metadata-threads.h"
+#include "moose-misc-metadata-threads.h"
 
 /* moose_async_queue_watch_new */
 #include "../util/gasyncqueue-watch.h"

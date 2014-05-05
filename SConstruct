@@ -285,7 +285,9 @@ env.ParseConfig('pkg-config --cflags --libs ' + ' '.join(packages))
 env = conf.Finish()
 
 env.AlwaysBuild(
-    env.Command('lib/config.h', 'lib/config.h.in', BuildConfigTemplate)
+    env.Command(
+        'lib/moose-config.h', 'lib/moose-config.h.in', BuildConfigTemplate
+    )
 )
 
 lib = env.StaticLibrary('moosecat', FindLibmoosecatSource())

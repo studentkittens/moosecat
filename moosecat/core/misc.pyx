@@ -2,21 +2,6 @@ cimport binds as c
 from libc.stdlib cimport free
 from cpython.ref cimport Py_INCREF, Py_DECREF
 
-def bug_report(Client client=None):
-    '''
-    Get a string describing libmoosecat's configuration and current state.
-
-    :client: a Client object. Used to get extra info.
-    :returns: a multiline string with information (rst conform)
-    '''
-    if client is None:
-        report = c.moose_misc_bug_report(NULL)
-    else:
-        report = c.moose_misc_bug_report(client._p())
-
-    return stringify(report)
-
-
 def register_external_logs(Client client):
     '''
     Catch Gtk/GLibs logging, and forward them via the error callback.
