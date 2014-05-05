@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
 #include <stdbool.h>
 
-#include "../api.h"
+#include "../moose-api.h"
 
 /*
  * Test applications to see if db search is fast enough.
