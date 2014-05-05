@@ -32,8 +32,8 @@ There is a bit of hackery in here.
 
 Used headers:
 
-    lib/mpd/protocol.h
-    lib/mpd/client.h
+    lib/mpd/moose-mpd-protocol.h
+    lib/mpd/moose-mpd-client.h
     lib/store/moose-store.h
 '''
 

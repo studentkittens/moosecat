@@ -2,8 +2,9 @@
 #define moose_priv_signal_H
 
 #include <glib.h>
-#include <mpd/client.h>
 #include <stdarg.h>
+#include <mpd/client.h>
+
 
 /* Prototyoe it here */
 struct MooseClient;

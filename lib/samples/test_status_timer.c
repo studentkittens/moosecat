@@ -29,7 +29,6 @@ int main(void)
     MooseClient * client = moose_create(MC_PM_COMMAND);
     moose_signal_add(client, "client-event", signal_event, loop);
     moose_status_timer_register(client, 50, true);
-    moose_misc_register_posix_signal(client);
     moose_connect(client, NULL, "localhost", 6600, 2.0);
 
     /* BLOCKS */

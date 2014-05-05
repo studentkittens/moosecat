@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <mpd/client.h>
 
-#include "signal.h"
+#include "moose-mpd-signal.h"
 
 /* Only prototype needed */
 struct MooseClient;

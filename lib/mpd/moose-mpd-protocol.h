@@ -1,9 +1,9 @@
-#include <mpd/client.h>
 #include <stdbool.h>
 #include <glib.h>
+#include <mpd/client.h>
 
 /* Signal System */
-#include "signal.h"
+#include "moose-mpd-signal.h"
 
 /* Job Dispatcher */
 #include "../util/job-manager.h"

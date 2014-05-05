@@ -1,6 +1,5 @@
-#include "../mpd/protocol.h"
+#include "../mpd/moose-mpd-protocol.h"
 #include "../store/moose-store.h"
-#include "../misc/posix-signal.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -57,7 +56,6 @@ int main(int argc, char *argv[])
     moose_signal_add(client, "logging", print_logging, NULL);
     moose_signal_add(client, "client-event", print_event, NULL);
     moose_signal_add(client, "connectivity", print_connectivity, NULL);
-    moose_misc_register_posix_signal(client);
 
 
     MooseStoreSettings *settings = moose_store_settings_new();

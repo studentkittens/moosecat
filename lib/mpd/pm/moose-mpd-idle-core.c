@@ -1,12 +1,12 @@
-#include "idle-core.h"
+#include "moose-mpd-idle-core.h"
 
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "common.h"
-#include "../signal-helper.h"
+#include "moose-mpd-common.h"
+#include "../moose-mpd-signal-helper.h"
 
 #include <mpd/parser.h>
 

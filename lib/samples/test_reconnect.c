@@ -52,7 +52,6 @@ static void reconnect_manytimes(MoosePmType type)
 {
     MooseClient * client = moose_create(type);
     moose_signal_add(client, "connectivity", signal_connectivity, NULL);
-    moose_misc_register_posix_signal(client);
 
     g_idle_add(idle_callback, client);
 

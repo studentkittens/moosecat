@@ -2,7 +2,7 @@
 #include "moose-store-dirs.h"
 #include "moose-store-macros.h"
 
-#include "../mpd/signal-helper.h"
+#include "../mpd/moose-mpd-signal-helper.h"
 #include "../util/paths.h"
 
 #include <glib.h>

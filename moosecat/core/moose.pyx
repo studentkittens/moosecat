@@ -16,6 +16,3 @@ include "stored_playlist.pyx"
 include "store.pyx"
 include "client.pyx"
 include "misc.pyx"
-
-# Try to register SIGSEGV catching.
-c.moose_misc_register_posix_signal(NULL)

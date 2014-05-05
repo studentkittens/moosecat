@@ -1,7 +1,7 @@
-#include "client.h"
-#include "signal-helper.h"
-#include "outputs.h"
-#include "update.h"
+#include "moose-mpd-client.h"
+#include "moose-mpd-signal-helper.h"
+#include "moose-mpd-outputs.h"
+#include "moose-mpd-update.h"
 
 #include <string.h>
 

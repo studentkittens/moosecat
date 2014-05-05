@@ -1,5 +1,5 @@
-#include "signal.h"
-#include "protocol.h"
+#include "moose-mpd-signal.h"
+#include "moose-mpd-protocol.h"
 
 #include "../util/gasyncqueue-watch.h"
 

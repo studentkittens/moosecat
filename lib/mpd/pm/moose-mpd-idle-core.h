@@ -1,4 +1,4 @@
-#include "../protocol.h"
+#include "../moose-mpd-protocol.h"
 
 #ifndef IDLE_CORE_H
 #define IDLE_CORE_H

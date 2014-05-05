@@ -9,7 +9,7 @@ ctypedef long time_t
 #                              libmpdclient                               #
 ###########################################################################
 
-cdef extern from "mpd/client.h":
+cdef extern from "../../lib/mpd/moose-mpd-client.h":
     ################
     #  Structures  #
     ################
@@ -213,7 +213,7 @@ cdef extern from "mpd/client.h":
 # ../../ is relative to the cython'd file.
 # The file is written to build/cython/moose.h
 # So it needs to be two levels up.
-cdef extern from "../../lib/mpd/protocol.h":
+cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
 
     ctypedef enum MoosePmType:
         PM_IDLE 'MC_PM_IDLE'
@@ -289,7 +289,7 @@ cdef extern from "../../lib/mpd/protocol.h":
 #                             Client Commands                             #
 ###########################################################################
 
-cdef extern from "../../lib/mpd/client.h":
+cdef extern from "../../lib/mpd/moose-mpd-client.h":
     void moose_client_init(MooseClient *)
     void moose_client_destroy(MooseClient *)
     long moose_client_send(MooseClient *, const char *)
@@ -372,9 +372,6 @@ cdef extern from "../../lib/store/moose-store-query-parser.h":
 
 cdef extern from "../../lib/misc/bug-report.h":
     char * moose_misc_bug_report (MooseClient * client)
-
-cdef extern from "../../lib/misc/posix-signal.h":
-    void moose_misc_register_posix_signal (MooseClient * client)
 
 cdef extern from "../../lib/misc/external-logs.h":
     void moose_misc_catch_external_logs(MooseClient *)

@@ -1,7 +1,7 @@
 #include <glib.h>
 
 #include "external-logs.h"
-#include "../mpd/signal-helper.h"
+#include "../mpd/moose-mpd-signal-helper.h"
 
 //////////////////////
 

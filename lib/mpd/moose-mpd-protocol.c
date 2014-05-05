@@ -1,13 +1,13 @@
-#include "protocol.h"
-#include "update.h"
+#include "moose-mpd-protocol.h"
+#include "moose-mpd-update.h"
 
-#include "pm/cmnd-core.h"
-#include "pm/idle-core.h"
+#include "pm/moose-mpd-cmnd-core.h"
+#include "pm/moose-mpd-idle-core.h"
 
-#include "signal-helper.h"
-#include "outputs.h"
+#include "moose-mpd-signal-helper.h"
+#include "moose-mpd-outputs.h"
 
-#include "client.h"
+#include "moose-mpd-client.h"
 
 /* memset() */
 #include <string.h>

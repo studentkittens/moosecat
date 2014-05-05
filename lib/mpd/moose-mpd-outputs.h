@@ -1,7 +1,7 @@
 #ifndef MC_OUTPUTS_HH
 #define MC_OUTPUTS_HH
 
-#include "protocol.h"
+#include "moose-mpd-protocol.h"
 
 
 typedef struct MooseOutputsData {

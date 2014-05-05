@@ -1,5 +1,5 @@
-#include "common.h"
-#include "../signal-helper.h"
+#include "moose-mpd-common.h"
+#include "../moose-mpd-signal-helper.h"
 
 ///////////////////////////
 

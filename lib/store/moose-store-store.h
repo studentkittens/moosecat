@@ -7,7 +7,7 @@
 #include "moose-store-playlist.h"
 #include "moose-store-settings.h"
 
-#include "../mpd/protocol.h"
+#include "../mpd/moose-mpd-protocol.h"
 
 #include "../util/job-manager.h"
 

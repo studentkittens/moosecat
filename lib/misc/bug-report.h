@@ -1,7 +1,7 @@
 #ifndef MC_BUG_REPORT_H
 #define MC_BUG_REPORT_H
 
-#include "../mpd/protocol.h"
+#include "../mpd/moose-mpd-protocol.h"
 
 /**
  * @brief Returns a message containing information about the library/system.

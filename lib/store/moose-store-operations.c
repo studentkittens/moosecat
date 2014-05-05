@@ -3,10 +3,10 @@
 #include "moose-store-macros.h"
 #include "moose-store-private.h"
 
-#include "../mpd/client.h"
-#include "../mpd/signal-helper.h"
-#include "../mpd/signal.h"
-#include "../mpd/update.h"
+#include "../mpd/moose-mpd-client.h"
+#include "../mpd/moose-mpd-signal-helper.h"
+#include "../mpd/moose-mpd-signal.h"
+#include "../mpd/moose-mpd-update.h"
 
 typedef struct {
     MooseStore *store;

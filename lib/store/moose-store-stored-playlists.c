@@ -45,8 +45,8 @@
 #include "moose-store-stored-playlists.h"
 #include "moose-store-macros.h"
 
-#include "../mpd/client.h"
-#include "../mpd/signal-helper.h"
+#include "../mpd/moose-mpd-client.h"
+#include "../mpd/moose-mpd-signal-helper.h"
 
 #include <glib.h>
 #include <string.h>

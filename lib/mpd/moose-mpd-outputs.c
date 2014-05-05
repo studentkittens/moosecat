@@ -1,7 +1,7 @@
-#include "client.h"
-#include "signal-helper.h"
-#include "update.h"
-#include "outputs.h"
+#include "moose-mpd-client.h"
+#include "moose-mpd-signal-helper.h"
+#include "moose-mpd-update.h"
+#include "moose-mpd-outputs.h"
 
 MooseOutputsData * moose_priv_outputs_new(MooseClient *self)
 {

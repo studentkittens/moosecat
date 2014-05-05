@@ -1,10 +1,10 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "protocol.h"
+#include "moose-mpd-protocol.h"
 
 /**
- * client.h implements the actual commands, which are
+ * moose-mpd-client.h implements the actual commands, which are
  * sendable to the server.
  *
  * This excludes database commands, which are only accessible

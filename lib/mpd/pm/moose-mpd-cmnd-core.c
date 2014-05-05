@@ -1,9 +1,9 @@
-#include "cmnd-core.h"
-#include "common.h"
+#include "moose-mpd-cmnd-core.h"
+#include "moose-mpd-common.h"
 #include "../../util/gasyncqueue-watch.h"
 #include "../../util/sleep-grained.h"
-#include "../protocol.h"
-#include "../signal-helper.h"
+#include "../moose-mpd-protocol.h"
+#include "../moose-mpd-signal-helper.h"
 
 #include <glib.h>
 #include <string.h>

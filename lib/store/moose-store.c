@@ -1,6 +1,6 @@
-#include "../mpd/signal-helper.h"
-#include "../mpd/signal.h"
-#include "../mpd/update.h"
+#include "../mpd/moose-mpd-signal-helper.h"
+#include "../mpd/moose-mpd-signal.h"
+#include "../mpd/moose-mpd-update.h"
 #include "../util/gzip.h"
 
 #include "moose-store-stored-playlists.h"

@@ -1,6 +1,5 @@
-#include "../mpd/protocol.h"
+#include "../mpd/moose-mpd-protocol.h"
 #include "../store/moose-store.h"
-#include "../misc/posix-signal.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -67,7 +66,6 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const *argv[])
     moose_signal_add(self, "logging", print_logging, NULL);
     moose_signal_add(self, "client-event", print_event, NULL);
     moose_signal_add(self, "connectivity", print_connectivity, NULL);
-    moose_misc_register_posix_signal(self);
 
     MooseStoreSettings *settings = moose_store_settings_new();
     settings->use_memory_db = TRUE;
