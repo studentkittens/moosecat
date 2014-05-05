@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
             const int line_buf_size = 32;
             bool queue_only = true;
             char line_buf[line_buf_size];
-            MoosePlaylist *song_buf = moose_stack_create(song_buf_size, NULL);
+            MoosePlaylist *song_buf = moose_playlist_new(song_buf_size, NULL);
             memset(line_buf, 0, line_buf_size);
 
             for (;;) {
@@ -117,22 +117,22 @@ int main(int argc, char *argv[])
                     char **args = g_strsplit(line_buf, " ", -1);
 
                     if (args != NULL)  {
-                        MoosePlaylist *stack = moose_stack_create(1000, NULL);
+                        MoosePlaylist *stack = moose_playlist_new(1000, NULL);
                         moose_store_gw(db, moose_store_playlist_select_to_stack(db, stack, args[1], args[2]));
                         g_print("%s %s\n", args[1], args[2]);
 
-                        int found = moose_stack_length(stack);
+                        int found = moose_playlist_length(stack);
                         if (found == 0) {
                             g_print("Nothing found.\n");
                         } else {
                             for (int i = 0; i < found; ++i) {
-                                struct mpd_song *song = moose_stack_at(stack, i);
+                                struct mpd_song *song = moose_playlist_at(stack, i);
                                 g_print("%s\n", mpd_song_get_uri(song));
                             }
                         }
                         moose_store_release(db);
 
-                        moose_stack_free(stack);
+                        g_object_unref(stack);
                         g_strfreev(args);
                     }
                     continue;
@@ -140,40 +140,40 @@ int main(int argc, char *argv[])
 
                 if (strncmp(line_buf, ":list-all", 8) == 0) {
 
-                    MoosePlaylist *stack = moose_stack_create(5, NULL);
+                    MoosePlaylist *stack = moose_playlist_new(5, NULL);
                     moose_store_gw(db, moose_store_playlist_get_all_known(db, stack));
-                    int found = moose_stack_length(stack);
+                    int found = moose_playlist_length(stack);
                     if (found == 0) {
                         g_print("No playlists found.\n");
                     } else {
                         for (int i = 0; i < found; ++i) {
-                            struct mpd_playlist *playlist = moose_stack_at(stack, i);
+                            struct mpd_playlist *playlist = moose_playlist_at(stack, i);
                             g_print("%s: %010d\n", mpd_playlist_get_path(playlist), (int)mpd_playlist_get_last_modified(playlist));
                         }
                     }
                     moose_store_release(db);
 
-                    moose_stack_free(stack);
+                    g_object_unref(stack);
 
                     continue;
                 }
 
                 if (strncmp(line_buf, ":list-loaded", 8) == 0) {
 
-                    MoosePlaylist *stack = moose_stack_create(5, NULL);
+                    MoosePlaylist *stack = moose_playlist_new(5, NULL);
                     moose_store_gw(db, moose_store_playlist_get_all_loaded(db, stack));
-                    int found = moose_stack_length(stack);
+                    int found = moose_playlist_length(stack);
                     if (found == 0) {
                         g_print("No playlists found.\n");
                     } else {
                         for (int i = 0; i < found; ++i) {
-                            struct mpd_playlist *playlist = moose_stack_at(stack, i);
+                            struct mpd_playlist *playlist = moose_playlist_at(stack, i);
                             g_print("%s: %010d\n", mpd_playlist_get_path(playlist), (int)mpd_playlist_get_last_modified(playlist));
                         }
                     }
                     moose_store_release(db);
 
-                    moose_stack_free(stack);
+                    g_object_unref(stack);
 
                     continue;
                 }
@@ -184,37 +184,37 @@ int main(int argc, char *argv[])
 
                     if (args != NULL) {
                         char *query = (*args[1] == '_') ? NULL : args[1];
-                        MoosePlaylist *stack = moose_stack_create(100, g_free);
+                        MoosePlaylist *stack = moose_playlist_new(100, g_free);
                         int depth = (args[2]) ? g_ascii_strtoll(args[2], NULL, 10) : -1;
                         moose_store_gw(db, moose_store_dir_select_to_stack(db, stack, query, depth));
 
-                        int found = moose_stack_length(stack);
+                        int found = moose_playlist_length(stack);
                         if (found == 0) {
                             g_print("Nothing found.\n");
                         } else {
                             for (int i = 0; i < found; ++i) {
-                                g_print("%s\n", (char *) moose_stack_at(stack, i));
+                                g_print("%s\n", (char *) moose_playlist_at(stack, i));
                             }
                         }
                         moose_store_release(db);
 
-                        moose_stack_free(stack);
+                        g_object_unref(stack);
                         g_strfreev(args);
                     }
 
                     continue;
                 }
 
-                moose_stack_clear(song_buf);
+                moose_playlist_clear(song_buf);
                 moose_store_gw(db, moose_store_search_to_stack(db, line_buf, queue_only, song_buf, song_buf_size));
 
-                int selected = moose_stack_length(song_buf);
+                int selected = moose_playlist_length(song_buf);
                 if (selected > 0) {
                     g_print("#%04d/%03d %-35s | %-35s | %-35s\n", 0, 0, "Artist", "Album", "Title");
                     g_print("------------------------------------------------------------------------------------------------\n");
 
                     for (int i = 0; i < selected; i++) {
-                        struct mpd_song *song = moose_stack_at(song_buf, i);
+                        struct mpd_song *song = moose_playlist_at(song_buf, i);
                         g_print("%04d/%04d %-35s | %-35s | %-35s\n",
                                 mpd_song_get_pos(song),
                                 mpd_song_get_id(song),
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
                 moose_store_release(db);
             }
 
-            moose_stack_free(song_buf);
+            g_object_unref(song_buf);
         } else if (g_strcmp0(argv[1], "mainloop") == 0) {
             puts("");
             GMainLoop *loop = g_main_loop_new(NULL, true);

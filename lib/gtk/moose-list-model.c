@@ -548,7 +548,7 @@ static gboolean moose_list_model_iter_parent(
 
 MooseListModel *moose_list_model_new(void)
 {
-    MooseListModel *newcustomlist = (MooseListModel*)g_object_new(
+    MooseListModel *newcustomlist = g_object_new(
         MOOSE_LIST_MODEL_TYPE, NULL
     );
     g_assert(newcustomlist != NULL);
@@ -570,9 +570,9 @@ void moose_list_model_append_record(MooseListModel *self, const gchar *name, gui
 {
     GtkTreeIter   iter;
     GtkTreePath  *path;
-    MooseListModelRecord *newrecord;
     gulong        newsize;
     guint         pos;
+    MooseListModelRecord *newrecord;
 
     g_return_if_fail(MOOSE_IS_LIST_MODEL(self));
     g_return_if_fail(name != NULL);

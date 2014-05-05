@@ -4,7 +4,6 @@ from libcpp cimport bool
 # Too lazy to lookup how to import it properly.
 ctypedef long time_t
 
-
 ###########################################################################
 #                              libmpdclient                               #
 ###########################################################################
@@ -309,13 +308,14 @@ cdef extern from "../../lib/store/moose-store-playlist.h":
     ctypedef struct MoosePlaylist:
         pass
 
-    MoosePlaylist * moose_stack_create (long, void *)
-    void moose_stack_append (MoosePlaylist *, void *)
-    void moose_stack_free (MoosePlaylist *)
-    void moose_stack_clear (MoosePlaylist *)
-    unsigned moose_stack_length (MoosePlaylist *)
-    void moose_stack_sort (MoosePlaylist *, void *)
-    void * moose_stack_at(MoosePlaylist *, unsigned)
+    void g_object_unref(void *)
+
+    MoosePlaylist * moose_playlist_new (long, void *)
+    void moose_playlist_append (MoosePlaylist *, void *)
+    void moose_playlist_clear (MoosePlaylist *)
+    unsigned moose_playlist_length (MoosePlaylist *)
+    void moose_playlist_sort (MoosePlaylist *, void *)
+    void * moose_playlist_at(MoosePlaylist *, unsigned)
 
 
 cdef extern from "../../lib/store/moose-store-settings.h":

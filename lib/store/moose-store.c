@@ -170,16 +170,16 @@ static char *moose_store_construct_full_dbpath(MooseStore *self, const char *dir
  * @return a Stack with one element containg one song or NULL.
  */
 MoosePlaylist * moose_store_find_song_by_id_impl(MooseStore *self, unsigned needle_song_id) { 
-    unsigned length = moose_stack_length(self->stack);
+    unsigned length = moose_playlist_length(self->stack);
     for(unsigned i = 0; i < length; ++i) {
-        struct mpd_song * song = moose_stack_at(self->stack, i);
+        struct mpd_song * song = moose_playlist_at(self->stack, i);
         if(song != NULL && mpd_song_get_id(song) == needle_song_id) {
-            MoosePlaylist * stack = moose_stack_create(1, NULL);
+            MoosePlaylist * stack = moose_playlist_new(1, NULL);
             if(stack != NULL) {
                 /* return a stack with one element
                  * (because that's what the interfaces wants :/)
                  */
-                moose_stack_append(stack, song);
+                moose_playlist_append(stack, song);
                 return stack;
             }
         }
@@ -317,7 +317,7 @@ static void moose_store_shutdown(MooseStore * self)
     g_assert(self);
 
     /* Free the song stack */
-    moose_stack_free(self->stack);
+    g_object_unref(self->stack);
     self->stack = NULL;
 
     /* Free list of stored playlists */
@@ -371,6 +371,8 @@ static void moose_store_buildup(MooseStore * self)
         self->force_update_listallinfo = true;
         self->force_update_plchanges = true;
 
+        self->stack = moose_playlist_new(100, (GDestroyNotify) mpd_song_free);
+
         /* the database is new, so no pos/id information is there yet
          * we need to query mpd, update db && queue info */
         moose_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
@@ -382,7 +384,7 @@ static void moose_store_buildup(MooseStore * self)
         moose_stprv_dir_prepare_statemtents(self);
 
         /* stack is allocated to the old size */
-        self->stack = moose_stack_create(song_count + 1, (GDestroyNotify) mpd_song_free);
+        self->stack = moose_playlist_new(song_count + 1, (GDestroyNotify) mpd_song_free);
 
         /* load the old database into memory */
         moose_stprv_load_or_save(self, false, db_path);
@@ -741,7 +743,7 @@ struct mpd_song *moose_store_song_at(MooseStore *self, int idx)
     g_assert(self); 
     g_assert(idx >= 0);
 
-    return (struct mpd_song *)moose_stack_at(self->stack, idx);
+    return (struct mpd_song *)moose_playlist_at(self->stack, idx);
 }
 
 //////////////////////////////
@@ -750,7 +752,7 @@ int moose_store_total_songs(MooseStore *self)
 {
     g_assert(self);
 
-    return moose_stack_length(self->stack);
+    return moose_playlist_length(self->stack);
 }
 
 //////////////////////////////
@@ -901,8 +903,8 @@ struct mpd_song * moose_store_find_song_by_id(MooseStore * self, unsigned needle
     unsigned job_id = moose_jm_send(self->jm, MooseJobPrios[MC_OPER_FIND_SONG_BY_ID], data);
     moose_store_wait_for_job(self, job_id);
     MoosePlaylist * stack = moose_store_get_result(self, job_id);
-    if(stack != NULL && moose_stack_length(stack) > 0) {
-        struct mpd_song * song = moose_stack_at(stack, 0);
+    if(stack != NULL && moose_playlist_length(stack) > 0) {
+        struct mpd_song * song = moose_playlist_at(stack, 0);
         return song;
     }
     return NULL;

@@ -1,19 +1,41 @@
 #ifndef MC_STORE_STACK_H
 #define MC_STORE_STACK_H
 
-#include <glib.h>
+#include <glib-object.h>
 
-/**
- * @brief A stack.
- *
- * It is basically a GPtrArray, but
- * you should not assume this, nor
- * access the members...
+G_BEGIN_DECLS
+
+/*
+ * Type macros.
  */
-typedef struct {
-    GPtrArray *stack;
-    GDestroyNotify free_func;
+#define MOOSE_TYPE_PLAYLIST \
+    (moose_playlist_get_type ())
+#define MOOSE_PLAYLIST(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST ((obj), MOOSE_TYPE_PLAYLIST, MoosePlaylist))
+#define MOOSE_IS_PLAYLIST(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MOOSE_TYPE_PLAYLIST))
+#define MOOSE_PLAYLIST_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST ((klass), MOOSE_TYPE_PLAYLIST, MoosePlaylistClass))
+#define MOOSE_IS_PLAYLIST_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE ((klass), MOOSE_TYPE_PLAYLIST))
+#define MOOSE_PLAYLIST_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS ((obj), MOOSE_TYPE_PLAYLIST, MoosePlaylistClass))
+
+
+struct _MoosePlaylistPrivate;
+
+typedef struct _MoosePlaylist {
+    GObject parent;      
+    struct _MoosePlaylistPrivate *priv;
 } MoosePlaylist;
+
+
+typedef struct _MoosePlaylistClass {
+  GObjectClass parent_class;
+} MoosePlaylistClass;
+    
+
+GType moose_playlist_get_type(void);
 
 /**
  * @brief Create a new stack
@@ -23,7 +45,7 @@ typedef struct {
  *
  * @return a newly allocated stack
  */
-MoosePlaylist *moose_stack_create(long size_hint, GDestroyNotify free_func);
+MoosePlaylist *moose_playlist_new(long size_hint, GDestroyNotify free_func);
 
 /**
  * @brief Append a new element to the stack.
@@ -33,17 +55,7 @@ MoosePlaylist *moose_stack_create(long size_hint, GDestroyNotify free_func);
  * @param self the stack to operate on
  * @param ptr the addr to add
  */
-void moose_stack_append(MoosePlaylist *self, void *ptr);
-
-/**
- * @brief Free the stack
- *
- * If you passed a free_func, it will
- * called on each element now.
- *
- * @param self the stack to operate on
- */
-void moose_stack_free(MoosePlaylist *self);
+void moose_playlist_append(MoosePlaylist *self, void *ptr);
 
 /**
  * @brief Clear contents of stack totally.
@@ -52,7 +64,7 @@ void moose_stack_free(MoosePlaylist *self);
  *
  * @param self the stack to operate on
  */
-void moose_stack_clear(MoosePlaylist *self);
+void moose_playlist_clear(MoosePlaylist *self);
 
 /**
  * @brief Calculates the length of the stack
@@ -61,7 +73,7 @@ void moose_stack_clear(MoosePlaylist *self);
  *
  * @return the length from 0 - UINT_MAX
  */
-unsigned moose_stack_length(MoosePlaylist *self);
+unsigned moose_playlist_length(MoosePlaylist *self);
 
 /**
  * @brief Sort the stack.
@@ -69,7 +81,7 @@ unsigned moose_stack_length(MoosePlaylist *self);
  * @param self the stack to operate on.
  * @param func a GCompareFunc.
  */
-void moose_stack_sort(MoosePlaylist *self, GCompareFunc func);
+void moose_playlist_sort(MoosePlaylist *self, GCompareFunc func);
 
 /**
  * @brief Access elememts indexed.
@@ -77,11 +89,11 @@ void moose_stack_sort(MoosePlaylist *self, GCompareFunc func);
  * For performance reasons, this is an inline macro.
  *
  * @param self the stack to operate on
- * @param at an integer from 0 - moose_stack_length()
+ * @param at an integer from 0 - moose_playlist_length()
  *
  * @return a void* being at that place.
  */
-void *moose_stack_at(MoosePlaylist *self, unsigned at);
+void *moose_playlist_at(MoosePlaylist *self, unsigned at);
 
 
 /**
@@ -89,7 +101,9 @@ void *moose_stack_at(MoosePlaylist *self, unsigned at);
  *
  * @return A newly allocated, but identical stack.
  */
-MoosePlaylist * moose_stack_copy(MoosePlaylist *self);
+MoosePlaylist * moose_playlist_copy(MoosePlaylist *self);
+
+G_END_DECLS
 
 #endif /* end of include guard: MC_STORE_STACK_H */
 

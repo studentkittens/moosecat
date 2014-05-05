@@ -138,7 +138,7 @@ int moose_stprv_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, cons
         while (sqlite3_step(select_stmt) == SQLITE_ROW) {
             const char *rowid = (const char *) sqlite3_column_text(select_stmt, 0);
             const char *path = (const char *) sqlite3_column_text(select_stmt, 1);
-            moose_stack_append(stack, g_strjoin(":", rowid, path, NULL));
+            moose_playlist_append(stack, g_strjoin(":", rowid, path, NULL));
             ++returned;
         }
 

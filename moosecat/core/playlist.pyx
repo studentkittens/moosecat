@@ -33,9 +33,14 @@ cdef class Playlist:
         else:
             raise ValueError('MoosePlaylist pointer is null for this instance!')
 
+    def __dealloc__(Playlist self):
+        if self._stack != NULL:
+            c.g_object_unref(self._stack)
+            self._stack = NULL
+
     def __iter__(self):
         def iterator():
-            cdef int length = c.moose_stack_length(self._p())
+            cdef int length = c.moose_playlist_length(self._p())
             for i in range(length):
                 yield self[i]
 
@@ -43,12 +48,12 @@ cdef class Playlist:
 
     def __getitem__(self, idx):
         'Get a song at a certain position out of the Playlist'
-        cdef int length = c.moose_stack_length(self._p())
+        cdef int length = c.moose_playlist_length(self._p())
         if idx < length:
-            return song_from_ptr(<c.mpd_song*>c.moose_stack_at(self._p(), idx))
+            return song_from_ptr(<c.mpd_song*>c.moose_playlist_at(self._p(), idx))
         else:
             raise IndexError('Index out of Playlist\'s range')
 
     def __len__(self):
         'Get the length of the Playlist'
-        return c.moose_stack_length(self._p())
+        return c.moose_playlist_length(self._p())

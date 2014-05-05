@@ -139,7 +139,7 @@ cdef class Store:
 
         # Preallocation strategy
         stack_size = 1000 if limit_length < 0 else limit_length
-        result = c.moose_stack_create(stack_size, NULL)
+        result = c.moose_playlist_new(stack_size, NULL)
 
         if result != NULL:
             try:
@@ -202,7 +202,7 @@ cdef class Store:
         if path is None and depth < 0:
             return []
 
-        stack = c.moose_stack_create(10, NULL)
+        stack = c.moose_playlist_new(10, NULL)
         rlist = []
 
         if path is None:
@@ -214,8 +214,8 @@ cdef class Store:
         # Wait for the job to finish.
         c.moose_store_wait_for_job(self._p(), job_id)
 
-        for idx in range(c.moose_stack_length(stack)):
-            song_id, path = stringify(<char *>c.moose_stack_at(stack, idx)).split(':', maxsplit=1)
+        for idx in range(c.moose_playlist_length(stack)):
+            song_id, path = stringify(<char *>c.moose_playlist_at(stack, idx)).split(':', maxsplit=1)
 
             # No error checking is done here - we rely on libmoosecat.
             song_id = int(song_id)
@@ -227,7 +227,7 @@ cdef class Store:
                 result = (Song()._init(c.moose_store_song_at(self._p(), song_id)), path)
             rlist.append(result)
 
-        c.moose_stack_free(stack)
+        c.g_object_unref(stack)
 
         try:
             yield rlist
@@ -237,7 +237,7 @@ cdef class Store:
     cdef c.mpd_playlist * _stored_playlist_get_by_name(self, b_name):
         'Find a mpd_playlist by its name'
         cdef c.mpd_playlist * result = NULL
-        cdef c.MoosePlaylist * stack = c.moose_stack_create(10, NULL)
+        cdef c.MoosePlaylist * stack = c.moose_playlist_new(10, NULL)
 
         try:
             job_id = c.moose_store_playlist_get_all_loaded(self._p(), stack)
@@ -246,14 +246,14 @@ cdef class Store:
             c.moose_store_release(self._p())
 
         i = 0
-        while i < c.moose_stack_length(stack):
-            pl_name = <char * > c.mpd_playlist_get_path(<c.mpd_playlist * > c.moose_stack_at(stack, i))
+        while i < c.moose_playlist_length(stack):
+            pl_name = <char * > c.mpd_playlist_get_path(<c.mpd_playlist * > c.moose_playlist_at(stack, i))
             if b_name == pl_name:
-                result = <c.mpd_playlist * > c.moose_stack_at(stack, i)
+                result = <c.mpd_playlist * > c.moose_playlist_at(stack, i)
                 break
             i += 1
 
-        c.moose_stack_free(stack)
+        c.g_object_unref(stack)
         return result
 
     def stored_playlist_load(self, name):
@@ -279,7 +279,7 @@ cdef class Store:
         :returns: a Playlist with the specified songs.
         '''
         # Create a buffer for the songs
-        cdef c.MoosePlaylist * stack = c.moose_stack_create(0, NULL)
+        cdef c.MoosePlaylist * stack = c.moose_playlist_new(0, NULL)
         cdef c.mpd_playlist * playlist = NULL
 
         if stack != NULL:
@@ -320,7 +320,7 @@ cdef class Store:
 
     cdef _make_playlist_names(self, c.MoosePlaylist * stack):
             cdef int i = 0
-            cdef int length = c.moose_stack_length(stack)
+            cdef int length = c.moose_playlist_length(stack)
 
             names = []
 
@@ -328,7 +328,7 @@ cdef class Store:
             # and fill their name in the names list
             while i < length:
                 b_name = <char * > c.mpd_playlist_get_path(
-                        <c.mpd_playlist * ?> c.moose_stack_at(stack, i)
+                        <c.mpd_playlist * ?> c.moose_playlist_at(stack, i)
                 )
                 names.append(stringify(b_name))
                 i += 1
@@ -343,7 +343,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.MoosePlaylist * pl_names = c.moose_stack_create(10, NULL)
+            cdef c.MoosePlaylist * pl_names = c.moose_playlist_new(10, NULL)
             job_id = c.moose_store_playlist_get_all_known(self._p(), pl_names)
             c.moose_store_wait_for_job(self._p(), job_id)
 
@@ -360,7 +360,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.MoosePlaylist * pl_names = c.moose_stack_create(10, NULL)
+            cdef c.MoosePlaylist * pl_names = c.moose_playlist_new(10, NULL)
             job_id = c.moose_store_playlist_get_all_loaded(self._p(), pl_names)
             c.moose_store_wait_for_job(self._p(), job_id)
 

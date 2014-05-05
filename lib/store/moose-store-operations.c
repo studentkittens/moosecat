@@ -37,7 +37,7 @@ static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
             case MPD_ENTITY_TYPE_SONG: {
 
                 struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent);
-                moose_stack_append(self->stack, song);
+                moose_playlist_append(self->stack, song);
                 moose_stprv_insert_song(self, song);
 
                 /* Not sure if this is a nice way,
@@ -159,10 +159,10 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
      * Apparently GPtrArray does not support reallocating,
      * without adding NULL-cells to the array? */
     if (store->stack != NULL) {
-        moose_stack_free(store->stack);
+        g_object_unref(store->stack);
     }
 
-    store->stack = moose_stack_create(
+    store->stack = moose_playlist_new(
             number_of_songs + 1,
             (GDestroyNotify) mpd_song_free
     );

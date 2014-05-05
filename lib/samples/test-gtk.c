@@ -40,7 +40,7 @@ static void update_view(EntryTag *tag, const char *search_text)
     gdouble select_time, gui_time, parse_time;
     GtkTreeIter iter;
     g_timer_start(tag->profile_timer);
-    moose_stack_clear(tag->song_buf);
+    moose_playlist_clear(tag->song_buf);
 
     GTimer *parse_timer = g_timer_new();
     g_timer_start(parse_timer);
@@ -50,7 +50,7 @@ static void update_view(EntryTag *tag, const char *search_text)
 
     moose_store_gw(tag->store, moose_store_search_to_stack(tag->store, query, true, tag->song_buf, -1));
 
-    int found = moose_stack_length(tag->song_buf);
+    int found = moose_playlist_length(tag->song_buf);
 
     select_time = g_timer_elapsed(tag->profile_timer, NULL);
 
@@ -67,7 +67,7 @@ static void update_view(EntryTag *tag, const char *search_text)
     gtk_list_store_clear(list_store);
 
     for (int i = 0; i < found; i++) {
-        struct mpd_song *song = moose_stack_at(tag->song_buf, i);
+        struct mpd_song *song = moose_playlist_at(tag->song_buf, i);
         gtk_list_store_append(list_store, &iter);
         gtk_list_store_set(list_store, &iter,
                            COLUMN_ARTIST, mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
@@ -148,7 +148,7 @@ static EntryTag *setup_client(void)
             }
             moose_unlock_statistics(client);
 
-            rc->song_buf = moose_stack_create(number_of_songs + 1, NULL);
+            rc->song_buf = moose_playlist_new(number_of_songs + 1, NULL);
         }
 
         moose_signal_add_masked(client, "client-event",
@@ -162,7 +162,7 @@ static EntryTag *setup_client(void)
 
 static void bringdown_client(EntryTag *tag)
 {
-    moose_stack_free(tag->song_buf);
+    g_object_unref(tag->song_buf);
     moose_store_close(tag->store);
 }
 

@@ -46,7 +46,7 @@ static art_tree* moose_store_cmpl_create_index(MooseStoreCompletion *self, enum 
     g_assert(self);
     g_assert(tag < MPD_TAG_COUNT);
 
-    MoosePlaylist * copy = moose_stack_create(1000, NULL);
+    MoosePlaylist * copy = moose_playlist_new(1000, NULL);
     moose_store_gw(self->store,
         moose_store_search_to_stack(
             self->store, "*", FALSE, copy, -1
@@ -56,9 +56,9 @@ static art_tree* moose_store_cmpl_create_index(MooseStoreCompletion *self, enum 
     art_tree *tree = g_slice_new0(art_tree);
     init_art_tree(tree);
 
-    size_t copylen = moose_stack_length(copy);
+    size_t copylen = moose_playlist_length(copy);
     for(size_t i = 0; i < copylen; ++i) {
-        struct mpd_song *song = moose_stack_at(copy, i);
+        struct mpd_song *song = moose_playlist_at(copy, i);
         if(song != NULL) {
             const char *word = mpd_song_get_tag(song, tag, 0);
             if(word != NULL) {
@@ -73,7 +73,7 @@ static art_tree* moose_store_cmpl_create_index(MooseStoreCompletion *self, enum 
     }
     self->trees[tag] = tree;
     moose_store_release(self->store);
-    moose_stack_free(copy);
+    g_object_unref(copy);
 
     return tree;
 }
@@ -87,7 +87,7 @@ static int moose_store_cmpl_art_callback(void *user_data, const unsigned char *k
     int song_idx = GPOINTER_TO_INT(value);
 
     moose_stprv_lock_attributes(data->self->store); {
-        struct mpd_song *song = moose_stack_at(data->self->store->stack, song_idx);
+        struct mpd_song *song = moose_playlist_at(data->self->store->stack, song_idx);
         if(song != NULL) {
             /* Try to retrieve the original song */
             data->result = g_strdup(mpd_song_get_tag(song, data->tag, 0));

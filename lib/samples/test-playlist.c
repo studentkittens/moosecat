@@ -28,18 +28,18 @@ int main(int argc, char **argv)
     MooseStore *store = moose_store_create(client, NULL);
     moose_store_wait(store);
 
-    MoosePlaylist *songs = moose_stack_create(10000, NULL);
+    MoosePlaylist *songs = moose_playlist_new(10000, NULL);
     GTimer *pl_timer = g_timer_new();
 
     moose_store_playlist_load(store, argv[1]);
     g_timer_start(pl_timer);
     moose_store_playlist_select_to_stack(store, songs, argv[1], argv[2]);
 
-    g_print("Found songs: %d\n", moose_stack_length(songs));
+    g_print("Found songs: %d\n", moose_playlist_length(songs));
     g_print("Time elapsed: %2.3fs\n", g_timer_elapsed(pl_timer, NULL));
             
-    for(size_t i = 0; i < moose_stack_length(songs); ++i) {
-        struct mpd_song *song = moose_stack_at(songs, i);
+    for(size_t i = 0; i < moose_playlist_length(songs); ++i) {
+        struct mpd_song *song = moose_playlist_at(songs, i);
         g_print("%s\t%s\t%s\t%s\n", 
                 mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
                 mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 
 
     g_timer_destroy(pl_timer);
-    moose_stack_clear(songs);
+    moose_playlist_clear(songs);
 
     moose_disconnect(client);
     moose_free(client);

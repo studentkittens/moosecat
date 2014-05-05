@@ -565,7 +565,7 @@ static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gcon
 static struct mpd_song * moose_stprv_find_idx(MoosePlaylist * stack, struct mpd_song * key)
 {
     int l = 0;
-    int r = moose_stack_length(stack) - 1;
+    int r = moose_playlist_length(stack) - 1;
     int qr1 = 0, qr3 = 0, mid = 0;
 
     while(l <= r) {
@@ -573,9 +573,9 @@ static struct mpd_song * moose_stprv_find_idx(MoosePlaylist * stack, struct mpd_
         qr1 = l + (r - l) / 4;
         qr3 = l + (r - l) * 3 / 4;
 
-        struct mpd_song * at_mid = moose_stack_at(stack, mid);
-        struct mpd_song * at_qr1 = moose_stack_at(stack, qr1);
-        struct mpd_song * at_qr3 = moose_stack_at(stack, qr3);
+        struct mpd_song * at_mid = moose_playlist_at(stack, mid);
+        struct mpd_song * at_qr1 = moose_playlist_at(stack, qr1);
+        struct mpd_song * at_qr3 = moose_playlist_at(stack, qr3);
 
         if(at_mid == key || key == at_qr1 || key == at_qr3) {
             int result_idx = 0;
@@ -586,7 +586,7 @@ static struct mpd_song * moose_stprv_find_idx(MoosePlaylist * stack, struct mpd_
             } else {
                 result_idx = qr3;
             }
-            return moose_stack_at(stack, result_idx);
+            return moose_playlist_at(stack, result_idx);
         } else if (key < at_mid && key < at_qr1) {
             r = qr1 - 1;
         } else if (key < at_mid && key > at_qr1) {
@@ -610,7 +610,7 @@ static MoosePlaylist * moose_stprv_build_queue_content(MooseStore *self, MoosePl
 
     int error_id = SQLITE_OK;
     sqlite3_stmt *select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
-    MoosePlaylist *queue_songs = moose_stack_create(moose_stack_length(to_filter) / 2, NULL);
+    MoosePlaylist *queue_songs = moose_playlist_new(moose_playlist_length(to_filter) / 2, NULL);
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int stack_idx = sqlite3_column_int(select_stmt, 0);
@@ -619,10 +619,10 @@ static MoosePlaylist * moose_stprv_build_queue_content(MooseStore *self, MoosePl
         }
 
         struct mpd_song *queue_song = moose_stprv_find_idx(
-            to_filter, moose_stack_at(self->stack, stack_idx - 1)
+            to_filter, moose_playlist_at(self->stack, stack_idx - 1)
         );
         if(queue_song != NULL) {
-            moose_stack_append(queue_songs, queue_song);
+            moose_playlist_append(queue_songs, queue_song);
         }
     }
 
@@ -688,7 +688,7 @@ int moose_stprv_select_to_stack(MooseStore *self, const char *match_clause, bool
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int song_idx = sqlite3_column_int(select_stmt, 0);
-        struct mpd_song *selected = moose_stack_at(self->stack, song_idx - 1);
+        struct mpd_song *selected = moose_playlist_at(self->stack, song_idx - 1);
 
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
@@ -697,7 +697,7 @@ int moose_stprv_select_to_stack(MooseStore *self, const char *match_clause, bool
          * We can do that a lot faster anyways;
          * */
         if (queue_only == false || ((int)mpd_song_get_pos(selected) > -1)) {
-            moose_stack_append(stack, selected);
+            moose_playlist_append(stack, selected);
         }
     }
 
@@ -711,17 +711,17 @@ int moose_stprv_select_to_stack(MooseStore *self, const char *match_clause, bool
 
     /* sort by position in queue if queue_only is passed. */
     if (queue_only) {
-        moose_stack_sort(stack, moose_stprv_select_impl_sort_func_by_stack_ptr);
+        moose_playlist_sort(stack, moose_stprv_select_impl_sort_func_by_stack_ptr);
         MoosePlaylist * queue = moose_stprv_build_queue_content(self, stack);
-        moose_stack_clear(stack);
-        for(unsigned i = 0; i < moose_stack_length(queue); ++i) {
-            moose_stack_append(stack, moose_stack_at(queue, i));
+        moose_playlist_clear(stack);
+        for(unsigned i = 0; i < moose_playlist_length(queue); ++i) {
+            moose_playlist_append(stack, moose_playlist_at(queue, i));
         }
         stack = queue;
-        moose_stack_sort(stack, moose_stprv_select_impl_sort_func_by_pos);
+        moose_playlist_sort(stack, moose_stprv_select_impl_sort_func_by_pos);
     }
 
-    return moose_stack_length(stack);
+    return moose_playlist_length(stack);
 }
 
 ////////////////////////////////
@@ -899,7 +899,7 @@ void moose_stprv_deserialize_songs(MooseStore *self)
         feed_tag(MPD_TAG_MUSICBRAINZ_ALBUMID, SQL_COL_MUSICBRAINZ_ALBUM_ID, stmt, song, pair);
         feed_tag(MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID, stmt, song, pair);
         feed_tag(MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
-        moose_stack_append(self->stack, song);
+        moose_playlist_append(self->stack, song);
 
         ++progress_counter;
     }
@@ -1034,7 +1034,7 @@ void moose_stprv_queue_update_stack_posid(MooseStore *self)
         int row_idx  = sqlite3_column_int(select_stmt, 0);
 
         if (row_idx > 0) {
-            struct mpd_song *song = moose_stack_at(self->stack, row_idx - 1);
+            struct mpd_song *song = moose_playlist_at(self->stack, row_idx - 1);
 
             if (song != NULL) {
                 unsigned queue_pos = sqlite3_column_int(select_stmt, 1);
@@ -1055,8 +1055,8 @@ void moose_stprv_queue_update_stack_posid(MooseStore *self)
     sqlite3_reset(select_stmt);
     
     /* Reset all songs of the database to -1/-1 that were not in the queue */
-    for(unsigned i = 0; i < moose_stack_length(self->stack); ++i) {
-        struct mpd_song * song = moose_stack_at(self->stack, i);
+    for(unsigned i = 0; i < moose_playlist_length(self->stack); ++i) {
+        struct mpd_song * song = moose_playlist_at(self->stack, i);
         if(song != NULL) {
             if(!g_hash_table_lookup(already_seen_ids, song)) {
                 /* Warning: -1 is casted to unsigned int and late back */

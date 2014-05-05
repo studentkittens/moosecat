@@ -3,73 +3,104 @@
 
 #include "moose-store-playlist.h"
 
+typedef struct _MoosePlaylistPrivate {
+    GPtrArray *stack;
+    GDestroyNotify free_func;
+} MoosePlaylistPrivate;
+
+
+G_DEFINE_TYPE_WITH_PRIVATE(MoosePlaylist, moose_playlist, G_TYPE_OBJECT);
+
 ///////////////////////////////
 
-MoosePlaylist *moose_stack_create(long size_hint, GDestroyNotify free_func)
+static void moose_playlist_finalize(GObject *gobject)
 {
-    MoosePlaylist *self = g_new0(MoosePlaylist, 1);
+    MoosePlaylist *self = MOOSE_PLAYLIST(gobject);
 
-    if (self != NULL) {
-        self->free_func = free_func;
-        self->stack = g_ptr_array_sized_new(size_hint);
-        g_ptr_array_set_free_func(self->stack, free_func);
-        memset(self->stack->pdata, 0, self->stack->len);
-    }
+    if (self == NULL)
+        return;
 
+    g_ptr_array_free(self->priv->stack, TRUE);
+
+    /* Always chain up to the parent class; as with dispose(), finalize()
+     * is guaranteed to exist on the parent's class virtual function table
+     */
+    G_OBJECT_CLASS(
+        g_type_class_peek_parent(G_OBJECT_GET_CLASS(self))
+    )->finalize(gobject);
+}
+
+///////////////////////////////
+
+static void moose_playlist_class_init(MoosePlaylistClass *klass)
+{
+    GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+    gobject_class->finalize = moose_playlist_finalize;;
+}
+
+///////////////////////////////
+
+static void moose_playlist_init(MoosePlaylist *self)
+{
+    self->priv = moose_playlist_get_instance_private(self);
+    self->priv->stack = NULL;
+    self->priv->free_func = NULL;
+}
+
+///////////////////////////////
+//          PUBLIC           //
+///////////////////////////////
+
+MoosePlaylist *moose_playlist_new(long size_hint, GDestroyNotify free_func)
+{
+    MoosePlaylist *self = g_object_new(MOOSE_TYPE_PLAYLIST, NULL);
+
+    self->priv->stack = g_ptr_array_sized_new(size_hint);
+    memset(self->priv->stack->pdata, 0, self->priv->stack->len);
+    g_ptr_array_set_free_func(self->priv->stack, free_func);
+
+    self->priv->free_func = free_func;
     return self;
 }
 
 ///////////////////////////////
 
-void moose_stack_append(MoosePlaylist *self, void *ptr)
+void moose_playlist_append(MoosePlaylist *self, void *ptr)
 {
-    g_ptr_array_add(self->stack, ptr);
+    g_ptr_array_add(self->priv->stack, ptr);
 }
 
 ///////////////////////////////
 
-void moose_stack_clear(MoosePlaylist *self)
+void moose_playlist_clear(MoosePlaylist *self)
 {
-    g_ptr_array_set_size(self->stack, 0);
+    g_ptr_array_set_size(self->priv->stack, 0);
 }
 
 ///////////////////////////////
 
-void moose_stack_free(MoosePlaylist *self)
+unsigned moose_playlist_length(MoosePlaylist *self)
 {
-    if (self == NULL)
-        return;
-
-    g_ptr_array_free(self->stack, TRUE);
-    g_free(self);
+    g_return_val_if_fail(self, 1);
+    return self->priv->stack->len;
 }
 
 ///////////////////////////////
 
-unsigned moose_stack_length(MoosePlaylist *self)
-{
-    if (self == NULL)
-        return 0;
-
-    return self->stack->len;
-}
-
-///////////////////////////////
-
-void moose_stack_sort(MoosePlaylist *self, GCompareFunc func)
+void moose_playlist_sort(MoosePlaylist *self, GCompareFunc func)
 {
     if (self == NULL || func == NULL)
         return;
 
-    g_ptr_array_sort(self->stack, func);
+    g_ptr_array_sort(self->priv->stack, func);
 }
 
 ///////////////////////////////
 
-void *moose_stack_at(MoosePlaylist *self, unsigned at)
+void *moose_playlist_at(MoosePlaylist *self, unsigned at)
 {
-    if(at < moose_stack_length(self)) {
-        return g_ptr_array_index(self->stack, at);
+    if(at < moose_playlist_length(self)) {
+        return g_ptr_array_index(self->priv->stack, at);
     } else {
         g_error("Invalid index for stack %p: %d\n", self, at);
         return NULL;
@@ -78,17 +109,17 @@ void *moose_stack_at(MoosePlaylist *self, unsigned at)
 
 ///////////////////////////////
 
-MoosePlaylist * moose_stack_copy(MoosePlaylist *self)
+MoosePlaylist * moose_playlist_copy(MoosePlaylist *self)
 {
-    size_t size = moose_stack_length(self);
+    size_t size = moose_playlist_length(self);
     if(self == NULL || size == 0)
         return NULL;
 
-    MoosePlaylist *other = moose_stack_create(size, self->free_func);
+    MoosePlaylist *other = moose_playlist_new(size, self->priv->free_func);
 
     for(size_t i = 0; i < size; ++i) {
-        g_ptr_array_add(other->stack, 
-            g_ptr_array_index(self->stack, i)
+        g_ptr_array_add(other->priv->stack, 
+            g_ptr_array_index(self->priv->stack, i)
         );
     }
 

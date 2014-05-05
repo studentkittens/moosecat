@@ -93,7 +93,7 @@ void moose_stprv_spl_destroy(MooseStore *self)
     self->spl.select_tables_stmt = NULL;
 
     if (self->spl.stack != NULL) {
-        moose_stack_free(self->spl.stack);
+        g_object_unref(self->spl.stack);
         self->spl.stack = NULL;
     }
 }
@@ -182,10 +182,10 @@ static struct mpd_playlist *moose_stprv_spl_name_to_playlist(MooseStore *store, 
     g_assert(store);
 
     struct mpd_playlist * playlist_result = NULL;
-    unsigned length = moose_stack_length(store->spl.stack);
+    unsigned length = moose_playlist_length(store->spl.stack);
 
     for (unsigned i = 0; i < length; ++i) {
-        struct mpd_playlist *playlist = moose_stack_at(store->spl.stack, i);
+        struct mpd_playlist *playlist = moose_playlist_at(store->spl.stack, i);
 
         if (playlist && g_strcmp0(playlist_name, mpd_playlist_get_path(playlist)) == 0) {
             playlist_result = playlist;
@@ -204,9 +204,9 @@ static void moose_stprv_spl_listplaylists(MooseStore *store)
     MooseClient *self = store->client;
 
     if (store->spl.stack != NULL)
-        moose_stack_free(store->spl.stack);
+        g_object_unref(store->spl.stack);
 
-    store->spl.stack = moose_stack_create(10, (GDestroyNotify) mpd_playlist_free);
+    store->spl.stack = moose_playlist_new(10, (GDestroyNotify) mpd_playlist_free);
 
 
     struct mpd_connection *conn = moose_get(self);
@@ -215,7 +215,7 @@ static void moose_stprv_spl_listplaylists(MooseStore *store)
         mpd_send_list_playlists(conn);
 
         while ((playlist = mpd_recv_playlist(conn)) != NULL) {
-            moose_stack_append(store->spl.stack, playlist);
+            moose_playlist_append(store->spl.stack, playlist);
         }
 
         if (mpd_response_finish(conn) == false) {       
@@ -312,8 +312,8 @@ void moose_stprv_spl_update(MooseStore *self)
         if (drop_table_name != NULL) {
             bool is_valid = false;
 
-            for (unsigned i = 0; i < moose_stack_length(self->spl.stack); ++i) {
-                struct mpd_playlist *playlist = moose_stack_at(self->spl.stack, i);
+            for (unsigned i = 0; i < moose_playlist_length(self->spl.stack); ++i) {
+                struct mpd_playlist *playlist = moose_playlist_at(self->spl.stack, i);
                 char *valid_table_name = moose_stprv_spl_construct_table_name(playlist);
                 is_valid = (g_strcmp0(valid_table_name, drop_table_name) == 0);
                 g_free(valid_table_name);
@@ -344,8 +344,8 @@ void moose_stprv_spl_update(MooseStore *self)
      * and find the corresponding table_name.
      *
      * If desired, also call load() on it.  */
-    for (unsigned i = 0; i < moose_stack_length(self->spl.stack); ++i) {
-        struct mpd_playlist *playlist = moose_stack_at(self->spl.stack, i);
+    for (unsigned i = 0; i < moose_playlist_length(self->spl.stack); ++i) {
+        struct mpd_playlist *playlist = moose_playlist_at(self->spl.stack, i);
 
         if (playlist != NULL) {
             /* Find matching playlists by name.
@@ -541,15 +541,15 @@ static int moose_stprv_spl_bsearch_cmp(const void *key, const void *array)
 static int moose_stprv_spl_filter_id_list(MooseStore *store, GPtrArray *song_ptr_array, const char *match_clause, MoosePlaylist *out_stack)
 {
     /* Roughly estimate the number of song pointer to expect */
-    int preallocations = moose_stack_length(store->stack) /
+    int preallocations = moose_playlist_length(store->stack) /
                         (((match_clause) ? MAX(strlen(match_clause), 1) : 1) * 2);
 
     /* Temp. container to hold the query on the database */
-    MoosePlaylist *db_songs = moose_stack_create(preallocations, NULL);
+    MoosePlaylist *db_songs = moose_playlist_new(preallocations, NULL);
 
     if(moose_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
-        for(size_t i = 0; i < moose_stack_length(db_songs); ++i) {
-            struct mpd_song *song = moose_stack_at(db_songs, i);
+        for(size_t i = 0; i < moose_playlist_length(db_songs); ++i) {
+            struct mpd_song *song = moose_playlist_at(db_songs, i);
             if(bsearch(
                         song, 
                         song_ptr_array->pdata, 
@@ -559,15 +559,15 @@ static int moose_stprv_spl_filter_id_list(MooseStore *store, GPtrArray *song_ptr
                     )
             )
             {
-                moose_stack_append(out_stack, song);
+                moose_playlist_append(out_stack, song);
             }
         }
     }
 
     /* Set them free */
-    moose_stack_free(db_songs);
+    g_object_unref(db_songs);
 
-    return moose_stack_length(out_stack);
+    return moose_playlist_length(out_stack);
 }
 
 ///////////////////
@@ -628,8 +628,8 @@ int moose_stprv_spl_select_playlist(MooseStore *store, MoosePlaylist *out_stack,
         while (sqlite3_step(pl_id_stmt) == SQLITE_ROW) {
             /* Get the actual song */
             int song_idx = sqlite3_column_int(pl_id_stmt, 0);
-            if(0 < song_idx && song_idx <= (int)moose_stack_length(store->stack)) {
-                struct mpd_song *song = moose_stack_at(store->stack, song_idx - 1);
+            if(0 < song_idx && song_idx <= (int)moose_playlist_length(store->stack)) {
+                struct mpd_song *song = moose_playlist_at(store->stack, song_idx - 1);
 
                 /* Remember the pointer */
                 g_ptr_array_add(song_ptr_array, song);
@@ -678,7 +678,7 @@ int moose_stprv_spl_get_loaded_playlists(MooseStore *store, MoosePlaylist *stack
                     struct mpd_playlist *playlist = moose_stprv_spl_name_to_playlist(store, playlist_name);
 
                     if (playlist != NULL) {
-                        moose_stack_append(stack, playlist);
+                        moose_playlist_append(stack, playlist);
                         ++rc;
                     }
 
@@ -699,8 +699,8 @@ int moose_stprv_spl_get_loaded_playlists(MooseStore *store, MoosePlaylist *stack
 
 int moose_stprv_spl_get_known_playlists(MooseStore *store, MoosePlaylist *stack)
 {
-    for(unsigned i = 0; i < moose_stack_length(store->spl.stack); ++i) { 
-        moose_stack_append(stack, moose_stack_at(store->spl.stack, i));
+    for(unsigned i = 0; i < moose_playlist_length(store->spl.stack); ++i) { 
+        moose_playlist_append(stack, moose_playlist_at(store->spl.stack, i));
     }
-    return moose_stack_length(store->spl.stack);
+    return moose_playlist_length(store->spl.stack);
 }

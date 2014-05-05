@@ -116,7 +116,7 @@ long moose_store_playlist_get_all_loaded(MooseStore *self, MoosePlaylist *stack)
 /**
  * @brief Returns a stack with mpd_playlists of all KNOWN playlists (not loaded)
  *
- * Only free the stack with moose_stack_free(). Not the playlists!
+ * Only free the stack with g_object_unref(). Not the playlists!
  * 
  *
  * @param self the store to operate on
@@ -140,13 +140,13 @@ long moose_store_playlist_get_all_known(MooseStore *self, MoosePlaylist *stack);
  *
  * Example:
  *
- *      MoosePlaylist * stack = moose_stack_create(50, NULL);
+ *      MoosePlaylist * stack = moose_playlist_new(50, NULL);
  *      int job_id = moose_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
  *      // You can other things than waiting here.
  *      moose_store_wait_for_job(store, job_id);
  *      moose_store_lock(store);
- *      for(int i = 0; i < moose_stack_length(stack); ++i) {
- *          printf("%s\n", mpd_song_tag(moose_stack_at(i), MPD_TAG_TITLE, 0));
+ *      for(int i = 0; i < moose_playlist_length(stack); ++i) {
+ *          printf("%s\n", mpd_song_tag(moose_playlist_at(i), MPD_TAG_TITLE, 0));
  *      }
  *      moose_store_unlock(store);
  *      
