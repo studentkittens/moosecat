@@ -80,7 +80,7 @@ Here's a list of people to blame:
 
 ===================================  ==========================  ===========================================
 *Christopher* **<sahib>** *Pahl*     https://github.com/sahib    He started it all. He also breaks it all
-*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Pluginsystem, Metadata Chooser
+*Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Metadata Chooser
 *Christoph* **<kitteh>** *Piechula*  https://github.com/qitta    Moral boosts, Ideas for Pluginsystem 
 ===================================  ==========================  ===========================================
 
