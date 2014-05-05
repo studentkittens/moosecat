@@ -9,11 +9,11 @@ MOOSECAT
    A Work-In-Progress Screenshot.
 
 
-~~~~~~~~~~~~~~~~~~~~~~~~
-*Another* MusicPD client?
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+*ANOTHER* MUSICPD CLIENT?
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are only 240 (`I counted them`_) clients out there. So what? Not even a
+There are only 240 (`I counted them`) clients out there. So what? Not even a
 byte full. Sorry for the bad pun.
 
 .. warning::
@@ -54,7 +54,6 @@ C-Side-Stuff::
 Python-Stuff::
 
     sudo pacman -S python-yaml cython 
-    sudo pip install
 
 -------
 
