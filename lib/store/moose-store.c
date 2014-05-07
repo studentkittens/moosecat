@@ -39,40 +39,40 @@ typedef struct {
  *
  */ 
 int MooseJobPrios[] = {
-    [MC_OPER_DESERIALIZE]     = -1,
-    [MC_OPER_LISTALLINFO]     = -1,
-    [MC_OPER_PLCHANGES]       = +0,
-    [MC_OPER_SPL_LOAD]        = +1,
-    [MC_OPER_SPL_UPDATE]      = +1,
-    [MC_OPER_UPDATE_META]     = +1,
-    [MC_OPER_DB_SEARCH]       = +2,
-    [MC_OPER_DIR_SEARCH]      = +2,
-    [MC_OPER_SPL_LIST]        = +2,
-    [MC_OPER_SPL_LIST_ALL]    = +2,
-    [MC_OPER_SPL_QUERY]       = +2,
-    [MC_OPER_WRITE_DATABASE]  = +3,
-    [MC_OPER_FIND_SONG_BY_ID] = +4,
-    [MC_OPER_UNDEFINED]       = 10
+    [MOOSE_OPER_DESERIALIZE]     = -1,
+    [MOOSE_OPER_LISTALLINFO]     = -1,
+    [MOOSE_OPER_PLCHANGES]       = +0,
+    [MOOSE_OPER_SPL_LOAD]        = +1,
+    [MOOSE_OPER_SPL_UPDATE]      = +1,
+    [MOOSE_OPER_UPDATE_META]     = +1,
+    [MOOSE_OPER_DB_SEARCH]       = +2,
+    [MOOSE_OPER_DIR_SEARCH]      = +2,
+    [MOOSE_OPER_SPL_LIST]        = +2,
+    [MOOSE_OPER_SPL_LIST_ALL]    = +2,
+    [MOOSE_OPER_SPL_QUERY]       = +2,
+    [MOOSE_OPER_WRITE_DATABASE]  = +3,
+    [MOOSE_OPER_FIND_SONG_BY_ID] = +4,
+    [MOOSE_OPER_UNDEFINED]       = 10
 };
 
 /**
  * Map MooseOpFinishedEnum members to meaningful strings
  */
 const char * MooseJobNames[] = {
-    [MC_OPER_DESERIALIZE]     = "DESERIALIZE",
-    [MC_OPER_LISTALLINFO]     = "LISTALLINFO",
-    [MC_OPER_PLCHANGES]       = "PLCHANGES",
-    [MC_OPER_SPL_LOAD]        = "SPL_LOAD",
-    [MC_OPER_SPL_UPDATE]      = "SPL_UPDATE",
-    [MC_OPER_UPDATE_META]     = "UPDATE_META",
-    [MC_OPER_DB_SEARCH]       = "DB_SEARCH",
-    [MC_OPER_DIR_SEARCH]      = "DIR_SEARCH",
-    [MC_OPER_SPL_LIST]        = "SPL_LIST",
-    [MC_OPER_SPL_LIST_ALL]    = "SPL_LIST_ALL",
-    [MC_OPER_SPL_QUERY]       = "SPL_QUERY",
-    [MC_OPER_WRITE_DATABASE]  = "WRITE_DATABASE",
-    [MC_OPER_FIND_SONG_BY_ID] = "FIND_SONG_BY_ID",
-    [MC_OPER_UNDEFINED]       = "[Unknown]"
+    [MOOSE_OPER_DESERIALIZE]     = "DESERIALIZE",
+    [MOOSE_OPER_LISTALLINFO]     = "LISTALLINFO",
+    [MOOSE_OPER_PLCHANGES]       = "PLCHANGES",
+    [MOOSE_OPER_SPL_LOAD]        = "SPL_LOAD",
+    [MOOSE_OPER_SPL_UPDATE]      = "SPL_UPDATE",
+    [MOOSE_OPER_UPDATE_META]     = "UPDATE_META",
+    [MOOSE_OPER_DB_SEARCH]       = "DB_SEARCH",
+    [MOOSE_OPER_DIR_SEARCH]      = "DIR_SEARCH",
+    [MOOSE_OPER_SPL_LIST]        = "SPL_LIST",
+    [MOOSE_OPER_SPL_LIST_ALL]    = "SPL_LIST_ALL",
+    [MOOSE_OPER_SPL_QUERY]       = "SPL_QUERY",
+    [MOOSE_OPER_WRITE_DATABASE]  = "WRITE_DATABASE",
+    [MOOSE_OPER_FIND_SONG_BY_ID] = "FIND_SONG_BY_ID",
+    [MOOSE_OPER_UNDEFINED]       = "[Unknown]"
 };
 
 //////////////////////////////
@@ -93,7 +93,7 @@ static long moose_store_send_job_no_args(
         MooseStore *self,
         MooseStoreOperation op)
 {
-    g_assert(0 <= op && op <= MC_OPER_ENUM_MAX);
+    g_assert(0 <= op && op <= MOOSE_OPER_ENUM_MAX);
 
     MooseJobData *data = g_new0(MooseJobData, 1);
     data->op = op;
@@ -107,7 +107,7 @@ static long moose_store_send_job_no_args(
  * @brief Convert a MooseStoreOperation mask to a string.
  *
  *
- * >>> printf(moose_store_op_to_string(MC_OPER_LISTALLINFO | MC_OPER_SPL_QUERY));
+ * >>> printf(moose_store_op_to_string(MOOSE_OPER_LISTALLINFO | MOOSE_OPER_SPL_QUERY));
  * LISTALLINFO, SPL_QUERY
  *
  * This function is used for debugging only currently.
@@ -118,14 +118,14 @@ static long moose_store_send_job_no_args(
  */
 static char * moose_store_op_to_string(MooseStoreOperation op)
 {
-    g_assert(0 <= op && op <= MC_OPER_ENUM_MAX);
+    g_assert(0 <= op && op <= MOOSE_OPER_ENUM_MAX);
 
     if(op == 0) {
         return NULL;
     }
 
     unsigned name_index = 0;
-    unsigned base = (unsigned)log2(MC_OPER_ENUM_MAX);
+    unsigned base = (unsigned)log2(MOOSE_OPER_ENUM_MAX);
     const char * names[base + 1];
 
     for(unsigned i = 0; i < base; ++i) {
@@ -221,7 +221,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore *self, const char *
     if (g_file_test(db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
         exist_check = TRUE;
     } else if (self->settings->use_compression) {
-        char *zip_path = g_strdup_printf("%s%s", db_path, MC_GZIP_ENDING);
+        char *zip_path = g_strdup_printf("%s%s", db_path, MOOSE_GZIP_ENDING);
         exist_check = g_file_test(zip_path, G_FILE_TEST_IS_REGULAR);
         GTimer *zip_timer = g_timer_new();
 
@@ -293,7 +293,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore *self, const char *
         goto close_handle;
 
     size_t cached_sc_version = moose_stprv_get_sc_version(self);
-    if (cached_sc_version != MC_DB_SCHEMA_VERSION)
+    if (cached_sc_version != MOOSE_DB_SCHEMA_VERSION)
         goto close_handle;
     
     /* All okay! we can use the old database */
@@ -336,7 +336,7 @@ static void moose_store_shutdown(MooseStore * self)
     self->handle = NULL;
 
     if (self->settings->use_memory_db == false) {
-        g_unlink(MC_STORE_TMP_DB_PATH);
+        g_unlink(MOOSE_STORE_TMP_DB_PATH);
     }
 
     if(self->completion != NULL) {
@@ -375,7 +375,7 @@ static void moose_store_buildup(MooseStore * self)
 
         /* the database is new, so no pos/id information is there yet
          * we need to query mpd, update db && queue info */
-        moose_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
+        moose_store_send_job_no_args(self, MOOSE_OPER_LISTALLINFO);
     } else {
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
@@ -389,7 +389,7 @@ static void moose_store_buildup(MooseStore * self)
         /* load the old database into memory */
         moose_stprv_load_or_save(self, false, db_path);
 
-        moose_store_send_job_no_args(self, MC_OPER_DESERIALIZE);
+        moose_store_send_job_no_args(self, MOOSE_OPER_DESERIALIZE);
     }
 
     /* Playlist support */
@@ -430,11 +430,11 @@ static void moose_store_update_callback(
     g_assert(self && client && self->client == client);
 
     if (events & MPD_IDLE_DATABASE) {
-        moose_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
+        moose_store_send_job_no_args(self, MOOSE_OPER_LISTALLINFO);
     } else if (events & MPD_IDLE_QUEUE) {
-        moose_store_send_job_no_args(self, MC_OPER_PLCHANGES);
+        moose_store_send_job_no_args(self, MOOSE_OPER_PLCHANGES);
     } else if (events & MPD_IDLE_STORED_PLAYLIST) {
-        moose_store_send_job_no_args(self, MC_OPER_SPL_UPDATE);
+        moose_store_send_job_no_args(self, MOOSE_OPER_SPL_UPDATE);
     }
 }
 
@@ -470,8 +470,8 @@ static void moose_store_connectivity_callback(
             moose_stprv_unlock_attributes(self);
         } else {
             /* Important to send those two seperate (different priorities */
-            moose_store_send_job_no_args(self, MC_OPER_LISTALLINFO);
-            moose_store_send_job_no_args(self, MC_OPER_WRITE_DATABASE);
+            moose_store_send_job_no_args(self, MOOSE_OPER_LISTALLINFO);
+            moose_store_send_job_no_args(self, MOOSE_OPER_WRITE_DATABASE);
         }
     }
 }
@@ -525,48 +525,48 @@ void *moose_store_job_execute_callback(
          * but is not restricted to that.
          */
 
-        if(data->op & MC_OPER_DESERIALIZE) {
+        if(data->op & MOOSE_OPER_DESERIALIZE) {
             moose_stprv_deserialize_songs(self);
             moose_stprv_queue_update_stack_posid(self);
-            data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
+            data->op |= (MOOSE_OPER_PLCHANGES | MOOSE_OPER_SPL_UPDATE | MOOSE_OPER_UPDATE_META);
             self->force_update_listallinfo = false;
         }
 
-        if(data->op & MC_OPER_LISTALLINFO) {
+        if(data->op & MOOSE_OPER_LISTALLINFO) {
             moose_store_oper_listallinfo(self, cancel_op);
-            data->op |= (MC_OPER_PLCHANGES | MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
+            data->op |= (MOOSE_OPER_PLCHANGES | MOOSE_OPER_SPL_UPDATE | MOOSE_OPER_UPDATE_META);
             self->force_update_listallinfo = false;
         }
         
-        if(data->op & MC_OPER_PLCHANGES) {
+        if(data->op & MOOSE_OPER_PLCHANGES) {
             moose_store_oper_plchanges(self, cancel_op);
-            data->op |= (MC_OPER_SPL_UPDATE | MC_OPER_UPDATE_META);
+            data->op |= (MOOSE_OPER_SPL_UPDATE | MOOSE_OPER_UPDATE_META);
             self->force_update_plchanges = false;
         }
         
-        if(data->op & MC_OPER_UPDATE_META) {
+        if(data->op & MOOSE_OPER_UPDATE_META) {
             moose_stprv_insert_meta_attributes(self);
         }
 
-        if(data->op & MC_OPER_SPL_UPDATE) {
+        if(data->op & MOOSE_OPER_SPL_UPDATE) {
             moose_stprv_spl_update(self);
         }
         
-        if(data->op & MC_OPER_SPL_LOAD) {
+        if(data->op & MOOSE_OPER_SPL_LOAD) {
             moose_stprv_spl_load_by_playlist_name(self, data->playlist_name);
         }
         
-        if(data->op & MC_OPER_SPL_LIST) {
+        if(data->op & MOOSE_OPER_SPL_LIST) {
             moose_stprv_spl_get_loaded_playlists(self, data->out_stack);
             result = data->out_stack;
         }
 
-        if(data->op & MC_OPER_SPL_LIST_ALL) {
+        if(data->op & MOOSE_OPER_SPL_LIST_ALL) {
             moose_stprv_spl_get_known_playlists(self, data->out_stack);
             result = data->out_stack;
         }
 
-        if(data->op & MC_OPER_DB_SEARCH) {
+        if(data->op & MOOSE_OPER_DB_SEARCH) {
             moose_stprv_select_to_stack(
                     self, data->match_clause, data->queue_only,
                     data->out_stack, data->length_limit
@@ -574,7 +574,7 @@ void *moose_store_job_execute_callback(
             result = data->out_stack;
         }
 
-        if(data->op & MC_OPER_DIR_SEARCH) {
+        if(data->op & MOOSE_OPER_DIR_SEARCH) {
             moose_stprv_dir_select_to_stack(
                     self, data->out_stack,
                     data->dir_directory, data->dir_depth
@@ -582,7 +582,7 @@ void *moose_store_job_execute_callback(
             result = data->out_stack;
         }
 
-        if(data->op & MC_OPER_SPL_QUERY) {
+        if(data->op & MOOSE_OPER_SPL_QUERY) {
             moose_stprv_spl_select_playlist(
                     self, data->out_stack, 
                     data->playlist_name, data->match_clause
@@ -590,7 +590,7 @@ void *moose_store_job_execute_callback(
             result = data->out_stack;
         }
 
-        if(data->op & MC_OPER_WRITE_DATABASE) {
+        if(data->op & MOOSE_OPER_WRITE_DATABASE) {
             if (self->write_to_disk) {
                 char *full_path = moose_store_construct_full_dbpath(self, self->db_directory);
                 moose_stprv_load_or_save(self, true, full_path);
@@ -598,7 +598,7 @@ void *moose_store_job_execute_callback(
             }
         }
 
-        if(data->op & MC_OPER_FIND_SONG_BY_ID) { 
+        if(data->op & MOOSE_OPER_FIND_SONG_BY_ID) { 
             data->out_stack = moose_store_find_song_by_id_impl(self, data->needle_song_id);
             result = data->out_stack;
         }
@@ -607,11 +607,11 @@ void *moose_store_job_execute_callback(
          * we need to remember to save the database to
          * disk */
         if(data->op & (0
-                    | MC_OPER_LISTALLINFO 
-                    | MC_OPER_PLCHANGES 
-                    | MC_OPER_SPL_UPDATE 
-                    | MC_OPER_SPL_LOAD 
-                    | MC_OPER_UPDATE_META)) {
+                    | MOOSE_OPER_LISTALLINFO 
+                    | MOOSE_OPER_PLCHANGES 
+                    | MOOSE_OPER_SPL_UPDATE 
+                    | MOOSE_OPER_SPL_LOAD 
+                    | MOOSE_OPER_UPDATE_META)) {
             self->write_to_disk = TRUE;
         }
 
@@ -621,11 +621,11 @@ void *moose_store_job_execute_callback(
      * Otherwise the user has to unlock it himself! 
      */
     if((data->op & (0 
-                | MC_OPER_DB_SEARCH 
-                | MC_OPER_SPL_QUERY 
-                | MC_OPER_SPL_LIST 
-                | MC_OPER_SPL_LIST_ALL
-                | MC_OPER_DIR_SEARCH)) == 0) {
+                | MOOSE_OPER_DB_SEARCH 
+                | MOOSE_OPER_SPL_QUERY 
+                | MOOSE_OPER_SPL_LIST 
+                | MOOSE_OPER_SPL_LIST_ALL
+                | MOOSE_OPER_DIR_SEARCH)) == 0) {
         moose_stprv_unlock_attributes(self);
     }
 
@@ -766,10 +766,10 @@ long moose_store_playlist_load(MooseStore *self, const char *playlist_name)
     g_assert(self);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_SPL_LOAD;
+    data->op = MOOSE_OPER_SPL_LOAD;
     data->playlist_name = g_strdup(playlist_name);
 
-    return moose_jm_send(self->jm, MooseJobPrios[MC_OPER_SPL_LOAD], data);
+    return moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_SPL_LOAD], data);
 }
 
 //////////////////////////////
@@ -781,13 +781,13 @@ long moose_store_playlist_select_to_stack(MooseStore *self, MoosePlaylist *stack
     g_assert(playlist_name);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_SPL_QUERY;
+    data->op = MOOSE_OPER_SPL_QUERY;
 
     data->playlist_name = g_strdup(playlist_name);
     data->match_clause = g_strdup(match_clause);
     data->out_stack = stack;
 
-    return moose_jm_send(self->jm, MooseJobPrios[MC_OPER_SPL_QUERY], data);
+    return moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_SPL_QUERY], data);
 }
 
 //////////////////////////////
@@ -798,12 +798,12 @@ long moose_store_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, con
     g_assert(stack);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_DIR_SEARCH;
+    data->op = MOOSE_OPER_DIR_SEARCH;
     data->dir_directory = g_strdup(directory);
     data->dir_depth = depth;
     data->out_stack = stack;
 
-    return moose_jm_send(self->jm, MooseJobPrios[MC_OPER_DIR_SEARCH], data);
+    return moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_DIR_SEARCH], data);
 }
 
 //////////////////////////////
@@ -814,10 +814,10 @@ long moose_store_playlist_get_all_loaded(MooseStore *self, MoosePlaylist *stack)
     g_assert(stack);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_SPL_LIST;
+    data->op = MOOSE_OPER_SPL_LIST;
     data->out_stack = stack;
 
-    return moose_jm_send(self->jm, MooseJobPrios[MC_OPER_SPL_LIST], data);
+    return moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST], data);
 }
 
 //////////////////////////////
@@ -828,10 +828,10 @@ long moose_store_playlist_get_all_known(MooseStore *self, MoosePlaylist *stack)
     g_assert(stack);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_SPL_LIST_ALL;
+    data->op = MOOSE_OPER_SPL_LIST_ALL;
     data->out_stack = stack;
 
-    return moose_jm_send(self->jm, MooseJobPrios[MC_OPER_SPL_LIST_ALL], data);
+    return moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST_ALL], data);
 }
 
 //////////////////////////////
@@ -842,14 +842,14 @@ long moose_store_search_to_stack(
     )
 {
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_DB_SEARCH;
+    data->op = MOOSE_OPER_DB_SEARCH;
 
     data->match_clause = g_strdup(match_clause);
     data->queue_only = queue_only;
     data->length_limit = limit_len;
     data->out_stack = stack;
 
-    return moose_jm_send(self->jm, MooseJobPrios[MC_OPER_DB_SEARCH], data);
+    return moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_DB_SEARCH], data);
 }
 
 //////////////////////////////
@@ -897,10 +897,10 @@ struct mpd_song * moose_store_find_song_by_id(MooseStore * self, unsigned needle
     g_assert(self);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MC_OPER_FIND_SONG_BY_ID;
+    data->op = MOOSE_OPER_FIND_SONG_BY_ID;
     data->needle_song_id = needle_song_id;
 
-    unsigned job_id = moose_jm_send(self->jm, MooseJobPrios[MC_OPER_FIND_SONG_BY_ID], data);
+    unsigned job_id = moose_jm_send(self->jm, MooseJobPrios[MOOSE_OPER_FIND_SONG_BY_ID], data);
     moose_store_wait_for_job(self, job_id);
     MoosePlaylist * stack = moose_store_get_result(self, job_id);
     if(stack != NULL && moose_playlist_length(stack) > 0) {

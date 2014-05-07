@@ -1,5 +1,5 @@
-#ifndef MC_DB_PRIVATE_H
-#define MC_DB_PRIVATE_H
+#ifndef MOOSE_DB_PRIVATE_H
+#define MOOSE_DB_PRIVATE_H
 
 #include "moose-store-store.h"
 
@@ -153,4 +153,4 @@ void moose_stprv_lock_attributes(MooseStore *self);
  */
 void moose_stprv_unlock_attributes(MooseStore *self);
 
-#endif /* end of include guard: MC_DB_PRIVATE_H */
+#endif /* end of include guard: MOOSE_DB_PRIVATE_H */

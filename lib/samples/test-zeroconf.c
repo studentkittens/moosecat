@@ -1,38 +1,45 @@
 #include "../moose-api.h"
 
 
-static void zeroconf_callback(struct MooseZeroconfBrowser * self, void * user_data) 
+static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data) 
 {
-    switch(moose_zeroconf_get_state(self)) {
-        case MC_ZEROCONF_STATE_CHANGED: {
+    switch(moose_zeroconf_browser_get_state(self)) {
+        case MOOSE_ZEROCONF_STATE_CHANGED: {
             g_printerr("SERVER_LIST:\n");
-            struct MooseZeroconfServer ** server = moose_zeroconf_get_server(self);
-            for(int i = 0; server[i]; ++i) {
-                struct MooseZeroconfServer * s = server[i];
-                g_printerr("   %s %s %s %s %s %u\n",
-                        moose_zeroconf_server_get_host(s),
-                        moose_zeroconf_server_get_name(s),
-                        moose_zeroconf_server_get_type(s),
-                        moose_zeroconf_server_get_domain(s),
-                        moose_zeroconf_server_get_addr(s),
-                        moose_zeroconf_server_get_port(s)
-                );
+            GList *server_list = moose_zeroconf_browser_get_server_list(self);
+            for(GList *i = server_list; i; i = i->next) {
+                MooseZeroconfServer * server = i->data;
+                
+                #define PRINT(THING) \
+                {\
+                    char *string = moose_zeroconf_server_get_##THING(server);\
+                    g_printerr("%15s: %s\n", #THING, string);\
+                    g_free(string);\
+                }\
+
+                PRINT(name); 
+                PRINT(protocol); 
+                PRINT(domain); 
+                PRINT(addr); 
+                PRINT(host); 
+                g_printerr("%15s: %d\n", "port", moose_zeroconf_server_get_port(server));
+                g_printerr("\n");
             }
-            g_free(server);
+            g_list_free_full(server_list, (GDestroyNotify)g_object_unref);
             break;
         }
-        case MC_ZEROCONF_STATE_ERROR: {
+        case MOOSE_ZEROCONF_STATE_ERROR: {
             g_printerr("-> Uh oh, some error happended: %s\n", 
-                    moose_zeroconf_get_error(self)
+                    moose_zeroconf_browser_get_error(self)
             );
             break;
         }
-        case MC_ZEROCONF_STATE_ALL_FOR_NOW: {
+        case MOOSE_ZEROCONF_STATE_ALL_FOR_NOW: {
             g_printerr("-> These should be all for now, quitting n 10 seconds\n");
             g_timeout_add(10000, (GSourceFunc)g_main_loop_quit, user_data);
             break;
         }
-        case MC_ZEROCONF_STATE_UNCONNECTED:
+        case MOOSE_ZEROCONF_STATE_UNCONNECTED:
         default:
             g_printerr("Should not happen...\n");
             break;
@@ -42,17 +49,17 @@ static void zeroconf_callback(struct MooseZeroconfBrowser * self, void * user_da
 
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const *argv[])
 {
-    struct MooseZeroconfBrowser * browser = moose_zeroconf_new(NULL);
+    MooseZeroconfBrowser * browser = moose_zeroconf_browser_new();
     if(browser != NULL) {
-        if(moose_zeroconf_get_state(browser) != MC_ZEROCONF_STATE_UNCONNECTED) {
+        if(moose_zeroconf_browser_get_state(browser) != MOOSE_ZEROCONF_STATE_UNCONNECTED) {
             GMainLoop * loop = g_main_loop_new(NULL, FALSE);
-            moose_zeroconf_register(browser, zeroconf_callback, loop);
+            g_signal_connect(browser, "state-changed", G_CALLBACK(zeroconf_callback), loop);
             g_main_loop_run(loop);
             g_main_loop_unref(loop);
         } else {
             g_printerr("No avahi daemon running.\n");
         }
-        moose_zeroconf_destroy(browser);
+        moose_zeroconf_browser_destroy(browser);
     }
 
     return 0;

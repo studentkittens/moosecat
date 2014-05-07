@@ -122,7 +122,7 @@ static EntryTag *setup_client(void)
     EntryTag *rc = NULL;
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer *setup_timer = g_timer_new();
-    MooseClient *client = moose_create(MC_PM_COMMAND);
+    MooseClient *client = moose_create(MOOSE_PM_COMMAND);
     moose_connect(client, NULL, "localhost", 6600, 2.0);
 
     if (client && moose_is_connected(client)) {

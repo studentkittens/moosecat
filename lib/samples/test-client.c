@@ -16,7 +16,7 @@ static void * execute(
     G_GNUC_UNUSED void *job_data)
 {
     MooseClient *client = user_data;
-    moose_signal_dispatch(client, "logging", client, "test123", MC_LOG_ERROR, FALSE);
+    moose_signal_dispatch(client, "logging", client, "test123", MOOSE_LOG_ERROR, FALSE);
     send_some_commands(client);
     return NULL;
 }
@@ -51,10 +51,10 @@ int main(int argc, char const *argv[])
     MooseClient * client = NULL;
     if(argc > 1 && g_strcmp0(argv[1], "-c") == 0)  {
         g_printerr("Using CMND ProtocolMachine.\n");
-        client = moose_create(MC_PM_COMMAND);
+        client = moose_create(MOOSE_PM_COMMAND);
     } else {
         g_printerr("Using IDLE ProtocolMachine.\n");
-        client = moose_create(MC_PM_IDLE);
+        client = moose_create(MOOSE_PM_IDLE);
     }
 
     struct MooseJobManager *jm = moose_jm_create(execute, client);

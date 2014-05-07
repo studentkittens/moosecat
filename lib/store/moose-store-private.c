@@ -258,7 +258,7 @@ void moose_stprv_insert_meta_attributes(MooseStore *self)
             insert_meta_sql = sqlite3_mprintf(SQL_CODE(META),
                     db_update_time,
                     queue_version,
-                    MC_DB_SCHEMA_VERSION,
+                    MOOSE_DB_SCHEMA_VERSION,
                     moose_get_port(self->client),
                     moose_get_host(self->client)
             );
@@ -382,7 +382,7 @@ sqlite3_stmt **moose_stprv_prepare_all_statements_listed(MooseStore *self, const
 bool moose_strprv_open_memdb(MooseStore *self)
 {
     g_assert(self);
-    const char *db_name = (self->settings->use_memory_db) ? ":memory:" : MC_STORE_TMP_DB_PATH;
+    const char *db_name = (self->settings->use_memory_db) ? ":memory:" : MOOSE_STORE_TMP_DB_PATH;
 
     if (sqlite3_open(db_name, &self->handle) != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "ERROR: cannot open :memory: database. Dude, that's weird...");
@@ -910,8 +910,8 @@ void moose_stprv_deserialize_songs(MooseStore *self)
             "database: deserialized %d songs from local db. (took %2.3f)",
             progress_counter, g_timer_elapsed(timer, NULL)
     );
-    moose_shelper_report_operation_finished(self->client, MC_OP_DB_UPDATED);
-    moose_shelper_report_operation_finished(self->client, MC_OP_QUEUE_UPDATED);
+    moose_shelper_report_operation_finished(self->client, MOOSE_OP_DB_UPDATED);
+    moose_shelper_report_operation_finished(self->client, MOOSE_OP_QUEUE_UPDATED);
     g_timer_destroy(timer);
 
     if (error_id != SQLITE_DONE) {

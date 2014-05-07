@@ -1,5 +1,5 @@
-#ifndef MC_METADATA_THREADS_H
-#define MC_METADATA_THREADS_H
+#ifndef MOOSE_METADATA_THREADS_H
+#define MOOSE_METADATA_THREADS_H
 
 #include <glib.h>
 
@@ -96,5 +96,5 @@ void moose_mdthreads_forward(MooseMetadataThreads * self, void * result);
  */
 void moose_mdthreads_free(MooseMetadataThreads * self);
 
-#endif /* end of include guard: MC_METADATA_THREADS_H */
+#endif /* end of include guard: MOOSE_METADATA_THREADS_H */
 

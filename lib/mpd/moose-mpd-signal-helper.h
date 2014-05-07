@@ -1,5 +1,5 @@
-#ifndef MC_SIGNAL_HELPER_H
-#define MC_SIGNAL_HELPER_H
+#ifndef MOOSE_SIGNAL_HELPER_H
+#define MOOSE_SIGNAL_HELPER_H
 
 #include <stdbool.h>
 #include <mpd/client.h>
@@ -10,10 +10,10 @@
 struct MooseClient;
 
 typedef enum MooseOpFinishedEnum {
-    MC_OP_DB_UPDATED,
-    MC_OP_QUEUE_UPDATED,
-    MC_OP_SPL_UPDATED,
-    MC_OP_SPL_LIST_UPDATED
+    MOOSE_OP_DB_UPDATED,
+    MOOSE_OP_QUEUE_UPDATED,
+    MOOSE_OP_SPL_UPDATED,
+    MOOSE_OP_SPL_LIST_UPDATED
 } MooseOpFinishedEnum;
 
 ///////////////////////////////
@@ -107,5 +107,5 @@ void moose_shelper_report_operation_finished(
     struct MooseClient *self,
     MooseOpFinishedEnum op);
 
-#endif /* end of include guard: MC_SIGNAL_HELPER_H */
+#endif /* end of include guard: MOOSE_SIGNAL_HELPER_H */
 

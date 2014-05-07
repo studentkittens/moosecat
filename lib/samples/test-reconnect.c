@@ -65,9 +65,9 @@ static void reconnect_manytimes(MoosePmType type)
 
 int main(void)
 {
-    g_printerr("-- MC_PM_IDLE\n");
-    reconnect_manytimes(MC_PM_IDLE);
-    g_printerr("-- MC_PM_COMMAND\n");
-    reconnect_manytimes(MC_PM_COMMAND);
+    g_printerr("-- MOOSE_PM_IDLE\n");
+    reconnect_manytimes(MOOSE_PM_IDLE);
+    g_printerr("-- MOOSE_PM_COMMAND\n");
+    reconnect_manytimes(MOOSE_PM_COMMAND);
     return EXIT_SUCCESS;
  }

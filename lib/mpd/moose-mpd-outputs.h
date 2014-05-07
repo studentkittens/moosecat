@@ -1,5 +1,5 @@
-#ifndef MC_OUTPUTS_HH
-#define MC_OUTPUTS_HH
+#ifndef MOOSE_OUTPUTS_HH
+#define MOOSE_OUTPUTS_HH
 
 #include "moose-mpd-protocol.h"
 
@@ -83,5 +83,5 @@ bool moose_priv_outputs_set_state(MooseOutputsData *data, const char *output_nam
  */
 void moose_priv_outputs_destroy(MooseOutputsData *data);
 
-#endif /* end of include guard: MC_OUTPUTS_HH */
+#endif /* end of include guard: MOOSE_OUTPUTS_HH */
 

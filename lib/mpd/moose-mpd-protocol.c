@@ -39,11 +39,11 @@ MooseClient *moose_create(MoosePmType pm)
     MooseClient *client = NULL;
 
     switch (pm) {
-        case MC_PM_IDLE:
+        case MOOSE_PM_IDLE:
             client = moose_create_idler();
             break;
 
-        case MC_PM_COMMAND: 
+        case MOOSE_PM_COMMAND: 
             client = moose_create_cmnder(-1);
             break;
     }

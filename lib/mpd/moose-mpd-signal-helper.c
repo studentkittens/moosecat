@@ -26,7 +26,7 @@ static bool moose_shelper_report_error_impl(struct MooseClient *self, struct mpd
             moose_signal_dispatch(
                     self, "logging", self,
                     "Connection to MPD was closed (IsFatal=maybe?)",
-                    MC_LOG_WARNING,
+                    MOOSE_LOG_WARNING,
                     FALSE 
             );
         }
@@ -108,7 +108,7 @@ void moose_shelper_report_error_printf(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        moose_signal_dispatch(self, "logging", self, full_string, MC_LOG_ERROR, FALSE);
+        moose_signal_dispatch(self, "logging", self, full_string, MOOSE_LOG_ERROR, FALSE);
     }
 
     va_end(list_ptr);
@@ -126,7 +126,7 @@ void moose_shelper_report_progress(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        moose_signal_dispatch(self, "logging", self, full_string, MC_LOG_INFO, TRUE);
+        moose_signal_dispatch(self, "logging", self, full_string, MOOSE_LOG_INFO, TRUE);
     }
 
     va_end(list_ptr);
@@ -167,10 +167,10 @@ void moose_shelper_report_connectivity(
 ///////////////////////////////
 
 static const char *signal_to_name_table[] = {
-    [MC_OP_DB_UPDATED]       = "Finished: Database Updated",
-    [MC_OP_QUEUE_UPDATED]    = "Finished: Queue Updated",
-    [MC_OP_SPL_UPDATED]      = "Finished: Stored Playlist Updated",
-    [MC_OP_SPL_LIST_UPDATED] = "Finished: List of Playlists Updated"
+    [MOOSE_OP_DB_UPDATED]       = "Finished: Database Updated",
+    [MOOSE_OP_QUEUE_UPDATED]    = "Finished: Queue Updated",
+    [MOOSE_OP_SPL_UPDATED]      = "Finished: Stored Playlist Updated",
+    [MOOSE_OP_SPL_LIST_UPDATED] = "Finished: List of Playlists Updated"
 };
 
 static const unsigned signal_to_name_table_size = sizeof(signal_to_name_table) / sizeof(const char *) / 2;
@@ -184,6 +184,6 @@ void moose_shelper_report_operation_finished(
 
     if(op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
-        moose_signal_dispatch(self, "logging", self, operation, MC_LOG_INFO, FALSE);
+        moose_signal_dispatch(self, "logging", self, operation, MOOSE_LOG_INFO, FALSE);
     }
 }

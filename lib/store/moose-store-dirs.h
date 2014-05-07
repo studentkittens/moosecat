@@ -1,5 +1,5 @@
-#ifndef MC_DB_DIRS_HH
-#define MC_DB_DIRS_HH
+#ifndef MOOSE_DB_DIRS_HH
+#define MOOSE_DB_DIRS_HH
 
 /**
  * @brief Insert a new directory to the database 
@@ -42,5 +42,5 @@ void moose_stprv_dir_prepare_statemtents(MooseStore *self);
  */
 void moose_stprv_dir_finalize_statements(MooseStore *self);
 
-#endif /* end of include guard: MC_DB_DIRS_HH */
+#endif /* end of include guard: MOOSE_DB_DIRS_HH */
 

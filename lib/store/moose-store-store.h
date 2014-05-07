@@ -1,5 +1,5 @@
-#ifndef MC_DB_STORE_HH
-#define MC_DB_STORE_HH
+#ifndef MOOSE_DB_STORE_HH
+#define MOOSE_DB_STORE_HH
 
 #include <sqlite3.h>
 #include <glib.h>
@@ -91,4 +91,4 @@ typedef struct MooseStore {
 
 } MooseStore;
 
-#endif /* end of include guard: MC_DB_STORE_HH */
+#endif /* end of include guard: MOOSE_DB_STORE_HH */

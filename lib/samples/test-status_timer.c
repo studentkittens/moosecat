@@ -26,7 +26,7 @@ int main(void)
 {
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
-    MooseClient * client = moose_create(MC_PM_COMMAND);
+    MooseClient * client = moose_create(MOOSE_PM_COMMAND);
     moose_signal_add(client, "client-event", signal_event, loop);
     moose_status_timer_register(client, 50, true);
     moose_connect(client, NULL, "localhost", 6600, 2.0);

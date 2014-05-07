@@ -214,7 +214,7 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
             number_of_songs, g_timer_elapsed(timer, NULL)
     );
 
-    moose_shelper_report_operation_finished(self, MC_OP_DB_UPDATED);
+    moose_shelper_report_operation_finished(self, MOOSE_OP_DB_UPDATED);
 
     g_async_queue_unref(queue);
     g_timer_destroy(timer);
@@ -396,7 +396,7 @@ void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel)
             progress_counter, g_timer_elapsed(timer, NULL)
     );
 
-    moose_shelper_report_operation_finished(self, MC_OP_QUEUE_UPDATED);
+    moose_shelper_report_operation_finished(self, MOOSE_OP_QUEUE_UPDATED);
 
     g_async_queue_unref(queue);
     g_timer_destroy(timer);

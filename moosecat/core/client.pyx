@@ -333,7 +333,7 @@ cdef class Client:
         cdef int server_changed = 0
         cdef int was_connected = 0
         cdef char * error_msg = NULL
-        cdef c.MooseLogLevel log_level = c.MC_LOG_INFO
+        cdef c.MooseLogLevel log_level = c.MOOSE_LOG_INFO
 
         with self._valid_signal_name(signal_name) as b_name:
             # Check the signal-name, and dispatch it differently.
@@ -346,7 +346,7 @@ cdef class Client:
                 c.moose_signal_dispatch(self._p(), b_name,self._p(), server_changed, was_connected)
             elif signal_name == 'logging':
                 error_msg = args[0]
-                log_level = LOG_LEVEL_MAP.get(args[1], c.MC_LOG_INFO)
+                log_level = LOG_LEVEL_MAP.get(args[1], c.MOOSE_LOG_INFO)
                 c.moose_signal_dispatch(self._p(), b_name, self._p(), error_msg, log_level)
 
     def signal(self, signal_name, mask=None):

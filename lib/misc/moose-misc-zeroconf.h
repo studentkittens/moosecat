@@ -1,56 +1,86 @@
-#ifndef MC_ZEROCONF_BROWSE_HH
-#define MC_ZEROCONF_BROWSE_HH
+#ifndef MOOSE_ZEROCONF_BROWSE_HH
+#define MOOSE_ZEROCONF_BROWSE_HH
 
-/**
- * Opaque private structures.
- * Use the functions to modify them
+
+#include <glib-object.h>
+
+G_BEGIN_DECLS
+
+/*
+ * Type macros.
  */
-struct MooseZeroconfBrowser;
-struct MooseZeroconfServer;
+#define MOOSE_TYPE_ZEROCONF_BROWSER \
+    (moose_zeroconf_browser_get_type ())
+#define MOOSE_ZEROCONF_BROWSER(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST ((obj), MOOSE_TYPE_ZEROCONF_BROWSER, MooseZeroconfBrowser))
+#define MOOSE_IS_ZEROCONF_BROWSER(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MOOSE_TYPE_ZEROCONF_BROWSER))
+#define MOOSE_ZEROCONF_BROWSER_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST ((klass), MOOSE_TYPE_ZEROCONF_BROWSER, MooseZeroconfBrowserClass))
+#define MOOSE_IS_ZEROCONF_BROWSER_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE ((klass), MOOSE_TYPE_ZEROCONF_BROWSER))
+#define MOOSE_ZEROCONF_BROWSER_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS ((obj), MOOSE_TYPE_ZEROCONF_BROWSER, MooseZeroconfBrowserClass))
+    
+GType moose_zeroconf_browser_get_type(void);
+
+
+#define MOOSE_TYPE_ZEROCONF_SERVER \
+    (moose_zeroconf_server_get_type ())
+#define MOOSE_ZEROCONF_SERVER(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST ((obj), MOOSE_TYPE_ZEROCONF_SERVER, MooseZeroconfServer))
+#define MOOSE_IS_ZEROCONF_SERVER(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE ((obj), MOOSE_TYPE_ZEROCONF_SERVER))
+#define MOOSE_ZEROCONF_SERVER_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST ((klass), MOOSE_TYPE_ZEROCONF_SERVER, MooseZeroconfServerClass))
+#define MOOSE_IS_ZEROCONF_SERVER_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE ((klass), MOOSE_TYPE_ZEROCONF_SERVER))
+#define MOOSE_ZEROCONF_SERVER_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS ((obj), MOOSE_TYPE_ZEROCONF_SERVER, MooseZeroconfServerClass))
+
+GType moose_zeroconf_server_get_type(void);
 
 /**
  * @brief Possible States of the Browser.
  */
 typedef enum MooseZeroconfState {
-    MC_ZEROCONF_STATE_UNCONNECTED,  /* Not connected to Avahi                                                  */
-    MC_ZEROCONF_STATE_CONNECTED,    /* Connected to avahi, but no results yet                                  */
-    MC_ZEROCONF_STATE_ERROR,        /* Some error happended, use moose_zeroconf_get_error to find out what        */
-    MC_ZEROCONF_STATE_CHANGED,      /* A server was added or deleted, use moose_zeroconf_get_server to get a list */
-    MC_ZEROCONF_STATE_ALL_FOR_NOW   /* Informative event: Probably no new servers will be added in new future  */
+    /* Not connected to Avahi */
+    MOOSE_ZEROCONF_STATE_UNCONNECTED,  
+    /* Connected to avahi, but no results yet */
+    MOOSE_ZEROCONF_STATE_CONNECTED,    
+    /* Some error happended, use moose_zeroconf_get_error to find out what */
+    MOOSE_ZEROCONF_STATE_ERROR,        
+    /* A server was added or deleted, use moose_zeroconf_get_server to get a list */
+    MOOSE_ZEROCONF_STATE_CHANGED,      
+    /* Informative event: Probably no new servers will be added in new future  */
+    MOOSE_ZEROCONF_STATE_ALL_FOR_NOW   
 } MooseZeroconfState;
 
-typedef void (* MooseZeroconfCallback)(struct MooseZeroconfBrowser *, void *);
 
-/**
- * @brief Instance a new Zeroconf-Browser
- *
- * It will immediately try to connect to avahi and start searching once 
- * a mainloop is available. If the server is not running yet it will wait 
- * for it patiently to show up. If the server restarts it will reattach once
- * done. As user of the API you won't notice and can even access the old servers
- * from the last daemon.
- *
- * @return a newly allocated Browser, free with moose_zeroconf_destroy()
- */
-struct MooseZeroconfBrowser * moose_zeroconf_new(const char * protocol);
+struct _MooseZeroconfBrowserPrivate;
+struct _MooseZeroconfServerPrivate;
 
-/**
- * @brief Destrpoy an allocagted Zeroconf Browser
- *
- * @param self Browser to deallocate
- */
-void moose_zeroconf_destroy(struct MooseZeroconfBrowser * self);
+typedef struct _MooseZeroconfBrowser {
+    GObject parent;      
+    struct _MooseZeroconfBrowserPrivate *priv;
+} MooseZeroconfBrowser;
 
-/**
- * @brief Register a callback that is called on state changes.
- *
- * If you want to unregister you can pass NULL as callback.
- *
- * @param self The browser to register upon.
- * @param callback The callback to call. 
- * @param user_data Optional user_data to be passed to the callback (or NULL)
- */
-void moose_zeroconf_register(struct MooseZeroconfBrowser * self, MooseZeroconfCallback callback, void * user_data);
+typedef struct _MooseZeroconfServer {
+    GObject parent;      
+    struct _MooseZeroconfServerPrivate *priv;
+} MooseZeroconfServer;
+
+typedef struct _MooseZeroconfBrowserClass {
+  GObjectClass parent_class;
+} MooseZeroconfBrowserClass;
+
+typedef struct _MooseZeroconfServerClass {
+  GObjectClass parent_class;
+} MooseZeroconfServerClass;
+
+
+MooseZeroconfBrowser *moose_zeroconf_browser_new(void);
+void moose_zeroconf_browser_destroy(MooseZeroconfBrowser *self);
 
 /**
  * @brief Get the current state of the Browser.
@@ -61,12 +91,12 @@ void moose_zeroconf_register(struct MooseZeroconfBrowser * self, MooseZeroconfCa
  *
  * @return a value of MooseZeroconfState
  */
-MooseZeroconfState moose_zeroconf_get_state(struct MooseZeroconfBrowser * self);
+MooseZeroconfState moose_zeroconf_browser_get_state(MooseZeroconfBrowser * self);
 
 /**
  * @brief Get last happended error or NULL if none.
  *
- * If a error happened state will change to MC_ZEROCONF_STATE_ERROR
+ * If a error happened state will change to MOOSE_zeroconf_browser_STATE_ERROR
  * and you will be notified. If not error happended this function will return
  * NULL.
  *
@@ -74,7 +104,7 @@ MooseZeroconfState moose_zeroconf_get_state(struct MooseZeroconfBrowser * self);
  *
  * @return a constant string, do not free or alter.
  */
-const char * moose_zeroconf_get_error(struct MooseZeroconfBrowser * self);
+const char * moose_zeroconf_browser_get_error(MooseZeroconfBrowser * self);
 
 /**
  * @brief Get a NULL terminated List of Servers.
@@ -85,7 +115,9 @@ const char * moose_zeroconf_get_error(struct MooseZeroconfBrowser * self);
  *
  * @return a array of MooseZeroconfServers, free only the list with free()
  */
-struct MooseZeroconfServer ** moose_zeroconf_get_server(struct MooseZeroconfBrowser * self);
+GList *moose_zeroconf_browser_get_server_list(MooseZeroconfBrowser * self);
+
+
 
 /**
  * @brief Return the host a server.
@@ -96,7 +128,7 @@ struct MooseZeroconfServer ** moose_zeroconf_get_server(struct MooseZeroconfBrow
  *
  * @return a nullterminated string.
  */
-const char * moose_zeroconf_server_get_host(struct MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_host(MooseZeroconfServer * server);
 
 /**
  * @brief Return the host a server (e.g. "localhost").
@@ -107,7 +139,7 @@ const char * moose_zeroconf_server_get_host(struct MooseZeroconfServer * server)
  *
  * @return a nullterminated string.
  */
-const char * moose_zeroconf_server_get_addr(struct MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_addr(MooseZeroconfServer * server);
 
 /**
  * @brief Return the name of a server (e.g. "Seb's MPD Server").
@@ -118,7 +150,7 @@ const char * moose_zeroconf_server_get_addr(struct MooseZeroconfServer * server)
  *
  * @return a nullterminated string.
  */
-const char * moose_zeroconf_server_get_name(struct MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_name(MooseZeroconfServer * server);
 
 /**
  * @brief Return the type of a server (e.g. "_mpd._tcp")
@@ -129,7 +161,7 @@ const char * moose_zeroconf_server_get_name(struct MooseZeroconfServer * server)
  *
  * @return a nullterminated string.
  */
-const char * moose_zeroconf_server_get_type(struct MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_protocol(MooseZeroconfServer * server);
 
 /**
  * @brief Return the domain of a server (e.g. "local") 
@@ -140,7 +172,7 @@ const char * moose_zeroconf_server_get_type(struct MooseZeroconfServer * server)
  *
  * @return a nullterminated string.
  */
-const char * moose_zeroconf_server_get_domain(struct MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_domain(MooseZeroconfServer * server);
 
 /**
  * @brief Return the port of a server (e.g. 6600)
@@ -149,8 +181,13 @@ const char * moose_zeroconf_server_get_domain(struct MooseZeroconfServer * serve
  *
  * @return an unsigned port number
  */
-unsigned moose_zeroconf_server_get_port(struct MooseZeroconfServer * server);
+int moose_zeroconf_server_get_port(MooseZeroconfServer * server);
 
 
-#endif /* end of include guard: MC_ZEROCONF_BROWSE_HH */
+/* DEPRECATED */
 
+MooseZeroconfServer ** moose_zeroconf_browser_get_server(MooseZeroconfBrowser * self);
+
+G_END_DECLS
+
+#endif /* end of include guard: MOOSE_ZEROCONF_BROWSE_HH */

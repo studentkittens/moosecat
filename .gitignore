@@ -31,3 +31,9 @@ core
 .sconf_temp
 .sconstemp
 test-*
+
+*.suppression
+.libs/
+*.typelib
+*.gir
+*.la

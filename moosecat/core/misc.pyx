@@ -188,11 +188,11 @@ cdef class ZeroconfBrowser:
         :protocol: Used protocol-type to query for (default: "_mpd._tcp")
         '''
         b_protocol = bytify(protocol)
-        self._browser = c.moose_zeroconf_new(b_protocol)
+        self._browser = c.moose_zeroconf_browser_new()
         self._callback_data_map = {}
 
     def __dealloc__(self):
-        c.moose_zeroconf_destroy(self._browser)
+        c.moose_zeroconf_browser_destroy(self._browser)
 
     def register(self, func):
         '''
@@ -205,7 +205,7 @@ cdef class ZeroconfBrowser:
         if callable(func):
             data = [func, self]
             self._callback_data_map[func] = data
-            c.moose_zeroconf_register(self._browser, <void *>wrap_ZeroconfCallback, <void *>data)
+            c.g_signal_connect(self._browser, 'state-changed', <void *>wrap_ZeroconfCallback, <void *>data)
         else:
             raise ValueError('`func` must be a Callable.')
 
@@ -224,7 +224,7 @@ cdef class ZeroconfBrowser:
             * **port**: Port of the Server     (6600)
         '''
         def __get__(self):
-            cdef c.MooseZeroconfServer ** server = c.moose_zeroconf_get_server(self._browser)
+            cdef c.MooseZeroconfServer ** server = c.moose_zeroconf_browser_get_server(self._browser)
             cdef c.MooseZeroconfServer * current
             cdef int i = 0
 
@@ -233,12 +233,12 @@ cdef class ZeroconfBrowser:
                 while server[i] != NULL:
                     current = server[i]
                     py_server_list.append({
-                        'host'   : stringify(<char *>c.moose_zeroconf_server_get_host(current)),
-                        'addr'   : stringify(<char *>c.moose_zeroconf_server_get_addr(current)),
-                        'name'   : stringify(<char *>c.moose_zeroconf_server_get_name(current)),
-                        'type'   : stringify(<char *>c.moose_zeroconf_server_get_type(current)),
-                        'domain' : stringify(<char *>c.moose_zeroconf_server_get_domain(current)),
-                        'port'   : c.moose_zeroconf_server_get_port(current)
+                        'host'    : stringify(<char *>c.moose_zeroconf_server_get_host(current)),
+                        'addr'    : stringify(<char *>c.moose_zeroconf_server_get_addr(current)),
+                        'name'    : stringify(<char *>c.moose_zeroconf_server_get_name(current)),
+                        'protocol': stringify(<char *>c.moose_zeroconf_server_get_protocol(current)),
+                        'domain'  : stringify(<char *>c.moose_zeroconf_server_get_domain(current)),
+                        'port'    : c.moose_zeroconf_server_get_port(current)
                     })
                     i += 1
                 free(server)
@@ -247,9 +247,9 @@ cdef class ZeroconfBrowser:
     property error:
         'Get the last happended Error or an empty string if none happened lately.'
         def __get__(self):
-            return stringify(<char *>c.moose_zeroconf_get_error(self._browser))
+            return stringify(<char *>c.moose_zeroconf_browser_get_error(self._browser))
 
     property state:
         'Current state of the Browser. Its one of the values in ZeroconfState.'
         def __get__(self):
-            return c.moose_zeroconf_get_state(self._browser)
+            return c.moose_zeroconf_browser_get_state(self._browser)

@@ -1,5 +1,5 @@
-#ifndef MC_PATHS_HH
-#define MC_PATHS_HH
+#ifndef MOOSE_PATHS_HH
+#define MOOSE_PATHS_HH
 
 /* @brief Count the 'depth' of a path.
  * @param dir_path the path to count
@@ -18,5 +18,5 @@
  */
 int moose_path_get_depth(const char *dir_path);
 
-#endif /* end of include guard: MC_PATHS_HH */
+#endif /* end of include guard: MOOSE_PATHS_HH */
 

@@ -1,5 +1,5 @@
-#ifndef MC_DB_QUERY_PASRSER_HH
-#define MC_DB_QUERY_PASRSER_HH
+#ifndef MOOSE_DB_QUERY_PASRSER_HH
+#define MOOSE_DB_QUERY_PASRSER_HH
 
 
 /* Provide extended Syntax for FTS Query.
@@ -87,5 +87,5 @@ bool moose_store_qp_is_valid_tag(const char *tag, size_t len);
 enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char *tag);
 
 
-#endif /* end of include guard: MC_DB_QUERY_PASRSER_HH */
+#endif /* end of include guard: MOOSE_DB_QUERY_PASRSER_HH */
 

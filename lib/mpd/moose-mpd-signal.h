@@ -12,23 +12,23 @@ struct MooseClient;
 ///////////////////////////////
 
 typedef enum {
-    MC_SIGNAL_CLIENT_EVENT = 0,
-    MC_SIGNAL_CONNECTIVITY,
-    MC_SIGNAL_LOGGING,
+    MOOSE_SIGNAL_CLIENT_EVENT = 0,
+    MOOSE_SIGNAL_CONNECTIVITY,
+    MOOSE_SIGNAL_LOGGING,
     /* This signal is used internally 
      * to propagate fatal errors
      */
-    MC_SIGNAL_FATAL_ERROR,
+    MOOSE_SIGNAL_FATAL_ERROR,
     /* -> Add new callbacks here <- */
-    MC_SIGNAL_VALID_COUNT,
-    MC_SIGNAL_UNKNOWN
+    MOOSE_SIGNAL_VALID_COUNT,
+    MOOSE_SIGNAL_UNKNOWN
 } MooseSignalType;
 
 typedef struct {
     /* Holds a list of callbacks,
      * one list for each type.
      */
-    GList *signals[MC_SIGNAL_VALID_COUNT];
+    GList *signals[MOOSE_SIGNAL_VALID_COUNT];
 
     /* Signals are send to this queue if they are not dispatched
      * in the mainthread.
@@ -50,11 +50,11 @@ typedef struct {
 ///////////////////////////////
 
 typedef enum MooseLogLevels {
-    MC_LOG_CRITICAL = 1 << 0,
-    MC_LOG_ERROR    = 1 << 1,
-    MC_LOG_WARNING  = 1 << 2,
-    MC_LOG_INFO     = 1 << 3,
-    MC_LOG_DEBUG    = 1 << 4
+    MOOSE_LOG_CRITICAL = 1 << 0,
+    MOOSE_LOG_ERROR    = 1 << 1,
+    MOOSE_LOG_WARNING  = 1 << 2,
+    MOOSE_LOG_INFO     = 1 << 3,
+    MOOSE_LOG_DEBUG    = 1 << 4
 } MooseLogLevel;
 
 ///////////////////////////////

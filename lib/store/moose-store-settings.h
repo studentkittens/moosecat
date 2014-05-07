@@ -1,5 +1,5 @@
-#ifndef MC_DB_SETTINGS_HH
-#define MC_DB_SETTINGS_HH
+#ifndef MOOSE_DB_SETTINGS_HH
+#define MOOSE_DB_SETTINGS_HH
 
 #include <stdbool.h>
 
@@ -32,7 +32,7 @@ typedef struct {
 
     /* Tokenizer algorithm to use to split words. NULL == default == "porter"
      * See: http://www.sqlite.org/fts3.html#tokenizer
-     * Supported: see MC_STORE_SUPPORTED_TOKENIZERS in db_private.h
+     * Supported: see MOOSE_STORE_SUPPORTED_TOKENIZERS in db_private.h
      *
      * Default: "porter", which is able to match "Smile" with "Smiling"
      */
@@ -58,4 +58,4 @@ void moose_store_settings_destroy(MooseStoreSettings *settings);
 void moose_store_settings_set_db_directory(MooseStoreSettings *self, const char *db_directory);
 
 
-#endif /* end of include guard: MC_DB_SETTINGS_HH */
+#endif /* end of include guard: MOOSE_DB_SETTINGS_HH */

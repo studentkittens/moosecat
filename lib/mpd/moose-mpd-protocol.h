@@ -12,8 +12,8 @@
 #define PROTOCOL_H
 
 typedef enum {
-    MC_PM_IDLE = 0,
-    MC_PM_COMMAND
+    MOOSE_PM_IDLE = 0,
+    MOOSE_PM_COMMAND
 } MoosePmType;
 
 
@@ -131,10 +131,10 @@ typedef struct MooseClient {
  * There are different protocol machines implemented in the background,
  * you may choose one:
  *
- * - MC_PM_IDLE - uses one conenction for sending and events, uses idle and noidle to switch context.
- * - MC_PM_COMMAND uses one command connection, and one event listening conenction.
+ * - MOOSE_PM_IDLE - uses one conenction for sending and events, uses idle and noidle to switch context.
+ * - MOOSE_PM_COMMAND uses one command connection, and one event listening conenction.
  *
- * Passing NULL to choose the default (MC_PM_COMMAND).
+ * Passing NULL to choose the default (MOOSE_PM_COMMAND).
  *
  * @param protocol_machine the name of the protocol machine
  *

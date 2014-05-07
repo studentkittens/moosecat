@@ -1,5 +1,5 @@
-#ifndef MC_DB_STORED_PLAYLIST_HH
-#define MC_DB_STORED_PLAYLIST_HH
+#ifndef MOOSE_DB_STORED_PLAYLIST_HH
+#define MOOSE_DB_STORED_PLAYLIST_HH
 
 #include "moose-store-store.h"
 
@@ -78,5 +78,5 @@ int moose_stprv_spl_get_loaded_playlists(MooseStore *store, MoosePlaylist *stack
  */
 int moose_stprv_spl_get_known_playlists(MooseStore *store, MoosePlaylist *stack);
 
-#endif /* end of include guard: MC_DB_STORED_PLAYLIST_HH */
+#endif /* end of include guard: MOOSE_DB_STORED_PLAYLIST_HH */
 

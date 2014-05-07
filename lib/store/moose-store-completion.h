@@ -1,5 +1,5 @@
-#ifndef MC_DB_COMPLETION_H
-#define MC_DB_COMPLETION_H
+#ifndef MOOSE_DB_COMPLETION_H
+#define MOOSE_DB_COMPLETION_H
 
 struct MooseStoreCompletion;
 typedef struct MooseStoreCompletion MooseStoreCompletion;
@@ -14,5 +14,5 @@ char * moose_store_cmpl_lookup(
 );
 
 
-#endif /* end of include guard: MC_DB_COMPLETION_H */
+#endif /* end of include guard: MOOSE_DB_COMPLETION_H */
 

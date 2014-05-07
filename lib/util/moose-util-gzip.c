@@ -181,7 +181,7 @@ bool moose_gzip(const char *file_path)
 {
     g_assert(file_path != NULL);
     bool rc = true;
-    char *file_path_copy = g_strdup_printf("%s%s", file_path, MC_GZIP_ENDING);
+    char *file_path_copy = g_strdup_printf("%s%s", file_path, MOOSE_GZIP_ENDING);
     FILE *src = fopen(file_path, "r");
 
     if (src != NULL) {
@@ -215,8 +215,8 @@ bool moose_gunzip(const char *file_path)
     g_assert(file_path != NULL);
     bool rc = true;
 
-    if (g_str_has_suffix(file_path, MC_GZIP_ENDING)) {
-        char *file_path_copy = g_strndup(file_path, strlen(file_path) - strlen(MC_GZIP_ENDING));
+    if (g_str_has_suffix(file_path, MOOSE_GZIP_ENDING)) {
+        char *file_path_copy = g_strndup(file_path, strlen(file_path) - strlen(MOOSE_GZIP_ENDING));
         FILE *src = fopen(file_path, "r");
 
         if (src != NULL) {

@@ -1,5 +1,5 @@
-#ifndef MC_JOB_MANAGER_H
-#define MC_JOB_MANAGER_H
+#ifndef MOOSE_JOB_MANAGER_H
+#define MOOSE_JOB_MANAGER_H
 
 #include <stdbool.h>
 
@@ -96,5 +96,5 @@ void * moose_jm_get_result(struct MooseJobManager *jm, int job_id);
  */
 void moose_jm_close(struct MooseJobManager *jm);
 
-#endif /* end of include guard: MC_JOB_MANAGER_H */
+#endif /* end of include guard: MOOSE_JOB_MANAGER_H */
 

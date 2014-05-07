@@ -384,7 +384,7 @@ void moose_stprv_spl_update(MooseStore *self)
     /* table names were dyn. allocated. */
     g_list_free_full(table_name_list, g_free);
 
-    moose_shelper_report_operation_finished(self->client, MC_OP_SPL_LIST_UPDATED);
+    moose_shelper_report_operation_finished(self->client, MOOSE_OP_SPL_LIST_UPDATED);
 }
 
 ///////////////////
@@ -485,7 +485,7 @@ bool moose_stprv_spl_load(MooseStore *store, struct mpd_playlist *playlist)
                     if (mpd_response_finish(conn) == FALSE) {
                         moose_shelper_report_error(self, conn);
                     } else {
-                        moose_shelper_report_operation_finished(self, MC_OP_SPL_UPDATED);
+                        moose_shelper_report_operation_finished(self, MOOSE_OP_SPL_UPDATED);
                         successfully_loaded = true;
                     }
                 }

@@ -215,15 +215,15 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
 cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
 
     ctypedef enum MoosePmType:
-        PM_IDLE 'MC_PM_IDLE'
-        PM_COMMAND 'MC_PM_COMMAND'
+        PM_IDLE 'MOOSE_PM_IDLE'
+        PM_COMMAND 'MOOSE_PM_COMMAND'
 
     ctypedef enum MooseLogLevel:
-        LOG_CRITICAL 'MC_LOG_CRITICAL'
-        LOG_ERROR    'MC_LOG_ERROR'
-        LOG_WARNING  'MC_LOG_WARNING'
-        LOG_INFO     'MC_LOG_INFO'
-        LOG_DEBUG    'MC_LOG_DEBUG'
+        LOG_CRITICAL 'MOOSE_LOG_CRITICAL'
+        LOG_ERROR    'MOOSE_LOG_ERROR'
+        LOG_WARNING  'MOOSE_LOG_WARNING'
+        LOG_INFO     'MOOSE_LOG_INFO'
+        LOG_DEBUG    'MOOSE_LOG_DEBUG'
 
     ################
     #  Structures  #
@@ -309,6 +309,7 @@ cdef extern from "../../lib/store/moose-store-playlist.h":
         pass
 
     void g_object_unref(void *)
+    void g_signal_connect(void *, char *, void *,  void *)
 
     MoosePlaylist * moose_playlist_new (long, void *)
     void moose_playlist_append (MoosePlaylist *, void *)
@@ -383,39 +384,38 @@ cdef extern from "../../lib/misc/moose-misc-metadata-threads.h":
     void moose_mdthreads_free(MooseMetadataThreads *)
 
 cdef extern from "../../lib/misc/moose-misc-zeroconf.h":
-    cdef struct MooseZeroconfBrowser:
+    ctypedef struct MooseZeroconfBrowser:
         pass
 
-    cdef struct MooseZeroconfServer:
+    ctypedef struct MooseZeroconfServer:
         pass
 
     cdef enum MooseZeroconfState:
-        ZEROCONF_STATE_UNCONNECTED 'MC_ZEROCONF_STATE_UNCONNECTED'
-        ZEROCONF_STATE_CONNECTED   'MC_ZEROCONF_STATE_CONNECTED'
-        ZEROCONF_STATE_ERROR       'MC_ZEROCONF_STATE_ERROR'
-        ZEROCONF_STATE_CHANGED     'MC_ZEROCONF_STATE_CHANGED'
-        ZEROCONF_STATE_ALL_FOR_NOW 'MC_ZEROCONF_STATE_ALL_FOR_NOW'
+        ZEROCONF_STATE_UNCONNECTED 'MOOSE_ZEROCONF_STATE_UNCONNECTED'
+        ZEROCONF_STATE_CONNECTED   'MOOSE_ZEROCONF_STATE_CONNECTED'
+        ZEROCONF_STATE_ERROR       'MOOSE_ZEROCONF_STATE_ERROR'
+        ZEROCONF_STATE_CHANGED     'MOOSE_ZEROCONF_STATE_CHANGED'
+        ZEROCONF_STATE_ALL_FOR_NOW 'MOOSE_ZEROCONF_STATE_ALL_FOR_NOW'
 
-    MooseZeroconfBrowser * moose_zeroconf_new(const char *)
-    void moose_zeroconf_destroy(MooseZeroconfBrowser *)
-    void moose_zeroconf_register(MooseZeroconfBrowser *, void *, void *)
-    MooseZeroconfState moose_zeroconf_get_state(MooseZeroconfBrowser *)
-    const char * moose_zeroconf_get_error(MooseZeroconfBrowser *)
-    MooseZeroconfServer ** moose_zeroconf_get_server(MooseZeroconfBrowser *)
-    const char * moose_zeroconf_server_get_host(MooseZeroconfServer *)
-    const char * moose_zeroconf_server_get_addr(MooseZeroconfServer *)
-    const char * moose_zeroconf_server_get_name(MooseZeroconfServer *)
-    const char * moose_zeroconf_server_get_type(MooseZeroconfServer *)
-    const char * moose_zeroconf_server_get_domain(MooseZeroconfServer *)
+    MooseZeroconfBrowser * moose_zeroconf_browser_new()
+    void moose_zeroconf_browser_destroy(MooseZeroconfBrowser *)
+    MooseZeroconfState moose_zeroconf_browser_get_state(MooseZeroconfBrowser *)
+    const char * moose_zeroconf_browser_get_error(MooseZeroconfBrowser *)
+    MooseZeroconfServer ** moose_zeroconf_browser_get_server(MooseZeroconfBrowser *)
+    char * moose_zeroconf_server_get_host(MooseZeroconfServer *)
+    char * moose_zeroconf_server_get_addr(MooseZeroconfServer *)
+    char * moose_zeroconf_server_get_name(MooseZeroconfServer *)
+    char * moose_zeroconf_server_get_protocol(MooseZeroconfServer *)
+    char * moose_zeroconf_server_get_domain(MooseZeroconfServer *)
     unsigned moose_zeroconf_server_get_port(MooseZeroconfServer *)
 
 
 cdef extern from "../../lib/moose-config.h":
     enum:
-        VERSION               'MC_VERSION'
-        VERSION_MAJOR         'MC_VERSION_MAJOR'
-        VERSION_MINOR         'MC_VERSION_MINOR'
-        VERSION_PATCH         'MC_VERSION_PATCH'
-        VERSION_GIT_REVISION  'MC_VERSION_GIT_REVISION'
+        VERSION               'MOOSE_VERSION'
+        VERSION_MAJOR         'MOOSE_VERSION_MAJOR'
+        VERSION_MINOR         'MOOSE_VERSION_MINOR'
+        VERSION_PATCH         'MOOSE_VERSION_PATCH'
+        VERSION_GIT_REVISION  'MOOSE_VERSION_GIT_REVISION'
 
 

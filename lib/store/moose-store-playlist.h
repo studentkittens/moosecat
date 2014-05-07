@@ -1,5 +1,5 @@
-#ifndef MC_STORE_STACK_H
-#define MC_STORE_STACK_H
+#ifndef MOOSE_STORE_STACK_H
+#define MOOSE_STORE_STACK_H
 
 #include <glib-object.h>
 
@@ -105,5 +105,5 @@ MoosePlaylist * moose_playlist_copy(MoosePlaylist *self);
 
 G_END_DECLS
 
-#endif /* end of include guard: MC_STORE_STACK_H */
+#endif /* end of include guard: MOOSE_STORE_STACK_H */
 

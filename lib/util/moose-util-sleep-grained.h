@@ -1,5 +1,5 @@
-#ifndef MC_SLEEP_GRAINED_H
-#define MC_SLEEP_GRAINED_H
+#ifndef MOOSE_SLEEP_GRAINED_H
+#define MOOSE_SLEEP_GRAINED_H
 
 #include <glib.h>
 
@@ -21,4 +21,4 @@
  */
 void moose_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *check);
 
-#endif /* end of include guard: MC_SLEEP_GRAINED_H */
+#endif /* end of include guard: MOOSE_SLEEP_GRAINED_H */
