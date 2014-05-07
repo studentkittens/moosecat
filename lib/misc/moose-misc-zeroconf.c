@@ -88,7 +88,7 @@ static void moose_zeroconf_check_client_error(MooseZeroconfBrowser * self, const
     {
         g_free(self->priv->last_error);
         self->priv->last_error = g_strdup_printf("%s: %s", 
-                prefix_message, avahi_strerror(avahi_client_errno(self->priv->client))
+            prefix_message, avahi_strerror(avahi_client_errno(self->priv->client))
         );
         moose_zeroconf_call_user_callback(self, MOOSE_ZEROCONF_STATE_ERROR);
     }
@@ -119,7 +119,11 @@ static void moose_zeroconf_resolve_callback(
     /* Check if we had been successful */
     switch(event) {
         case AVAHI_RESOLVER_FAILURE: {
-            gchar * format = g_strdup_printf("Failed to resolve service '%s' of type '%s' in domain '%s'", name, type, domain);
+            gchar * format = g_strdup_printf(
+                "Failed to resolve service '%s' of type '%s' in domain '%s'",
+                 name, type, domain
+            );
+
             if(format != NULL) {
                 moose_zeroconf_check_client_error(self, format);
                 g_free(format);
@@ -323,6 +327,12 @@ static void moose_zeroconf_browser_class_init(MooseZeroconfBrowserClass *klass)
     GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
     gobject_class->finalize = moose_zeroconf_browser_finalize;
 
+    /**
+    * MooseZeroconfBrowser::state-changed
+    * @browser: the #MooseZeroconfBrowser which emitted the signal
+    *
+    * Emitted once the state of the Browser changes.
+    */
     BROWSER_SIGNALS[BROWSER_SIGNAL_STATE_CHANGED] = g_signal_newv("state-changed",
              G_TYPE_FROM_CLASS(klass),
              G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
@@ -519,6 +529,12 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
         NULL, /* default value */
         G_PARAM_READWRITE
     );
+
+    /**
+    * MooseZeroconfServer:name: (type char*)
+    *
+    * Doc
+    */
     g_object_class_install_property(gobject_class, SERVER_PROP_NAME, pspec);
 
     pspec = g_param_spec_string(
@@ -528,6 +544,12 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
         NULL, /* default value */
         G_PARAM_READWRITE
     );
+
+    /**
+    * MooseZeroconfServer:type: (type char*)
+    *
+    * Doc
+    */
     g_object_class_install_property(gobject_class, SERVER_PROP_TYPE, pspec);
 
     pspec = g_param_spec_string(
@@ -537,6 +559,12 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
         NULL, /* default value */
         G_PARAM_READWRITE
     );
+
+    /**
+    * MooseZeroconfServer:domain: (type char*)
+    *
+    * Doc
+    */
     g_object_class_install_property(gobject_class, SERVER_PROP_DOMAIN, pspec);
 
     pspec = g_param_spec_string(
@@ -546,6 +574,12 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
         NULL, /* default value */
         G_PARAM_READWRITE
     );
+
+    /**
+    * MooseZeroconfServer:host: (type char*)
+    *
+    * Doc
+    */
     g_object_class_install_property(gobject_class, SERVER_PROP_HOST, pspec);
 
     pspec = g_param_spec_string(
@@ -555,6 +589,12 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
         NULL, /* default value */
         G_PARAM_READWRITE
     );
+
+    /**
+    * MooseZeroconfServer:addr: (type char*)
+    *
+    * Doc
+    */
     g_object_class_install_property(gobject_class, SERVER_PROP_ADDR, pspec);
 
     pspec = g_param_spec_int(
@@ -566,6 +606,12 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
         0, /* default value */
         G_PARAM_READWRITE
     );
+
+    /**
+    * MooseZeroconfServer:port: (type int)
+    *
+    * Doc
+    */
     g_object_class_install_property(gobject_class, SERVER_PROP_PORT, pspec);
 }
 
@@ -645,6 +691,8 @@ int moose_zeroconf_server_get_port(MooseZeroconfServer * server)
 }
 
 ////////////////////////////////
+
+/* Deprecated! Only for Cython compat. */
 
 MooseZeroconfServer ** moose_zeroconf_browser_get_server(MooseZeroconfBrowser * self)
 {

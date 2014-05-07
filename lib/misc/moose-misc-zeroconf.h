@@ -1,6 +1,17 @@
 #ifndef MOOSE_ZEROCONF_BROWSE_HH
 #define MOOSE_ZEROCONF_BROWSE_HH
 
+/**
+* SECTION: moose-misc-zeroconf
+* @short_description: Find other MPD-Servers via Zeroconf
+*
+* Zeroconf (with the Avahi Implementation under Linux) can be used to find other 
+* MPD-Servers on the net, if they have this in their config:
+*
+*   # Avahi
+*   zeroconf_enabled "yes"
+*   zeroconf_name    "some_name_given_like_kitchen_box"
+*/
 
 #include <glib-object.h>
 
@@ -78,110 +89,82 @@ typedef struct _MooseZeroconfServerClass {
   GObjectClass parent_class;
 } MooseZeroconfServerClass;
 
-
+/**
+* moose_zeroconf_browser_new:
+*
+* Allocates a new #MooseZeroconfBrowser.
+*
+* Return value: a new #MooseZeroconfBrowser.
+*/
 MooseZeroconfBrowser *moose_zeroconf_browser_new(void);
+
 void moose_zeroconf_browser_destroy(MooseZeroconfBrowser *self);
 
 /**
- * @brief Get the current state of the Browser.
- *
- * See MooseZeroconfState for Details.
- *
- * @param self Browser to ask state for.
- *
- * @return a value of MooseZeroconfState
- */
-MooseZeroconfState moose_zeroconf_browser_get_state(MooseZeroconfBrowser * self);
+* moose_zeroconf_browser_get_state:
+*
+* Gets the current state of the Browser.
 
-/**
- * @brief Get last happended error or NULL if none.
- *
- * If a error happened state will change to MOOSE_zeroconf_browser_STATE_ERROR
- * and you will be notified. If not error happended this function will return
- * NULL.
- *
- * @param self the browser to ask for errors
- *
- * @return a constant string, do not free or alter.
- */
+* Return value: one of #
+*/
+MooseZeroconfState moose_zeroconf_browser_get_state(MooseZeroconfBrowser * self);
 const char * moose_zeroconf_browser_get_error(MooseZeroconfBrowser * self);
 
 /**
- * @brief Get a NULL terminated List of Servers.
+ * moose_zeroconf_browser_get_server_list: 
+ * @self: A #MooseZeroconfBrowser
  *
- * If no servers were detected this returns NULL.
- *
- * @param self the Browser to get the Server list from
- *
- * @return a array of MooseZeroconfServers, free only the list with free()
+ * Returns: (element-type Moose.ZeroconfServer) (transfer full): List of #MooseZeroconfServer
  */
 GList *moose_zeroconf_browser_get_server_list(MooseZeroconfBrowser * self);
 
-
+/**
+ * moose_zeroconf_server_get_host:
+ * @self: A #MooseZeroconfServer
+ *
+ * Returns: (transfer full): Hostname of the Service. Free with g_free().
+ */
+char * moose_zeroconf_server_get_host(MooseZeroconfServer * self);
 
 /**
- * @brief Return the host a server.
+ * moose_zeroconf_server_get_addr:
+ * @self: A #MooseZeroconfServer
  *
- * Do not free or alter the returned value.
- *
- * @param a server from moose_zeroconf_get_server()
- *
- * @return a nullterminated string.
+ * Returns: (transfer full): Physical Address of the Service. Free with g_free().
  */
-char * moose_zeroconf_server_get_host(MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_addr(MooseZeroconfServer * self);
 
 /**
- * @brief Return the host a server (e.g. "localhost").
+ * moose_zeroconf_server_get_name:
+ * @self: A #MooseZeroconfServer
  *
- * Do not free or alter the returned value.
- *
- * @param a server from moose_zeroconf_get_server()
- *
- * @return a nullterminated string.
+ * Returns: (transfer full): Selfgiven name of the Service. Free with g_free().
  */
-char * moose_zeroconf_server_get_addr(MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_name(MooseZeroconfServer * self);
 
 /**
- * @brief Return the name of a server (e.g. "Seb's MPD Server").
+ * moose_zeroconf_server_get_protocol:
+ * @self: A #MooseZeroconfServer
  *
- * Do not free or alter the returned value.
- *
- * @param a server from moose_zeroconf_get_server()
- *
- * @return a nullterminated string.
+ * Returns: (transfer full): Protocol of the Service. Free with g_free().
  */
-char * moose_zeroconf_server_get_name(MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_protocol(MooseZeroconfServer * self);
 
 /**
- * @brief Return the type of a server (e.g. "_mpd._tcp")
+ * moose_zeroconf_server_get_domain:
+ * @self: A #MooseZeroconfServer
  *
- * Do not free or alter the returned value.
- *
- * @param a server from moose_zeroconf_get_server()
- *
- * @return a nullterminated string.
+ * Returns: (transfer full): Domain of the Service. Free with g_free().
  */
-char * moose_zeroconf_server_get_protocol(MooseZeroconfServer * server);
+char * moose_zeroconf_server_get_domain(MooseZeroconfServer * self);
 
 /**
- * @brief Return the domain of a server (e.g. "local") 
+ * moose_zeroconf_server_get_port:
+ * @self: A #MooseZeroconfServer
  *
- * Do not free or alter the returned value.
- *
- * @param a server from moose_zeroconf_get_server()
- *
- * @return a nullterminated string.
+ * Returns: Port of the Service
  */
-char * moose_zeroconf_server_get_domain(MooseZeroconfServer * server);
-
-/**
- * @brief Return the port of a server (e.g. 6600)
- *
- * @param a server from moose_zeroconf_get_server()
- *
- * @return an unsigned port number
- */
-int moose_zeroconf_server_get_port(MooseZeroconfServer * server);
+int moose_zeroconf_server_get_port(MooseZeroconfServer * self);
 
 
 /* DEPRECATED */
