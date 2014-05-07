@@ -174,7 +174,7 @@ MoosePlaylist * moose_store_find_song_by_id_impl(MooseStore *self, unsigned need
     for(unsigned i = 0; i < length; ++i) {
         struct mpd_song * song = moose_playlist_at(self->stack, i);
         if(song != NULL && mpd_song_get_id(song) == needle_song_id) {
-            MoosePlaylist * stack = moose_playlist_new(1, NULL);
+            MoosePlaylist * stack = moose_playlist_new();
             if(stack != NULL) {
                 /* return a stack with one element
                  * (because that's what the interfaces wants :/)
@@ -371,7 +371,7 @@ static void moose_store_buildup(MooseStore * self)
         self->force_update_listallinfo = true;
         self->force_update_plchanges = true;
 
-        self->stack = moose_playlist_new(100, (GDestroyNotify) mpd_song_free);
+        self->stack = moose_playlist_new_full(100, (GDestroyNotify) mpd_song_free);
 
         /* the database is new, so no pos/id information is there yet
          * we need to query mpd, update db && queue info */
@@ -384,7 +384,7 @@ static void moose_store_buildup(MooseStore * self)
         moose_stprv_dir_prepare_statemtents(self);
 
         /* stack is allocated to the old size */
-        self->stack = moose_playlist_new(song_count + 1, (GDestroyNotify) mpd_song_free);
+        self->stack = moose_playlist_new_full(song_count + 1, (GDestroyNotify) mpd_song_free);
 
         /* load the old database into memory */
         moose_stprv_load_or_save(self, false, db_path);

@@ -104,10 +104,18 @@ void moose_zeroconf_browser_destroy(MooseZeroconfBrowser *self);
 * moose_zeroconf_browser_get_state:
 *
 * Gets the current state of the Browser.
-
-* Return value: one of #
+*
+* Return value: one of #MooseZeroconfState
 */
 MooseZeroconfState moose_zeroconf_browser_get_state(MooseZeroconfBrowser * self);
+
+/**
+* moose_zeroconf_browser_get_error:
+*
+* Gets the current error, if the state is equal to MOOSE_ZEROCONF_STATE_ERROR.
+*
+* Return value: (transfer none): An static error description. Do not free.
+*/
 const char * moose_zeroconf_browser_get_error(MooseZeroconfBrowser * self);
 
 /**

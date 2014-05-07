@@ -148,7 +148,7 @@ static EntryTag *setup_client(void)
             }
             moose_unlock_statistics(client);
 
-            rc->song_buf = moose_playlist_new(number_of_songs + 1, NULL);
+            rc->song_buf = moose_playlist_new_full(number_of_songs, NULL);
         }
 
         moose_signal_add_masked(client, "client-event",

@@ -140,7 +140,7 @@ long moose_store_playlist_get_all_known(MooseStore *self, MoosePlaylist *stack);
  *
  * Example:
  *
- *      MoosePlaylist * stack = moose_playlist_new(50, NULL);
+ *      MoosePlaylist * stack = moose_playlist_new();
  *      int job_id = moose_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
  *      // You can other things than waiting here.
  *      moose_store_wait_for_job(store, job_id);

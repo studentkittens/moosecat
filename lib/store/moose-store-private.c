@@ -610,7 +610,7 @@ static MoosePlaylist * moose_stprv_build_queue_content(MooseStore *self, MoosePl
 
     int error_id = SQLITE_OK;
     sqlite3_stmt *select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
-    MoosePlaylist *queue_songs = moose_playlist_new(moose_playlist_length(to_filter) / 2, NULL);
+    MoosePlaylist *queue_songs = moose_playlist_new();
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int stack_idx = sqlite3_column_int(select_stmt, 0);

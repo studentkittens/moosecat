@@ -162,7 +162,7 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
         g_object_unref(store->stack);
     }
 
-    store->stack = moose_playlist_new(
+    store->stack = moose_playlist_new_full(
             number_of_songs + 1,
             (GDestroyNotify) mpd_song_free
     );

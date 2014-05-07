@@ -46,7 +46,7 @@ static art_tree* moose_store_cmpl_create_index(MooseStoreCompletion *self, enum 
     g_assert(self);
     g_assert(tag < MPD_TAG_COUNT);
 
-    MoosePlaylist * copy = moose_playlist_new(1000, NULL);
+    MoosePlaylist * copy = moose_playlist_new();
     moose_store_gw(self->store,
         moose_store_search_to_stack(
             self->store, "*", FALSE, copy, -1

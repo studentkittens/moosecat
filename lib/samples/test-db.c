@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
             const int line_buf_size = 32;
             bool queue_only = true;
             char line_buf[line_buf_size];
-            MoosePlaylist *song_buf = moose_playlist_new(song_buf_size, NULL);
+            MoosePlaylist *song_buf = moose_playlist_new();
             memset(line_buf, 0, line_buf_size);
 
             for (;;) {
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
                     char **args = g_strsplit(line_buf, " ", -1);
 
                     if (args != NULL)  {
-                        MoosePlaylist *stack = moose_playlist_new(1000, NULL);
+                        MoosePlaylist *stack = moose_playlist_new();
                         moose_store_gw(db, moose_store_playlist_select_to_stack(db, stack, args[1], args[2]));
                         g_print("%s %s\n", args[1], args[2]);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 
                 if (strncmp(line_buf, ":list-all", 8) == 0) {
 
-                    MoosePlaylist *stack = moose_playlist_new(5, NULL);
+                    MoosePlaylist *stack = moose_playlist_new();
                     moose_store_gw(db, moose_store_playlist_get_all_known(db, stack));
                     int found = moose_playlist_length(stack);
                     if (found == 0) {
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 
                 if (strncmp(line_buf, ":list-loaded", 8) == 0) {
 
-                    MoosePlaylist *stack = moose_playlist_new(5, NULL);
+                    MoosePlaylist *stack = moose_playlist_new();
                     moose_store_gw(db, moose_store_playlist_get_all_loaded(db, stack));
                     int found = moose_playlist_length(stack);
                     if (found == 0) {
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
                     if (args != NULL) {
                         char *query = (*args[1] == '_') ? NULL : args[1];
-                        MoosePlaylist *stack = moose_playlist_new(100, g_free);
+                        MoosePlaylist *stack = moose_playlist_new_full(100, g_free);
                         int depth = (args[2]) ? g_ascii_strtoll(args[2], NULL, 10) : -1;
                         moose_store_gw(db, moose_store_dir_select_to_stack(db, stack, query, depth));
 

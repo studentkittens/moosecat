@@ -1,6 +1,13 @@
 #ifndef MOOSE_STORE_STACK_H
 #define MOOSE_STORE_STACK_H
 
+/**
+* SECTION: moose-store-playlist
+* @short_description: Playlist-Class, a container for Songs.
+*
+* This basically is a wrapper around #GPtrArray.
+*/
+
 #include <glib-object.h>
 
 G_BEGIN_DECLS
@@ -21,7 +28,6 @@ G_BEGIN_DECLS
 #define MOOSE_PLAYLIST_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS ((obj), MOOSE_TYPE_PLAYLIST, MoosePlaylistClass))
 
-
 struct _MoosePlaylistPrivate;
 
 typedef struct _MoosePlaylist {
@@ -37,71 +43,78 @@ typedef struct _MoosePlaylistClass {
 
 GType moose_playlist_get_type(void);
 
-/**
- * @brief Create a new stack
- *
- * @param size_hint how many items to preallocate?
- * @param free_func call this on each element on free.
- *
- * @return a newly allocated stack
- */
-MoosePlaylist *moose_playlist_new(long size_hint, GDestroyNotify free_func);
+///////////////////////////////
 
 /**
- * @brief Append a new element to the stack.
- *
- * Allocates memory in case.
- *
- * @param self the stack to operate on
- * @param ptr the addr to add
- */
+* moose_playlist_new:
+*
+* Allocates a new #MoosePlaylist
+*
+* Return value: a new #MoosePlaylist.
+*/
+MoosePlaylist *moose_playlist_new(void);
+
+/**
+* moose_playlist_new_full:
+* @size_hint: Number of preallocations.
+* @free_func: Func to free the item.
+*
+* Allocates a new #MoosePlaylist
+*
+* Return value: a new #MoosePlaylist.
+*/
+MoosePlaylist *moose_playlist_new_full(long size_hint, GDestroyNotify free_func);
+
+/**
+* moose_playlist_append:
+* @self: The #MoosePlaylist to append to.
+* @ptr: Some pointer.
+*
+* Append items to the Playlist.
+*/
 void moose_playlist_append(MoosePlaylist *self, void *ptr);
 
 /**
- * @brief Clear contents of stack totally.
- *
- * Calls free_func if passed on _create()
- *
- * @param self the stack to operate on
- */
+* moose_playlist_clear:
+* @self: The #MoosePlaylist to append to.
+*
+* Clear the whole playlist back to factory settings.
+*/
 void moose_playlist_clear(MoosePlaylist *self);
 
 /**
- * @brief Calculates the length of the stack
- *
- * @param self the stack to operate on
- *
- * @return the length from 0 - UINT_MAX
- */
+* moose_playlist_length:
+* @self: The #MoosePlaylist to append to.
+*
+* Returns: Length of the #MoosePlaylist.
+*/
 unsigned moose_playlist_length(MoosePlaylist *self);
 
 /**
- * @brief Sort the stack.
- *
- * @param self the stack to operate on.
- * @param func a GCompareFunc.
- */
+* moose_playlist_sort:
+* @self: The #MoosePlaylist to append to.
+* @func: (scope call): C-Style Comparasion function.
+*/
 void moose_playlist_sort(MoosePlaylist *self, GCompareFunc func);
 
 /**
- * @brief Access elememts indexed.
+ * moose_playlist_at:
+ * @self: A #MoosePlaylist
+ * @at: Index of the element to get. 
  *
- * For performance reasons, this is an inline macro.
+ * Bounds check are performed, bad indices emit warnings.
  *
- * @param self the stack to operate on
- * @param at an integer from 0 - moose_playlist_length()
- *
- * @return a void* being at that place.
+ * Returns: (transfer none): An appended object. 
  */
 void *moose_playlist_at(MoosePlaylist *self, unsigned at);
 
-
 /**
- * @brief Copy the stack pointed to by the argument.
+ * moose_playlist_copy:
+ * @self: A #MoosePlaylist
  *
- * @return A newly allocated, but identical stack.
+ * Returns: (transfer full): A #MoosePlaylist, being an exact clone of @self.
  */
-MoosePlaylist * moose_playlist_copy(MoosePlaylist *self);
+MoosePlaylist *moose_playlist_copy(MoosePlaylist *self);
 
 G_END_DECLS
 

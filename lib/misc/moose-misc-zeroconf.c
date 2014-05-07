@@ -11,7 +11,7 @@
 
 
 /* What type of services to browse */
-#define MPD_AVAHI_SERVICE_TYPE "_mpd._tcp"
+#define MPD_AVAHI_SERVICE_PROTOCOL "_mpd._tcp"
 
 typedef struct _MooseZeroconfBrowserPrivate {
     AvahiClient * client;
@@ -24,7 +24,7 @@ typedef struct _MooseZeroconfBrowserPrivate {
 
 typedef struct _MooseZeroconfServerPrivate {
     char * name; 
-    char * type;
+    char * protocol;
     char * domain;
     char * host;
     char * addr;
@@ -60,15 +60,15 @@ static void moose_zeroconf_call_user_callback(MooseZeroconfBrowser * self, Moose
 static void moose_zeroconf_drop_server(
         MooseZeroconfBrowser * self,
         const char * name,
-        const char * type,
+        const char * proto,
         const char * domain) {
     for(GList * iter = self->priv->server_list; iter; iter = iter->next) {
         MooseZeroconfServer * server = iter->data;
         if(server != NULL) {
             if(1
-               && g_strcmp0(server->priv->name, name)     == 0
-               && g_strcmp0(server->priv->type, type)     == 0
-               && g_strcmp0(server->priv->domain, domain) == 0
+               && g_strcmp0(server->priv->name, name)      == 0
+               && g_strcmp0(server->priv->protocol, proto) == 0
+               && g_strcmp0(server->priv->domain, domain)  == 0
             ) {
                 self->priv->server_list = g_list_delete_link(self->priv->server_list, iter);
                 g_object_unref(server);
@@ -137,7 +137,7 @@ static void moose_zeroconf_resolve_callback(
             MooseZeroconfServer * server = g_object_new(MOOSE_TYPE_ZEROCONF_SERVER, NULL);
             g_object_set(server,
                 "name", name,
-                "type", type, 
+                "protocol", type, 
                 "domain", domain,
                 "host",  host_name,
                 "addr", addr_buf,
@@ -224,7 +224,7 @@ static void moose_zeroconf_register_browser(MooseZeroconfBrowser * self)
         self->priv->client,
         AVAHI_IF_UNSPEC,
         AVAHI_PROTO_UNSPEC,
-        MPD_AVAHI_SERVICE_TYPE,
+        MPD_AVAHI_SERVICE_PROTOCOL,
         avahi_client_get_domain_name(self->priv->client),
         (AvahiLookupFlags)0,
         moose_zeroconf_service_browser_callback,
@@ -414,7 +414,7 @@ static void moose_zeroconf_server_finalize(GObject* gobject)
 
     if(self != NULL) {
         g_free(self->priv->name);
-        g_free(self->priv->type);
+        g_free(self->priv->protocol);
         g_free(self->priv->domain);
         g_free(self->priv->host);
         g_free(self->priv->addr);
@@ -434,7 +434,7 @@ enum
 {
     SERVER_PROP_0,
     SERVER_PROP_NAME,
-    SERVER_PROP_TYPE,
+    SERVER_PROP_PROTOCOL,
     SERVER_PROP_DOMAIN,
     SERVER_PROP_HOST,
     SERVER_PROP_ADDR,
@@ -456,8 +456,8 @@ static void moose_zeroconf_server_get_property(
         case SERVER_PROP_NAME:
             g_value_set_string(value, self->priv->name);
             break;
-        case SERVER_PROP_TYPE:
-            g_value_set_string(value, self->priv->type);
+        case SERVER_PROP_PROTOCOL:
+            g_value_set_string(value, self->priv->protocol);
             break;
         case SERVER_PROP_DOMAIN:
             g_value_set_string(value, self->priv->domain);
@@ -491,8 +491,8 @@ static void moose_zeroconf_server_set_property(
         case SERVER_PROP_NAME:
             self->priv->name = g_value_dup_string(value);
             break;
-        case SERVER_PROP_TYPE:
-            self->priv->type = g_value_dup_string(value);
+        case SERVER_PROP_PROTOCOL:
+            self->priv->protocol= g_value_dup_string(value);
             break;
         case SERVER_PROP_DOMAIN:
             self->priv->domain = g_value_dup_string(value);
@@ -531,26 +531,26 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
     );
 
     /**
-    * MooseZeroconfServer:name: (type char*)
+    * MooseZeroconfServer:name: (type utf8)
     *
-    * Doc
+    * Name of the server gave itself (e.g. Kitchen-Music-Server)
     */
     g_object_class_install_property(gobject_class, SERVER_PROP_NAME, pspec);
 
     pspec = g_param_spec_string(
-        "type",
-        "Servertype",
-        "Type of the server",
+        "protocol",
+        "Serverprotocol",
+        "Protocol of the server",
         NULL, /* default value */
         G_PARAM_READWRITE
     );
 
     /**
-    * MooseZeroconfServer:type: (type char*)
-    *
-    * Doc
+    * MooseZeroconfServer:protocol: (type utf8)
+    * 
+    * Protocol of the Server (_mpd._tcp)
     */
-    g_object_class_install_property(gobject_class, SERVER_PROP_TYPE, pspec);
+    g_object_class_install_property(gobject_class, SERVER_PROP_PROTOCOL, pspec);
 
     pspec = g_param_spec_string(
         "domain",
@@ -561,9 +561,9 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
     );
 
     /**
-    * MooseZeroconfServer:domain: (type char*)
+    * MooseZeroconfServer:domain: (type utf8)
     *
-    * Doc
+    * Domain the server is in. (local)
     */
     g_object_class_install_property(gobject_class, SERVER_PROP_DOMAIN, pspec);
 
@@ -576,9 +576,9 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
     );
 
     /**
-    * MooseZeroconfServer:host: (type char*)
+    * MooseZeroconfServer:host: (type utf8)
     *
-    * Doc
+    * Hostname of the server (localhost)
     */
     g_object_class_install_property(gobject_class, SERVER_PROP_HOST, pspec);
 
@@ -591,7 +591,7 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass *klass)
     );
 
     /**
-    * MooseZeroconfServer:addr: (type char*)
+    * MooseZeroconfServer:addr: (type utf8)
     *
     * Doc
     */
@@ -664,7 +664,7 @@ char * moose_zeroconf_server_get_protocol(MooseZeroconfServer * server)
     g_return_val_if_fail(server, NULL);
 
     gchar *string = NULL;
-    g_object_get(server, "type", &string, NULL);
+    g_object_get(server, "protocol", &string, NULL);
     return string;
 }
 

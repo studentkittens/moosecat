@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     MooseStore *store = moose_store_create(client, NULL);
     moose_store_wait(store);
 
-    MoosePlaylist *songs = moose_playlist_new(10000, NULL);
+    MoosePlaylist *songs = moose_playlist_new();
     GTimer *pl_timer = g_timer_new();
 
     moose_store_playlist_load(store, argv[1]);

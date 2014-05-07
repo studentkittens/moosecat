@@ -43,22 +43,32 @@ static void moose_playlist_class_init(MoosePlaylistClass *klass)
 static void moose_playlist_init(MoosePlaylist *self)
 {
     self->priv = moose_playlist_get_instance_private(self);
-    self->priv->stack = NULL;
+    self->priv->stack = g_ptr_array_new();
     self->priv->free_func = NULL;
+    memset(self->priv->stack->pdata, 0, self->priv->stack->len);
 }
 
 ///////////////////////////////
 //          PUBLIC           //
 ///////////////////////////////
 
-MoosePlaylist *moose_playlist_new(long size_hint, GDestroyNotify free_func)
+MoosePlaylist *moose_playlist_new(void)
+{
+    return g_object_new(MOOSE_TYPE_PLAYLIST, NULL);
+}
+
+///////////////////////////////
+
+MoosePlaylist *moose_playlist_new_full(long size_hint, GDestroyNotify free_func)
 {
     MoosePlaylist *self = g_object_new(MOOSE_TYPE_PLAYLIST, NULL);
 
-    self->priv->stack = g_ptr_array_sized_new(size_hint);
-    memset(self->priv->stack->pdata, 0, self->priv->stack->len);
-    g_ptr_array_set_free_func(self->priv->stack, free_func);
+    if(self->priv->stack) {
+        g_ptr_array_free(self->priv->stack, TRUE);
+    }
 
+    self->priv->stack = g_ptr_array_sized_new(size_hint);
+    g_ptr_array_set_free_func(self->priv->stack, free_func);
     self->priv->free_func = free_func;
     return self;
 }
@@ -102,7 +112,7 @@ void *moose_playlist_at(MoosePlaylist *self, unsigned at)
     if(at < moose_playlist_length(self)) {
         return g_ptr_array_index(self->priv->stack, at);
     } else {
-        g_error("Invalid index for stack %p: %d\n", self, at);
+        g_warning("Invalid index for stack %p: %d\n", self, at);
         return NULL;
     }
 }
@@ -115,7 +125,7 @@ MoosePlaylist * moose_playlist_copy(MoosePlaylist *self)
     if(self == NULL || size == 0)
         return NULL;
 
-    MoosePlaylist *other = moose_playlist_new(size, self->priv->free_func);
+    MoosePlaylist *other = moose_playlist_new_full(size, self->priv->free_func);
 
     for(size_t i = 0; i < size; ++i) {
         g_ptr_array_add(other->priv->stack, 

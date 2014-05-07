@@ -206,8 +206,7 @@ static void moose_stprv_spl_listplaylists(MooseStore *store)
     if (store->spl.stack != NULL)
         g_object_unref(store->spl.stack);
 
-    store->spl.stack = moose_playlist_new(10, (GDestroyNotify) mpd_playlist_free);
-
+    store->spl.stack = moose_playlist_new_full(10, (GDestroyNotify) mpd_playlist_free);
 
     struct mpd_connection *conn = moose_get(self);
     if(conn != NULL) {
@@ -545,7 +544,7 @@ static int moose_stprv_spl_filter_id_list(MooseStore *store, GPtrArray *song_ptr
                         (((match_clause) ? MAX(strlen(match_clause), 1) : 1) * 2);
 
     /* Temp. container to hold the query on the database */
-    MoosePlaylist *db_songs = moose_playlist_new(preallocations, NULL);
+    MoosePlaylist *db_songs = moose_playlist_new_full(preallocations, NULL);
 
     if(moose_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
         for(size_t i = 0; i < moose_playlist_length(db_songs); ++i) {
