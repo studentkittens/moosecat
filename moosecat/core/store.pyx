@@ -139,7 +139,7 @@ cdef class Store:
 
         # Preallocation strategy
         stack_size = 1000 if limit_length < 0 else limit_length
-        result = c.moose_playlist_new(stack_size, NULL)
+        result = c.moose_playlist_new_full(stack_size, NULL)
 
         if result != NULL:
             try:
@@ -202,7 +202,7 @@ cdef class Store:
         if path is None and depth < 0:
             return []
 
-        stack = c.moose_playlist_new(10, NULL)
+        stack = c.moose_playlist_new()
         rlist = []
 
         if path is None:
@@ -237,7 +237,7 @@ cdef class Store:
     cdef c.mpd_playlist * _stored_playlist_get_by_name(self, b_name):
         'Find a mpd_playlist by its name'
         cdef c.mpd_playlist * result = NULL
-        cdef c.MoosePlaylist * stack = c.moose_playlist_new(10, NULL)
+        cdef c.MoosePlaylist * stack = c.moose_playlist_new()
 
         try:
             job_id = c.moose_store_playlist_get_all_loaded(self._p(), stack)
@@ -279,7 +279,7 @@ cdef class Store:
         :returns: a Playlist with the specified songs.
         '''
         # Create a buffer for the songs
-        cdef c.MoosePlaylist * stack = c.moose_playlist_new(0, NULL)
+        cdef c.MoosePlaylist * stack = c.moose_playlist_new()
         cdef c.mpd_playlist * playlist = NULL
 
         if stack != NULL:
@@ -343,7 +343,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.MoosePlaylist * pl_names = c.moose_playlist_new(10, NULL)
+            cdef c.MoosePlaylist * pl_names = c.moose_playlist_new()
             job_id = c.moose_store_playlist_get_all_known(self._p(), pl_names)
             c.moose_store_wait_for_job(self._p(), job_id)
 
@@ -360,7 +360,7 @@ cdef class Store:
         This property might change on the stored-playlist event.
         '''
         def __get__(self):
-            cdef c.MoosePlaylist * pl_names = c.moose_playlist_new(10, NULL)
+            cdef c.MoosePlaylist * pl_names = c.moose_playlist_new()
             job_id = c.moose_store_playlist_get_all_loaded(self._p(), pl_names)
             c.moose_store_wait_for_job(self._p(), job_id)
 

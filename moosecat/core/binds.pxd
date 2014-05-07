@@ -311,7 +311,8 @@ cdef extern from "../../lib/store/moose-store-playlist.h":
     void g_object_unref(void *)
     void g_signal_connect(void *, char *, void *,  void *)
 
-    MoosePlaylist * moose_playlist_new (long, void *)
+    MoosePlaylist * moose_playlist_new()
+    MoosePlaylist * moose_playlist_new_full(long, void *)
     void moose_playlist_append (MoosePlaylist *, void *)
     void moose_playlist_clear (MoosePlaylist *)
     unsigned moose_playlist_length (MoosePlaylist *)
