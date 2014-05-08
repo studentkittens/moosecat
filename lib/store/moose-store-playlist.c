@@ -25,9 +25,7 @@ static void moose_playlist_finalize(GObject *gobject)
     /* Always chain up to the parent class; as with dispose(), finalize()
      * is guaranteed to exist on the parent's class virtual function table
      */
-    G_OBJECT_CLASS(
-        g_type_class_peek_parent(G_OBJECT_GET_CLASS(self))
-    )->finalize(gobject);
+    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
 ///////////////////////////////
