@@ -38,7 +38,7 @@ static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
 
             MooseSong * song = moose_song_new_from_struct(
                 (struct mpd_song *)mpd_entity_get_song(ent)
-            );
+                );
 
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);

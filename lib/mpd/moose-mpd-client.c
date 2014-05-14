@@ -899,7 +899,7 @@ static void * moose_client_command_dispatcher(
         if (moose_client_command_list_is_start_or_end(input) == +1) {
             moose_client_command_list_begin(self);
             result = true;
-        } else   {
+        } else {
             struct mpd_connection * conn = moose_get(self);
             if (conn != NULL && moose_is_connected(self)) {
                 result = moose_client_execute(self, input, conn);

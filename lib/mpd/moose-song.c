@@ -44,7 +44,7 @@ static void moose_song_finalize(GObject * gobject)
     if (self == NULL)
         return;
 
-    for(size_t i = 0; i < MOOSE_TAG_COUNT; ++i) {
+    for (size_t i = 0; i < MOOSE_TAG_COUNT; ++i) {
         g_free(self->priv->tags[i]);
     }
     g_free(self->priv->uri);
@@ -92,11 +92,11 @@ char * moose_song_get_tag(MooseSong * self, MooseTagType tag)
     return self->priv->tags[tag];
 }
 
-void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value) 
-{ 
+void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value)
+{
     g_return_if_fail(tag >= 0 && tag < MOOSE_TAG_COUNT);
 
-    if(self->priv->tags[tag]) {
+    if (self->priv->tags[tag]) {
         g_free(self->priv->tags[tag]);
     }
     self->priv->tags[tag] = g_strdup(value);
@@ -113,7 +113,7 @@ const char * moose_song_get_uri(MooseSong * self)
 void moose_song_set_uri(MooseSong * self, const char * uri)
 {
     g_assert(self);
-    if(self->priv->uri) {
+    if (self->priv->uri) {
         g_free(self->priv->uri);
     }
     self->priv->uri = g_strdup(uri);
@@ -191,14 +191,14 @@ void moose_song_set_prio(MooseSong * self, unsigned prio)
 
 ///////////////////////////////
 
-void moose_song_convert(MooseSong * self, struct mpd_song * song) 
+void moose_song_convert(MooseSong * self, struct mpd_song * song)
 {
     g_assert(self);
     g_assert(song);
 
-    for(size_t i = 0; i < MOOSE_TAG_COUNT; ++i) {
+    for (size_t i = 0; i < MOOSE_TAG_COUNT; ++i) {
         const char * value = mpd_song_get_tag(song, i, 0);
-        if(value != NULL) {
+        if (value != NULL) {
             moose_song_set_tag(self, i, value);
         }
     }
@@ -211,9 +211,9 @@ void moose_song_convert(MooseSong * self, struct mpd_song * song)
     moose_song_set_prio(self, mpd_song_get_prio(song));
 }
 
-MooseSong * moose_song_new_from_struct(struct mpd_song * song) 
+MooseSong * moose_song_new_from_struct(struct mpd_song * song)
 {
-    if(song == NULL) {
+    if (song == NULL) {
         return NULL;
     }
 

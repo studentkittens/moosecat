@@ -800,10 +800,10 @@ void moose_stprv_load_or_save(MooseStore * self, bool is_save, const char * db_p
 ////////////////////////////////
 
 #define feed_tag(tag_enum, sql_col_pos, stmt, song) {              \
-    char *value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
-    if (value) {                                                   \
-        moose_song_set_tag(song, tag_enum, value);                 \
-    }                                                              \
+        char * value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
+        if (value) {                                                   \
+            moose_song_set_tag(song, tag_enum, value);                 \
+        }                                                              \
 }                                                               \
 
 void moose_stprv_deserialize_songs(MooseStore * self)
@@ -833,17 +833,17 @@ void moose_stprv_deserialize_songs(MooseStore * self)
         MooseSong * song = moose_song_new();
         moose_song_set_uri(
             song, (char *)sqlite3_column_text(stmt, SQL_COL_URI)
-        );
+            );
 
         /* Since SQLite is completely typeless we can just retrieve the column as string */
         moose_song_set_duration(
             song, sqlite3_column_int(stmt, SQL_COL_DURATION)
-        );
+            );
 
         /* We parse the date ourself, since we can use a nice static buffer here */
         moose_song_set_last_modified(
             song, sqlite3_column_int(stmt, SQL_COL_LAST_MODIFIED)
-        );
+            );
 
         /* Now feed the tags */
         feed_tag(MOOSE_TAG_ARTIST, SQL_COL_ARTIST, stmt, song);

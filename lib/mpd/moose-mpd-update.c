@@ -157,7 +157,7 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
                 if (update_song) {
                     struct mpd_song * new_song_struct = mpd_recv_song(conn);
                     MooseSong * new_song = moose_song_new_from_struct(new_song_struct);
-                    if(new_song_struct != NULL) {
+                    if (new_song_struct != NULL) {
                         mpd_song_free(new_song_struct);
                     }
 
