@@ -39,12 +39,12 @@ int main(int argc, char * * argv)
     g_print("Time elapsed: %2.3fs\n", g_timer_elapsed(pl_timer, NULL));
 
     for (size_t i = 0; i < moose_playlist_length(songs); ++i) {
-        struct mpd_song * song = moose_playlist_at(songs, i);
+        MooseSong * song = moose_playlist_at(songs, i);
         g_print("%s\t%s\t%s\t%s\n",
-                mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
-                mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
-                mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
-                mpd_song_get_uri(song)
+                moose_song_get_tag(song, MPD_TAG_ARTIST),
+                moose_song_get_tag(song, MPD_TAG_ALBUM),
+                moose_song_get_tag(song, MPD_TAG_TITLE),
+                moose_song_get_uri(song)
                 );
     }
 

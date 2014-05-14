@@ -36,13 +36,16 @@ static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
         switch (mpd_entity_get_type(ent)) {
         case MPD_ENTITY_TYPE_SONG: {
 
-            struct mpd_song * song = (struct mpd_song *)mpd_entity_get_song(ent);
+            MooseSong * song = moose_song_new_from_struct(
+                (struct mpd_song *)mpd_entity_get_song(ent)
+            );
+
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);
 
             /* Not sure if this is a nice way,
              * but for now it works. There might be a proper way:
-             * duplicate the song with mpd_song_dup, and use mpd_entity_free,
+             * duplicate the song with moose_song_dup, and use mpd_entity_free,
              * but that adds extra memory usage, and costs about 0.2 seconds.
              * on my setup here - I think this will work fine.
              * */
@@ -164,7 +167,7 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
 
     store->stack = moose_playlist_new_full(
         number_of_songs + 1,
-        (GDestroyNotify)mpd_song_free
+        (GDestroyNotify)moose_song_free
         );
 
     /* Profiling */
@@ -231,7 +234,7 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
 
     int clipped = 0;
     bool first_song_passed = false;
-    struct mpd_song * song = NULL;
+    MooseSong * song = NULL;
     GTimer * timer = g_timer_new();
     gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
 
@@ -244,7 +247,7 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
 
             int start_position = -1;
             if (song != (gpointer)EMPTY_QUEUE_INDICATOR) {
-                start_position = mpd_song_get_pos(song);
+                start_position = moose_song_get_pos(song);
             }
             clipped = moose_stprv_queue_clip(self, start_position);
             clip_time = g_timer_elapsed(timer, NULL);
@@ -256,11 +259,11 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
         if (song != (gpointer)EMPTY_QUEUE_INDICATOR) {
             moose_stprv_queue_insert_posid(
                 self,
-                mpd_song_get_pos(song),
-                mpd_song_get_id(song),
-                mpd_song_get_uri(song)
+                moose_song_get_pos(song),
+                moose_song_get_id(song),
+                moose_song_get_uri(song)
                 );
-            mpd_song_free(song);
+            moose_song_free(song);
         }
     }
 
@@ -356,9 +359,12 @@ void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
             (int)last_pl_version);
 
         if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
-            struct mpd_song * song = NULL;
+            struct mpd_song * song_struct = NULL;
 
-            while ((song = mpd_recv_song(conn)) != NULL) {
+            while ((song_struct = mpd_recv_song(conn)) != NULL) {
+                MooseSong * song = moose_song_new_from_struct(song_struct);
+                mpd_song_free(song_struct);
+
                 if (moose_jm_check_cancel(store->jm, cancel)) {
                     moose_shelper_report_progress(
                         self, false, "database: plchanges canceled!"

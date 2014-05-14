@@ -1,6 +1,8 @@
 #include <mpd/client.h>
 #include <glib.h>
 
+#include "moose-song.h"
+
 /* Prototype because of cyclic dependency */
 struct MooseClient;
 
@@ -18,7 +20,7 @@ typedef struct MooseUpdateData {
         mtx_statistics,
         mtx_outputs;
 
-    struct mpd_song * current_song;
+    MooseSong * current_song;
     struct mpd_stats * statistics;
     struct mpd_status * status;
     const char * replay_gain_status;

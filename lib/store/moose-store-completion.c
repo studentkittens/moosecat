@@ -58,9 +58,9 @@ static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, enu
 
     size_t copylen = moose_playlist_length(copy);
     for (size_t i = 0; i < copylen; ++i) {
-        struct mpd_song * song = moose_playlist_at(copy, i);
+        MooseSong * song = moose_playlist_at(copy, i);
         if (song != NULL) {
-            const char * word = mpd_song_get_tag(song, tag, 0);
+            const char * word = moose_song_get_tag(song, tag);
             if (word != NULL) {
                 char * normalized = moose_store_cmpl_normalize_string(word);
                 art_insert(
@@ -87,10 +87,10 @@ static int moose_store_cmpl_art_callback(void * user_data, const unsigned char *
     int song_idx = GPOINTER_TO_INT(value);
 
     moose_stprv_lock_attributes(data->self->store); {
-        struct mpd_song * song = moose_playlist_at(data->self->store->stack, song_idx);
+        MooseSong * song = moose_playlist_at(data->self->store->stack, song_idx);
         if (song != NULL) {
             /* Try to retrieve the original song */
-            data->result = g_strdup(mpd_song_get_tag(song, data->tag, 0));
+            data->result = g_strdup(moose_song_get_tag(song, data->tag));
         }
     }
     moose_stprv_unlock_attributes(data->self->store);

@@ -8,17 +8,56 @@ ctypedef long time_t
 #                              libmpdclient                               #
 ###########################################################################
 
+cdef extern from "../../lib/mpd/moose-song.h":
+    ctypedef struct MooseSong:
+        pass
+
+    # Wrapped as properties:
+    ctypedef enum MooseTagType:
+        MOOSE_TAG_UNKNOWN
+        MOOSE_TAG_ARTIST
+        MOOSE_TAG_ALBUM
+        MOOSE_TAG_ALBUM_ARTIST
+        MOOSE_TAG_TITLE
+        MOOSE_TAG_TRACK
+        MOOSE_TAG_NAME
+        MOOSE_TAG_GENRE
+        MOOSE_TAG_DATE
+        MOOSE_TAG_COMPOSER
+        MOOSE_TAG_PERFORMER
+        MOOSE_TAG_COMMENT
+        MOOSE_TAG_DISC
+        MOOSE_TAG_OPTIONAL_COUNT
+        MOOSE_TAG_MUSICBRAINZ_ARTISTID
+        MOOSE_TAG_MUSICBRAINZ_ALBUMID
+        MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID
+        MOOSE_TAG_MUSICBRAINZ_TRACKID
+        MOOSE_TAG_COUNT
+
+    MooseSong * moose_song_new()
+    void moose_song_free(MooseSong *)
+    char * moose_song_get_tag(MooseSong *, MooseTagType tag)
+    void moose_song_set_tag(MooseSong *, MooseTagType tag, char *)
+    const char * moose_song_get_uri(MooseSong *)
+    void moose_song_set_uri(MooseSong *, const char *)
+    unsigned moose_song_get_duration(MooseSong *)
+    void moose_song_set_duration(MooseSong *, unsigned)
+    time_t moose_song_get_last_modified(MooseSong *)
+    void moose_song_set_last_modified(MooseSong *, time_t)
+    unsigned moose_song_get_pos(MooseSong *)
+    void moose_song_set_pos(MooseSong *, unsigned)
+    unsigned moose_song_get_id(MooseSong *)
+    void moose_song_set_id(MooseSong *, unsigned)
+    unsigned moose_song_get_prio(MooseSong *)
+    void moose_song_set_prio(MooseSong *, unsigned)
+
+
 cdef extern from "../../lib/mpd/moose-mpd-client.h":
     ################
     #  Structures  #
     ################
 
-    cdef struct mpd_song:
-        pass
-
-    # Cython does not support const
     # So, we just typedef const here
-    ctypedef mpd_song * const_mpd_song_ptr "const struct mpd_song *"
     ctypedef char * const_char_ptr "const char *"
 
     cdef struct mpd_stats:
@@ -65,27 +104,6 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
         MPD_IDLE_SUBSCRIPTION
         MPD_IDLE_MESSAGE
         MPD_IDLE_SEEK = MPD_IDLE_MESSAGE << 1
-
-    # Wrapped as properties:
-    cdef enum mpd_tag_type:
-        MPD_TAG_UNKNOWN
-        MPD_TAG_ARTIST
-        MPD_TAG_ALBUM
-        MPD_TAG_ALBUM_ARTIST
-        MPD_TAG_TITLE
-        MPD_TAG_TRACK
-        MPD_TAG_NAME
-        MPD_TAG_GENRE
-        MPD_TAG_DATE
-        MPD_TAG_COMPOSER
-        MPD_TAG_PERFORMER
-        MPD_TAG_COMMENT
-        MPD_TAG_DISC
-        MPD_TAG_MUSICBRAINZ_ARTISTID
-        MPD_TAG_MUSICBRAINZ_ALBUMID
-        MPD_TAG_MUSICBRAINZ_ALBUMARTISTID
-        MPD_TAG_MUSICBRAINZ_TRACKID
-        MPD_TAG_COUNT
 
     # Wrapped as class variables
     cdef enum mpd_state:
@@ -168,25 +186,6 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
     mpd_stats * mpd_stats_begin()
     void mpd_stats_feed(mpd_stats *status, mpd_pair *pair)
     void mpd_stats_free(mpd_stats * stats)
-
-    #####################
-    #  Songs Functions  #
-    #####################
-
-    char * mpd_song_get_uri(mpd_song *)
-    char * mpd_song_get_tag(mpd_song *,  mpd_tag_type, unsigned)
-    unsigned mpd_song_get_duration(mpd_song *)
-    unsigned mpd_song_get_start(mpd_song *)
-    unsigned mpd_song_get_end(mpd_song *)
-    time_t mpd_song_get_last_modified(mpd_song *)
-    void mpd_song_set_pos(mpd_song *, unsigned)
-    unsigned mpd_song_get_pos(mpd_song *)
-    unsigned mpd_song_get_id(mpd_song *)
-    void mpd_song_free(mpd_song*)
-
-    # Useful for testing.
-    mpd_song * mpd_song_begin(mpd_pair *pair)
-    void mpd_song_feed(mpd_song *song, mpd_pair *pair)
 
     ######################
     #  Output Functions  #
@@ -274,7 +273,7 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     # Locking:
     mpd_status * moose_lock_status(MooseClient *)
     mpd_stats * moose_lock_statistics(MooseClient *)
-    mpd_song * moose_lock_current_song(MooseClient *)
+    MooseSong * moose_lock_current_song(MooseClient *)
     const char * moose_get_replay_gain_mode(MooseClient *)
     void moose_unlock_status(MooseClient *)
     void moose_unlock_statistics(MooseClient *)
@@ -338,7 +337,7 @@ cdef extern from "../../lib/store/moose-store.h":
 
     MooseStore *moose_store_create(MooseClient *client, MooseStoreSettings *settings)
     void moose_store_close(MooseStore *)
-    mpd_song *moose_store_song_at(MooseStore *, int)
+    MooseSong *moose_store_song_at(MooseStore *, int)
     int moose_store_total_songs(MooseStore *)
     long moose_store_playlist_load(MooseStore *, const char *)
     long moose_store_playlist_select_to_stack(MooseStore *, MoosePlaylist *, const char *, const char *)
@@ -351,7 +350,7 @@ cdef extern from "../../lib/store/moose-store.h":
     MoosePlaylist *moose_store_get_result(MooseStore *, int)
     MoosePlaylist *moose_store_gw(MooseStore *, int)
     void moose_store_release(MooseStore *)
-    mpd_song *moose_store_find_song_by_id(MooseStore *, unsigned)
+    MooseSong *moose_store_find_song_by_id(MooseStore *, unsigned)
     MooseStoreCompletion *moose_store_get_completion(MooseStore*)
 
 cdef extern from "../../lib/store/moose-store-query-parser.h":
@@ -360,13 +359,13 @@ cdef extern from "../../lib/store/moose-store-query-parser.h":
 
     MooseStoreCompletion * moose_store_cmpl_new(MooseStore *)
     void moose_store_cmpl_free(MooseStoreCompletion *)
-    char * moose_store_cmpl_lookup(MooseStoreCompletion *, mpd_tag_type, char *)
+    char * moose_store_cmpl_lookup(MooseStoreCompletion *, MooseTagType, char *)
 
 cdef extern from "../../lib/store/moose-store-query-parser.h":
     char *moose_store_qp_parse(char *, char **, int *)
     char *moose_store_qp_tag_abbrev_to_full(char *, size_t)
     bool moose_store_qp_is_valid_tag(char *, size_t)
-    mpd_tag_type moose_store_qp_str_to_tag_enum(char *)
+    MooseTagType moose_store_qp_str_to_tag_enum(char *)
 
 ###########################################################################
 #                             Misc Interfaces                             #

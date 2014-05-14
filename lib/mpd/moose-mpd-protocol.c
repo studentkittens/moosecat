@@ -441,7 +441,7 @@ void moose_unlock_statistics(struct MooseClient * self)
 
 ////////////////////////
 
-struct mpd_song * moose_lock_current_song(struct MooseClient * self) {
+MooseSong * moose_lock_current_song(struct MooseClient * self) {
     g_rec_mutex_lock(&self->_update_data->mtx_current_song);
     return self->_update_data->current_song;
 }

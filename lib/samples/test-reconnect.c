@@ -37,7 +37,7 @@ static gboolean idle_callback(void * user_data)
 
     for (int i = 0; i < 10; i++) {
         g_printerr("+ connect\n");
-        moose_connect(self, NULL, "localhost", 6666, 2.0);
+        moose_connect(self, NULL, "localhost", 6601, 2.0);
         g_printerr("- disconnect\n");
         moose_disconnect(self);
     }

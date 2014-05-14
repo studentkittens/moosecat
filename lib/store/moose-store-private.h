@@ -15,7 +15,7 @@ bool moose_strprv_open_memdb(MooseStore * self);
  *
  * You should call moose_stprv_begin/commit before and after.
  */
-bool moose_stprv_insert_song(MooseStore * db, struct mpd_song * song);
+bool moose_stprv_insert_song(MooseStore * db, MooseSong * song);
 
 /**
  * @brief Update the db's meta table.

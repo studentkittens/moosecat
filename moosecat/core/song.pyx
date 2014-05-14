@@ -1,15 +1,15 @@
 cimport binds as c
 
 '''
-Song is a Python-Level Wrapper aroung libmpdclient's mpd_song.
+Song is a Python-Level Wrapper around Moosecat's Song.
 
 It has the same features, but is a lot nicer to use:
->>> s = song_from_ptr(some_mpd_song_struct)
+>>> s = song_from_ptr(some_moose_song_struct)
 >>> print(s.artist)
 
 Instead of:
->>> s = song_from_ptr(some_mpd_song_struct)
->>> c.mpd_song_get_tag(s, c.MPD_TAG_ARTIST, 0)
+>>> s = song_from_ptr(some_moose_song_struct)
+>>> c.moose_song_get_tag(s, c.MPD_TAG_ARTIST)
 
 Instanciation should always happen via song_from_ptr()!
 (Will probably crash easily otherwise)
@@ -18,8 +18,8 @@ Instanciation should always happen via song_from_ptr()!
 # Last Modified Date
 import time
 
-cdef object song_from_ptr(c.mpd_song * ptr):
-    'Instance a new Song() with a the underlying mpd_song ptr'
+cdef object song_from_ptr(c.MooseSong * ptr):
+    'Instance a new Song() with a the underlying MooseSong ptr'
     if ptr != NULL:
         return Song()._init(ptr)
     else:
@@ -34,13 +34,13 @@ cdef class Song:
 
     .. note::
 
-        Song is just a wrapper around libmpdclient's mpd_song. Internally,
-        a stack with all mpd_songs known to libmoosecat is held. These can be
+        Song is just a wrapper around libmpdclient's MooseSong. Internally,
+        a stack with all MooseSongs known to libmoosecat is held. These can be
         wrapped though in 1..n Song-Wrappers! So, don't rely on something like
         a id-compare to check if a song is equal.
     '''
     # Actual c-level struct
-    cdef c.mpd_song * _song
+    cdef c.MooseSong * _song
 
     ################
     #  Allocation  #
@@ -49,13 +49,13 @@ cdef class Song:
     def __cinit__(self):
         self._song = NULL
 
-    cdef c.mpd_song * _p(self) except NULL:
+    cdef c.MooseSong * _p(self) except NULL:
         if self._song != NULL:
             return self._song
         else:
-            raise ValueError('mpd_song pointer is null for this instance!')
+            raise ValueError('MooseSong pointer is null for this instance!')
 
-    cdef object _init(self, c.mpd_song * song):
+    cdef object _init(self, c.MooseSong * song):
         self._song = song
         return self
 
@@ -64,27 +64,20 @@ cdef class Song:
     #############
 
     def test_begin(self, file_name='file://test_case_path'):
-        cdef c.mpd_pair pair
-        byte_file = bytify(file_name)
-        pair.name = 'file'
-        pair.value = byte_file
-        self._song = c.mpd_song_begin(&pair)
+        b_file_name = bytify(file_name)
+        self._song = c.moose_song_new()
+        c.moose_song_set_uri(self._song, file_name)
 
     def test_feed(self, name, value):
-        cdef c.mpd_pair pair
-        b_name = bytify(name)
-        b_value = bytify(value)
-        pair.name = b_name
-        pair.value = b_value
-        c.mpd_song_feed(self._p(), &pair)
+        pass
 
     ################
     #  Properties  #
     ################
 
-    cdef _tag(self, c.mpd_tag_type tag):
+    cdef _tag(self, c.MooseTagType tag):
         cdef c.const_char_ptr p
-        p = c.mpd_song_get_tag(<c.const_mpd_song_ptr>self._p(), tag, 0)
+        p = c.moose_song_get_tag(self._p(), tag)
         if p == NULL:
             return ''
         else:
@@ -172,31 +165,19 @@ cdef class Song:
     property uri:
         'Retrieve the uri (file://xyz e.g.) of this song.'
         def __get__(self):
-            return stringify(<char *>c.mpd_song_get_uri(self._p()))
+            return stringify(<char *>c.moose_song_get_uri(self._p()))
 
     property duration:
         'Retrieve the duration of the song in seconds'
         def __get__(self):
-            return c.mpd_song_get_duration(self._p())
-
-    property start_end:
-        '''
-        Get the start/end of the virtual song within the physical file in seconds.
-        This will be unset (0) most of the time, but maybe useful for files with
-        an attached .cue sheet.
-
-        :returns: a tuple: (start, end)
-        '''
-        def __get__(self):
-            return (c.mpd_song_get_start(self._p()),
-                    c.mpd_song_get_end(self._p()))
+            return c.moose_song_get_duration(self._p())
 
     property queue_pos:
         'Retrieve the position of the song in the Queue (or 0 if in DB only)'
         def __get__(self):
-            return <int>c.mpd_song_get_pos(self._p())
+            return <int>c.moose_song_get_pos(self._p())
         def __set__(self, int pos):
-            c.mpd_song_set_pos(self._p(), pos)
+            c.moose_song_set_pos(self._p(), pos)
 
     property queue_id:
         '''
@@ -205,7 +186,7 @@ cdef class Song:
         In contrast to the Position the Id won't change on move/add/delete.
         '''
         def __get__(self):
-            return <int>c.mpd_song_get_id(self._p())
+            return <int>c.moose_song_get_id(self._p())
 
     property last_modified:
         '''
@@ -214,4 +195,4 @@ cdef class Song:
         :returns: a time.struct_time
         '''
         def __get__(self):
-            return time.gmtime(c.mpd_song_get_last_modified(self._p()))
+            return time.gmtime(c.moose_song_get_last_modified(self._p()))

@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <glib.h>
+#include "moose-song.h"
 #include <mpd/client.h>
 
 /* Signal System */
@@ -493,9 +494,9 @@ void moose_unlock_statistics(MooseClient * self);
  *
  * @param self the client that holds the current song
  *
- * @return a locked struct mpd_song
+ * @return a locked MooseSong
  */
-struct mpd_song * moose_lock_current_song(MooseClient * self);
+MooseSong * moose_lock_current_song(MooseClient * self);
 
 /**
  * @brief The pendant to moose_lock_current_song()

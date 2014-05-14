@@ -50,7 +50,7 @@ void moose_store_close(MooseStore * self);
  *
  * @return an mpd_song. DO NOT FREE!
  */
-struct mpd_song * moose_store_song_at(MooseStore * self, int idx);
+MooseSong * moose_store_song_at(MooseStore * self, int idx);
 
 /**
  * @brief Returns the total number of songs stored in the database.
@@ -146,7 +146,7 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
  *      moose_store_wait_for_job(store, job_id);
  *      moose_store_lock(store);
  *      for(int i = 0; i < moose_playlist_length(stack); ++i) {
- *          printf("%s\n", mpd_song_tag(moose_playlist_at(i), MPD_TAG_TITLE, 0));
+ *          printf("%s\n", moose_song_tag(moose_playlist_at(i), MPD_TAG_TITLE, 0));
  *      }
  *      moose_store_unlock(store);
  *
@@ -226,7 +226,7 @@ void moose_store_release(MooseStore * self);
  *
  * @return NULL if not found or a mpd_song struct (do not free!)
  */
-struct mpd_song * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_id);
+MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_id);
 
 /**
  * @brief Convinience Function to createa MooseStoreCompletion struct.

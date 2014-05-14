@@ -562,9 +562,9 @@ static bool handle_seekcur(MooseClient * self, struct mpd_connection * conn, con
      * but we can emulate it easily */
     if (moose_is_connected(self)) {
         int curr_id = 0;
-        struct mpd_song * current_song = moose_lock_current_song(self);
+        MooseSong * current_song = moose_lock_current_song(self);
         if (current_song != NULL) {
-            curr_id = mpd_song_get_id(current_song);
+            curr_id = moose_song_get_id(current_song);
             moose_unlock_current_song(self);
         } else {
             moose_unlock_current_song(self);

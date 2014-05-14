@@ -548,7 +548,7 @@ static int moose_stprv_spl_filter_id_list(MooseStore * store, GPtrArray * song_p
 
     if (moose_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
         for (size_t i = 0; i < moose_playlist_length(db_songs); ++i) {
-            struct mpd_song * song = moose_playlist_at(db_songs, i);
+            MooseSong * song = moose_playlist_at(db_songs, i);
             if (bsearch(
                     song,
                     song_ptr_array->pdata,
@@ -627,7 +627,7 @@ int moose_stprv_spl_select_playlist(MooseStore * store, MoosePlaylist * out_stac
             /* Get the actual song */
             int song_idx = sqlite3_column_int(pl_id_stmt, 0);
             if (0 < song_idx && song_idx <= (int)moose_playlist_length(store->stack)) {
-                struct mpd_song * song = moose_playlist_at(store->stack, song_idx - 1);
+                MooseSong * song = moose_playlist_at(store->stack, song_idx - 1);
 
                 /* Remember the pointer */
                 g_ptr_array_add(song_ptr_array, song);

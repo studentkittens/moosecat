@@ -8,7 +8,7 @@
     error_id |= sqlite3_bind_text(SQL_STMT(db, type), (pos_idx)++, value, -1, NULL);
 
 #define bind_tag(db, type, pos_idx, song, tag_id, error_id) \
-    bind_txt(db, type, pos_idx, mpd_song_get_tag(song, tag_id, 0), error_id)
+    bind_txt(db, type, pos_idx, moose_song_get_tag(song, tag_id), error_id)
 
 /*
  * DB Layout version.

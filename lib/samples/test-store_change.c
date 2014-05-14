@@ -62,7 +62,7 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
 {
     MooseClient * self = moose_create(MOOSE_PM_IDLE);
 
-    moose_connect(self, NULL, "localhost", 6666, 10.0);
+    moose_connect(self, NULL, "localhost", 6601, 10.0);
     moose_signal_add(self, "logging", print_logging, NULL);
     moose_signal_add(self, "client-event", print_event, NULL);
     moose_signal_add(self, "connectivity", print_connectivity, NULL);

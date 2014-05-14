@@ -155,10 +155,14 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
 
                 /* Try to receive the current song */
                 if (update_song) {
-                    struct mpd_song * new_song = mpd_recv_song(conn);
+                    struct mpd_song * new_song_struct = mpd_recv_song(conn);
+                    MooseSong * new_song = moose_song_new_from_struct(new_song_struct);
+                    if(new_song_struct != NULL) {
+                        mpd_song_free(new_song_struct);
+                    }
 
                     moose_lock_current_song(self);
-                    free_if_not_null(data->current_song, mpd_song_free);
+                    free_if_not_null(data->current_song, moose_song_free);
                     data->current_song = new_song;
 
                     /* We need to call recv() one more time
@@ -464,7 +468,7 @@ void moose_update_reset(MooseUpdateData * data)
     moose_lock_current_song(data->client);
     {
         if (data->current_song != NULL) {
-            mpd_song_free(data->current_song);
+            moose_song_free(data->current_song);
         }
         data->current_song = NULL;
     }

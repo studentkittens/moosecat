@@ -68,13 +68,6 @@ static void moose_song_class_init(MooseSongClass * klass)
 static void moose_song_init(MooseSong * self)
 {
     self->priv = moose_song_get_instance_private(self);
-    // memset(self->priv->tags, 0, sizeof(char *) * MOOSE_TAG_COUNT);
-    // self->priv->uri = NULL;
-    // self->priv->duration = 0;
-    // self->priv->last_modified = 0;
-    // self->priv->pos = 0;
-    // self->priv->id = 0;
-    // self->priv->prio = 0;
 }
 
 ///////////////////////////////
@@ -83,11 +76,10 @@ static void moose_song_init(MooseSong * self)
 
 MooseSong * moose_song_new(void)
 {
-    MooseSong * self = g_object_new(MOOSE_TYPE_SONG, NULL);
-    return self;
+    return g_object_new(MOOSE_TYPE_SONG, NULL);
 }
 
-void moose_song_destroy(MooseSong * self)
+void moose_song_free(MooseSong * self)
 {
     g_object_unref(self);
 }
@@ -96,13 +88,17 @@ void moose_song_destroy(MooseSong * self)
 
 char * moose_song_get_tag(MooseSong * self, MooseTagType tag)
 {
-    g_return_val_if_fail(tag < 0 || tag >= MOOSE_TAG_COUNT, NULL);
+    g_return_val_if_fail(tag >= 0 && tag < MOOSE_TAG_COUNT, NULL);
     return self->priv->tags[tag];
 }
 
 void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value) 
 { 
-    g_return_if_fail(tag < 0 || tag >= MOOSE_TAG_COUNT);
+    g_return_if_fail(tag >= 0 && tag < MOOSE_TAG_COUNT);
+
+    if(self->priv->tags[tag]) {
+        g_free(self->priv->tags[tag]);
+    }
     self->priv->tags[tag] = g_strdup(value);
 }
 
@@ -117,6 +113,9 @@ const char * moose_song_get_uri(MooseSong * self)
 void moose_song_set_uri(MooseSong * self, const char * uri)
 {
     g_assert(self);
+    if(self->priv->uri) {
+        g_free(self->priv->uri);
+    }
     self->priv->uri = g_strdup(uri);
 }
 
@@ -188,4 +187,37 @@ void moose_song_set_prio(MooseSong * self, unsigned prio)
 {
     g_assert(self);
     self->priv->prio = prio;
+}
+
+///////////////////////////////
+
+void moose_song_convert(MooseSong * self, struct mpd_song * song) 
+{
+    g_assert(self);
+    g_assert(song);
+
+    for(size_t i = 0; i < MOOSE_TAG_COUNT; ++i) {
+        const char * value = mpd_song_get_tag(song, i, 0);
+        if(value != NULL) {
+            moose_song_set_tag(self, i, value);
+        }
+    }
+
+    moose_song_set_uri(self, mpd_song_get_uri(song));
+    moose_song_set_pos(self, mpd_song_get_pos(song));
+    moose_song_set_id(self, mpd_song_get_id(song));
+    moose_song_set_last_modified(self, mpd_song_get_last_modified(song));
+    moose_song_set_duration(self, mpd_song_get_duration(song));
+    moose_song_set_prio(self, mpd_song_get_prio(song));
+}
+
+MooseSong * moose_song_new_from_struct(struct mpd_song * song) 
+{
+    if(song == NULL) {
+        return NULL;
+    }
+
+    MooseSong * self = moose_song_new();
+    moose_song_convert(self, song);
+    return self;
 }

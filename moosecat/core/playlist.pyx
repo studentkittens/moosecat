@@ -50,7 +50,7 @@ cdef class Playlist:
         'Get a song at a certain position out of the Playlist'
         cdef int length = c.moose_playlist_length(self._p())
         if idx < length:
-            return song_from_ptr(<c.mpd_song*>c.moose_playlist_at(self._p(), idx))
+            return song_from_ptr(<c.MooseSong*>c.moose_playlist_at(self._p(), idx))
         else:
             raise IndexError('Index out of Playlist\'s range')
 

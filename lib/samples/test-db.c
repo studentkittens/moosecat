@@ -48,11 +48,11 @@ int main(int argc, char * argv[])
 
     /* Trigger some bugs */
     for (int i = 0; i < 10; i++) {
-        moose_connect(client, NULL, "localhost", 6666, 10.0);
+        moose_connect(client, NULL, "localhost", 6601, 10.0);
         moose_disconnect(client);
     }
 
-    moose_connect(client, NULL, "localhost", 6666, 10.0);
+    moose_connect(client, NULL, "localhost", 6601, 10.0);
     moose_signal_add(client, "logging", print_logging, NULL);
     moose_signal_add(client, "client-event", print_event, NULL);
     moose_signal_add(client, "connectivity", print_connectivity, NULL);
@@ -126,8 +126,8 @@ int main(int argc, char * argv[])
                             g_print("Nothing found.\n");
                         } else {
                             for (int i = 0; i < found; ++i) {
-                                struct mpd_song * song = moose_playlist_at(stack, i);
-                                g_print("%s\n", mpd_song_get_uri(song));
+                                MooseSong * song = moose_playlist_at(stack, i);
+                                g_print("%s\n", moose_song_get_uri(song));
                             }
                         }
                         moose_store_release(db);
@@ -214,13 +214,13 @@ int main(int argc, char * argv[])
                     g_print("------------------------------------------------------------------------------------------------\n");
 
                     for (int i = 0; i < selected; i++) {
-                        struct mpd_song * song = moose_playlist_at(song_buf, i);
+                        MooseSong * song = moose_playlist_at(song_buf, i);
                         g_print("%04d/%04d %-35s | %-35s | %-35s\n",
-                                mpd_song_get_pos(song),
-                                mpd_song_get_id(song),
-                                mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
-                                mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
-                                mpd_song_get_tag(song, MPD_TAG_TITLE, 0));
+                                moose_song_get_pos(song),
+                                moose_song_get_id(song),
+                                moose_song_get_tag(song, MPD_TAG_ARTIST),
+                                moose_song_get_tag(song, MPD_TAG_ALBUM),
+                                moose_song_get_tag(song, MPD_TAG_TITLE));
                     }
                 } else {
                     g_print("=> No results.\n");

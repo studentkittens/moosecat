@@ -67,12 +67,12 @@ static void update_view(EntryTag * tag, const char * search_text)
     gtk_list_store_clear(list_store);
 
     for (int i = 0; i < found; i++) {
-        struct mpd_song * song = moose_playlist_at(tag->song_buf, i);
+        MooseSong * song = moose_playlist_at(tag->song_buf, i);
         gtk_list_store_append(list_store, &iter);
         gtk_list_store_set(list_store, &iter,
-                           COLUMN_ARTIST, mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
-                           COLUMN_ALBUM, mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
-                           COLUMN_TITLE, mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
+                           COLUMN_ARTIST, moose_song_get_tag(song, MPD_TAG_ARTIST),
+                           COLUMN_ALBUM, moose_song_get_tag(song, MPD_TAG_ALBUM),
+                           COLUMN_TITLE, moose_song_get_tag(song, MPD_TAG_TITLE),
                            -1);
     }
 

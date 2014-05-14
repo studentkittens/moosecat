@@ -8,34 +8,35 @@
  * This basically is a wrapper around #GPtrArray.
  */
 #include <glib-object.h>
+#include <mpd/client.h>
 
 G_BEGIN_DECLS
 
-
+/* This reflects mpd_tag_type */
 typedef enum _MooseTagType {
-    MOOSE_TAG_UNKNOWN = -1,
+    MOOSE_TAG_UNKNOWN = MPD_TAG_UNKNOWN,
 
-    MOOSE_TAG_ARTIST,
-    MOOSE_TAG_ALBUM,
-    MOOSE_TAG_ALBUM_ARTIST,
-    MOOSE_TAG_TITLE,
-    MOOSE_TAG_TRACK,
-    MOOSE_TAG_NAME,
-    MOOSE_TAG_GENRE,
-    MOOSE_TAG_DATE,
-    MOOSE_TAG_COMPOSER,
-    MOOSE_TAG_PERFORMER,
-    MOOSE_TAG_COMMENT,
-    MOOSE_TAG_DISC,
+    MOOSE_TAG_ARTIST = MPD_TAG_ARTIST,
+    MOOSE_TAG_ALBUM = MPD_TAG_ALBUM,
+    MOOSE_TAG_ALBUM_ARTIST = MPD_TAG_ALBUM_ARTIST,
+    MOOSE_TAG_TITLE = MPD_TAG_TITLE,
+    MOOSE_TAG_TRACK = MPD_TAG_TRACK,
+    MOOSE_TAG_NAME = MPD_TAG_NAME,
+    MOOSE_TAG_GENRE = MPD_TAG_GENRE,
+    MOOSE_TAG_DATE = MPD_TAG_DATE,
+    MOOSE_TAG_COMPOSER = MPD_TAG_COMPOSER,
+    MOOSE_TAG_PERFORMER = MPD_TAG_PERFORMER,
+    MOOSE_TAG_COMMENT = MPD_TAG_COMMENT,
+    MOOSE_TAG_DISC = MPD_TAG_DISC,
 
-    MOOSE_TAG_OPTIONAL_COUNT,
+    MOOSE_TAG_OPTIONAL_COUNT = MPD_TAG_MUSICBRAINZ_ARTISTID,
 
-    MOOSE_TAG_MUSICBRAINZ_ARTISTID = MOOSE_TAG_OPTIONAL_COUNT,
-    MOOSE_TAG_MUSICBRAINZ_ALBUMID,
-    MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID,
-    MOOSE_TAG_MUSICBRAINZ_TRACKID,
+    MOOSE_TAG_MUSICBRAINZ_ARTISTID = MPD_TAG_MUSICBRAINZ_ARTISTID,
+    MOOSE_TAG_MUSICBRAINZ_ALBUMID = MPD_TAG_MUSICBRAINZ_ALBUMID,
+    MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID = MPD_TAG_MUSICBRAINZ_ALBUMARTISTID,
+    MOOSE_TAG_MUSICBRAINZ_TRACKID = MPD_TAG_MUSICBRAINZ_TRACKID,
 
-    MOOSE_TAG_COUNT
+    MOOSE_TAG_COUNT = MPD_TAG_COUNT
 } MooseTagType;
 
 
@@ -80,8 +81,11 @@ GType moose_song_get_type(void);
  * Return value: a new #MooseSong.
  */
 MooseSong * moose_song_new(void);
+MooseSong * moose_song_new_from_struct(struct mpd_song * song);
 
-void moose_song_destroy(MooseSong * self);
+void moose_song_convert(MooseSong * self, struct mpd_song * song);
+
+void moose_song_free(MooseSong * self);
 
 char * moose_song_get_tag(MooseSong * self, MooseTagType tag);
 void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value);

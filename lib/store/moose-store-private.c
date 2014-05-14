@@ -467,17 +467,19 @@ void moose_stprv_delete_songs_table(MooseStore * self)
  *
  * A prepared statement is used for simplicity & speed reasons.
  */
-bool moose_stprv_insert_song(MooseStore * db, struct mpd_song * song)
+bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
 {
     int error_id = SQLITE_OK;
     int pos_idx = 1;
     bool rc = true;
+
     /* bind basic attributes */
-    bind_txt(db, INSERT, pos_idx, mpd_song_get_uri(song), error_id);
-    bind_int(db, INSERT, pos_idx, mpd_song_get_start(song), error_id);
-    bind_int(db, INSERT, pos_idx, mpd_song_get_end(song), error_id);
-    bind_int(db, INSERT, pos_idx, mpd_song_get_duration(song), error_id);
-    bind_int(db, INSERT, pos_idx, mpd_song_get_last_modified(song), error_id);
+    // TODO TODO TODO: Start/End is empty.
+    bind_txt(db, INSERT, pos_idx, moose_song_get_uri(song), error_id);
+    bind_int(db, INSERT, pos_idx, 0, error_id);
+    bind_int(db, INSERT, pos_idx, 1, error_id);
+    bind_int(db, INSERT, pos_idx, moose_song_get_duration(song), error_id);
+    bind_int(db, INSERT, pos_idx, moose_song_get_last_modified(song), error_id);
 
     /* bind tags */
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_ARTIST, error_id);
@@ -488,8 +490,10 @@ bool moose_stprv_insert_song(MooseStore * db, struct mpd_song * song)
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_NAME, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_GENRE, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_DATE, error_id);
-    if (error_id != SQLITE_OK)
+    if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(db, "WARNING: Error while binding");
+    }
+
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_COMPOSER, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_PERFORMER, error_id);
     bind_tag(db, INSERT, pos_idx, song, MPD_TAG_COMMENT, error_id);
@@ -502,7 +506,7 @@ bool moose_stprv_insert_song(MooseStore * db, struct mpd_song * song)
     /* Constant Value. See Create statement. */
     bind_int(db, INSERT, pos_idx,  0, error_id);
 
-    bind_int(db, INSERT, pos_idx, moose_path_get_depth(mpd_song_get_uri(song)), error_id);
+    bind_int(db, INSERT, pos_idx, moose_path_get_depth(moose_song_get_uri(song)), error_id);
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
@@ -528,8 +532,8 @@ bool moose_stprv_insert_song(MooseStore * db, struct mpd_song * song)
 static gint moose_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b)
 {
     if (a && b) {
-        int pos_a = mpd_song_get_pos(*((struct mpd_song * *)a));
-        int pos_b = mpd_song_get_pos(*((struct mpd_song * *)b));
+        int pos_a = moose_song_get_pos(*((MooseSong * *)a));
+        int pos_b = moose_song_get_pos(*((MooseSong * *)b));
 
         if (pos_a == pos_b) return +0;
 
@@ -543,8 +547,8 @@ static gint moose_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpoin
 static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstpointer b)
 {
     if (a && b) {
-        struct mpd_song * sa = (*((struct mpd_song * *)a));
-        struct mpd_song * sb = (*((struct mpd_song * *)b));
+        MooseSong * sa = (*((MooseSong * *)a));
+        MooseSong * sb = (*((MooseSong * *)b));
 
         if (sa == sb) return +0;
 
@@ -562,7 +566,7 @@ static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gcon
  *
  * This is more of a fun excercise, than a real speedup.
  */
-static struct mpd_song * moose_stprv_find_idx(MoosePlaylist * stack, struct mpd_song * key) {
+static MooseSong * moose_stprv_find_idx(MoosePlaylist * stack, MooseSong * key) {
     int l = 0;
     int r = moose_playlist_length(stack) - 1;
     int qr1 = 0, qr3 = 0, mid = 0;
@@ -572,9 +576,9 @@ static struct mpd_song * moose_stprv_find_idx(MoosePlaylist * stack, struct mpd_
         qr1 = l + (r - l) / 4;
         qr3 = l + (r - l) * 3 / 4;
 
-        struct mpd_song * at_mid = moose_playlist_at(stack, mid);
-        struct mpd_song * at_qr1 = moose_playlist_at(stack, qr1);
-        struct mpd_song * at_qr3 = moose_playlist_at(stack, qr3);
+        MooseSong * at_mid = moose_playlist_at(stack, mid);
+        MooseSong * at_qr1 = moose_playlist_at(stack, qr1);
+        MooseSong * at_qr3 = moose_playlist_at(stack, qr3);
 
         if (at_mid == key || key == at_qr1 || key == at_qr3) {
             int result_idx = 0;
@@ -617,7 +621,7 @@ static MoosePlaylist * moose_stprv_build_queue_content(MooseStore * self, MooseP
             continue;
         }
 
-        struct mpd_song * queue_song = moose_stprv_find_idx(
+        MooseSong * queue_song = moose_stprv_find_idx(
             to_filter, moose_playlist_at(self->stack, stack_idx - 1)
             );
         if (queue_song != NULL) {
@@ -687,7 +691,7 @@ int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bo
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int song_idx = sqlite3_column_int(select_stmt, 0);
-        struct mpd_song * selected = moose_playlist_at(self->stack, song_idx - 1);
+        MooseSong * selected = moose_playlist_at(self->stack, song_idx - 1);
 
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
@@ -695,7 +699,7 @@ int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bo
          *
          * We can do that a lot faster anyways;
          * */
-        if (queue_only == false || ((int)mpd_song_get_pos(selected) > -1)) {
+        if (queue_only == false || ((int)moose_song_get_pos(selected) > -1)) {
             moose_playlist_append(stack, selected);
         }
     }
@@ -795,44 +799,20 @@ void moose_stprv_load_or_save(MooseStore * self, bool is_save, const char * db_p
 
 ////////////////////////////////
 
-#define feed_tag(tag_enum, sql_col_pos, stmt, song, pair)         \
-    pair.value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
-    if (pair.value) {                                             \
-        pair.name  = mpd_tag_name(tag_enum);                      \
-        mpd_song_feed(song, &pair);                               \
-    }                                                             \
+#define feed_tag(tag_enum, sql_col_pos, stmt, song) {              \
+    char *value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
+    if (value) {                                                   \
+        moose_song_set_tag(song, tag_enum, value);                 \
+    }                                                              \
+}                                                               \
 
-/*
- * Selects all rows from the 'songs' table and compose a mpd_song structure from it.
- * It does this by emulating the MPD protocol, and using mpd_song_begin/feed to set
- * the actual values. This could be speed up a lot if there would be setters for this.
- *
- * Anyway, in it's current state, it loads my total db from disk in 0.35 seconds, which should be
- * okay for a once-a-start operation, especially when done in background.
- *
- * Returns a gpointer (i.e. NULL) so it can be used as GThreadFunc.
- */
 void moose_stprv_deserialize_songs(MooseStore * self)
 {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
 
-    /* used to convert integer and dates to string */
-    char val_buf[64] = {0};
-    const int val_buf_size = sizeof(val_buf);
-
     /* the stmt we will use here, shorter to write.. */
     sqlite3_stmt * stmt = SQL_STMT(self, SELECT_ALL);
-
-    /* a pair (tuple of name/value) that is fed to a mpd_song */
-    struct mpd_pair pair;
-
-    /* for date feeding */
-    time_t last_modified = 0;
-    struct tm * lm_tm = NULL;
-
-    /* range parsing */
-    int start = 0, end = 0;
 
     /* progress */
     int progress_counter = 0;
@@ -840,8 +820,6 @@ void moose_stprv_deserialize_songs(MooseStore * self)
 
     /* loop over all rows in the songs table */
     while ((error_id = sqlite3_step(stmt)) == SQLITE_ROW) {
-        pair.name = "file";
-        pair.value = (char *)sqlite3_column_text(stmt, SQL_COL_URI);
         /* Following fields are understood by libmpdclient:
          * file (= uri)
          * Time (= duration)
@@ -852,52 +830,40 @@ void moose_stprv_deserialize_songs(MooseStore * self)
          *
          * It's also case-sensitive.
          */
-        struct mpd_song * song = mpd_song_begin(&pair);
-        g_assert(song != NULL);
-
-        /* Parse start/end - this is at least here almost always 0 */
-        pair.name = "Range";
-        start = sqlite3_column_int(stmt, SQL_COL_START);
-        end = sqlite3_column_int(stmt, SQL_COL_END);
-
-        if (!start && !end)
-            g_strlcpy(val_buf, "0-0", val_buf_size);
-        else
-            g_snprintf(val_buf, val_buf_size, "%d-%d", start, end);
-
-        pair.value = val_buf;
-        mpd_song_feed(song, &pair);
+        MooseSong * song = moose_song_new();
+        moose_song_set_uri(
+            song, (char *)sqlite3_column_text(stmt, SQL_COL_URI)
+        );
 
         /* Since SQLite is completely typeless we can just retrieve the column as string */
-        pair.name = "Time";
-        pair.value = (char *)sqlite3_column_text(stmt, SQL_COL_DURATION);
-        mpd_song_feed(song, &pair);
+        moose_song_set_duration(
+            song, sqlite3_column_int(stmt, SQL_COL_DURATION)
+        );
 
         /* We parse the date ourself, since we can use a nice static buffer here */
-        pair.name = "Last-Modified";
-        last_modified = sqlite3_column_int(stmt, SQL_COL_LAST_MODIFIED);
-        lm_tm = gmtime(&last_modified);
-        strftime(val_buf, val_buf_size, "%Y-%m-%dT%H:%M:%SZ", lm_tm);
-        pair.value = val_buf;
-        mpd_song_feed(song, &pair);
+        moose_song_set_last_modified(
+            song, sqlite3_column_int(stmt, SQL_COL_LAST_MODIFIED)
+        );
 
         /* Now feed the tags */
-        feed_tag(MPD_TAG_ARTIST, SQL_COL_ARTIST, stmt, song, pair);
-        feed_tag(MPD_TAG_ALBUM, SQL_COL_ALBUM, stmt, song, pair);
-        feed_tag(MPD_TAG_TITLE, SQL_COL_TITLE, stmt, song, pair);
-        feed_tag(MPD_TAG_ALBUM_ARTIST, SQL_COL_ALBUM_ARTIST, stmt, song, pair);
-        feed_tag(MPD_TAG_TRACK, SQL_COL_TRACK, stmt, song, pair);
-        feed_tag(MPD_TAG_NAME, SQL_COL_NAME, stmt, song, pair);
-        feed_tag(MPD_TAG_GENRE, SQL_COL_GENRE, stmt, song, pair);
-        feed_tag(MPD_TAG_DATE, SQL_COL_DATE, stmt, song, pair);
-        feed_tag(MPD_TAG_COMPOSER, SQL_COL_COMPOSER, stmt, song, pair);
-        feed_tag(MPD_TAG_PERFORMER, SQL_COL_PERFORMER, stmt, song, pair);
-        feed_tag(MPD_TAG_COMMENT, SQL_COL_COMMENT, stmt, song, pair);
-        feed_tag(MPD_TAG_DISC, SQL_COL_DISC, stmt, song, pair);
-        feed_tag(MPD_TAG_MUSICBRAINZ_ARTISTID, SQL_COL_MUSICBRAINZ_ARTIST_ID, stmt, song, pair);
-        feed_tag(MPD_TAG_MUSICBRAINZ_ALBUMID, SQL_COL_MUSICBRAINZ_ALBUM_ID, stmt, song, pair);
-        feed_tag(MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID, stmt, song, pair);
-        feed_tag(MPD_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song, pair);
+        feed_tag(MOOSE_TAG_ARTIST, SQL_COL_ARTIST, stmt, song);
+        feed_tag(MOOSE_TAG_ALBUM, SQL_COL_ALBUM, stmt, song);
+        feed_tag(MOOSE_TAG_TITLE, SQL_COL_TITLE, stmt, song);
+        feed_tag(MOOSE_TAG_ALBUM_ARTIST, SQL_COL_ALBUM_ARTIST, stmt, song);
+        feed_tag(MOOSE_TAG_TRACK, SQL_COL_TRACK, stmt, song);
+        feed_tag(MOOSE_TAG_NAME, SQL_COL_NAME, stmt, song);
+        feed_tag(MOOSE_TAG_GENRE, SQL_COL_GENRE, stmt, song);
+        feed_tag(MOOSE_TAG_DATE, SQL_COL_DATE, stmt, song);
+        feed_tag(MOOSE_TAG_COMPOSER, SQL_COL_COMPOSER, stmt, song);
+        feed_tag(MOOSE_TAG_PERFORMER, SQL_COL_PERFORMER, stmt, song);
+        feed_tag(MOOSE_TAG_COMMENT, SQL_COL_COMMENT, stmt, song);
+        feed_tag(MOOSE_TAG_DISC, SQL_COL_DISC, stmt, song);
+        feed_tag(MOOSE_TAG_MUSICBRAINZ_ARTISTID, SQL_COL_MUSICBRAINZ_ARTIST_ID, stmt, song);
+        feed_tag(MOOSE_TAG_MUSICBRAINZ_ALBUMID, SQL_COL_MUSICBRAINZ_ALBUM_ID, stmt, song);
+        feed_tag(MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID, SQL_COL_MUSICBRAINZ_ALBUMARTIST_ID, stmt, song);
+        feed_tag(MOOSE_TAG_MUSICBRAINZ_TRACKID, SQL_COL_MUSICBRAINZ_TRACK_ID, stmt, song);
+
+        /* Remember it */
         moose_playlist_append(self->stack, song);
 
         ++progress_counter;
@@ -1024,16 +990,13 @@ void moose_stprv_queue_update_stack_posid(MooseStore * self)
     sqlite3_stmt * select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
 
     /* Set the ID by parsing the ID */
-    struct mpd_pair parse_pair;
-    parse_pair.name = "Id";
-
     GHashTable * already_seen_ids = g_hash_table_new(NULL, NULL);
 
     while ((error_id = sqlite3_step(select_stmt)) == SQLITE_ROW) {
         int row_idx  = sqlite3_column_int(select_stmt, 0);
 
         if (row_idx > 0) {
-            struct mpd_song * song = moose_playlist_at(self->stack, row_idx - 1);
+            MooseSong * song = moose_playlist_at(self->stack, row_idx - 1);
 
             if (song != NULL) {
                 unsigned queue_pos = sqlite3_column_int(select_stmt, 1);
@@ -1044,9 +1007,8 @@ void moose_stprv_queue_update_stack_posid(MooseStore * self)
                     );
 
                 /* Luckily we have a setter here, otherwise I would feel a bit strange. */
-                mpd_song_set_pos(song, queue_pos);
-                parse_pair.value = (char *)sqlite3_column_text(select_stmt, 2);
-                mpd_song_feed(song, &parse_pair);
+                moose_song_set_pos(song, queue_pos);
+                moose_song_set_id(song, sqlite3_column_int(select_stmt, 2));
             }
         }
     }
@@ -1055,13 +1017,12 @@ void moose_stprv_queue_update_stack_posid(MooseStore * self)
 
     /* Reset all songs of the database to -1/-1 that were not in the queue */
     for (unsigned i = 0; i < moose_playlist_length(self->stack); ++i) {
-        struct mpd_song * song = moose_playlist_at(self->stack, i);
+        MooseSong * song = moose_playlist_at(self->stack, i);
         if (song != NULL) {
             if (!g_hash_table_lookup(already_seen_ids, song)) {
                 /* Warning: -1 is casted to unsigned int and late back */
-                mpd_song_set_pos(song, -1);
-                parse_pair.value = (char *)"-1";
-                mpd_song_feed(song, &parse_pair);
+                moose_song_set_pos(song, -1);
+                moose_song_set_id(song, -1);
             }
         }
     }
