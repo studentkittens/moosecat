@@ -33,7 +33,7 @@ static void moose_playlist_finalize(GObject *gobject)
 static void moose_playlist_class_init(MoosePlaylistClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-    gobject_class->finalize = moose_playlist_finalize;;
+    gobject_class->finalize = moose_playlist_finalize;
 }
 
 ///////////////////////////////
