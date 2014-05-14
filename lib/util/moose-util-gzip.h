@@ -12,7 +12,7 @@
  *
  * @return true on success
  */
-bool moose_gzip(const char *file_path);
+bool moose_gzip(const char * file_path);
 
 /**
  * @brief Inflates file_path to file_path - gz
@@ -21,6 +21,6 @@ bool moose_gzip(const char *file_path);
  *
  * @return  true on success
  */
-bool moose_gunzip(const char *file_path);
+bool moose_gunzip(const char * file_path);
 
 #endif /* end of include guard: MOOSE_GZIP_HH */

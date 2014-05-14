@@ -8,7 +8,7 @@
 
 ///////////////////////////////
 
-static char * compose_error_msg(const char *topic, const char *src)
+static char * compose_error_msg(const char * topic, const char * src)
 {
     if (src && topic) {
         return g_strdup_printf("%s: ,,%s''", topic, src);
@@ -19,44 +19,44 @@ static char * compose_error_msg(const char *topic, const char *src)
 
 ///////////////////////////////
 
-static bool moose_shelper_report_error_impl(struct MooseClient *self, struct mpd_connection *cconn, bool handle_fatal)
+static bool moose_shelper_report_error_impl(struct MooseClient * self, struct mpd_connection * cconn, bool handle_fatal)
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
             moose_signal_dispatch(
-                    self, "logging", self,
-                    "Connection to MPD was closed (IsFatal=maybe?)",
-                    MOOSE_LOG_WARNING,
-                    FALSE 
-            );
+                self, "logging", self,
+                "Connection to MPD was closed (IsFatal=maybe?)",
+                MOOSE_LOG_WARNING,
+                FALSE
+                );
         }
 
         return true;
     }
 
-    char *error_message = NULL;
+    char * error_message = NULL;
     enum mpd_error error = mpd_connection_get_error(cconn);
 
     if (error != MPD_ERROR_SUCCESS) {
-        switch(error) {
-            case MPD_ERROR_SYSTEM:
-                error_message = compose_error_msg(
-                        "System-Error",
-                        g_strerror(mpd_connection_get_system_error(cconn))
+        switch (error) {
+        case MPD_ERROR_SYSTEM:
+            error_message = compose_error_msg(
+                "System-Error",
+                g_strerror(mpd_connection_get_system_error(cconn))
                 );
-                break;
-            case MPD_ERROR_SERVER:
-                error_message = compose_error_msg(
-                        "Server-Error",
-                        mpd_connection_get_error_message(cconn)
+            break;
+        case MPD_ERROR_SERVER:
+            error_message = compose_error_msg(
+                "Server-Error",
+                mpd_connection_get_error_message(cconn)
                 );
-                break;
-            default:
-                error_message = compose_error_msg(
-                        "Client-Error",
-                        mpd_connection_get_error_message(cconn)
+            break;
+        default:
+            error_message = compose_error_msg(
+                "Client-Error",
+                mpd_connection_get_error_message(cconn)
                 );
-                break;
+            break;
         }
 
         /* Try to clear the error */
@@ -70,12 +70,12 @@ static bool moose_shelper_report_error_impl(struct MooseClient *self, struct mpd
 
         /* Dispatch the error to the users */
         moose_shelper_report_error_printf(
-                self,
-                "ErrID=%d: %s (IsFatal=%s)",
-                error,
-                error_message,
-                is_fatal ? "True" : "False"
-        );
+            self,
+            "ErrID=%d: %s (IsFatal=%s)",
+            error,
+            error_message,
+            is_fatal ? "True" : "False"
+            );
         g_free(error_message);
         return true;
     }
@@ -85,14 +85,14 @@ static bool moose_shelper_report_error_impl(struct MooseClient *self, struct mpd
 
 ///////////////////////////////
 
-bool moose_shelper_report_error(struct MooseClient *self, struct mpd_connection *cconn)
+bool moose_shelper_report_error(struct MooseClient * self, struct mpd_connection * cconn)
 {
     return moose_shelper_report_error_impl(self, cconn, true);
 }
 
 ///////////////////////////////
 
-bool moose_shelper_report_error_without_handling(struct MooseClient *self, struct mpd_connection *cconn)
+bool moose_shelper_report_error_without_handling(struct MooseClient * self, struct mpd_connection * cconn)
 {
     return moose_shelper_report_error_impl(self, cconn, false);
 }
@@ -100,10 +100,10 @@ bool moose_shelper_report_error_without_handling(struct MooseClient *self, struc
 ///////////////////////////////
 
 void moose_shelper_report_error_printf(
-    struct MooseClient *self,
-    const char *format, ...)
+    struct MooseClient * self,
+    const char * format, ...)
 {
-    char *full_string = NULL;
+    char * full_string = NULL;
     va_list list_ptr;
     va_start(list_ptr, format);
 
@@ -117,11 +117,11 @@ void moose_shelper_report_error_printf(
 ///////////////////////////////
 
 void moose_shelper_report_progress(
-    struct MooseClient *self,
+    struct MooseClient * self,
     G_GNUC_UNUSED bool print_newline,
-    const char *format, ...)
+    const char * format, ...)
 {
-    char *full_string = NULL;
+    char * full_string = NULL;
     va_list list_ptr;
     va_start(list_ptr, format);
 
@@ -135,15 +135,15 @@ void moose_shelper_report_progress(
 ///////////////////////////////
 
 void moose_shelper_report_connectivity(
-    struct MooseClient *self,
-    const char *new_host,
+    struct MooseClient * self,
+    const char * new_host,
     int new_port,
     float new_timeout)
 {
 
     g_rec_mutex_lock(&self->_client_attr_mutex);
     bool server_changed = self->is_virgin == false &&
-        ((g_strcmp0(new_host, self->_host) != 0) || (new_port != self->_port));
+                          ((g_strcmp0(new_host, self->_host) != 0) || (new_port != self->_port));
 
     /* Defloreate the Client (Wheeeh!) */
     self->is_virgin = false;
@@ -158,15 +158,15 @@ void moose_shelper_report_connectivity(
 
 
     /* Dispatch *after* host being set */
-    moose_signal_dispatch(self, "connectivity", 
-            self, server_changed,
-            moose_is_connected(self)
-    );
+    moose_signal_dispatch(self, "connectivity",
+                          self, server_changed,
+                          moose_is_connected(self)
+                          );
 }
 
 ///////////////////////////////
 
-static const char *signal_to_name_table[] = {
+static const char * signal_to_name_table[] = {
     [MOOSE_OP_DB_UPDATED]       = "Finished: Database Updated",
     [MOOSE_OP_QUEUE_UPDATED]    = "Finished: Queue Updated",
     [MOOSE_OP_SPL_UPDATED]      = "Finished: Stored Playlist Updated",
@@ -176,13 +176,13 @@ static const char *signal_to_name_table[] = {
 static const unsigned signal_to_name_table_size = sizeof(signal_to_name_table) / sizeof(const char *) / 2;
 
 void moose_shelper_report_operation_finished(
-    struct MooseClient *self,
+    struct MooseClient * self,
     MooseOpFinishedEnum op)
 {
     g_assert(self);
-    const char *operation;
+    const char * operation;
 
-    if(op < signal_to_name_table_size) {
+    if (op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
         moose_signal_dispatch(self, "logging", self, operation, MOOSE_LOG_INFO, FALSE);
     }

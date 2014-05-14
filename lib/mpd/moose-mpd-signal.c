@@ -18,9 +18,9 @@ typedef struct {
 
 
 typedef struct {
-    MooseClient *client;
-    const char *signal_name;
-    const char *error_msg;
+    MooseClient * client;
+    const char * signal_name;
+    const char * error_msg;
     int client_event;
     int log_level;
     int is_connected;
@@ -28,7 +28,7 @@ typedef struct {
     bool free_log_message;
 } MooseDispatchTag;
 
-static const char *signal_to_name_table[] = {
+static const char * signal_to_name_table[] = {
     [MOOSE_SIGNAL_CLIENT_EVENT] = "client-event",
     [MOOSE_SIGNAL_CONNECTIVITY] = "connectivity",
     [MOOSE_SIGNAL_LOGGING]      = "logging",
@@ -37,7 +37,7 @@ static const char *signal_to_name_table[] = {
 };
 
 
-static MooseSignalType moose_convert_name_to_signal(const char *signame)
+static MooseSignalType moose_convert_name_to_signal(const char * signame)
 {
     if (signame != NULL)
         for (int i = 0; i < MOOSE_SIGNAL_VALID_COUNT; i++)
@@ -55,107 +55,107 @@ static MooseSignalType moose_convert_name_to_signal(const char *signame)
         MooseSignalTag * tag = iter->data;                   \
         if (tag != NULL)                                   \
         {                                                  \
- 
+
 #define DISPATCH_END                                       \
-        }                                                  \
+    }                                                  \
     }                                                      \
- 
-void moose_priv_signal_list_report_event_v(MooseSignalList *list, const char *signal_name, MooseDispatchTag *data)
+
+void moose_priv_signal_list_report_event_v(MooseSignalList * list, const char * signal_name, MooseDispatchTag * data)
 {
     MooseSignalType sig_type = moose_convert_name_to_signal(signal_name);
     if (sig_type == MOOSE_SIGNAL_UNKNOWN)
         return;
 
-    GList *cb_list = list->signals[sig_type];
+    GList * cb_list = list->signals[sig_type];
 
     /* All callbacks get a client as first param */
     switch (sig_type) {
-        case MOOSE_SIGNAL_CLIENT_EVENT: {
-            DISPATCH_START {
-                if (tag->mask & data->client_event) {
-                    ((MooseClientEventCallback) tag->callback)(
-                        data->client, data->client_event, tag->user_data
+    case MOOSE_SIGNAL_CLIENT_EVENT: {
+        DISPATCH_START {
+            if (tag->mask & data->client_event) {
+                ((MooseClientEventCallback)tag->callback)(
+                    data->client, data->client_event, tag->user_data
                     );
-                }
             }
-            DISPATCH_END
-            break;
         }
-        case MOOSE_SIGNAL_LOGGING: {
-            DISPATCH_START {
-                ((MooseLoggingCallback) tag->callback)(
-                    data->client,
-                    data->error_msg,
-                    data->log_level,
-                    tag->user_data
+        DISPATCH_END
+        break;
+    }
+    case MOOSE_SIGNAL_LOGGING: {
+        DISPATCH_START {
+            ((MooseLoggingCallback)tag->callback)(
+                data->client,
+                data->error_msg,
+                data->log_level,
+                tag->user_data
                 );
-            }
-            DISPATCH_END
+        }
+        DISPATCH_END
 
-            if(data->free_log_message) {
-                g_free((char *)data->error_msg);
-            }
-            break;
+        if (data->free_log_message) {
+            g_free((char *)data->error_msg);
         }
-        case MOOSE_SIGNAL_CONNECTIVITY: {
-            DISPATCH_START {
-                ((MooseConnectivityCallback) tag->callback)(
-                    data->client,
-                    data->server_changed, 
-                    data->is_connected,
-                    tag->user_data
+        break;
+    }
+    case MOOSE_SIGNAL_CONNECTIVITY: {
+        DISPATCH_START {
+            ((MooseConnectivityCallback)tag->callback)(
+                data->client,
+                data->server_changed,
+                data->is_connected,
+                tag->user_data
                 );
-            }
-            DISPATCH_END
-            break;
         }
-        case MOOSE_SIGNAL_FATAL_ERROR: {
-            moose_disconnect(data->client);
-        }
-        default:  {
-            /* Should not happen */
-            break;
-        }
+        DISPATCH_END
+        break;
+    }
+    case MOOSE_SIGNAL_FATAL_ERROR: {
+        moose_disconnect(data->client);
+    }
+    default:  {
+        /* Should not happen */
+        break;
+    }
     }
 }
 
 ///////////////////////////////
 
 
-MooseDispatchTag * moose_priv_signal_list_unpack_valist(const char *signal_name, va_list args)
+MooseDispatchTag * moose_priv_signal_list_unpack_valist(const char * signal_name, va_list args)
 {
     MooseSignalType sig_type = moose_convert_name_to_signal(signal_name);
 
     if (sig_type == MOOSE_SIGNAL_UNKNOWN) {
         return NULL;
     }
-    
-    MooseDispatchTag *tag = g_slice_new0(MooseDispatchTag);
+
+    MooseDispatchTag * tag = g_slice_new0(MooseDispatchTag);
     tag->signal_name = signal_name;
 
     /* All callbacks get a client as first param */
     tag->client = va_arg(args, struct MooseClient *);
 
     switch (sig_type) {
-        case MOOSE_SIGNAL_CLIENT_EVENT: {
-            tag->client_event = va_arg(args, int);
-            break;
-        }
-        case MOOSE_SIGNAL_LOGGING: {
-            tag->error_msg = va_arg(args, const char *);
-            tag->log_level = va_arg(args, int);
-            tag->free_log_message = va_arg(args, int);
-            break;
-        }
-        case MOOSE_SIGNAL_CONNECTIVITY: {
-            tag->server_changed = va_arg(args, int);
-            tag->is_connected = va_arg(args, int);
-            break;
-        }
-        default: {
-            /* Nothing to unpack */
-            break;
-        }
+    case MOOSE_SIGNAL_CLIENT_EVENT: {
+        tag->client_event = va_arg(args, int);
+        break;
+    }
+    case MOOSE_SIGNAL_LOGGING: {
+        tag->error_msg = va_arg(args, const char *);
+        tag->log_level = va_arg(args, int);
+        tag->free_log_message = va_arg(args, int);
+        break;
+    }
+    case MOOSE_SIGNAL_CONNECTIVITY: {
+        tag->server_changed = va_arg(args, int);
+        tag->is_connected = va_arg(args, int);
+        break;
+    }
+    default: {
+        /* Nothing to unpack */
+        break;
+    }
     }
 
     return tag;
@@ -166,38 +166,38 @@ MooseDispatchTag * moose_priv_signal_list_unpack_valist(const char *signal_name,
 static gboolean moose_priv_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_data)
 {
     MooseSignalList * list = user_data;
-    
+
     MooseDispatchTag * tag = NULL;
     MooseDispatchTag * client_event_buffer = NULL;
 
-    while((tag = g_async_queue_try_pop(queue))) {
+    while ((tag = g_async_queue_try_pop(queue))) {
         /* Merge all clients event to a Single Bitmask.
-         * This prevents unnecessart signal emission 
+         * This prevents unnecessart signal emission
          * causing all the client stuff to update.
          */
-        if(tag->client_event != 0) {
-            if(client_event_buffer == NULL) {
+        if (tag->client_event != 0) {
+            if (client_event_buffer == NULL) {
                 client_event_buffer = tag;
-            } 
+            }
             client_event_buffer->client_event |= tag->client_event;
         } else {
             /* Other signals can be reported immediately */
             moose_priv_signal_list_report_event_v(list, tag->signal_name, tag);
         }
 
-        if(client_event_buffer != tag) {
+        if (client_event_buffer != tag) {
             g_slice_free(MooseDispatchTag, tag);
         }
     }
-         
+
     /* Report only one client event - if one actually happened */
-    if(client_event_buffer != NULL) {
+    if (client_event_buffer != NULL) {
         moose_priv_signal_list_report_event_v(
-                list, client_event_buffer->signal_name, client_event_buffer
-        );
+            list, client_event_buffer->signal_name, client_event_buffer
+            );
         g_slice_free(MooseDispatchTag, client_event_buffer);
     }
-    
+
     return TRUE;
 }
 
@@ -205,7 +205,7 @@ static gboolean moose_priv_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer
 ////////// PUBLIC /////////////
 ///////////////////////////////
 
-void  moose_priv_signal_list_init(MooseSignalList *list)
+void  moose_priv_signal_list_init(MooseSignalList * list)
 {
     if (list == NULL)
         return;
@@ -215,29 +215,29 @@ void  moose_priv_signal_list_init(MooseSignalList *list)
     g_rec_mutex_init(&list->api_mtx);
     list->dispatch_queue = g_async_queue_new();
     list->signal_watch_id = moose_async_queue_watch_new(
-            list->dispatch_queue,       /* Queue to watch                             */
-            -1,                         /* Let GAsyncQueueWatch determine the timeout */
-            moose_priv_signal_list_dispatch_cb, /* Callback to be called                      */
-            list,                       /* User data                                  */
-            NULL                        /* Default MainLoop Context                   */
-    );
+        list->dispatch_queue,           /* Queue to watch                             */
+        -1,                             /* Let GAsyncQueueWatch determine the timeout */
+        moose_priv_signal_list_dispatch_cb,     /* Callback to be called                      */
+        list,                           /* User data                                  */
+        NULL                            /* Default MainLoop Context                   */
+        );
 }
 
 ///////////////////////////////
 
 void moose_priv_signal_add_masked(
-    MooseSignalList   *list,
-    const char *signal_name,
+    MooseSignalList   * list,
+    const char * signal_name,
     bool call_first,
-    void *callback_func,
-    void *user_data,
+    void * callback_func,
+    void * user_data,
     enum mpd_idle mask)
 {
     if (list == NULL || callback_func == NULL)
         return;
 
     g_rec_mutex_lock(&list->api_mtx);
-    MooseSignalTag *tag = g_slice_new0(MooseSignalTag);
+    MooseSignalTag * tag = g_slice_new0(MooseSignalTag);
     tag->user_data = user_data;
     tag->callback = callback_func;
     tag->mask = mask;
@@ -258,11 +258,11 @@ void moose_priv_signal_add_masked(
 ///////////////////////////////
 
 void moose_priv_signal_add(
-    MooseSignalList   *list,
-    const char *signal_name,
+    MooseSignalList   * list,
+    const char * signal_name,
     bool call_first,
-    void *callback_func,
-    void *user_data)
+    void * callback_func,
+    void * user_data)
 {
     moose_priv_signal_add_masked(list, signal_name, call_first, callback_func, user_data, INT_MAX);
 }
@@ -270,16 +270,16 @@ void moose_priv_signal_add(
 ///////////////////////////////
 
 int moose_priv_signal_length(
-    MooseSignalList *list,
-    const char *signal_name)
+    MooseSignalList * list,
+    const char * signal_name)
 {
     int result = -1;
 
     g_rec_mutex_lock(&list->api_mtx);
     MooseSignalType type = moose_convert_name_to_signal(signal_name);
     if (type != MOOSE_SIGNAL_UNKNOWN)
-        return (list) ? (int) g_list_length(list->signals[type]) : -1;
-   
+        return (list) ? (int)g_list_length(list->signals[type]) : -1;
+
     g_rec_mutex_unlock(&list->api_mtx);
     return result;
 }
@@ -287,18 +287,18 @@ int moose_priv_signal_length(
 ///////////////////////////////
 
 void moose_priv_signal_rm(
-    MooseSignalList   *list,
-    const char *signal_name,
-    void *callback_addr)
+    MooseSignalList   * list,
+    const char * signal_name,
+    void * callback_addr)
 {
     g_rec_mutex_lock(&list->api_mtx);
     MooseSignalType type = moose_convert_name_to_signal(signal_name);
 
     if (type != MOOSE_SIGNAL_UNKNOWN) {
-        GList *head = list->signals[type];
+        GList * head = list->signals[type];
 
-        for (GList *iter = head; iter; iter = iter->next) {
-            MooseSignalTag *tag = iter->data;
+        for (GList * iter = head; iter; iter = iter->next) {
+            MooseSignalTag * tag = iter->data;
 
             if (tag != NULL) {
                 if (tag->callback == callback_addr) {
@@ -315,23 +315,23 @@ void moose_priv_signal_rm(
 
 ///////////////////////////////
 
-void moose_priv_signal_report_event_v(MooseSignalList *list, const char *signal_name, va_list args)
+void moose_priv_signal_report_event_v(MooseSignalList * list, const char * signal_name, va_list args)
 {
     g_assert(list);
 
     g_rec_mutex_lock(&list->api_mtx);
-    MooseDispatchTag *data_tag = moose_priv_signal_list_unpack_valist(signal_name, args);
-    if(data_tag != NULL) {
+    MooseDispatchTag * data_tag = moose_priv_signal_list_unpack_valist(signal_name, args);
+    if (data_tag != NULL) {
         /* All signals are currently pushed into a queue.
-        * even if they are already on the Main-Thread.
-        * This guarantess that the dispatch happens always on the main thread.
-        * 
-        * This decision was done to be able to "buffer" events.
-        * Client-Events are pulled after a timeout or after too many events
-        * out of the queue and are merged into a single one. 
-        *
-        * Sliding the Volume Slider for example causes much less traffic this way.
-        */
+         * even if they are already on the Main-Thread.
+         * This guarantess that the dispatch happens always on the main thread.
+         *
+         * This decision was done to be able to "buffer" events.
+         * Client-Events are pulled after a timeout or after too many events
+         * out of the queue and are merged into a single one.
+         *
+         * Sliding the Volume Slider for example causes much less traffic this way.
+         */
         g_async_queue_push(list->dispatch_queue, data_tag);
     }
     g_rec_mutex_unlock(&list->api_mtx);
@@ -339,7 +339,7 @@ void moose_priv_signal_report_event_v(MooseSignalList *list, const char *signal_
 
 ///////////////////////////////
 
-void moose_priv_signal_report_event(MooseSignalList *list, const char *signal_name, ...)
+void moose_priv_signal_report_event(MooseSignalList * list, const char * signal_name, ...)
 {
     va_list args;
     va_start(args, signal_name);
@@ -349,12 +349,12 @@ void moose_priv_signal_report_event(MooseSignalList *list, const char *signal_na
 
 ///////////////////////////////
 
-void moose_priv_signal_list_destroy(MooseSignalList *list)
+void moose_priv_signal_list_destroy(MooseSignalList * list)
 {
     if (list != NULL) {
         for (int i = 0; i < MOOSE_SIGNAL_VALID_COUNT; i++) {
-            for (GList *iter = list->signals[i]; iter; iter = iter->next) {
-                MooseSignalTag *tag = iter->data;
+            for (GList * iter = list->signals[i]; iter; iter = iter->next) {
+                MooseSignalTag * tag = iter->data;
                 g_slice_free(MooseSignalTag, tag);
             }
 

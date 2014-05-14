@@ -5,14 +5,14 @@
 
 int main(void)
 {
-    MooseClient *client = moose_create(MOOSE_PM_IDLE);
+    MooseClient * client = moose_create(MOOSE_PM_IDLE);
     moose_connect(client, NULL, "localhost", 6666, 2);
 
     if (moose_is_connected(client)) {
 
         long job_id = 0;
 
-        for(int i = 0; i < 1000; ++i) {
+        for (int i = 0; i < 1000; ++i) {
             g_print("SEND: BEGIN\n");
             moose_client_begin(client);
             g_print("SEND: NEXT\n");

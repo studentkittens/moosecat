@@ -9,13 +9,13 @@
 #include "../mpd/moose-mpd-update.h"
 
 typedef struct {
-    MooseStore *store;
-    GAsyncQueue *queue;
+    MooseStore * store;
+    GAsyncQueue * queue;
 } MooseStoreQueueTag;
 
 
-/* Popping this from a GAsyncQueue means 
- * the queue is empty and we night to do some actions 
+/* Popping this from a GAsyncQueue means
+ * the queue is empty and we night to do some actions
  */
 #define EMPTY_QUEUE_INDICATOR 0x1
 
@@ -23,50 +23,50 @@ typedef struct {
 
 static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
 {
-    MooseStoreQueueTag *tag = user_data;
-    MooseStore *self = tag->store;
-    GAsyncQueue *queue = tag->queue;
+    MooseStoreQueueTag * tag = user_data;
+    MooseStore * self = tag->store;
+    GAsyncQueue * queue = tag->queue;
 
-    struct mpd_entity *ent = NULL;
+    struct mpd_entity * ent = NULL;
 
     /* Begin a new transaction */
     moose_stprv_begin(self);
 
     while ((gpointer)(ent = g_async_queue_pop(queue)) != queue) {
         switch (mpd_entity_get_type(ent)) {
-            case MPD_ENTITY_TYPE_SONG: {
+        case MPD_ENTITY_TYPE_SONG: {
 
-                struct mpd_song *song = (struct mpd_song *) mpd_entity_get_song(ent);
-                moose_playlist_append(self->stack, song);
-                moose_stprv_insert_song(self, song);
+            struct mpd_song * song = (struct mpd_song *)mpd_entity_get_song(ent);
+            moose_playlist_append(self->stack, song);
+            moose_stprv_insert_song(self, song);
 
-                /* Not sure if this is a nice way,
-                * but for now it works. There might be a proper way:
-                * duplicate the song with mpd_song_dup, and use mpd_entity_free,
-                * but that adds extra memory usage, and costs about 0.2 seconds.
-                * on my setup here - I think this will work fine.
-                * */
-                g_free(ent);
+            /* Not sure if this is a nice way,
+             * but for now it works. There might be a proper way:
+             * duplicate the song with mpd_song_dup, and use mpd_entity_free,
+             * but that adds extra memory usage, and costs about 0.2 seconds.
+             * on my setup here - I think this will work fine.
+             * */
+            g_free(ent);
 
-                break;
-            }
+            break;
+        }
 
-            case MPD_ENTITY_TYPE_DIRECTORY: {
-                const struct mpd_directory *dir = mpd_entity_get_directory(ent);
+        case MPD_ENTITY_TYPE_DIRECTORY: {
+            const struct mpd_directory * dir = mpd_entity_get_directory(ent);
 
-                if (dir != NULL) {
-                    moose_stprv_dir_insert(self, mpd_directory_get_path(dir));
-                    mpd_entity_free(ent);
-                }
-
-                break;
-            }
-
-            case MPD_ENTITY_TYPE_PLAYLIST:
-            default: {
+            if (dir != NULL) {
+                moose_stprv_dir_insert(self, mpd_directory_get_path(dir));
                 mpd_entity_free(ent);
-                ent = NULL;
             }
+
+            break;
+        }
+
+        case MPD_ENTITY_TYPE_PLAYLIST:
+        default: {
+            mpd_entity_free(ent);
+            ent = NULL;
+        }
         }
     }
 
@@ -94,29 +94,29 @@ static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
  *       Also, this value is adjustable in mpd.conf
  *       e.g. max_command_list_size "16192"
  */
-void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
+void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
 {
     g_assert(store);
     g_assert(store->client);
 
-    MooseClient *self = store->client;
+    MooseClient * self = store->client;
     int progress_counter = 0;
     size_t db_version = 0;
     struct mpd_stats * stats = moose_lock_statistics(store->client);
 
-    if(stats == NULL) {
+    if (stats == NULL) {
         moose_unlock_statistics(store->client);
         return;
     }
-    
+
     int number_of_songs = mpd_stats_get_number_of_songs(stats);
     moose_unlock_statistics(store->client);
 
     db_version = moose_stprv_get_db_version(store);
 
-    if(store->force_update_listallinfo == false) {
+    if (store->force_update_listallinfo == false) {
         struct mpd_stats * stats = moose_lock_statistics(store->client);
-        if(stats == NULL) {
+        if (stats == NULL) {
             return;
         }
 
@@ -125,24 +125,24 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
 
         if (db_update_time  == db_version) {
             moose_shelper_report_progress(
-                    self, true,
-                    "database: Will not update database, timestamp didn't change."
-            );
+                self, true,
+                "database: Will not update database, timestamp didn't change."
+                );
             return;
         } else {
             moose_shelper_report_progress(
-                    self, true,
-                    "database: Will update database (%u != %u)",
-                    (unsigned)db_update_time, (unsigned)db_version
-            );
+                self, true,
+                "database: Will update database (%u != %u)",
+                (unsigned)db_update_time, (unsigned)db_version
+                );
         }
     } else {
         moose_shelper_report_progress(self, true, "database: Doing forced listallinfo");
     }
 
-    GTimer *timer = NULL;
-    GAsyncQueue *queue = g_async_queue_new();
-    GThread *sql_thread = NULL;
+    GTimer * timer = NULL;
+    GAsyncQueue * queue = g_async_queue_new();
+    GThread * sql_thread = NULL;
 
     MooseStoreQueueTag tag;
     tag.queue = queue;
@@ -163,22 +163,22 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
     }
 
     store->stack = moose_playlist_new_full(
-            number_of_songs + 1,
-            (GDestroyNotify) mpd_song_free
-    );
+        number_of_songs + 1,
+        (GDestroyNotify)mpd_song_free
+        );
 
     /* Profiling */
     timer = g_timer_new();
 
     sql_thread = g_thread_new(
-            "sql-thread",
-            moose_store_do_list_all_info_sql_thread,
-            &tag
-    );
+        "sql-thread",
+        moose_store_do_list_all_info_sql_thread,
+        &tag
+        );
 
-    struct mpd_connection *conn = moose_get(store->client);
-    if(conn != NULL) {
-        struct mpd_entity *ent = NULL;
+    struct mpd_connection * conn = moose_get(store->client);
+    if (conn != NULL) {
+        struct mpd_entity * ent = NULL;
 
         g_timer_start(timer);
 
@@ -186,10 +186,10 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
         mpd_send_list_all_meta(conn, "/");
 
         while ((ent = mpd_recv_entity(conn)) != NULL) {
-            if(moose_jm_check_cancel(store->jm, cancel)) {
+            if (moose_jm_check_cancel(store->jm, cancel)) {
                 moose_shelper_report_progress(
-                        self, false, "database: listallinfo cancelled!"
-                );
+                    self, false, "database: listallinfo cancelled!"
+                    );
                 break;
             }
 
@@ -199,9 +199,9 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
         }
 
         /* This should only happen if the operation was cancelled */
-        if (mpd_response_finish(conn) == false) {       
-            moose_shelper_report_error(store->client, conn);        
-        }                                               
+        if (mpd_response_finish(conn) == false) {
+            moose_shelper_report_error(store->client, conn);
+        }
     }
     moose_put(store->client);
 
@@ -210,9 +210,9 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
     g_thread_join(sql_thread);
 
     moose_shelper_report_progress(
-            self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
-            number_of_songs, g_timer_elapsed(timer, NULL)
-    );
+        self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
+        number_of_songs, g_timer_elapsed(timer, NULL)
+        );
 
     moose_shelper_report_operation_finished(self, MOOSE_OP_DB_UPDATED);
 
@@ -225,27 +225,27 @@ void moose_store_oper_listallinfo(MooseStore *store, volatile bool *cancel)
 
 gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
 {
-    MooseStoreQueueTag *tag = user_data;
-    MooseStore *self = tag->store;
-    GAsyncQueue *queue = tag->queue;
+    MooseStoreQueueTag * tag = user_data;
+    MooseStore * self = tag->store;
+    GAsyncQueue * queue = tag->queue;
 
     int clipped = 0;
     bool first_song_passed = false;
-    struct mpd_song *song = NULL;
-    GTimer *timer = g_timer_new();
+    struct mpd_song * song = NULL;
+    GTimer * timer = g_timer_new();
     gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
 
     /* start a transaction */
     moose_stprv_begin(self);
 
     while ((gpointer)(song = g_async_queue_pop(queue)) != queue) {
-        if(first_song_passed == false || song == (gpointer)EMPTY_QUEUE_INDICATOR) {
+        if (first_song_passed == false || song == (gpointer)EMPTY_QUEUE_INDICATOR) {
             g_timer_start(timer);
 
             int start_position = -1;
-            if(song != (gpointer)EMPTY_QUEUE_INDICATOR) {
+            if (song != (gpointer)EMPTY_QUEUE_INDICATOR) {
                 start_position = mpd_song_get_pos(song);
-            } 
+            }
             clipped = moose_stprv_queue_clip(self, start_position);
             clip_time = g_timer_elapsed(timer, NULL);
             g_timer_start(timer);
@@ -253,13 +253,13 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
             first_song_passed = true;
         }
 
-        if(song != (gpointer)EMPTY_QUEUE_INDICATOR) { 
+        if (song != (gpointer)EMPTY_QUEUE_INDICATOR) {
             moose_stprv_queue_insert_posid(
-                    self,
-                    mpd_song_get_pos(song),
-                    mpd_song_get_id(song),
-                    mpd_song_get_uri(song)
-            );
+                self,
+                mpd_song_get_pos(song),
+                mpd_song_get_id(song),
+                mpd_song_get_uri(song)
+                );
             mpd_song_free(song);
         }
     }
@@ -268,11 +268,11 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
 
     if (clipped > 0) {
         moose_shelper_report_progress(
-                self->client,
-                true,
-                "database: Clipped %d songs.",
-                clipped
-        );
+            self->client,
+            true,
+            "database: Clipped %d songs.",
+            clipped
+            );
     }
 
     /* Commit all those update statements */
@@ -285,35 +285,35 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
     g_timer_destroy(timer);
 
     moose_shelper_report_progress(
-            self->client, true,
-            "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
-            clip_time, posid_time, stack_time
-    );
+        self->client, true,
+        "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
+        clip_time, posid_time, stack_time
+        );
 
     return NULL;
 }
 
 ///////////////////////////////////
 
-void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel)
+void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
 {
     g_assert(store);
 
-    MooseClient *self = store->client;
+    MooseClient * self = store->client;
 
     int progress_counter = 0;
     size_t last_pl_version = 0;
 
-    /* get last version of the queue (which we're having already. 
+    /* get last version of the queue (which we're having already.
      * (in case full queue is wanted take first version) */
-    if(store->force_update_plchanges == false) {
+    if (store->force_update_plchanges == false) {
         last_pl_version = moose_stprv_get_pl_version(store);
     }
 
-    if(store->force_update_plchanges == false) {
+    if (store->force_update_plchanges == false) {
         size_t current_pl_version = -1;
         struct mpd_status * status = moose_lock_status(store->client);
-        if(status != NULL) {
+        if (status != NULL) {
             current_pl_version = mpd_status_get_queue_version(status);
         } else {
             current_pl_version = last_pl_version;
@@ -322,17 +322,17 @@ void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel)
 
         if (last_pl_version == current_pl_version) {
             moose_shelper_report_progress(
-                    self, true,
-                    "database: Will not update queue, version didn't change (%d == %d)",
-                    (int) last_pl_version, (int) current_pl_version
-            );
+                self, true,
+                "database: Will not update queue, version didn't change (%d == %d)",
+                (int)last_pl_version, (int)current_pl_version
+                );
             return;
         }
     }
-    
-    GAsyncQueue *queue = g_async_queue_new();
-    GThread *sql_thread = NULL;
-    GTimer *timer = NULL;
+
+    GAsyncQueue * queue = g_async_queue_new();
+    GThread * sql_thread = NULL;
+    GTimer * timer = NULL;
 
     MooseStoreQueueTag tag;
     tag.queue = queue;
@@ -346,23 +346,23 @@ void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel)
 
     /* Now do the actual hard work, send the actual plchanges command,
      * loop over the retrieved contents, and push them to the SQL Thread */
-    struct mpd_connection *conn = moose_get(store->client);
-    if(conn != NULL) {
+    struct mpd_connection * conn = moose_get(store->client);
+    if (conn != NULL) {
         g_timer_start(timer);
 
         moose_shelper_report_progress(
-                self, true,
-                "database: Queue was updated. Will do ,,plchanges %d''",
-                (int) last_pl_version);
+            self, true,
+            "database: Queue was updated. Will do ,,plchanges %d''",
+            (int)last_pl_version);
 
         if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
-            struct mpd_song *song = NULL;
+            struct mpd_song * song = NULL;
 
             while ((song = mpd_recv_song(conn)) != NULL) {
-                if(moose_jm_check_cancel(store->jm, cancel)) {
+                if (moose_jm_check_cancel(store->jm, cancel)) {
                     moose_shelper_report_progress(
-                            self, false, "database: plchanges canceled!"
-                    );
+                        self, false, "database: plchanges canceled!"
+                        );
 
                     break;
                 }
@@ -374,14 +374,14 @@ void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel)
 
             /* Empty queue - we need to notift he other thread
              * */
-            if(progress_counter == 0) {
+            if (progress_counter == 0) {
                 g_async_queue_push(queue, (gpointer)EMPTY_QUEUE_INDICATOR);
             }
         }
 
-        if (mpd_response_finish(conn) == false) {       
-            moose_shelper_report_error(store->client, conn);        
-        }                                               
+        if (mpd_response_finish(conn) == false) {
+            moose_shelper_report_error(store->client, conn);
+        }
     }
     moose_put(store->client);
 
@@ -391,10 +391,10 @@ void moose_store_oper_plchanges(MooseStore *store, volatile bool *cancel)
 
     /* a bit of timing report */
     moose_shelper_report_progress(
-            self, true,
-            "database: updated %d song's pos/id (took %2.3fs)",
-            progress_counter, g_timer_elapsed(timer, NULL)
-    );
+        self, true,
+        "database: updated %d song's pos/id (took %2.3fs)",
+        progress_counter, g_timer_elapsed(timer, NULL)
+        );
 
     moose_shelper_report_operation_finished(self, MOOSE_OP_QUEUE_UPDATED);
 

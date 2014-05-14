@@ -16,7 +16,6 @@
  *
  *  @return the depth.
  */
-int moose_path_get_depth(const char *dir_path);
+int moose_path_get_depth(const char * dir_path);
 
 #endif /* end of include guard: MOOSE_PATHS_HH */
-

@@ -23,9 +23,9 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 /* Free a Variable if is not NULL
  */
-#define free_if_not_null(var, func) if(var != NULL) func((void*)var)
+#define free_if_not_null(var, func) if (var != NULL) func((void *)var)
 
-/* This will be sended (as Integer) 
+/* This will be sended (as Integer)
  * to the Queue to break out of the poll loop
  */
 #define THREAD_TERMINATOR (MPD_IDLE_MESSAGE)
@@ -42,14 +42,14 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 
 ////////////////////////
 
-static void moose_update_data_push_full(MooseUpdateData *data, enum mpd_idle event, bool is_status_timer)
+static void moose_update_data_push_full(MooseUpdateData * data, enum mpd_idle event, bool is_status_timer)
 {
     g_assert(data);
 
     /* We may not push 0 - that would cause the event_queue to shutdown */
-    if(event != 0) {
+    if (event != 0) {
         enum mpd_idle send_event = event;
-        if(is_status_timer) {
+        if (is_status_timer) {
             event |= IS_STATUS_TIMER_FLAG;
         }
         g_async_queue_push(data->event_queue, GINT_TO_POINTER(send_event));
@@ -58,10 +58,10 @@ static void moose_update_data_push_full(MooseUpdateData *data, enum mpd_idle eve
 
 ////////////////////////
 
-static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idle events)
+static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idle events)
 {
     if (self != NULL && events != 0 && moose_is_connected(self)) {
-        struct mpd_connection *conn = moose_get(self);
+        struct mpd_connection * conn = moose_get(self);
         MooseUpdateData * data = self->_update_data;
 
         if (conn != NULL) {
@@ -92,7 +92,7 @@ static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idl
 
                 /* Try to receive status */
                 if (update_status) {
-                    struct mpd_status *tmp_status;
+                    struct mpd_status * tmp_status;
                     tmp_status = mpd_recv_status(conn);
 
                     if (data->status_timer.last_update != NULL) {
@@ -103,7 +103,7 @@ static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idl
                     /* Be error tolerant, and keep at least the last status */
                     if (tmp_status) {
                         moose_lock_status(self);
-                        if(data->status != NULL) {
+                        if (data->status != NULL) {
                             data->last_song_data.id = mpd_status_get_song_id(data->status);
                             data->last_song_data.state = mpd_status_get_state(data->status);
                         } else {
@@ -121,13 +121,13 @@ static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idl
 
                 /* Try to receive statistics as last */
                 if (update_stats) {
-                    struct mpd_stats *tmp_stats;
+                    struct mpd_stats * tmp_stats;
                     tmp_stats = mpd_recv_stats(conn);
 
                     if (tmp_stats) {
                         moose_lock_statistics(self);
                         free_if_not_null(data->statistics, mpd_stats_free);
-                        data->statistics= tmp_stats;
+                        data->statistics = tmp_stats;
                         moose_unlock_statistics(self);
                     }
 
@@ -139,7 +139,7 @@ static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idl
                 if (update_rg) {
                     free_if_not_null(data->replay_gain_status, g_free);
                     data->replay_gain_status = NULL;
-                    struct mpd_pair *mode = mpd_recv_pair_named(conn, "replay_gain_mode");
+                    struct mpd_pair * mode = mpd_recv_pair_named(conn, "replay_gain_mode");
 
                     if (mode != NULL) {
                         moose_lock_status(self);
@@ -166,7 +166,7 @@ static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idl
                      * it should only return  NULL
                      * */
                     if (data->current_song != NULL) {
-                        struct mpd_song *empty = mpd_recv_song(conn);
+                        struct mpd_song * empty = mpd_recv_song(conn);
                         g_assert(empty == NULL);
                     }
 
@@ -188,23 +188,23 @@ static void moose_update_context_info_cb( struct MooseClient *self, enum mpd_idl
 
 ////////////////////////
 
-static bool moose_update_is_a_seek_event(MooseUpdateData* data, enum mpd_idle event_mask)
+static bool moose_update_is_a_seek_event(MooseUpdateData * data, enum mpd_idle event_mask)
 {
-    if(event_mask & MPD_IDLE_PLAYER) {
+    if (event_mask & MPD_IDLE_PLAYER) {
         long curr_song_id = -1;
         enum mpd_state curr_song_state = MPD_STATE_UNKNOWN;
 
         /* Get the current data */
         moose_lock_status(data->client); {
-            if(data->status) {
-                curr_song_id = mpd_status_get_song_id(data->status); 
+            if (data->status) {
+                curr_song_id = mpd_status_get_song_id(data->status);
                 curr_song_state = mpd_status_get_state(data->status);
             }
         }
         moose_unlock_status(data->client);
 
-        if(curr_song_id != -1 && data->last_song_data.id == curr_song_id) {
-            if(data->last_song_data.state == curr_song_state) {
+        if (curr_song_id != -1 && data->last_song_data.id == curr_song_id) {
+            if (data->last_song_data.state == curr_song_state) {
                 return true;
             }
         }
@@ -218,22 +218,22 @@ static gpointer moose_update_thread(gpointer user_data)
 {
     g_assert(user_data);
 
-    MooseUpdateData *data = user_data;
-    
+    MooseUpdateData * data = user_data;
+
     enum mpd_idle event_mask = 0;
 
-    while((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
+    while ((event_mask = GPOINTER_TO_INT(g_async_queue_pop(data->event_queue))) != THREAD_TERMINATOR) {
         moose_update_context_info_cb(data->client, event_mask);
         moose_priv_outputs_update(data->client->_outputs, event_mask);
 
         /* Lookup if we need to trigger a client-event (maybe not if * auto-update)*/
         bool trigger_it = true;
-        if(event_mask & IS_STATUS_TIMER_FLAG && data->status_timer.trigger_event) {
+        if (event_mask & IS_STATUS_TIMER_FLAG && data->status_timer.trigger_event) {
             trigger_it = false;
         }
 
         /* Maybe we should make this configurable? */
-        if(moose_update_is_a_seek_event(data, event_mask)) {
+        if (moose_update_is_a_seek_event(data, event_mask)) {
             /* Set the PLAYER bit to 0 */
             event_mask &= ~MPD_IDLE_PLAYER;
 
@@ -242,12 +242,12 @@ static gpointer moose_update_thread(gpointer user_data)
         }
 
         g_mutex_lock(&data->sync_mtx); {
-             data->sync_id += 1;
-             g_cond_broadcast(&data->sync_cond);
+            data->sync_id += 1;
+            g_cond_broadcast(&data->sync_cond);
         }
         g_mutex_unlock(&data->sync_mtx);
 
-        if(trigger_it) {
+        if (trigger_it) {
             moose_signal_dispatch(data->client, "client-event", data->client, event_mask);
         }
     }
@@ -262,7 +262,7 @@ static gpointer moose_update_thread(gpointer user_data)
 static gboolean moose_update_status_timer_cb(gpointer user_data)
 {
     g_assert(user_data);
-    struct MooseClient *self = user_data;
+    struct MooseClient * self = user_data;
     MooseUpdateData * data = self->_update_data;
 
     if (moose_is_connected(self) == false) {
@@ -271,17 +271,17 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
 
     enum mpd_state state = MPD_STATE_UNKNOWN;
     struct mpd_status * status = moose_lock_status(self);
-    if(status != NULL) {
+    if (status != NULL) {
         state = mpd_status_get_state(status);
-    } 
+    }
     moose_unlock_status(self);
 
-    if(status != NULL) {
+    if (status != NULL) {
         if (state == MPD_STATE_PLAY) {
 
             /* Substract a small amount to include the network latency - a bit of a hack
-            * but worst thing that could happen: you miss one status update.
-            * */
+             * but worst thing that could happen: you miss one status update.
+             * */
             float compare = MAX(data->status_timer.interval - data->status_timer.interval / 10, 0);
             float elapsed = g_timer_elapsed(data->status_timer.last_update, NULL) * 1000;
 
@@ -298,13 +298,13 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
 ////////////////////////
 
 void moose_update_register_status_timer(
-    struct MooseClient *self,
+    struct MooseClient * self,
     int repeat_ms,
     bool trigger_event)
 {
     g_assert(self);
 
-    MooseUpdateData *data = self->_update_data;
+    MooseUpdateData * data = self->_update_data;
 
     g_mutex_lock(&data->status_timer.mutex);
     data->status_timer.trigger_event = trigger_event;
@@ -318,12 +318,12 @@ void moose_update_register_status_timer(
 ////////////////////////
 
 void moose_update_unregister_status_timer(
-    struct MooseClient *self)
+    struct MooseClient * self)
 {
     g_assert(self);
 
     if (moose_update_status_timer_is_active(self)) {
-        MooseUpdateData *data = self->_update_data;
+        MooseUpdateData * data = self->_update_data;
         g_mutex_lock(&data->status_timer.mutex);
 
         if (data->status_timer.timeout_id > 0) {
@@ -342,15 +342,15 @@ void moose_update_unregister_status_timer(
 
 ////////////////////////
 
-bool moose_update_status_timer_is_active(struct MooseClient *self)
+bool moose_update_status_timer_is_active(struct MooseClient * self)
 {
     g_assert(self);
 
-    MooseUpdateData *data = self->_update_data;
+    MooseUpdateData * data = self->_update_data;
     g_mutex_lock(&data->status_timer.mutex);
     bool result = (self->_update_data->status_timer.timeout_id != -1);
     g_mutex_unlock(&data->status_timer.mutex);
-    
+
     return result;
 }
 
@@ -362,7 +362,7 @@ MooseUpdateData * moose_update_data_new(struct MooseClient * self)
 {
     g_assert(self);
 
-    MooseUpdateData *data = g_slice_new0(MooseUpdateData);
+    MooseUpdateData * data = g_slice_new0(MooseUpdateData);
     data->client = self;
     data->event_queue = g_async_queue_new();
 
@@ -380,10 +380,10 @@ MooseUpdateData * moose_update_data_new(struct MooseClient * self)
     g_rec_mutex_init(&data->mtx_outputs);
 
     data->update_thread = g_thread_new(
-            "data-update-thread",
-            moose_update_thread,
-            data
-    );
+        "data-update-thread",
+        moose_update_thread,
+        data
+        );
 
     return data;
 }
@@ -427,14 +427,14 @@ void moose_update_data_destroy(MooseUpdateData * data)
 
 ////////////////////////
 
-void moose_update_data_push(MooseUpdateData *data, enum mpd_idle event)
+void moose_update_data_push(MooseUpdateData * data, enum mpd_idle event)
 {
     moose_update_data_push_full(data, event, false);
 }
 
 ////////////////////////
 
-void moose_update_reset(MooseUpdateData *data)
+void moose_update_reset(MooseUpdateData * data)
 {
     moose_lock_status(data->client);
     {
@@ -454,19 +454,19 @@ void moose_update_reset(MooseUpdateData *data)
 
     moose_lock_statistics(data->client);
     {
-       if (data->statistics!= NULL) {
+        if (data->statistics != NULL) {
             mpd_stats_free(data->statistics);
-       }
-        data->statistics= NULL;
+        }
+        data->statistics = NULL;
     }
     moose_unlock_statistics(data->client);
 
     moose_lock_current_song(data->client);
     {
-        if (data->current_song!= NULL) {
+        if (data->current_song != NULL) {
             mpd_song_free(data->current_song);
         }
-        data->current_song= NULL;
+        data->current_song = NULL;
     }
     moose_unlock_current_song(data->client);
 }
@@ -478,9 +478,8 @@ void moose_update_block_till_sync(MooseUpdateData * data)
     g_mutex_lock(&data->sync_mtx); {
         int old_update_id = data->sync_id;
         while (data->sync_id == old_update_id) {
-            g_cond_wait (&data->sync_cond, &data->sync_mtx);
+            g_cond_wait(&data->sync_cond, &data->sync_mtx);
         }
     }
     g_mutex_unlock(&data->sync_mtx);
 }
-

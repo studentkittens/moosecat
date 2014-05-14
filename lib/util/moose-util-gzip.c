@@ -15,7 +15,7 @@
    level is supplied, Z_VERSION_ERROR if the version of zlib.h and the
    version of the library linked do not match, or Z_ERRNO if there is
    an error reading or writing the files. */
-static int zip(FILE *source, FILE *dest, int level)
+static int zip(FILE * source, FILE * dest, int level)
 {
     int ret, flush;
     unsigned have;
@@ -36,7 +36,7 @@ static int zip(FILE *source, FILE *dest, int level)
         strm.avail_in = fread(in, 1, CHUNK, source);
 
         if (ferror(source)) {
-            (void) deflateEnd(&strm);
+            (void)deflateEnd(&strm);
             return Z_ERRNO;
         }
 
@@ -53,7 +53,7 @@ static int zip(FILE *source, FILE *dest, int level)
             have = CHUNK - strm.avail_out;
 
             if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
-                (void) deflateEnd(&strm);
+                (void)deflateEnd(&strm);
                 return Z_ERRNO;
             }
         } while (strm.avail_out == 0);
@@ -64,7 +64,7 @@ static int zip(FILE *source, FILE *dest, int level)
 
     g_assert(ret == Z_STREAM_END);        /* stream will be complete */
     /* clean up and return */
-    (void) deflateEnd(&strm);
+    (void)deflateEnd(&strm);
     return Z_OK;
 }
 
@@ -76,7 +76,7 @@ static int zip(FILE *source, FILE *dest, int level)
    invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
    the version of the library linked do not match, or Z_ERRNO if there
    is an error reading or writing the files. */
-static int unzip(FILE *source, FILE *dest)
+static int unzip(FILE * source, FILE * dest)
 {
     int ret;
     unsigned have;
@@ -99,7 +99,7 @@ static int unzip(FILE *source, FILE *dest)
         strm.avail_in = fread(in, 1, CHUNK, source);
 
         if (ferror(source)) {
-            (void) inflateEnd(&strm);
+            (void)inflateEnd(&strm);
             return Z_ERRNO;
         }
 
@@ -121,14 +121,14 @@ static int unzip(FILE *source, FILE *dest)
 
             case Z_DATA_ERROR:
             case Z_MEM_ERROR:
-                (void) inflateEnd(&strm);
+                (void)inflateEnd(&strm);
                 return ret;
             }
 
             have = CHUNK - strm.avail_out;
 
             if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
-                (void) inflateEnd(&strm);
+                (void)inflateEnd(&strm);
                 return Z_ERRNO;
             }
         } while (strm.avail_out == 0);
@@ -137,7 +137,7 @@ static int unzip(FILE *source, FILE *dest)
     } while (ret != Z_STREAM_END);
 
     /* clean up and return */
-    (void) inflateEnd(&strm);
+    (void)inflateEnd(&strm);
     return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
 
@@ -177,15 +177,15 @@ static void zerr(int ret)
 
 ///////////////////////////////
 
-bool moose_gzip(const char *file_path)
+bool moose_gzip(const char * file_path)
 {
     g_assert(file_path != NULL);
     bool rc = true;
-    char *file_path_copy = g_strdup_printf("%s%s", file_path, MOOSE_GZIP_ENDING);
-    FILE *src = fopen(file_path, "r");
+    char * file_path_copy = g_strdup_printf("%s%s", file_path, MOOSE_GZIP_ENDING);
+    FILE * src = fopen(file_path, "r");
 
     if (src != NULL) {
-        FILE *dst = fopen(file_path_copy, "w");
+        FILE * dst = fopen(file_path_copy, "w");
 
         if (dst != NULL) {
             /* Best Speed is fast enough, and compresses well enough */
@@ -210,17 +210,17 @@ bool moose_gzip(const char *file_path)
 
 ///////////////////////////////
 
-bool moose_gunzip(const char *file_path)
+bool moose_gunzip(const char * file_path)
 {
     g_assert(file_path != NULL);
     bool rc = true;
 
     if (g_str_has_suffix(file_path, MOOSE_GZIP_ENDING)) {
-        char *file_path_copy = g_strndup(file_path, strlen(file_path) - strlen(MOOSE_GZIP_ENDING));
-        FILE *src = fopen(file_path, "r");
+        char * file_path_copy = g_strndup(file_path, strlen(file_path) - strlen(MOOSE_GZIP_ENDING));
+        FILE * src = fopen(file_path, "r");
 
         if (src != NULL) {
-            FILE *dst = fopen(file_path_copy, "w");
+            FILE * dst = fopen(file_path_copy, "w");
 
             if (dst != NULL) {
                 int zerrcode = unzip(src, dst);

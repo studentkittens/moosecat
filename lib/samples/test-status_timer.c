@@ -5,14 +5,14 @@
 
 
 static void signal_event(
-    MooseClient *u_conn,
+    MooseClient * u_conn,
     enum mpd_idle event,
-    void *user_data)
+    void * user_data)
 {
-    (void) u_conn;
+    (void)u_conn;
 
     static int counter = 0;
-    GMainLoop *loop = user_data;
+    GMainLoop * loop = user_data;
 
     g_print("event = %d\n", event);
 
@@ -24,7 +24,7 @@ static void signal_event(
 
 int main(void)
 {
-    GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+    GMainLoop * loop = g_main_loop_new(NULL, FALSE);
 
     MooseClient * client = moose_create(MOOSE_PM_COMMAND);
     moose_signal_add(client, "client-event", signal_event, loop);

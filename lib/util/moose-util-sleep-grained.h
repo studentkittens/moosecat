@@ -19,6 +19,6 @@
  * @param interval_ms interval to check in ms
  * @param check a pointer to a condition
  */
-void moose_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *check);
+void moose_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean * check);
 
 #endif /* end of include guard: MOOSE_SLEEP_GRAINED_H */

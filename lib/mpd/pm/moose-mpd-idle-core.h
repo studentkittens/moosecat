@@ -17,6 +17,6 @@
  *
  * @return a newly allocated connector
  */
-MooseClient *moose_create_idler(void);
+MooseClient * moose_create_idler(void);
 
 #endif /* end of include guard: IDLE_CORE_H */

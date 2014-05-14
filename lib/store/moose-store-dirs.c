@@ -9,10 +9,10 @@
 #include <string.h>
 
 #define SQL_CODE(NAME) \
-    dirs_sql_stmts[SQL_##NAME]
+    dirs_sql_stmts[SQL_ ## NAME]
 
 #define SQL_STMT(STORE, NAME) \
-    STORE->sql_dir_stmts[SQL_##NAME]
+    STORE->sql_dir_stmts[SQL_ ## NAME]
 
 enum {
     SQL_DIR_INSERT = 0,
@@ -23,39 +23,39 @@ enum {
     SQL_DIR_STMT_COUNT
 };
 
-const char *dirs_sql_stmts[] = {
+const char * dirs_sql_stmts[] = {
     [SQL_DIR_INSERT] = "INSERT INTO dirs VALUES(?, ?);",
     [SQL_DIR_DELETE_ALL] = "DELETE FROM dirs;",
     [SQL_DIR_SEARCH_PATH] =
-    "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
-    "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
-    "ORDER BY songs.rowid, songs.uri, dirs.path;",
+        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [SQL_DIR_SEARCH_DEPTH] =
-    "SELECT -1, path FROM dirs WHERE depth = ? UNION "
-    "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
-    "ORDER BY songs.rowid, songs.uri, dirs.path;",
+        "SELECT -1, path FROM dirs WHERE depth = ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [SQL_DIR_SEARCH_PATH_AND_DEPTH] =
-    "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
-    "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
-    "ORDER BY songs.rowid, songs.uri, dirs.path;"
+        "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;"
 };
 
 
 ///////////////////
 
-void moose_stprv_dir_prepare_statemtents(MooseStore *self)
+void moose_stprv_dir_prepare_statemtents(MooseStore * self)
 {
     g_assert(self);
 
     self->sql_dir_stmts = moose_stprv_prepare_all_statements_listed(
-            self, dirs_sql_stmts,
-            0, SQL_DIR_STMT_COUNT
-    );
+        self, dirs_sql_stmts,
+        0, SQL_DIR_STMT_COUNT
+        );
 }
 
 ///////////////////
 
-void moose_stprv_dir_finalize_statements(MooseStore *self)
+void moose_stprv_dir_finalize_statements(MooseStore * self)
 {
     moose_stprv_finalize_statements(self, self->sql_dir_stmts, 0, SQL_DIR_STMT_COUNT);
     self->sql_dir_stmts = NULL;
@@ -63,7 +63,7 @@ void moose_stprv_dir_finalize_statements(MooseStore *self)
 
 ///////////////////
 
-void moose_stprv_dir_insert(MooseStore *self, const char *path)
+void moose_stprv_dir_insert(MooseStore * self, const char * path)
 {
     g_assert(self);
     g_assert(path);
@@ -88,7 +88,7 @@ void moose_stprv_dir_insert(MooseStore *self, const char *path)
 
 //////////////////
 
-void moose_stprv_dir_delete(MooseStore *self)
+void moose_stprv_dir_delete(MooseStore * self)
 {
     g_assert(self);
 
@@ -100,7 +100,7 @@ void moose_stprv_dir_delete(MooseStore *self)
 
 //////////////////
 
-int moose_stprv_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, const char *directory, int depth)
+int moose_stprv_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth)
 {
     g_assert(self);
     g_assert(stack);
@@ -111,7 +111,7 @@ int moose_stprv_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, cons
     if (directory && *directory == '/')
         directory = NULL;
 
-    sqlite3_stmt *select_stmt = NULL;
+    sqlite3_stmt * select_stmt = NULL;
 
     if (directory != NULL && depth < 0) {
         select_stmt = SQL_STMT(self, DIR_SEARCH_PATH);
@@ -136,8 +136,8 @@ int moose_stprv_dir_select_to_stack(MooseStore *self, MoosePlaylist *stack, cons
         return -2;
     } else {
         while (sqlite3_step(select_stmt) == SQLITE_ROW) {
-            const char *rowid = (const char *) sqlite3_column_text(select_stmt, 0);
-            const char *path = (const char *) sqlite3_column_text(select_stmt, 1);
+            const char * rowid = (const char *)sqlite3_column_text(select_stmt, 0);
+            const char * path = (const char *)sqlite3_column_text(select_stmt, 1);
             moose_playlist_append(stack, g_strjoin(":", rowid, path, NULL));
             ++returned;
         }

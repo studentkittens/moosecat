@@ -28,7 +28,7 @@ typedef struct {
      *
      * Default: NULL, which is equal to "./"
      */
-    const char *db_directory;
+    const char * db_directory;
 
     /* Tokenizer algorithm to use to split words. NULL == default == "porter"
      * See: http://www.sqlite.org/fts3.html#tokenizer
@@ -36,7 +36,7 @@ typedef struct {
      *
      * Default: "porter", which is able to match "Smile" with "Smiling"
      */
-    const char *tokenizer;
+    const char * tokenizer;
 
 } MooseStoreSettings;
 
@@ -46,16 +46,16 @@ typedef struct {
  *        moose_store_settings_destroy will only free
  *        memomry that was allocated by moose_store_settings_new.
  */
-MooseStoreSettings *moose_store_settings_new(void);
+MooseStoreSettings * moose_store_settings_new(void);
 
 /* Free a MooseStoreSettings.
  * You do not have to call this yourself normally.
  * If a settings object is attached to a Store,
  * it will be closed on closedown of the store.
  */
-void moose_store_settings_destroy(MooseStoreSettings *settings);
+void moose_store_settings_destroy(MooseStoreSettings * settings);
 
-void moose_store_settings_set_db_directory(MooseStoreSettings *self, const char *db_directory);
+void moose_store_settings_set_db_directory(MooseStoreSettings * self, const char * db_directory);
 
 
 #endif /* end of include guard: MOOSE_DB_SETTINGS_HH */

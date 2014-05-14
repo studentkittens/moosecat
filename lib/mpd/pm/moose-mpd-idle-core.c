@@ -32,19 +32,19 @@ typedef struct {
     MooseClient logic;
 
     /* Normal connection to mpd, on top of async_mpd_conn */
-    mpd_connection *con;
+    mpd_connection * con;
 
     /* the async connection being watched */
-    struct mpd_async *async_mpd_conn;
+    struct mpd_async * async_mpd_conn;
 
     /* A Glib IO Channel used as a watch on async_mpd_conn */
-    GIOChannel *async_chan;
+    GIOChannel * async_chan;
 
     /* the id of a watch if active, or 0 */
     int watch_source_id;
 
     /* libmpdclient's helper for parsing async. recv'd lines */
-    struct mpd_parser *parser;
+    struct mpd_parser * parser;
 
     /* the io events we are currently polling for */
     enum mpd_async_event last_io_events;
@@ -63,33 +63,33 @@ typedef struct {
 ///////////////////////////////////////////
 
 /* Prototype */
-static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, gpointer data);
+static gboolean idler_socket_event(GIOChannel * source, GIOCondition condition, gpointer data);
 
 ///////////////////////////////////////////
 
 static void idler_report_error(
-    MooseIdleClient *self,
+    MooseIdleClient * self,
     G_GNUC_UNUSED enum mpd_error error,
-    const char *error_msg)
+    const char * error_msg)
 {
     g_assert(self);
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        moose_signal_dispatch((MooseClient *) self, "logging", self, error_msg, MOOSE_LOG_ERROR, FALSE);
+        moose_signal_dispatch((MooseClient *)self, "logging", self, error_msg, MOOSE_LOG_ERROR, FALSE);
     }
     self->is_running_extern = FALSE;
 }
 
 ///////////////////////////////////////////
 
-static bool idler_check_and_report_async_error(MooseIdleClient *self)
+static bool idler_check_and_report_async_error(MooseIdleClient * self)
 {
     g_assert(self);
     enum mpd_error error = mpd_async_get_error(self->async_mpd_conn);
 
     if (error != MPD_ERROR_SUCCESS) {
-        const char *error_msg = mpd_async_get_error_message(self->async_mpd_conn);
+        const char * error_msg = mpd_async_get_error_message(self->async_mpd_conn);
         idler_report_error(self, error, error_msg);
         return TRUE;
     }
@@ -99,7 +99,7 @@ static bool idler_check_and_report_async_error(MooseIdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_add_watch_kitten(MooseIdleClient *self)
+static void idler_add_watch_kitten(MooseIdleClient * self)
 {
     g_assert(self);
 
@@ -107,11 +107,11 @@ static void idler_add_watch_kitten(MooseIdleClient *self)
         /* Add a GIOSource that watches the socket for IO */
         enum mpd_async_event events = mpd_async_events(self->async_mpd_conn);
         self->watch_source_id = g_io_add_watch(
-                                    self->async_chan,
-                                    mpd_async_to_gio(events),
-                                    idler_socket_event,
-                                    self
-                                );
+            self->async_chan,
+            mpd_async_to_gio(events),
+            idler_socket_event,
+            self
+            );
         /* remember the events we're polling for */
         self->last_io_events = events;
     }
@@ -120,7 +120,7 @@ static void idler_add_watch_kitten(MooseIdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_remove_watch_kitten(MooseIdleClient *self)
+static void idler_remove_watch_kitten(MooseIdleClient * self)
 {
     if (self->watch_source_id != 0) {
         g_source_remove(self->watch_source_id);
@@ -131,12 +131,12 @@ static void idler_remove_watch_kitten(MooseIdleClient *self)
 
 ///////////////////////////////////////////
 
-static bool idler_leave(MooseIdleClient *self)
+static bool idler_leave(MooseIdleClient * self)
 {
     bool rc = true;
 
     if (self->is_in_idle_mode == true &&
-            self->is_running_extern == false) {
+        self->is_running_extern == false) {
         /* Since we're sending actively, we do not want
          * to be informed about it. */
         idler_remove_watch_kitten(self);
@@ -157,10 +157,10 @@ static bool idler_leave(MooseIdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_enter(MooseIdleClient *self)
+static void idler_enter(MooseIdleClient * self)
 {
     if (self->is_in_idle_mode == false &&
-            self->is_running_extern == false) {
+        self->is_running_extern == false) {
         /* Do not wait for a reply */
         if (mpd_async_send_command(self->async_mpd_conn, "idle", NULL) == false) {
             idler_check_and_report_async_error(self);
@@ -175,7 +175,7 @@ static void idler_enter(MooseIdleClient *self)
 
 ///////////////////////////////////////////
 
-static void idler_dispatch_events(MooseIdleClient *self, enum mpd_idle events)
+static void idler_dispatch_events(MooseIdleClient * self, enum mpd_idle events)
 {
     g_assert(self);
     /* Clients can now use the connection.
@@ -197,10 +197,10 @@ static void idler_dispatch_events(MooseIdleClient *self, enum mpd_idle events)
 
 ///////////////////////////////////////////
 
-static bool idler_process_received(MooseIdleClient *self)
+static bool idler_process_received(MooseIdleClient * self)
 {
     g_assert(self);
-    char *line = NULL;
+    char * line = NULL;
     enum mpd_idle event_mask = 0;
 
     while ((line = mpd_async_recv_line(self->async_mpd_conn)) != NULL) {
@@ -211,7 +211,7 @@ static bool idler_process_received(MooseIdleClient *self)
             idler_report_error(self,
                                MPD_ERROR_MALFORMED,
                                "cannot parse malformed response"
-            );
+                               );
             return false;
 
         case MPD_PARSER_SUCCESS:
@@ -235,7 +235,7 @@ static bool idler_process_received(MooseIdleClient *self)
 
 ///////////////////////////////////////////
 
-static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, gpointer data)
+static gboolean idler_socket_event(GIOChannel * source, GIOCondition condition, gpointer data)
 /* Called once something happens to the socket.
  * The exact event is in @condition.
  *
@@ -245,10 +245,10 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
     g_assert(source);
     g_assert(data);
 
-    MooseIdleClient *self = (MooseIdleClient *) data;
+    MooseIdleClient * self = (MooseIdleClient *)data;
     enum mpd_async_event events = gio_to_mpd_async(condition);
 
-    /* We need to lock here because in the meantime a get/put 
+    /* We need to lock here because in the meantime a get/put
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
@@ -284,9 +284,9 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
         /* Keep the old watch */
         keep_notify = TRUE;
     }
-    
+
     /* Unlock again - We're now ready to take other
-     * get/puts again 
+     * get/puts again
      */
     g_rec_mutex_unlock(&self->logic._getput_mutex);
     return keep_notify;
@@ -295,7 +295,7 @@ static gboolean idler_socket_event(GIOChannel *source, GIOCondition condition, g
 ///////////////////////////////////////////
 
 /* code that is shared for connect/disconnect */
-static void idler_reset_struct(MooseIdleClient *self)
+static void idler_reset_struct(MooseIdleClient * self)
 {
     /* Initially there is no watchkitteh, 0 tells us that */
     self->watch_source_id = 0;
@@ -311,16 +311,16 @@ static void idler_reset_struct(MooseIdleClient *self)
 /////////////////// API ///////////////////
 ///////////////////////////////////////////
 
-static char *idler_do_connect(MooseClient *parent, GMainContext *context, const char *host, int port, float timeout)
+static char * idler_do_connect(MooseClient * parent, GMainContext * context, const char * host, int port, float timeout)
 {
-    (void) context;
+    (void)context;
     g_assert(parent);
 
-    MooseIdleClient *self = child(parent);
+    MooseIdleClient * self = child(parent);
 
     g_mutex_lock(&self->one_thread_only_mtx);
 
-    char *error = NULL;
+    char * error = NULL;
     self->con = mpd_connect(parent, host, port, timeout, &error);
 
     if (error != NULL)
@@ -365,7 +365,7 @@ static bool idler_do_is_connected(MooseClient * client)
 
 ///////////////////////
 
-static mpd_connection *idler_do_get(MooseClient *self)
+static mpd_connection * idler_do_get(MooseClient * self)
 {
     g_assert(self);
 
@@ -377,7 +377,7 @@ static mpd_connection *idler_do_get(MooseClient *self)
 
 ///////////////////////
 
-static void idler_do_put(MooseClient *self)
+static void idler_do_put(MooseClient * self)
 {
     g_assert(self);
 
@@ -388,10 +388,10 @@ static void idler_do_put(MooseClient *self)
 
 //////////////////////
 
-static bool idler_do_disconnect(MooseClient *parent)
+static bool idler_do_disconnect(MooseClient * parent)
 {
     if (idler_do_is_connected(parent)) {
-        MooseIdleClient *self = child(parent);
+        MooseIdleClient * self = child(parent);
 
         g_mutex_lock(&self->one_thread_only_mtx);
 
@@ -426,12 +426,12 @@ static bool idler_do_disconnect(MooseClient *parent)
 
 //////////////////////
 
-static void idler_do_free(MooseClient *parent)
+static void idler_do_free(MooseClient * parent)
 {
     g_assert(parent);
 
     /* Make sure wrong acces gets punished */
-    MooseIdleClient *self = child(parent);
+    MooseIdleClient * self = child(parent);
     g_mutex_clear(&self->one_thread_only_mtx);
 
     memset(self, 0, sizeof(MooseIdleClient));
@@ -442,9 +442,9 @@ static void idler_do_free(MooseClient *parent)
 // Public Interface //
 //////////////////////
 
-MooseClient *moose_create_idler(void)
+MooseClient * moose_create_idler(void)
 {
-    MooseIdleClient *self = g_new0(MooseIdleClient, 1);
+    MooseIdleClient * self = g_new0(MooseIdleClient, 1);
 
     /* Define the logic of this connector */
     self->logic.do_disconnect = idler_do_disconnect;
@@ -455,5 +455,5 @@ MooseClient *moose_create_idler(void)
     self->logic.do_is_connected = idler_do_is_connected;
 
     g_mutex_init(&self->one_thread_only_mtx);
-    return (MooseClient *) self;
+    return (MooseClient *)self;
 }

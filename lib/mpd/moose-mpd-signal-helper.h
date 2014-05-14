@@ -35,8 +35,8 @@ typedef enum MooseOpFinishedEnum {
  * @param cconn libmpdclient's mpd_connection
  */
 bool moose_shelper_report_error(
-    struct MooseClient *self,
-    struct mpd_connection *cconn);
+    struct MooseClient * self,
+    struct mpd_connection * cconn);
 
 /**
  * @brief Same as moose_shelper_report_error, but do no handle actual error (by disconnecting)
@@ -45,8 +45,8 @@ bool moose_shelper_report_error(
  * @param cconn libmpdclient's mpd_connection
  */
 bool moose_shelper_report_error_without_handling(
-    struct MooseClient *self,
-    struct mpd_connection *cconn);
+    struct MooseClient * self,
+    struct mpd_connection * cconn);
 
 /**
  * @brief Same as moose_shelper_report_error, but in a printf like fashion.
@@ -58,8 +58,8 @@ bool moose_shelper_report_error_without_handling(
  * @param ... varargs
  */
 void moose_shelper_report_error_printf(
-    struct MooseClient *self,
-    const char *format, ...);
+    struct MooseClient * self,
+    const char * format, ...);
 
 /**
  * @brief Dispatch the progress signal
@@ -73,9 +73,9 @@ void moose_shelper_report_error_printf(
  * @param ... varargs as with printf
  */
 void moose_shelper_report_progress(
-    struct MooseClient *self,
+    struct MooseClient * self,
     bool print_newline,
-    const char *format,
+    const char * format,
     ...);
 
 /**
@@ -91,8 +91,8 @@ void moose_shelper_report_progress(
  * @param new_timeout the new timeout passed to connect()
  */
 void moose_shelper_report_connectivity(
-    struct MooseClient *self,
-    const char *new_host,
+    struct MooseClient * self,
+    const char * new_host,
     int new_port,
     float new_timeout);
 
@@ -104,8 +104,7 @@ void moose_shelper_report_connectivity(
  *           to indicate what kind of thing finished.
  */
 void moose_shelper_report_operation_finished(
-    struct MooseClient *self,
+    struct MooseClient * self,
     MooseOpFinishedEnum op);
 
 #endif /* end of include guard: MOOSE_SIGNAL_HELPER_H */
-

@@ -1,6 +1,6 @@
 #include "moose-util-sleep-grained.h"
 
-void moose_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *check)
+void moose_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean * check)
 {
     g_assert(check);
 

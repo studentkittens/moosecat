@@ -5,14 +5,14 @@
 
 #include <mpd/client.h>
 
-int main(int argc, char **argv)
+int main(int argc, char * * argv)
 {
-    if(argc < 3) {
+    if (argc < 3) {
         return -1;
     }
 
-    MooseClient *client = moose_create(MOOSE_PM_IDLE);
-    char *err = moose_connect(client, NULL, "localhost", 6600, 2);
+    MooseClient * client = moose_create(MOOSE_PM_IDLE);
+    char * err = moose_connect(client, NULL, "localhost", 6600, 2);
 
     if (err != NULL) {
         g_print("Err: %s\n", err);
@@ -25,11 +25,11 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    MooseStore *store = moose_store_create(client, NULL);
+    MooseStore * store = moose_store_create(client, NULL);
     moose_store_wait(store);
 
-    MoosePlaylist *songs = moose_playlist_new();
-    GTimer *pl_timer = g_timer_new();
+    MoosePlaylist * songs = moose_playlist_new();
+    GTimer * pl_timer = g_timer_new();
 
     moose_store_playlist_load(store, argv[1]);
     g_timer_start(pl_timer);
@@ -37,15 +37,15 @@ int main(int argc, char **argv)
 
     g_print("Found songs: %d\n", moose_playlist_length(songs));
     g_print("Time elapsed: %2.3fs\n", g_timer_elapsed(pl_timer, NULL));
-            
-    for(size_t i = 0; i < moose_playlist_length(songs); ++i) {
-        struct mpd_song *song = moose_playlist_at(songs, i);
-        g_print("%s\t%s\t%s\t%s\n", 
+
+    for (size_t i = 0; i < moose_playlist_length(songs); ++i) {
+        struct mpd_song * song = moose_playlist_at(songs, i);
+        g_print("%s\t%s\t%s\t%s\n",
                 mpd_song_get_tag(song, MPD_TAG_ARTIST, 0),
                 mpd_song_get_tag(song, MPD_TAG_ALBUM, 0),
                 mpd_song_get_tag(song, MPD_TAG_TITLE, 0),
                 mpd_song_get_uri(song)
-        );
+                );
     }
 
 

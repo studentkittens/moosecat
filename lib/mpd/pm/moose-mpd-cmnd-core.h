@@ -20,6 +20,6 @@
  *
  * @return a newly allocated connector
  */
-MooseClient *moose_create_cmnder(long connection_timeout_ms);
+MooseClient * moose_create_cmnder(long connection_timeout_ms);
 
 #endif /* end of include guard: CMND_CORE_H */

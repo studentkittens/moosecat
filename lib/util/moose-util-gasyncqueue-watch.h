@@ -11,7 +11,7 @@
  *
  * @return TRUE if you'd like to be notified for subsequent events.
  */
-typedef gboolean(* MCAsyncQueueWatchFunc)(GAsyncQueue *, gpointer);
+typedef gboolean (* MCAsyncQueueWatchFunc)(GAsyncQueue *, gpointer);
 
 /**
  * moose_async_queue_watch_new:
@@ -31,11 +31,11 @@ typedef gboolean(* MCAsyncQueueWatchFunc)(GAsyncQueue *, gpointer);
  * @return the ID of the new #GSource
  */
 guint moose_async_queue_watch_new(
-    GAsyncQueue *queue,
+    GAsyncQueue * queue,
     gint iteration_timeout,
     MCAsyncQueueWatchFunc callback,
     gpointer user_data,
-    GMainContext *context
-);
+    GMainContext * context
+    );
 
 #endif /* end of include guard: GASYNCQUEUE_WATCH_H_GUARD */

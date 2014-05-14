@@ -20,7 +20,7 @@
 # endif
 #endif
 
-typedef int(*art_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
+typedef int (* art_callback)(void * data, const unsigned char * key, uint32_t key_len, void * value);
 
 /**
  * This struct is included as part
@@ -39,7 +39,7 @@ typedef struct {
 typedef struct {
     art_node n;
     unsigned char keys[4];
-    art_node *children[4];
+    art_node * children[4];
 } art_node4;
 
 /**
@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
     art_node n;
     unsigned char keys[16];
-    art_node *children[16];
+    art_node * children[16];
 } art_node16;
 
 /**
@@ -58,7 +58,7 @@ typedef struct {
 typedef struct {
     art_node n;
     unsigned char keys[256];
-    art_node *children[48];
+    art_node * children[48];
 } art_node48;
 
 /**
@@ -66,7 +66,7 @@ typedef struct {
  */
 typedef struct {
     art_node n;
-    art_node *children[256];
+    art_node * children[256];
 } art_node256;
 
 /**
@@ -74,7 +74,7 @@ typedef struct {
  * of arbitrary size, as they include the key.
  */
 typedef struct {
-    void *value;
+    void * value;
     uint32_t key_len;
     unsigned char key[];
 } art_leaf;
@@ -83,7 +83,7 @@ typedef struct {
  * Main struct, points to root.
  */
 typedef struct {
-    art_node *root;
+    art_node * root;
     uint64_t size;
 } art_tree;
 
@@ -91,13 +91,13 @@ typedef struct {
  * Initializes an ART tree
  * @return 0 on success.
  */
-int init_art_tree(art_tree *t);
+int init_art_tree(art_tree * t);
 
 /**
  * Destroys an ART tree
  * @return 0 on success.
  */
-int destroy_art_tree(art_tree *t);
+int destroy_art_tree(art_tree * t);
 
 /**
  * Returns the size of the ART tree.
@@ -105,7 +105,7 @@ int destroy_art_tree(art_tree *t);
 #ifdef BROKEN_GCC_C99_INLINE
 # define art_size(t) ((t)->size)
 #else
-inline uint64_t art_size(art_tree *t) {
+inline uint64_t art_size(art_tree * t) {
     return t->size;
 }
 #endif
@@ -119,7 +119,7 @@ inline uint64_t art_size(art_tree *t) {
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void* art_insert(art_tree *t, unsigned char *key, int key_len, void *value);
+void * art_insert(art_tree * t, unsigned char * key, int key_len, void * value);
 
 /**
  * Deletes a value from the ART tree
@@ -129,7 +129,7 @@ void* art_insert(art_tree *t, unsigned char *key, int key_len, void *value);
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void* art_delete(art_tree *t, unsigned char *key, int key_len);
+void * art_delete(art_tree * t, unsigned char * key, int key_len);
 
 /**
  * Searches for a value in the ART tree
@@ -139,19 +139,19 @@ void* art_delete(art_tree *t, unsigned char *key, int key_len);
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void* art_search(art_tree *t, unsigned char *key, int key_len);
+void * art_search(art_tree * t, unsigned char * key, int key_len);
 
 /**
  * Returns the minimum valued leaf
  * @return The minimum leaf or NULL
  */
-art_leaf* art_minimum(art_tree *t);
+art_leaf * art_minimum(art_tree * t);
 
 /**
  * Returns the maximum valued leaf
  * @return The maximum leaf or NULL
  */
-art_leaf* art_maximum(art_tree *t);
+art_leaf * art_maximum(art_tree * t);
 
 /**
  * Iterates through the entries pairs in the map,
@@ -163,7 +163,7 @@ art_leaf* art_maximum(art_tree *t);
  * @arg data Opaque handle passed to the callback
  * @return 0 on success, or the return of the callback.
  */
-int art_iter(art_tree *t, art_callback cb, void *data);
+int art_iter(art_tree * t, art_callback cb, void * data);
 
 /**
  * Iterates through the entries pairs in the map,
@@ -177,6 +177,6 @@ int art_iter(art_tree *t, art_callback cb, void *data);
  * @arg data Opaque handle passed to the callback
  * @return 0 on success, or the return of the callback.
  */
-int art_iter_prefix(art_tree *t, unsigned char *prefix, int prefix_len, art_callback cb, void *data);
+int art_iter_prefix(art_tree * t, unsigned char * prefix, int prefix_len, art_callback cb, void * data);
 
 #endif

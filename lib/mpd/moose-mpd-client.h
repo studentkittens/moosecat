@@ -20,7 +20,7 @@
  *
  * @param self the client to operate on
  */
-void moose_client_init(MooseClient *self);
+void moose_client_init(MooseClient * self);
 
 /**
  * @brief Destroy client internal structures.
@@ -29,7 +29,7 @@ void moose_client_init(MooseClient *self);
  *
  * @param self the client to operate on
  */
-void moose_client_destroy(MooseClient *self);
+void moose_client_destroy(MooseClient * self);
 
 /**
  * @brief Send a command to the server
@@ -37,11 +37,11 @@ void moose_client_destroy(MooseClient *self);
  * See HandlerTable
  *
  * @param self the client to operate on
- * @param command the command to send 
+ * @param command the command to send
  *
  * @return an ID you can pass to moose_client_recv
  */
-long moose_client_send(MooseClient *self, const char *command);
+long moose_client_send(MooseClient * self, const char * command);
 
 /**
  * @brief Receive the response of a command
@@ -54,17 +54,17 @@ long moose_client_send(MooseClient *self, const char *command);
  *
  * @return true on success, false on error
  */
-bool moose_client_recv(MooseClient *self, long job_id);
+bool moose_client_recv(MooseClient * self, long job_id);
 
 /**
  * @brief Shortcut for send/recv
  *
- * @param self the client to operate on 
+ * @param self the client to operate on
  * @param command same as with moose_client_send
  *
  * @return same as moose_client_recv
  */
-bool moose_client_run(MooseClient *self, const char *command);
+bool moose_client_run(MooseClient * self, const char * command);
 
 /**
  * @brief Check if moose_client_begin() was called, but not moose_client_commit()
@@ -73,7 +73,7 @@ bool moose_client_run(MooseClient *self, const char *command);
  *
  * @return true if active
  */
-bool moose_client_command_list_is_active(MooseClient *self);
+bool moose_client_command_list_is_active(MooseClient * self);
 
 
 /**
@@ -83,7 +83,7 @@ bool moose_client_command_list_is_active(MooseClient *self);
  *
  * @param self the Client to operate on
  */
-void moose_client_wait(MooseClient *self);
+void moose_client_wait(MooseClient * self);
 
 
 /**
@@ -97,18 +97,18 @@ void moose_client_wait(MooseClient *self);
  *
  * @param self the client to operate on
  */
-void moose_client_begin(MooseClient *self);
+void moose_client_begin(MooseClient * self);
 
 
 
 /**
  * @brief Commit all previously holdback commands.
  *
- * @param self the Client to operate on 
+ * @param self the Client to operate on
  *
- * @return 
+ * @return
  */
-long moose_client_commit(MooseClient *self);
+long moose_client_commit(MooseClient * self);
 
 
 #endif /* end of include guard: CLIENT_H */

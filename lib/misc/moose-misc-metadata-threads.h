@@ -4,12 +4,12 @@
 #include <glib.h>
 
 /* Helper for starting long jobs (like metadata retrieval) in native threads.
- * The finished result gets pushed into a queue. The queue is emptied 
+ * The finished result gets pushed into a queue. The queue is emptied
  * (after a short amount of time) on the mainthread - which is needed to protect
  * the python part from race conditions.
  *
  * On thread dispatch and mainthread dispatch a callback is called.
- */ 
+ */
 
 struct _MooseMetadataThreads;
 
@@ -17,7 +17,7 @@ typedef void * (* MooseMetadataCallback)(
     struct _MooseMetadataThreads *, /* self      */
     void *,                       /* data      */
     void *                        /* user_data */
-);
+    );
 
 ///////////////////////
 
@@ -40,8 +40,8 @@ typedef struct _MooseMetadataThreads {
      * and the result is available on the main thread.
      */
     MooseMetadataCallback deliver_callback;
-    
-    /* User data for *both* callbacks 
+
+    /* User data for *both* callbacks
      */
     gpointer user_data;
 } MooseMetadataThreads;
@@ -58,14 +58,14 @@ typedef struct _MooseMetadataThreads {
  * @param user_data Data passed to both callbacks.
  * @param max_threads Maximum number of threads to instance.
  *
- * @return 
+ * @return
  */
 MooseMetadataThreads * moose_mdthreads_new(
     MooseMetadataCallback thread_callback,
     MooseMetadataCallback deliver_callback,
     void * user_data,
     int max_threads
-);
+    );
 
 
 /**
@@ -97,4 +97,3 @@ void moose_mdthreads_forward(MooseMetadataThreads * self, void * result);
 void moose_mdthreads_free(MooseMetadataThreads * self);
 
 #endif /* end of include guard: MOOSE_METADATA_THREADS_H */
-

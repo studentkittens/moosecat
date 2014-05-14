@@ -38,6 +38,6 @@ GIOCondition mpd_async_to_gio(mpd_async_event events);
  *
  * @return a newly allocated mpd_connection or NULL on error
  */
-mpd_connection *mpd_connect(MooseClient *self, const char *host, int port, float timeout, char **err);
+mpd_connection * mpd_connect(MooseClient * self, const char * host, int port, float timeout, char * * err);
 
 #endif /* end of include guard: COMMON_H_GUARD */

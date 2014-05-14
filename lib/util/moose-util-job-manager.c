@@ -4,7 +4,7 @@
 
 
 typedef struct {
-    /* Priority of the job from -INT_MAX to INT_MAX */ 
+    /* Priority of the job from -INT_MAX to INT_MAX */
     volatile int priority;
 
     /* Flag indication the callback function if it should cancel */
@@ -28,11 +28,11 @@ struct MooseJobManager {
     MooseJob terminator;
 
     /* Mesasge Queue between control and executor */
-    GAsyncQueue *job_queue;
+    GAsyncQueue * job_queue;
 
     /* Thread moose_jm_executor runs in */
-    GThread *execute_thread;
-    
+    GThread * execute_thread;
+
     /* Callback to call on execute */
     MooseJobManagerCallback callback;
 
@@ -41,7 +41,7 @@ struct MooseJobManager {
 
     /* Mutex that is locked/unlocked with finish_cond */
     GMutex finish_mutex;
-    
+
     /* Mutex to protect the current job member */
     GMutex current_job_mutex;
 
@@ -49,7 +49,7 @@ struct MooseJobManager {
     GMutex hash_table_mutex;
 
     /* A hashtable of the results, with a job id as key and a void* as value */
-    GHashTable *results;
+    GHashTable * results;
 
     /* Job IDs are created by incrementing this counter */
     long job_id_counter;
@@ -73,9 +73,9 @@ struct MooseJobManager {
 //                       //
 ///////////////////////////
 
-static MooseJob *moose_job_create(struct MooseJobManager *jm)
+static MooseJob * moose_job_create(struct MooseJobManager * jm)
 {
-    MooseJob *job = g_new0(MooseJob, 1);
+    MooseJob * job = g_new0(MooseJob, 1);
     g_mutex_lock(&jm->job_id_counter_mutex);
     job->id = (jm->job_id_counter)++;
     g_mutex_unlock(&jm->job_id_counter_mutex);
@@ -84,7 +84,7 @@ static MooseJob *moose_job_create(struct MooseJobManager *jm)
 
 ////////////////////////////////
 
-static void moose_job_free(MooseJob *job)
+static void moose_job_free(MooseJob * job)
 {
     g_free(job);
 }
@@ -97,21 +97,21 @@ static void moose_job_free(MooseJob *job)
 
 static int moose_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer job_data)
 {
-    (void) job_data;
+    (void)job_data;
 
-    const MooseJob *ja = a, *jb = b;
-    if(ja->priority > jb->priority)
+    const MooseJob * ja = a, * jb = b;
+    if (ja->priority > jb->priority)
         return +1;
 
-    if(ja->priority < jb->priority)
+    if (ja->priority < jb->priority)
         return -1;
 
-    if(ja->id > jb->id)
+    if (ja->id > jb->id)
         return +1;
 
-    if(ja->id < jb->id)
+    if (ja->id < jb->id)
         return -1;
-        
+
     return 0;
 }
 
@@ -119,10 +119,10 @@ static int moose_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer jo
 
 static gpointer moose_jm_executor(gpointer data)
 {
-    MooseJob *job;
-    struct MooseJobManager *jm = data;
+    MooseJob * job;
+    struct MooseJobManager * jm = data;
 
-    while((job = g_async_queue_pop(jm->job_queue)) != &jm->terminator) {
+    while ((job = g_async_queue_pop(jm->job_queue)) != &jm->terminator) {
         bool is_already_canceled = false;
 
         /* Check if the previous job needs to be freed.
@@ -130,8 +130,8 @@ static gpointer moose_jm_executor(gpointer data)
          * already cancelled */
         g_mutex_lock(&jm->current_job_mutex);
         {
-            /* Free previous job (last job is freed in moose_jm_close() */ 
-            if(jm->current_job != NULL) {
+            /* Free previous job (last job is freed in moose_jm_close() */
+            if (jm->current_job != NULL) {
                 moose_job_free(jm->current_job);
             }
 
@@ -140,7 +140,7 @@ static gpointer moose_jm_executor(gpointer data)
             g_mutex_unlock(&jm->current_job_mutex);
 
             /* Do actual job */
-            if(is_already_canceled == false) {
+            if (is_already_canceled == false) {
                 void * item = jm->callback(jm, &job->cancel, jm->user_data, job->job_data);
 
                 g_mutex_lock(&jm->hash_table_mutex);
@@ -165,9 +165,8 @@ static gpointer moose_jm_executor(gpointer data)
 
 /////////////////////////////////
 
-struct MooseJobManager *moose_jm_create(MooseJobManagerCallback on_execute, gpointer user_data)
-{
-    struct MooseJobManager *jm = g_new0(struct MooseJobManager, 1);
+struct MooseJobManager * moose_jm_create(MooseJobManagerCallback on_execute, gpointer user_data) {
+    struct MooseJobManager * jm = g_new0(struct MooseJobManager, 1);
 
     /* Initialize Synchronisation Primitives */
     g_cond_init(&jm->finish_cond);
@@ -194,11 +193,11 @@ struct MooseJobManager *moose_jm_create(MooseJobManagerCallback on_execute, gpoi
 
 /////////////////////////////////
 
-bool moose_jm_check_cancel(struct MooseJobManager *jm, volatile bool *cancel)
+bool moose_jm_check_cancel(struct MooseJobManager * jm, volatile bool * cancel)
 {
     bool rc = false;
 
-    if(jm && cancel) {
+    if (jm && cancel) {
         g_mutex_lock(&jm->current_job_mutex);
         {
             rc = *cancel;
@@ -211,22 +210,22 @@ bool moose_jm_check_cancel(struct MooseJobManager *jm, volatile bool *cancel)
 
 /////////////////////////////////
 
-long moose_jm_send(struct MooseJobManager *jm, int priority, gpointer job_data)
+long moose_jm_send(struct MooseJobManager * jm, int priority, gpointer job_data)
 {
-    if(jm == NULL) {
+    if (jm == NULL) {
         return -1;
     }
 
     /* Create a new job, with a unique job-id */
-    MooseJob *job = moose_job_create(jm);
+    MooseJob * job = moose_job_create(jm);
     job->priority = priority;
     job->job_data = job_data;
 
     /* Lock the current job structure, since it gets read in the main thread */
     g_mutex_lock(&jm->current_job_mutex);
     {
-        if(jm->current_job != NULL) {
-            if(jm->current_job->priority > priority) {
+        if (jm->current_job != NULL) {
+            if (jm->current_job->priority > priority) {
                 jm->current_job->cancel = true;
             }
         }
@@ -245,18 +244,18 @@ long moose_jm_send(struct MooseJobManager *jm, int priority, gpointer job_data)
 
 /////////////////////////////////
 
-void moose_jm_wait(struct MooseJobManager *jm)
+void moose_jm_wait(struct MooseJobManager * jm)
 {
-    if(jm == NULL) {
+    if (jm == NULL) {
         return;
     }
 
     g_mutex_lock(&jm->finish_mutex);
     {
-        for(;;) {
-            /* If there are no jobs in the Queue we can 
-            * expect that we're finished for now */
-            if(g_async_queue_length(jm->job_queue) <= 0) {
+        for (;;) {
+            /* If there are no jobs in the Queue we can
+             * expect that we're finished for now */
+            if (g_async_queue_length(jm->job_queue) <= 0) {
                 break;
             } else {
                 g_cond_wait(&jm->finish_cond, &jm->finish_mutex);
@@ -268,14 +267,14 @@ void moose_jm_wait(struct MooseJobManager *jm)
 
 /////////////////////////////////
 
-void moose_jm_wait_for_id(struct MooseJobManager *jm, int job_id)
+void moose_jm_wait_for_id(struct MooseJobManager * jm, int job_id)
 {
-    if(jm == NULL || job_id < 0) {
+    if (jm == NULL || job_id < 0) {
         /* Well, this is just down right invalid. */
         return;
     }
 
-    if(job_id > jm->last_send_job) {
+    if (job_id > jm->last_send_job) {
         /* Was not sended yet, also no need to wait */
         return;
     }
@@ -283,22 +282,22 @@ void moose_jm_wait_for_id(struct MooseJobManager *jm, int job_id)
     bool has_key = false;
 
     /* Lookup if the results hash table already has this key */
-    g_mutex_lock(&jm->hash_table_mutex); 
+    g_mutex_lock(&jm->hash_table_mutex);
     {
         has_key = g_hash_table_contains(jm->results, GINT_TO_POINTER(job_id));
     }
     g_mutex_unlock(&jm->hash_table_mutex);
 
-    if(has_key == true) {
+    if (has_key == true) {
         /* Result was already computed */
         return;
     }
-    
+
     /* Otherwise wait till we get notified upon execution */
     g_mutex_lock(&jm->finish_mutex);
     {
-        for(;;) {
-            if(jm->last_finished_job == job_id) {
+        for (;;) {
+            if (jm->last_finished_job == job_id) {
                 break;
             } else {
                 g_cond_wait(&jm->finish_cond, &jm->finish_mutex);
@@ -310,11 +309,11 @@ void moose_jm_wait_for_id(struct MooseJobManager *jm, int job_id)
 
 /////////////////////////////////
 
-void * moose_jm_get_result(struct MooseJobManager *jm, int job_id)
+void * moose_jm_get_result(struct MooseJobManager * jm, int job_id)
 {
-    void * result = NULL; 
+    void * result = NULL;
 
-    if(jm != NULL) {
+    if (jm != NULL) {
         /* Lock the hashtable and lookup the result */
         g_mutex_lock(&jm->hash_table_mutex);
         {
@@ -323,19 +322,19 @@ void * moose_jm_get_result(struct MooseJobManager *jm, int job_id)
         g_mutex_unlock(&jm->hash_table_mutex);
     }
 
-    return result; 
+    return result;
 }
 
 /////////////////////////////////
 
-void moose_jm_close(struct MooseJobManager *jm)
+void moose_jm_close(struct MooseJobManager * jm)
 {
-    if(jm == NULL) {
+    if (jm == NULL) {
         return;
     }
 
     /* Send a terminating job to the Queue and wait for it finish */
-    g_async_queue_push(jm->job_queue, (gpointer)&jm->terminator);
+    g_async_queue_push(jm->job_queue, (gpointer) & jm->terminator);
     g_thread_join(jm->execute_thread);
 
     /* Free ressources */
@@ -347,7 +346,7 @@ void moose_jm_close(struct MooseJobManager *jm)
     g_mutex_clear(&jm->hash_table_mutex);
     g_mutex_clear(&jm->job_id_counter_mutex);
 
-    if(jm->current_job != NULL) {
+    if (jm->current_job != NULL) {
         moose_job_free(jm->current_job);
     }
 
