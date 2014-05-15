@@ -5,14 +5,24 @@
  * SECTION: moose-song
  * @short_description: Wrapper around Songdata.
  *
- * This basically is a wrapper around #GPtrArray.
+ * This is similar to struct mpd_song from libmpdclient,
+ * but has setter for most attributes and is reference counted.
+ * Setters allow a faster deserialization from the disk.
+ * Reference counting allows sharing the instances without the fear
+ * of deleting it while the user still uses it.
  */
+
 #include <glib-object.h>
 #include <mpd/client.h>
 
 G_BEGIN_DECLS
 
-/* This reflects mpd_tag_type */
+/**
+ * MooseZeroconfState:
+ *
+ * Possible tags stored by MooseSong.
+ * This reflects mpd_tag_type.
+ */
 typedef enum _MooseTagType {
     MOOSE_TAG_UNKNOWN = MPD_TAG_UNKNOWN,
 
@@ -81,25 +91,157 @@ GType moose_song_get_type(void);
  * Return value: a new #MooseSong.
  */
 MooseSong * moose_song_new(void);
+
+/* Create a MooseSong from a mpd_song */
 MooseSong * moose_song_new_from_struct(struct mpd_song * song);
 
+/* Convert an existing MooseSong from a mpd_song */
 void moose_song_convert(MooseSong * self, struct mpd_song * song);
 
+/**
+ * moose_song_free:
+ * @self: a #MooseSong
+ *
+ * Unrefs a #MooseSong
+ */
 void moose_song_free(MooseSong * self);
 
+/**
+ * moose_song_get_tag:
+ * @self: a #MooseSong
+ * @tag: one of #MooseTagType
+ *
+ * Get a certain tag from the song.
+ *
+ * Returns: (transfer none): The tag as string.
+ */
 char * moose_song_get_tag(MooseSong * self, MooseTagType tag);
+
+/**
+ * moose_song_set_tag:
+ * @self: a #MooseSong
+ * @tag: one of #MooseTagType
+ * @value: The string to set.
+ *
+ * Set a certain tag to the song.
+ */
 void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value);
+
+/**
+ * moose_song_get_uri:
+ * @self: a #MooseSong
+ *
+ * Get the Uri (i.e. Filename of the song, if ^file://) of the Song.
+ *
+ * Returns: (transfer none): The uri as string.
+ */
 const char * moose_song_get_uri(MooseSong * self);
+
+/**
+ * moose_song_set_uri:
+ * @self: a #MooseSong
+ * @uri: The Uri to set.
+ *
+ * Get the Uri (i.e. Filename of the song, if ^file://) of the Song.
+ *
+ * Returns: (transfer none): The uri as string.
+ */
 void moose_song_set_uri(MooseSong * self, const char * uri);
+
+
+/**
+ * moose_song_get_duration:
+ * @self: a #MooseSong
+ *
+ * Get the Duration of the song.
+ *
+ * Returns: The Duration
+ */
 unsigned moose_song_get_duration(MooseSong * self);
+
+/**
+ * moose_song_set_duration:
+ * @self: a #MooseSong
+ * @duration: The duration to set.
+ *
+ * Set the duration.
+ */
 void moose_song_set_duration(MooseSong * self, unsigned duration);
+
+/**
+ * moose_song_get_last_modified:
+ * @self: a #MooseSong
+ *
+ * Get the last_modified of the song.
+ *
+ * Returns: The last_modified
+ */
 time_t moose_song_get_last_modified(MooseSong * self);
+
+/**
+ * moose_song_set_duration:
+ * @self: a #MooseSong
+ * @duration: The duration to set.
+ *
+ * Set the duration.
+ */
 void moose_song_set_last_modified(MooseSong * self, time_t last_modified);
+
+/**
+ * moose_song_get_pos:
+ * @self: a #MooseSong
+ *
+ * Get the pos of the song.
+ *
+ * Returns: The pos
+ */
 unsigned moose_song_get_pos(MooseSong * self);
+
+/**
+ * moose_song_set_pos:
+ * @self: a #MooseSong
+ * @pos: The pos to set.
+ *
+ * Set the pos.
+ */
 void moose_song_set_pos(MooseSong * self, unsigned pos);
+
+/**
+ * moose_song_get_id:
+ * @self: a #MooseSong
+ *
+ * Get the id of the song.
+ *
+ * Returns: The id
+ */
 unsigned moose_song_get_id(MooseSong * self);
+
+/**
+ * moose_song_set_id:
+ * @self: a #MooseSong
+ * @id: The id to set.
+ *
+ * Set the id.
+ */
 void moose_song_set_id(MooseSong * self, unsigned id);
+
+/**
+ * moose_song_get_prio:
+ * @self: a #MooseSong
+ *
+ * Get the prio of the song.
+ *
+ * Returns: The prio
+ */
 unsigned moose_song_get_prio(MooseSong * self);
+
+/**
+ * moose_song_set_prio:
+ * @self: a #MooseSong
+ * @prio: The prio to set.
+ *
+ * Set the prio.
+ */
 void moose_song_set_prio(MooseSong * self, unsigned prio);
 
 G_END_DECLS

@@ -110,7 +110,7 @@ cdef class Store:
         b_tag = bytify(tag)
         tag_id = c.moose_store_qp_str_to_tag_enum(b_tag)
 
-        if tag_id is not c.MPD_TAG_UNKNOWN:
+        if tag_id is not c.MOOSE_TAG_UNKNOWN:
             if prefix:
                 b_prefix = bytify(prefix)
                 b_suggestion = c.moose_store_cmpl_lookup(completion, tag_id, b_prefix)

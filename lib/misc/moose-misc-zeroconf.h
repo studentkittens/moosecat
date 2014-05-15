@@ -52,7 +52,9 @@ GType moose_zeroconf_browser_get_type(void);
 GType moose_zeroconf_server_get_type(void);
 
 /**
- * @brief Possible States of the Browser.
+ * MooseZeroconfState:
+ *
+ * Possible States of the Browser.
  */
 typedef enum MooseZeroconfState {
     /* Not connected to Avahi */

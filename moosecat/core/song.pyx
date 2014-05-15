@@ -9,7 +9,7 @@ It has the same features, but is a lot nicer to use:
 
 Instead of:
 >>> s = song_from_ptr(some_moose_song_struct)
->>> c.moose_song_get_tag(s, c.MPD_TAG_ARTIST)
+>>> c.moose_song_get_tag(s, c.MOOSE_TAG_ARTIST)
 
 Instanciation should always happen via song_from_ptr()!
 (Will probably crash easily otherwise)
@@ -86,77 +86,77 @@ cdef class Song:
     property artist:
         'Retrieve the artist tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_ARTIST)
+            return self._tag(c.MOOSE_TAG_ARTIST)
 
     property album:
         'Retrieve the album tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_ALBUM)
+            return self._tag(c.MOOSE_TAG_ALBUM)
 
     property album_artist:
         'Retrieve the title tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_ALBUM_ARTIST)
+            return self._tag(c.MOOSE_TAG_ALBUM_ARTIST)
 
     property title:
         'Retrieve the title tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_TITLE)
+            return self._tag(c.MOOSE_TAG_TITLE)
 
     property track:
         'Retrieve the track tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_TRACK)
+            return self._tag(c.MOOSE_TAG_TRACK)
 
     property genre:
         'Retrieve the genre tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_GENRE)
+            return self._tag(c.MOOSE_TAG_GENRE)
 
     property date:
         'Retrieve the date tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_DATE)
+            return self._tag(c.MOOSE_TAG_DATE)
 
     property performer:
         'Retrieve the performer tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_PERFORMER)
+            return self._tag(c.MOOSE_TAG_PERFORMER)
 
     property comment:
         'Retrieve the artist tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_COMMENT)
+            return self._tag(c.MOOSE_TAG_COMMENT)
 
     property composer:
         'Retrieve the composer tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_COMPOSER)
+            return self._tag(c.MOOSE_TAG_COMPOSER)
 
     property disc:
         'Retrieve the disc tag'
         def __get__(self):
-            return self._tag(c.MPD_TAG_DISC)
+            return self._tag(c.MOOSE_TAG_DISC)
 
     property musicbrainz_artistid:
         'Retrieve the MB ArtistID'
         def __get__(self):
-            return self._tag(c.MPD_TAG_MUSICBRAINZ_ARTISTID)
+            return self._tag(c.MOOSE_TAG_MUSICBRAINZ_ARTISTID)
 
     property musicbrainz_albumartistid:
         'Retrieve the MB AlbumArtistID'
         def __get__(self):
-            return self._tag(c.MPD_TAG_MUSICBRAINZ_ALBUMARTISTID)
+            return self._tag(c.MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID)
 
     property musicbrainz_trackid:
         'Retrieve the MB TrackID'
         def __get__(self):
-            return self._tag(c.MPD_TAG_MUSICBRAINZ_TRACKID)
+            return self._tag(c.MOOSE_TAG_MUSICBRAINZ_TRACKID)
 
     property musicbrainz_albumid:
         'Retrieve the MB AlbumID'
         def __get__(self):
-            return self._tag(c.MPD_TAG_MUSICBRAINZ_ALBUMID)
+            return self._tag(c.MOOSE_TAG_MUSICBRAINZ_ALBUMID)
 
     ########################
     #  Non-Tag Properties  #
