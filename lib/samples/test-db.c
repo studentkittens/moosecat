@@ -47,7 +47,7 @@ int main(int argc, char * argv[])
     MooseClient * client = moose_create(MOOSE_PM_IDLE);
 
     /* Trigger some bugs */
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 1; i++) {
         moose_connect(client, NULL, "localhost", 6601, 10.0);
         moose_disconnect(client);
     }

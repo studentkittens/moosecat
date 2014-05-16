@@ -61,7 +61,7 @@ int main(int argc, char const * argv[])
     moose_signal_add(client, "logging", logging_cb, NULL);
     moose_signal_add(client, "client-event", event_cb, NULL);
 
-    char * error = moose_connect(client, NULL, "localhost", 6601, 2.0);
+    char * error = moose_connect(client, NULL, "localhost", 6600, 2.0);
     if (error == NULL) {
         // long job = moose_jm_send(jm, 0, NULL);
         // send_some_commands(client);
