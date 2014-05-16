@@ -18,8 +18,6 @@
 G_BEGIN_DECLS
 
 typedef enum _MooseState {
-    MOOSE_STATE_NO_VOLUME = -1,
-
 	/** no information available */
 	MOOSE_STATE_UNKNOWN = 0,
 

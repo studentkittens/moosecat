@@ -34,8 +34,8 @@ Don't do this: ::
 cimport binds as c
 
 
-cdef status_from_ptr(c.mpd_status * ptr, c.MooseClient * client):
-    'Instance a new Status() with the underlying mpd_status ptr'
+cdef status_from_ptr(c.MooseStatus * ptr, c.MooseClient * client):
+    'Instance a new Status() with the underlying MooseStatus ptr'
     if ptr != NULL:
         return Status()._init(ptr, client)
     else:
@@ -43,21 +43,21 @@ cdef status_from_ptr(c.mpd_status * ptr, c.MooseClient * client):
 
 cdef class Status:
     # State Enums
-    Playing = c.MPD_STATE_PLAY
-    Paused  = c.MPD_STATE_PAUSE
-    Stopped = c.MPD_STATE_STOP
-    Unknown = c.MPD_STATE_UNKNOWN
+    Playing = c.MOOSE_STATE_PLAY
+    Paused  = c.MOOSE_STATE_PAUSE
+    Stopped = c.MOOSE_STATE_STOP
+    Unknown = c.MOOSE_STATE_UNKNOWN
 
-    # c.MPD_STATE_ -> Python State
+    # c.MOOSE_STATE_ -> Python State
     _cmpdstate_to_py = {
-            c.MPD_STATE_PLAY: Playing,
-            c.MPD_STATE_PAUSE: Paused,
-            c.MPD_STATE_STOP: Stopped,
-            c.MPD_STATE_UNKNOWN: Unknown
+            c.MOOSE_STATE_PLAY: Playing,
+            c.MOOSE_STATE_PAUSE: Paused,
+            c.MOOSE_STATE_STOP: Stopped,
+            c.MOOSE_STATE_UNKNOWN: Unknown
     }
 
     # Actual c-level struct
-    cdef c.mpd_status * _status
+    cdef c.MooseStatus * _status
     cdef c.MooseClient * _client
 
     ################
@@ -67,11 +67,11 @@ cdef class Status:
     def __cinit__(self):
         self._status = NULL
 
-    cdef c.mpd_status * _p(self) except NULL:
+    cdef c.MooseStatus * _p(self) except NULL:
         if self._status != NULL:
             return self._status
         else:
-            raise ValueError('mpd_status pointer is null for this instance!')
+            raise ValueError('MooseStatus pointer is null for this instance!')
 
     cdef c.MooseClient * _c(self) except NULL:
         if self._client!= NULL:
@@ -79,25 +79,10 @@ cdef class Status:
         else:
             raise ValueError('_client pointer is null for this instance!')
 
-    cdef object _init(self, c.mpd_status * status, c.MooseClient * client):
+    cdef object _init(self, c.MooseStatus * status, c.MooseClient * client):
         self._status = status
         self._client = client
         return self
-
-    #############
-    #  Testing  #
-    #############
-
-    def test_begin(self):
-        self._status = c.mpd_status_begin()
-
-    def test_feed(self, name, value):
-        cdef c.mpd_pair pair
-        b_name = bytify(name)
-        b_value = bytify(value)
-        pair.name = b_name
-        pair.value = b_value
-        c.mpd_status_feed(self._p(), &pair)
 
     ################
     #  Properties  #
@@ -106,7 +91,7 @@ cdef class Status:
     property volume:
         'Get the current volume from 0 - 100'
         def __get__(self):
-            return c.mpd_status_get_volume(self._p())
+            return c.moose_status_get_volume(self._p())
         def __set__(self, vol):
             if not (0 <= vol <= 100):
                 return
@@ -119,35 +104,35 @@ cdef class Status:
     property repeat:
         'Check if repeat mode is on'
         def __get__(self):
-            return c.mpd_status_get_repeat(self._p())
+            return c.moose_status_get_repeat(self._p())
         def __set__(self, state):
             client_send(self._c(), _fmt('repeat', 1 if state else 0))
 
     property random:
         'Check if random mode is on'
         def __get__(self):
-            return c.mpd_status_get_random(self._p())
+            return c.moose_status_get_random(self._p())
         def __set__(self, state):
             client_send(self._c(), _fmt('random', 1 if state else 0))
 
     property single:
         'Check if single mode is on'
         def __get__(self):
-            return c.mpd_status_get_single(self._p())
+            return c.moose_status_get_single(self._p())
         def __set__(self, state):
             client_send(self._c(), _fmt('single', 1 if state else 0))
 
     property consume:
         'Check if consume mode is on'
         def __get__(self):
-            return c.mpd_status_get_consume(self._p())
+            return c.moose_status_get_consume(self._p())
         def __set__(self, state):
             client_send(self._c(), _fmt('consume ', 1 if state else 0))
 
     property queue_length:
         'Return the length of the Queue'
         def __get__(self):
-            return c.mpd_status_get_queue_length(self._p())
+            return c.moose_status_get_queue_length(self._p())
 
     property queue_version:
         '''
@@ -161,7 +146,7 @@ cdef class Status:
         interesting to libmoosecat.
         '''
         def __get__(self):
-            return c.mpd_status_get_queue_version(self._p())
+            return c.moose_status_get_queue_version(self._p())
 
     property state:
         '''
@@ -178,76 +163,76 @@ cdef class Status:
         to modify the state.
         '''
         def __get__(self):
-            cstate = c.mpd_status_get_state(self._p())
+            cstate = c.moose_status_get_state(self._p())
             return Status._cmpdstate_to_py[cstate]
 
     property crossfade:
         'Get or Set the Crossfade in seconds or 0 to disable'
         def __get__(self):
-            return c.mpd_status_get_crossfade(self._p())
+            return c.moose_status_get_crossfade(self._p())
         def __set__(self, crossfade):
             client_send(self._c(), _fmt('crossfade', crossfade))
 
     property mixrampdb:
         'Retrieve or Set the mixrampdb value (see mpds documentation)'
         def __get__(self):
-            return c.mpd_status_get_mixrampdb(self._p())
+            return c.moose_status_get_mixrampdb(self._p())
         def __set__(self, decibel):
             client_send(self._c(), _fmt('mixrampdb', decibel))
 
     property mixrampdelay:
         'Mixrampdelay (see mpds documentation)'
         def __get__(self):
-            return c.mpd_status_get_mixrampdelay(self._p())
+            return c.moose_status_get_mixrampdelay(self._p())
         def __set__(self, seconds):
             client_send(self._c(), _fmt('mixrampdelay', seconds))
 
     property song_pos:
         'Position of the currently playing song within the Queue'
         def __get__(self):
-            return c.mpd_status_get_song_pos(self._p())
+            return c.moose_status_get_song_pos(self._p())
 
     property song_id:
         'ID of the currently playing song within the Queue'
         def __get__(self):
-            return c.mpd_status_get_song_id(self._p())
+            return c.moose_status_get_song_id(self._p())
 
     property next_song_id:
         'ID of the next playing song within the Queue'
         def __get__(self):
-            return c.mpd_status_get_next_song_id(self._p())
+            return c.moose_status_get_next_song_id(self._p())
 
     property next_song_pos:
         'Pos of the next playing song within the Queue'
         def __get__(self):
-            return c.mpd_status_get_next_song_pos(self._p())
+            return c.moose_status_get_next_song_pos(self._p())
 
     property elapsed_seconds:
         'Elapsed seconds of the currently playing song'
         def __get__(self):
-            return c.mpd_status_get_elapsed_time(self._p())
+            return c.moose_status_get_elapsed_time(self._p())
 
     property elapsed_ms:
         'Elapsed milliseconds of the currently playing song'
         def __get__(self):
-            return c.mpd_status_get_elapsed_ms(self._p())
+            return c.moose_status_get_elapsed_ms(self._p())
 
     property total_time:
         'Total duration of song in seconds'
         def __get__(self):
-            return c.mpd_status_get_total_time(self._p())
+            return c.moose_status_get_total_time(self._p())
 
     property is_updating:
         'Check if mpd is currently updating'
         def __get__(self):
-            return c.mpd_status_get_update_id(self._p()) > 0
+            return c.moose_status_get_update_id(self._p()) > 0
 
     ######################
     #  Audio Properties  #
     ######################
 
-    cdef c.mpd_audio_format * _audio(self) except? NULL:
-        return <c.mpd_audio_format*> c.mpd_status_get_audio_format(self._p())
+    # cdef c.mpd_audio_format * _audio(self) except? NULL:
+    #     return <c.mpd_audio_format*> c.moose_status_get_audio_format(self._p())
 
     property kbit_rate:
         '''
@@ -260,31 +245,22 @@ cdef class Status:
             the :py:func:`Client.status_timer_activate` function.
         '''
         def __get__(self):
-            return c.mpd_status_get_kbit_rate(self._p())
+            return c.moose_status_get_kbit_rate(self._p())
 
     property audio_sample_rate:
         'audio: The sample rate of the current song'
         def __get__(self):
-            if self._audio():
-                return self._audio().sample_rate
-            else:
-                return 0
+            return c.moose_status_get_audio_sample_rate(self._p())
 
     property audio_bits:
         'audio: mostly 24 bit'
         def __get__(self):
-            if self._audio():
-                return self._audio().bits
-            else:
-                return 0
+            return c.moose_status_get_audio_bits(self._p())
 
     property audio_channels:
         'audio: used channels '
         def __get__(self):
-            if self._audio():
-                return self._audio().channels
-            else:
-                return 0
+            return c.moose_status_get_audio_channels(self._p())
 
     ############################
     #  Replay Gain Properties  #

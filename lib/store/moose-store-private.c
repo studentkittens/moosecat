@@ -239,10 +239,10 @@ void moose_stprv_insert_meta_attributes(MooseStore * self)
 
     char * insert_meta_sql = NULL;
     int queue_version = -1;
-    struct mpd_status * status = moose_lock_status(self->client);
+    MooseStatus * status = moose_lock_status(self->client);
 
     if (status != NULL) {
-        queue_version = mpd_status_get_queue_version(status);
+        queue_version = moose_status_get_queue_version(status);
     }
     moose_unlock_status(self->client);
 

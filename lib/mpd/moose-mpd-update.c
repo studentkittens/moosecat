@@ -92,8 +92,8 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
 
                 /* Try to receive status */
                 if (update_status) {
-                    struct mpd_status * tmp_status;
-                    tmp_status = mpd_recv_status(conn);
+                    struct mpd_status *tmp_status_struct;
+                    tmp_status_struct = mpd_recv_status(conn);
 
                     if (data->status_timer.last_update != NULL) {
                         /* Reset the status timer to 0 */
@@ -101,17 +101,20 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
                     }
 
                     /* Be error tolerant, and keep at least the last status */
-                    if (tmp_status) {
+                    if (tmp_status_struct) {
                         moose_lock_status(self);
+
                         if (data->status != NULL) {
-                            data->last_song_data.id = mpd_status_get_song_id(data->status);
-                            data->last_song_data.state = mpd_status_get_state(data->status);
+                            data->last_song_data.id = moose_status_get_song_id(data->status);
+                            data->last_song_data.state = moose_status_get_state(data->status);
                         } else {
                             data->last_song_data.id = -1;
-                            data->last_song_data.state = MPD_STATE_UNKNOWN;
+                            data->last_song_data.state = MOOSE_STATE_UNKNOWN;
                         }
-                        free_if_not_null(data->status, mpd_status_free);
-                        data->status = tmp_status;
+
+                        free_if_not_null(data->status, moose_status_free);
+                        data->status = moose_status_new_from_struct(tmp_status_struct);
+                        mpd_status_free(tmp_status_struct);
                         moose_unlock_status(self);
                     }
 
@@ -196,13 +199,13 @@ static bool moose_update_is_a_seek_event(MooseUpdateData * data, enum mpd_idle e
 {
     if (event_mask & MPD_IDLE_PLAYER) {
         long curr_song_id = -1;
-        enum mpd_state curr_song_state = MPD_STATE_UNKNOWN;
+        enum mpd_state curr_song_state = MOOSE_STATE_UNKNOWN;
 
         /* Get the current data */
         moose_lock_status(data->client); {
             if (data->status) {
-                curr_song_id = mpd_status_get_song_id(data->status);
-                curr_song_state = mpd_status_get_state(data->status);
+                curr_song_id = moose_status_get_song_id(data->status);
+                curr_song_state = moose_status_get_state(data->status);
             }
         }
         moose_unlock_status(data->client);
@@ -273,15 +276,15 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
         return false;
     }
 
-    enum mpd_state state = MPD_STATE_UNKNOWN;
-    struct mpd_status * status = moose_lock_status(self);
+    MooseState state = MOOSE_STATE_UNKNOWN;
+    MooseStatus * status = moose_lock_status(self);
     if (status != NULL) {
-        state = mpd_status_get_state(status);
+        state = moose_status_get_state(status);
     }
     moose_unlock_status(self);
 
     if (status != NULL) {
-        if (state == MPD_STATE_PLAY) {
+        if (state == MOOSE_STATE_PLAY) {
 
             /* Substract a small amount to include the network latency - a bit of a hack
              * but worst thing that could happen: you miss one status update.
@@ -376,7 +379,7 @@ MooseUpdateData * moose_update_data_new(struct MooseClient * self)
     data->sync_id = 0;
 
     data->last_song_data.id = -1;
-    data->last_song_data.state = MPD_STATE_UNKNOWN;
+    data->last_song_data.state = MOOSE_STATE_UNKNOWN;
 
     g_rec_mutex_init(&data->mtx_current_song);
     g_rec_mutex_init(&data->mtx_statistics);
@@ -443,7 +446,7 @@ void moose_update_reset(MooseUpdateData * data)
     moose_lock_status(data->client);
     {
         if (data->status != NULL) {
-            mpd_status_free(data->status);
+            moose_status_free(data->status);
         }
         data->status = NULL;
 

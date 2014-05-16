@@ -2,6 +2,7 @@
 #include <glib.h>
 
 #include "moose-song.h"
+#include "moose-status.h"
 
 /* Prototype because of cyclic dependency */
 struct MooseClient;
@@ -22,7 +23,7 @@ typedef struct MooseUpdateData {
 
     MooseSong * current_song;
     struct mpd_stats * statistics;
-    struct mpd_status * status;
+    MooseStatus *status;
     const char * replay_gain_status;
 
     struct {

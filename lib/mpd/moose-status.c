@@ -71,8 +71,6 @@ typedef struct _MooseStatusPrivate {
 	/** current bit rate in kbps */
 	unsigned kbit_rate;
 
-	/** the current audio format */
-	
     struct {
         /**
          * The sample rate in Hz.  A better name for this attribute is
@@ -135,6 +133,7 @@ static void moose_status_init(MooseStatus * self)
 {
     self->priv = moose_status_get_instance_private(self);
     self->priv->state = MOOSE_STATE_UNKNOWN;
+    self->priv->volume = -1;
     self->priv->mixrampdb = 0.0;
     self->priv->mixrampdelay = 0.0;
     self->priv->song_pos= -1;
@@ -161,9 +160,11 @@ void moose_status_free(MooseStatus * self)
 
 int moose_status_get_volume(const MooseStatus *self)
 {
-    g_return_val_if_fail(self, MOOSE_STATE_NO_VOLUME);
+    g_return_val_if_fail(self, -1);
     return self->priv->volume;
 }
+
+/////////////////////////
 
 bool moose_status_get_repeat(const MooseStatus *self)
 {
@@ -171,11 +172,15 @@ bool moose_status_get_repeat(const MooseStatus *self)
     return self->priv->repeat;
 }
 
+/////////////////////////
+
 bool moose_status_get_random(const MooseStatus *self)
 {
     g_return_val_if_fail(self, false);
     return self->priv->random;
 }
+
+/////////////////////////
 
 bool moose_status_get_single(const MooseStatus *self)
 {
@@ -183,11 +188,15 @@ bool moose_status_get_single(const MooseStatus *self)
     return self->priv->single;
 }
 
+/////////////////////////
+
 bool moose_status_get_consume(const MooseStatus *self)
 {
     g_return_val_if_fail(self, false);
     return self->priv->consume;
 }
+
+/////////////////////////
 
 unsigned moose_status_get_queue_length(const MooseStatus *self)
 {
@@ -195,11 +204,15 @@ unsigned moose_status_get_queue_length(const MooseStatus *self)
     return self->priv->queue_length;
 }
 
+/////////////////////////
+
 unsigned moose_status_get_queue_version(const MooseStatus *self)
 {
     g_return_val_if_fail(self, 0);
     return self->priv->queue_version;
 }
+
+/////////////////////////
 
 MooseState moose_status_get_state(const MooseStatus *self)
 {
@@ -207,11 +220,15 @@ MooseState moose_status_get_state(const MooseStatus *self)
     return self->priv->state;
 }
 
+/////////////////////////
+
 unsigned moose_status_get_crossfade(const MooseStatus *self)
 {
     g_return_val_if_fail(self, 0);
     return self->priv->crossfade;
 }
+
+/////////////////////////
 
 float moose_status_get_mixrampdb(const MooseStatus *self)
 {
@@ -219,11 +236,15 @@ float moose_status_get_mixrampdb(const MooseStatus *self)
     return self->priv->mixrampdb;
 }
 
+/////////////////////////
+
 float moose_status_get_mixrampdelay(const MooseStatus *self)
 {
     g_return_val_if_fail(self, 0);
     return self->priv->mixrampdelay;
 }
+
+/////////////////////////
 
 int moose_status_get_song_pos(const MooseStatus *self)
 {
@@ -231,11 +252,15 @@ int moose_status_get_song_pos(const MooseStatus *self)
     return self->priv->song_pos;
 }
 
+/////////////////////////
+
 int moose_status_get_song_id(const MooseStatus *self)
 {
     g_return_val_if_fail(self, -1);
     return self->priv->song_id;
 }
+
+/////////////////////////
 
 int moose_status_get_next_song_pos(const MooseStatus *self)
 {
@@ -243,17 +268,23 @@ int moose_status_get_next_song_pos(const MooseStatus *self)
     return self->priv->next_song_pos;
 }
 
+/////////////////////////
+
 int moose_status_get_next_song_id(const MooseStatus *self)
 {
     g_return_val_if_fail(self, -1);
     return self->priv->next_song_id;
 }
 
+/////////////////////////
+
 unsigned moose_status_get_elapsed_time(const MooseStatus *self)
 {
     g_return_val_if_fail(self, 0);
     return self->priv->elapsed_time;
 }
+
+/////////////////////////
 
 
 unsigned moose_status_get_elapsed_ms(const MooseStatus *self)
@@ -262,12 +293,16 @@ unsigned moose_status_get_elapsed_ms(const MooseStatus *self)
     return self->priv->elapsed_ms;
 }
 
+/////////////////////////
+
 
 unsigned moose_status_get_total_time(const MooseStatus *self)
 {
     g_return_val_if_fail(self, -1);
     return self->priv->total_time;
 }
+
+/////////////////////////
 
 
 unsigned moose_status_get_kbit_rate(const MooseStatus *self)
@@ -276,6 +311,8 @@ unsigned moose_status_get_kbit_rate(const MooseStatus *self)
     return self->priv->kbit_rate;
 }
 
+/////////////////////////
+
 
 unsigned moose_status_get_update_id(const MooseStatus *self)
 {
@@ -283,11 +320,15 @@ unsigned moose_status_get_update_id(const MooseStatus *self)
     return self->priv->update_id;
 }
 
+/////////////////////////
+
 const char * moose_status_get_last_error(const MooseStatus * self)
 {
     g_return_val_if_fail(self, NULL);
     return self->priv->error;
 }
+
+/////////////////////////
 
 //////////// AUDIO ///////////////
 
@@ -297,17 +338,23 @@ uint32_t moose_status_get_audio_sample_rate(const MooseStatus *self)
     return self->priv->audio.sample_rate;
 }
 
+/////////////////////////
+
 uint8_t moose_status_get_audio_bits(const MooseStatus *self)
 {
     g_return_val_if_fail(self, 0);
     return self->priv->audio.bits;
 }
 
+/////////////////////////
+
 uint8_t moose_status_get_audio_channels(const MooseStatus *self)
 {
     g_return_val_if_fail(self, 0);
     return self->priv->audio.channels;
 }
+
+/////////////////////////
 
 void moose_status_convert(MooseStatus *self, const struct mpd_status *status)
 {
@@ -333,7 +380,6 @@ void moose_status_convert(MooseStatus *self, const struct mpd_status *status)
     self->priv->elapsed_ms = mpd_status_get_elapsed_ms(status);
     self->priv->total_time = mpd_status_get_total_time(status);
     self->priv->kbit_rate = mpd_status_get_kbit_rate(status);
-
     self->priv->update_id = mpd_status_get_update_id(status);
     self->priv->error = mpd_status_get_error(status);
 
@@ -344,6 +390,8 @@ void moose_status_convert(MooseStatus *self, const struct mpd_status *status)
         self->priv->audio.bits = audio->bits;
     }
 }
+
+/////////////////////////
 
 MooseStatus * moose_status_new_from_struct(const struct mpd_status * status)
 {

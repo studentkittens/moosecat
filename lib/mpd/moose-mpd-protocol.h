@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <glib.h>
 #include "moose-song.h"
+#include "moose-status.h"
 #include <mpd/client.h>
 
 /* Signal System */
@@ -412,7 +413,7 @@ const char * * moose_outputs_get_names(MooseClient * self);
 bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool state);
 
 /**
- * @brief Lock against modification of the current mpd_status object
+ * @brief Lock against modification of the current MooseStatus object
  *
  * You usually would do this in order to get an attribute of an status object.
  * If libmoosecat would lock it on every get there might happen things like:
@@ -426,10 +427,10 @@ bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool 
  *
  *  Therefore you lock the song explicitly and unlock it again when you're done.
  *
- *  struct mpd_status * status = moose_lock_status(client);
+ *  MooseStatus * status = moose_lock_status(client);
  *  if(status != NULL) {
- *      mpd_status_get_song_id(status);  // 70
- *      mpd_status_get_song_id(status);  // 70
+ *      moose_status_get_song_id(status);  // 70
+ *      moose_status_get_song_id(status);  // 70
  *  }
  *  moose_unlock_status(client);
  *
@@ -443,7 +444,7 @@ bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool 
  *
  * @return the locked mpd_status
  */
-struct mpd_status * moose_lock_status(MooseClient * self);
+MooseStatus * moose_lock_status(MooseClient * self);
 
 
 /**

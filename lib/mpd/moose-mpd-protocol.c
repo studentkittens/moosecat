@@ -406,7 +406,7 @@ bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool 
 //    LOCKING STUFF   //
 ////////////////////////
 
-struct mpd_status * moose_lock_status(struct MooseClient * self) {
+MooseStatus * moose_lock_status(struct MooseClient * self) {
     g_rec_mutex_lock(&self->_update_data->mtx_status);
     return self->_update_data->status;
 }

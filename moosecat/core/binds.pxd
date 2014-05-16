@@ -51,6 +51,43 @@ cdef extern from "../../lib/mpd/moose-song.h":
     unsigned moose_song_get_prio(MooseSong *)
     void moose_song_set_prio(MooseSong *, unsigned)
 
+cdef extern from "../../lib/mpd/moose-status.h":
+    ctypedef struct MooseStatus:
+        pass
+
+    # Wrapped as class variables
+    ctypedef enum MooseState:
+        MOOSE_STATE_UNKNOWN
+        MOOSE_STATE_STOP
+        MOOSE_STATE_PLAY
+        MOOSE_STATE_PAUSE
+
+    int moose_status_get_volume(MooseStatus *)
+    bool moose_status_get_repeat(MooseStatus *)
+    bool moose_status_get_random(MooseStatus *)
+    bool moose_status_get_single(MooseStatus *)
+    bool moose_status_get_consume(MooseStatus *)
+    unsigned moose_status_get_queue_length(MooseStatus *)
+    unsigned moose_status_get_queue_version(MooseStatus *)
+    MooseState moose_status_get_state(MooseStatus *)
+    unsigned moose_status_get_crossfade(MooseStatus *)
+    float moose_status_get_mixrampdb(MooseStatus *)
+    float moose_status_get_mixrampdelay(MooseStatus *)
+    int moose_status_get_song_pos(MooseStatus *)
+    int moose_status_get_song_id(MooseStatus *)
+    int moose_status_get_next_song_pos(MooseStatus *)
+    int moose_status_get_next_song_id(MooseStatus *)
+    unsigned moose_status_get_elapsed_time(MooseStatus *)
+    unsigned moose_status_get_elapsed_ms(MooseStatus *)
+    unsigned moose_status_get_total_time(MooseStatus *)
+    unsigned moose_status_get_kbit_rate(MooseStatus *)
+    unsigned moose_status_get_update_id(MooseStatus *)
+    char * moose_status_get_error(MooseStatus *)
+    unsigned moose_status_get_audio_sample_rate(MooseStatus *)
+    int moose_status_get_audio_bits(MooseStatus *)
+    int moose_status_get_audio_channels(MooseStatus *)
+    void moose_status_free(MooseStatus * status)
+
 
 cdef extern from "../../lib/mpd/moose-mpd-client.h":
     ################
@@ -105,13 +142,6 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
         MPD_IDLE_MESSAGE
         MPD_IDLE_SEEK = MPD_IDLE_MESSAGE << 1
 
-    # Wrapped as class variables
-    cdef enum mpd_state:
-        MPD_STATE_UNKNOWN
-        MPD_STATE_STOP
-        MPD_STATE_PLAY
-        MPD_STATE_PAUSE
-
     cdef enum mpd_error:
         MPD_ERROR_SUCCESS
         MPD_ERROR_OOM
@@ -138,37 +168,6 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
         MPD_IDLE_SUBSCRIPTION
         MPD_IDLE_MESSAGE
 
-    ######################
-    #  Status Functions  #
-    ######################
-
-    int mpd_status_get_volume(mpd_status *)
-    bool mpd_status_get_repeat(mpd_status *)
-    bool mpd_status_get_random(mpd_status *)
-    bool mpd_status_get_single(mpd_status *)
-    bool mpd_status_get_consume(mpd_status *)
-    unsigned mpd_status_get_queue_length(mpd_status *)
-    unsigned mpd_status_get_queue_version(mpd_status *)
-    mpd_state mpd_status_get_state(mpd_status *)
-    unsigned mpd_status_get_crossfade(mpd_status *)
-    float mpd_status_get_mixrampdb(mpd_status *)
-    float mpd_status_get_mixrampdelay(mpd_status *)
-    int mpd_status_get_song_pos(mpd_status *)
-    int mpd_status_get_song_id(mpd_status *)
-    int mpd_status_get_next_song_pos(mpd_status *)
-    int mpd_status_get_next_song_id(mpd_status *)
-    unsigned mpd_status_get_elapsed_time(mpd_status *)
-    unsigned mpd_status_get_elapsed_ms(mpd_status *)
-    unsigned mpd_status_get_total_time(mpd_status *)
-    unsigned mpd_status_get_kbit_rate(mpd_status *)
-    mpd_audio_format * mpd_status_get_audio_format(mpd_status *)
-    unsigned mpd_status_get_update_id(mpd_status *)
-    char * mpd_status_get_error(mpd_status *)
-
-    # Useful for testing
-    mpd_status * mpd_status_begin()
-    void mpd_status_feed(mpd_status *status, mpd_pair *pair)
-    void mpd_status_free(mpd_status * status)
 
     ##########################
     #  Statistics Functions  #
@@ -271,7 +270,7 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     bool moose_outputs_set_state(MooseClient *, const char *, bool)
 
     # Locking:
-    mpd_status * moose_lock_status(MooseClient *)
+    MooseStatus * moose_lock_status(MooseClient *)
     mpd_stats * moose_lock_statistics(MooseClient *)
     MooseSong * moose_lock_current_song(MooseClient *)
     const char * moose_get_replay_gain_mode(MooseClient *)

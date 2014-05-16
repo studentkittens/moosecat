@@ -38,18 +38,11 @@ static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
 
             MooseSong * song = moose_song_new_from_struct(
                 (struct mpd_song *)mpd_entity_get_song(ent)
-                );
+            );
 
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);
-
-            /* Not sure if this is a nice way,
-             * but for now it works. There might be a proper way:
-             * duplicate the song with moose_song_dup, and use mpd_entity_free,
-             * but that adds extra memory usage, and costs about 0.2 seconds.
-             * on my setup here - I think this will work fine.
-             * */
-            g_free(ent);
+            mpd_entity_free(ent);
 
             break;
         }
@@ -315,9 +308,9 @@ void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
 
     if (store->force_update_plchanges == false) {
         size_t current_pl_version = -1;
-        struct mpd_status * status = moose_lock_status(store->client);
+        MooseStatus * status = moose_lock_status(store->client);
         if (status != NULL) {
-            current_pl_version = mpd_status_get_queue_version(status);
+            current_pl_version = moose_status_get_queue_version(status);
         } else {
             current_pl_version = last_pl_version;
         }
