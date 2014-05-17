@@ -60,137 +60,147 @@ static void moose_update_data_push_full(MooseUpdateData * data, enum mpd_idle ev
 
 static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idle events)
 {
-    if (self != NULL && events != 0 && moose_is_connected(self)) {
-        struct mpd_connection * conn = moose_get(self);
-        MooseUpdateData * data = self->_update_data;
+    if (self == NULL || events == 0 || moose_is_connected(self) == false) {
+        return;
+    }
 
-        if (conn != NULL) {
-            const bool update_status = (events & on_status_update);
-            const bool update_stats = (events & on_stats_update);
-            const bool update_song = (events & on_song_update);
-            const bool update_rg = (events & on_rg_status_update);
+    struct mpd_connection * conn = moose_get(self);
+    MooseUpdateData * data = self->_update_data;
 
-            if (update_status || update_stats || update_song || update_rg) {
-                /* Send a block of commands, speeds the thing up by 2x */
-                mpd_command_list_begin(conn, true);
-                {
-                    /* Note: order of recv == order of send. */
-                    if (update_status)
-                        mpd_send_status(conn);
+    if (conn == NULL) {
+        moose_put(self);
+        return;
+    }
 
-                    if (update_stats)
-                        mpd_send_stats(conn);
+    const bool update_status = (events & on_status_update);
+    const bool update_stats = (events & on_stats_update);
+    const bool update_song = (events & on_song_update);
+    const bool update_rg = (events & on_rg_status_update);
 
-                    if (update_rg)
-                        mpd_send_command(conn, "replay_gain_status", NULL);
+    if (!(update_status || update_stats || update_song || update_rg)) {
+        return;
+    }
 
-                    if (update_song)
-                        mpd_send_current_song(conn);
-                }
-                mpd_command_list_end(conn);
-                moose_shelper_report_error(self, conn);
+    /* Send a block of commands, speeds the thing up by 2x */
+    mpd_command_list_begin(conn, true);
+    {
+        /* Note: order of recv == order of send. */
+        if (update_status)
+            mpd_send_status(conn);
 
-                /* Try to receive status */
-                if (update_status) {
-                    struct mpd_status *tmp_status_struct;
-                    tmp_status_struct = mpd_recv_status(conn);
+        if (update_stats)
+            mpd_send_stats(conn);
 
-                    if (data->status_timer.last_update != NULL) {
-                        /* Reset the status timer to 0 */
-                        g_timer_start(data->status_timer.last_update);
-                    }
+        if (update_rg)
+            mpd_send_command(conn, "replay_gain_status", NULL);
 
-                    /* Be error tolerant, and keep at least the last status */
-                    if (tmp_status_struct) {
-                        moose_lock_status(self);
+        if (update_song)
+            mpd_send_current_song(conn);
+    }
+    mpd_command_list_end(conn);
+    moose_shelper_report_error(self, conn);
 
-                        if (data->status != NULL) {
-                            data->last_song_data.id = moose_status_get_song_id(data->status);
-                            data->last_song_data.state = moose_status_get_state(data->status);
-                        } else {
-                            data->last_song_data.id = -1;
-                            data->last_song_data.state = MOOSE_STATE_UNKNOWN;
-                        }
+    /* Try to receive status */
+    if (update_status) {
+        struct mpd_status *tmp_status_struct;
+        tmp_status_struct = mpd_recv_status(conn);
 
-                        free_if_not_null(data->status, moose_status_free);
-                        data->status = moose_status_new_from_struct(tmp_status_struct);
-                        mpd_status_free(tmp_status_struct);
-                        moose_unlock_status(self);
-                    }
+        if (data->status_timer.last_update != NULL) {
+            /* Reset the status timer to 0 */
+            g_timer_start(data->status_timer.last_update);
+        }
 
-                    mpd_response_next(conn);
-                    moose_shelper_report_error(self, conn);
-                }
+        /* Be error tolerant, and keep at least the last status */
+        if (tmp_status_struct) {
+            moose_lock_status(self);
 
-                /* Try to receive statistics as last */
-                if (update_stats) {
-                    struct mpd_stats * tmp_stats;
-                    tmp_stats = mpd_recv_stats(conn);
-
-                    if (tmp_stats) {
-                        moose_lock_statistics(self);
-                        free_if_not_null(data->statistics, mpd_stats_free);
-                        data->statistics = tmp_stats;
-                        moose_unlock_statistics(self);
-                    }
-
-                    mpd_response_next(conn);
-                    moose_shelper_report_error(self, conn);
-                }
-
-                /* Read the current replay gain status */
-                if (update_rg) {
-                    free_if_not_null(data->replay_gain_status, g_free);
-                    data->replay_gain_status = NULL;
-                    struct mpd_pair * mode = mpd_recv_pair_named(conn, "replay_gain_mode");
-
-                    if (mode != NULL) {
-                        moose_lock_status(self);
-                        data->replay_gain_status = g_strdup(mode->value);
-                        moose_unlock_status(self);
-
-                        mpd_return_pair(conn, mode);
-                    }
-
-                    mpd_response_next(conn);
-                    moose_shelper_report_error(self, conn);
-                }
-
-                /* Try to receive the current song */
-                if (update_song) {
-                    struct mpd_song * new_song_struct = mpd_recv_song(conn);
-                    MooseSong * new_song = moose_song_new_from_struct(new_song_struct);
-                    if (new_song_struct != NULL) {
-                        mpd_song_free(new_song_struct);
-                    }
-
-                    moose_lock_current_song(self);
-                    free_if_not_null(data->current_song, moose_song_free);
-                    data->current_song = new_song;
-
-                    /* We need to call recv() one more time
-                     * so we end the songlist,
-                     * it should only return  NULL
-                     * */
-                    if (data->current_song != NULL) {
-                        struct mpd_song * empty = mpd_recv_song(conn);
-                        g_assert(empty == NULL);
-                    }
-
-                    moose_unlock_current_song(self);
-                    moose_shelper_report_error(self, conn);
-                }
-
-                /* Finish repsonse */
-                if (update_song || update_stats || update_status || update_rg) {
-                    mpd_response_finish(conn);
-                    moose_shelper_report_error(self, conn);
-                }
+            if (data->status != NULL) {
+                data->last_song_data.id = moose_status_get_song_id(data->status);
+                data->last_song_data.state = moose_status_get_state(data->status);
+            } else {
+                data->last_song_data.id = -1;
+                data->last_song_data.state = MOOSE_STATE_UNKNOWN;
             }
 
+            free_if_not_null(data->status, moose_status_free);
+            data->status = moose_status_new_from_struct(tmp_status_struct);
+            mpd_status_free(tmp_status_struct);
+            moose_unlock_status(self);
         }
-        moose_put(self);
+
+        mpd_response_next(conn);
+        moose_shelper_report_error(self, conn);
     }
+
+    /* Try to receive statistics as last */
+    if (update_stats) {
+        struct mpd_stats * tmp_stats_struct;
+        tmp_stats_struct = mpd_recv_stats(conn);
+
+        if (tmp_stats_struct) {
+            moose_lock_statistics(self);
+            free_if_not_null(data->statistics, mpd_stats_free);
+            data->statistics = tmp_stats_struct;
+
+            MooseStatus * status = moose_lock_status(self);
+            moose_status_update_stats(status, tmp_stats_struct);
+            moose_unlock_status(self);
+
+            moose_unlock_statistics(self);
+        }
+
+        mpd_response_next(conn);
+        moose_shelper_report_error(self, conn);
+    }
+
+    /* Read the current replay gain status */
+    if (update_rg) {
+        struct mpd_pair * mode = mpd_recv_pair_named(conn, "replay_gain_mode");
+        if (mode != NULL) {
+            MooseStatus *status = moose_lock_status(self);
+            if(status != NULL) {
+                moose_status_set_replay_gain_mode(status, mode->value);
+            }
+            moose_unlock_status(self);
+            mpd_return_pair(conn, mode);
+        }
+
+        mpd_response_next(conn);
+        moose_shelper_report_error(self, conn);
+    }
+
+    /* Try to receive the current song */
+    if (update_song) {
+        struct mpd_song * new_song_struct = mpd_recv_song(conn);
+        MooseSong * new_song = moose_song_new_from_struct(new_song_struct);
+        if (new_song_struct != NULL) {
+            mpd_song_free(new_song_struct);
+        }
+
+        moose_lock_current_song(self);
+        free_if_not_null(data->current_song, moose_song_free);
+        data->current_song = new_song;
+
+        /* We need to call recv() one more time
+            * so we end the songlist,
+            * it should only return  NULL
+            * */
+        if (data->current_song != NULL) {
+            struct mpd_song * empty = mpd_recv_song(conn);
+            g_assert(empty == NULL);
+        }
+
+        moose_unlock_current_song(self);
+        moose_shelper_report_error(self, conn);
+    }
+
+    /* Finish repsonse */
+    if (update_song || update_stats || update_status || update_rg) {
+        mpd_response_finish(conn);
+        moose_shelper_report_error(self, conn);
+    }
+    
+    moose_put(self);
 }
 
 ////////////////////////
@@ -449,13 +459,6 @@ void moose_update_reset(MooseUpdateData * data)
             moose_status_free(data->status);
         }
         data->status = NULL;
-
-        /* Replay gain status is handled as part of status */
-        if (data->replay_gain_status != NULL) {
-            g_free((char *)data->replay_gain_status);
-        }
-        data->replay_gain_status = NULL;
-
     }
     moose_unlock_status(data->client);
 

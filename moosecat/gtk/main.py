@@ -160,7 +160,7 @@ class MoosecatApplication(Gtk.Application):
         g.register('gtk_app', self)
 
         # Bring up the core!
-        boot_base(verbosity=logging.DEBUG, port=6600, host='localhost')
+        boot_base(verbosity=logging.DEBUG, port=6666, host='localhost')
         boot_metadata()
         boot_store()
 

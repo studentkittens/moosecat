@@ -86,6 +86,7 @@ cdef extern from "../../lib/mpd/moose-status.h":
     unsigned moose_status_get_audio_sample_rate(MooseStatus *)
     int moose_status_get_audio_bits(MooseStatus *)
     int moose_status_get_audio_channels(MooseStatus *)
+    char * moose_status_get_replay_gain_mode(MooseStatus *)
     void moose_status_free(MooseStatus * status)
 
 
@@ -273,7 +274,6 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     MooseStatus * moose_lock_status(MooseClient *)
     mpd_stats * moose_lock_statistics(MooseClient *)
     MooseSong * moose_lock_current_song(MooseClient *)
-    const char * moose_get_replay_gain_mode(MooseClient *)
     void moose_unlock_status(MooseClient *)
     void moose_unlock_statistics(MooseClient *)
     void moose_unlock_current_song(MooseClient *)

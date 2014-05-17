@@ -413,13 +413,6 @@ MooseStatus * moose_lock_status(struct MooseClient * self) {
 
 ////////////////////////
 
-const char * moose_get_replay_gain_mode(MooseClient * self)
-{
-    return self->_update_data->replay_gain_status;
-}
-
-////////////////////////
-
 void moose_unlock_status(struct MooseClient * self)
 {
     g_rec_mutex_unlock(&self->_update_data->mtx_status);

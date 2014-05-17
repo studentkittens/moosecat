@@ -15,6 +15,9 @@
 #include <glib-object.h>
 #include <mpd/client.h>
 
+#include "moose-song.h"
+
+
 G_BEGIN_DECLS
 
 typedef enum _MooseState {
@@ -205,6 +208,20 @@ uint8_t moose_status_get_audio_bits(const MooseStatus *self);
 
 uint8_t moose_status_get_audio_channels(const MooseStatus *self);
 
+
+const MooseSong * moose_status_get_current_song(const MooseStatus * self);
+
+unsigned moose_status_stats_get_number_of_artists(const MooseStatus *self);
+unsigned moose_status_stats_get_number_of_albums(const MooseStatus *self);
+unsigned moose_status_stats_get_number_of_songs(const MooseStatus *self);
+unsigned long moose_status_stats_get_uptime(const MooseStatus *self);
+unsigned long moose_status_stats_get_db_update_time(const MooseStatus *self);
+unsigned long moose_status_stats_get_play_time(const MooseStatus *self);
+unsigned long moose_status_stats_get_db_play_time(const MooseStatus *self);
+void moose_status_update_stats(const MooseStatus *self, const struct mpd_stats *stats);
+
+const char * moose_status_get_replay_gain_mode(const MooseStatus * self);
+void moose_status_set_replay_gain_mode(const MooseStatus * self, const char *mode);
 
 G_END_DECLS
 

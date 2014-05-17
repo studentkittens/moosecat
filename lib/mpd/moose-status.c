@@ -98,6 +98,22 @@ typedef struct _MooseStatusPrivate {
 
 	/** error message */
 	const char *error;
+
+    const MooseSong * current_song;
+
+    struct {
+        unsigned number_of_artists;
+        unsigned number_of_albums;
+        unsigned number_of_songs;
+        unsigned long uptime;
+        unsigned long db_update_time;
+        unsigned long play_time;
+        unsigned long db_play_time;
+    } stats;
+
+
+    char replay_gain_mode[64];
+
 } MooseStatusPrivate;
 
 
@@ -400,4 +416,117 @@ MooseStatus * moose_status_new_from_struct(const struct mpd_status * status)
     MooseStatus * self = moose_status_new();
     moose_status_convert(self, status);
     return self;
+}
+
+/////////////////////////
+
+const MooseSong * moose_status_get_current_song(const MooseStatus * self)
+{
+    g_return_val_if_fail(self, NULL);
+    return self->priv->current_song;
+}
+
+/////////////////////////
+
+void moose_status_set_current_song(MooseStatus * self, const MooseSong *song)
+{
+    if(self != NULL) {
+        self->priv->current_song = song;
+    }
+}
+
+////////////// STATS /////////////////
+
+unsigned moose_status_stats_get_number_of_artists(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.number_of_artists;
+}
+
+/////////////////////////
+
+unsigned moose_status_stats_get_number_of_albums(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.number_of_albums;
+}
+
+/////////////////////////
+
+unsigned moose_status_stats_get_number_of_songs(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.number_of_songs;
+}
+
+/////////////////////////
+
+unsigned long moose_status_stats_get_uptime(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.uptime;
+}
+
+/////////////////////////
+
+unsigned long moose_status_stats_get_db_update_time(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.db_update_time;
+}
+
+/////////////////////////
+
+unsigned long moose_status_stats_get_play_time(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.play_time;
+}
+
+/////////////////////////
+
+unsigned long moose_status_stats_get_db_play_time(const MooseStatus *self)
+{
+    g_return_val_if_fail(self, 0);
+	return self->priv->stats.db_play_time;
+}
+
+/////////////////////////
+
+void moose_status_update_stats(const MooseStatus *self, const struct mpd_stats *stats)
+{
+    g_assert(self);
+    g_assert(stats);
+
+    self->priv->stats.number_of_artists  = mpd_stats_get_number_of_artists(stats);
+    self->priv->stats.number_of_albums = mpd_stats_get_number_of_albums(stats);
+    self->priv->stats.number_of_songs = mpd_stats_get_number_of_songs(stats);
+
+    self->priv->stats.uptime = mpd_stats_get_uptime(stats);
+    self->priv->stats.db_update_time = mpd_stats_get_db_update_time(stats);
+    self->priv->stats.play_time = mpd_stats_get_play_time(stats);
+    self->priv->stats.db_play_time = mpd_stats_get_db_play_time(stats);
+}
+
+///////////////// REPLAY GAIN /////////////////////
+
+const char * moose_status_get_replay_gain_mode(const MooseStatus * self)
+{
+    g_return_val_if_fail(self, NULL);
+    return self->priv->replay_gain_mode;
+}
+
+/////////////////////////
+
+void moose_status_set_replay_gain_mode(const MooseStatus * self, const char *mode)
+{
+    g_return_val_if_fail(self, NULL);
+
+    if(mode != NULL) {
+        strncpy(
+            self->priv->replay_gain_mode,
+            mode,
+            sizeof(self->priv->replay_gain_mode) - 1
+        );
+    }
 }

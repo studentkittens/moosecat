@@ -262,10 +262,6 @@ cdef class Status:
         def __get__(self):
             return c.moose_status_get_audio_channels(self._p())
 
-    ############################
-    #  Replay Gain Properties  #
-    ############################
-
     property replay_gain_mode:
         '''
         Return or Set the current replay_gain mode
@@ -273,7 +269,7 @@ cdef class Status:
         Possible values: ['off', 'album', 'track', 'auto']
         '''
         def __get__(self):
-            return stringify(<char *>c.moose_get_replay_gain_mode(self._c()))
+            return stringify(<char *>c.moose_status_get_replay_gain_mode(self._p()))
 
         def __set__(self, mode):
             if mode in ['off', 'album', 'track', 'auto']:

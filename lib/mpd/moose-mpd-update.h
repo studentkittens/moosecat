@@ -24,7 +24,6 @@ typedef struct MooseUpdateData {
     MooseSong * current_song;
     struct mpd_stats * statistics;
     MooseStatus *status;
-    const char * replay_gain_status;
 
     struct {
         int timeout_id;

@@ -438,25 +438,11 @@ bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool 
  *
  * This is the only way to get the status object.
  *
- * The status lock is also used for moose_get_replay_gain_status()
- *
  * @param self the client holding the object
  *
  * @return the locked mpd_status
  */
 MooseStatus * moose_lock_status(MooseClient * self);
-
-
-/**
- * @brief Get the current replay gain mode ("album", "track", "auto", "off")
- *
- * Before calling this you should call moose_lock_status()
- *
- * @param self the client to get the replay_gain_mode from .
- *
- * @return a const string. Do not free.
- */
-const char * moose_get_replay_gain_mode(MooseClient * self);
 
 /**
  * @brief The pendant to moose_lock_status()
