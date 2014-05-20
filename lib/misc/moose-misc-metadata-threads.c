@@ -60,7 +60,7 @@ MooseMetadataThreads * moose_mdthreads_new(
         max_threads,
         FALSE,
         &error
-    );
+        );
 
     /* Be nice and check for the error */
     if (error != NULL) {

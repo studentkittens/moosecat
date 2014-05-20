@@ -269,7 +269,7 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
 
     while (cmnder_get_run_pinger(self)) {
         cmnder_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
-                            PING_SLEEP_TIMEOUT, &self->run_pinger);
+                             PING_SLEEP_TIMEOUT, &self->run_pinger);
 
         if (cmnder_get_run_pinger(self) == false) {
             break;
@@ -291,7 +291,7 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
 
         if (cmnder_get_run_pinger(self)) {
             cmnder_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
-                                PING_SLEEP_TIMEOUT, &self->run_pinger);
+                                 PING_SLEEP_TIMEOUT, &self->run_pinger);
         }
     }
 

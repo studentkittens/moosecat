@@ -6,7 +6,6 @@
 #include "../mpd/moose-mpd-client.h"
 #include "../mpd/moose-mpd-signal-helper.h"
 #include "../mpd/moose-mpd-signal.h"
-#include "../mpd/moose-mpd-update.h"
 
 typedef struct {
     MooseStore * store;

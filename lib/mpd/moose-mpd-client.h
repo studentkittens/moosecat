@@ -14,7 +14,7 @@
 #define PROTOCOL_H
 
 typedef enum {
-    MOOSE_PM_IDLE = 0,
+    MOOSE_PM_IDLE = 1,
     MOOSE_PM_COMMAND
 } MoosePmType;
 
@@ -23,11 +23,6 @@ typedef enum {
  * Use (currently...) highest value * 2
  */
 #define MPD_IDLE_SEEK MPD_IDLE_MESSAGE << 1
-
-/* Prototype Update struct */
-struct MooseUpdateData;
-struct MooseOutputsData;
-
 
 /**
  * @brief Structure representing a connection handle,
@@ -102,9 +97,6 @@ typedef struct MooseClient {
     /* Signal functions are stored in here */
     MooseSignalList _signals;
 
-    /* Data Used by the Status/Song/Stats Update Module */
-    struct MooseUpdateData * _update_data;
-
     /* Job Dispatcher */
     struct MooseJobManager * jm;
 
@@ -118,6 +110,26 @@ typedef struct MooseClient {
     /* The thread moose_client_create() was called from */
     GThread * initial_thread;
 
+    GAsyncQueue * event_queue;
+    GThread * update_thread;
+    MooseStatus * status;
+
+    struct {
+        int timeout_id;
+        int interval;
+        bool trigger_event;
+        GTimer * last_update;
+        GMutex mutex;
+    } status_timer;
+
+    /* ID of the last played song or -1
+     * Needed to distinguish between
+     * MPD_IDLE_SEEK and MPD_IDLE_PLAYER.
+     * */
+    struct {
+        long id;
+        enum mpd_state state;
+    } last_song_data;
 } MooseClient;
 
 ///////////////////
@@ -371,11 +383,11 @@ void moose_client_status_timer_unregister(
 bool moose_client_status_timer_is_active(MooseClient * self);
 
 /**
- * @brief 
+ * @brief
  *
  * @param self
  *
- * @return 
+ * @return
  */
 MooseStatus * moose_client_ref_status(MooseClient * self);
 
@@ -455,8 +467,6 @@ void moose_client_wait(MooseClient * self);
  * @param self the client to operate on
  */
 void moose_client_begin(MooseClient * self);
-
-
 
 /**
  * @brief Commit all previously holdback commands.

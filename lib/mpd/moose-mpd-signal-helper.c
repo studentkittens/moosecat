@@ -1,6 +1,5 @@
 #include "moose-mpd-client.h"
 #include "moose-mpd-signal-helper.h"
-#include "moose-mpd-update.h"
 
 #include <glib/gprintf.h>
 #include <string.h>
@@ -158,9 +157,9 @@ void moose_shelper_report_connectivity(
 
     /* Dispatch *after* host being set */
     moose_client_signal_dispatch(self, "connectivity",
-                          self, server_changed,
-                          moose_client_is_connected(self)
-                          );
+                                 self, server_changed,
+                                 moose_client_is_connected(self)
+                                 );
 }
 
 ///////////////////////////////

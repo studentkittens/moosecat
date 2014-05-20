@@ -3,7 +3,6 @@
 #include "moose-store-query-parser.h"
 
 #include "../mpd/moose-mpd-signal-helper.h"
-#include "../mpd/moose-mpd-update.h"
 #include "../mpd/moose-song-private.h"
 
 /* strlen() */

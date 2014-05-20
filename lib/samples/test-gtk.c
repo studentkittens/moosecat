@@ -144,7 +144,7 @@ static EntryTag * setup_client(void)
         }
 
         moose_client_signal_add_masked(client, "client-event",
-                                on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
+                                       on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
     }
 
     g_print("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",
