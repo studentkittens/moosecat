@@ -35,11 +35,6 @@ typedef struct {
      */
     GAsyncQueue * dispatch_queue;
 
-    /* ID of a GAsyncQueueWatch that transfers signals from any
-     * thread to the initial mainthread
-     */
-    guint signal_watch_id;
-
     /* Protect signal_add/rm/length/dispatch
      * from accessing it simultaneously from serveral threads
      */

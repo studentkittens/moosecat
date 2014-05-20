@@ -28,9 +28,6 @@ typedef struct _MooseMetadataThreads {
     /* Queue to pass back the results to the mainloop */
     GAsyncQueue * queue;
 
-    /* ID of the GAsyncQueueWatch */
-    gint watch;
-
     /* Callback called when the thread is ready
      * Call your blockings calls here.
      * */

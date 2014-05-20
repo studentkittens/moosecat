@@ -1,6 +1,5 @@
 #include "moose-mpd-cmnd-core.h"
 #include "moose-mpd-common.h"
-#include "../../misc/moose-misc-gasyncqueue-watch.h"
 #include "../moose-mpd-protocol.h"
 #include "../moose-mpd-signal-helper.h"
 

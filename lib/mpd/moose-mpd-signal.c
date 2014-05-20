@@ -1,9 +1,7 @@
 #include "moose-mpd-signal.h"
 #include "moose-mpd-protocol.h"
 
-#include "../misc/moose-misc-gasyncqueue-watch.h"
-
-// memset
+/* memset() */
 #include <string.h>
 
 ///////////////////////////////
@@ -163,14 +161,13 @@ MooseDispatchTag * moose_priv_signal_list_unpack_valist(const char * signal_name
 
 ///////////////////////////////
 
-static gboolean moose_priv_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer user_data)
+static gboolean moose_priv_signal_list_dispatch_cb(gpointer user_data)
 {
     MooseSignalList * list = user_data;
-
     MooseDispatchTag * tag = NULL;
     MooseDispatchTag * client_event_buffer = NULL;
 
-    while ((tag = g_async_queue_try_pop(queue))) {
+    while ((tag = g_async_queue_try_pop(list->dispatch_queue))) {
         /* Merge all clients event to a Single Bitmask.
          * This prevents unnecessart signal emission
          * causing all the client stuff to update.
@@ -198,7 +195,7 @@ static gboolean moose_priv_signal_list_dispatch_cb(GAsyncQueue * queue, gpointer
         g_slice_free(MooseDispatchTag, client_event_buffer);
     }
 
-    return TRUE;
+    return FALSE;
 }
 
 ///////////////////////////////
@@ -214,13 +211,6 @@ void  moose_priv_signal_list_init(MooseSignalList * list)
 
     g_rec_mutex_init(&list->api_mtx);
     list->dispatch_queue = g_async_queue_new();
-    list->signal_watch_id = moose_async_queue_watch_new(
-        list->dispatch_queue,           /* Queue to watch                             */
-        -1,                             /* Let GAsyncQueueWatch determine the timeout */
-        moose_priv_signal_list_dispatch_cb,     /* Callback to be called                      */
-        list,                           /* User data                                  */
-        NULL                            /* Default MainLoop Context                   */
-        );
 }
 
 ///////////////////////////////
@@ -333,6 +323,7 @@ void moose_priv_signal_report_event_v(MooseSignalList * list, const char * signa
          * Sliding the Volume Slider for example causes much less traffic this way.
          */
         g_async_queue_push(list->dispatch_queue, data_tag);
+        g_idle_add(moose_priv_signal_list_dispatch_cb, list);
     }
     g_rec_mutex_unlock(&list->api_mtx);
 }

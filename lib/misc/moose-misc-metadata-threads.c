@@ -1,8 +1,4 @@
-/* Own header */
 #include "moose-misc-metadata-threads.h"
-
-/* moose_async_queue_watch_new */
-#include "../misc/moose-misc-gasyncqueue-watch.h"
 
 ////////////////////////
 // INTERNAL CALLBACKS //
@@ -21,20 +17,19 @@ static void moose_mdthreads_dispatch(gpointer data, gpointer user_data)
 
 ///////////////////////
 
-static gboolean moose_mdthreads_mainloop_callback(GAsyncQueue * queue, gpointer user_data)
+static gboolean moose_mdthreads_mainloop_callback(gpointer user_data)
 {
-    g_assert(queue);
     g_assert(user_data);
 
-    void * result = NULL;
+    gpointer result = NULL;
     MooseMetadataThreads * self = user_data;
 
     /* It's possible that there happended more events */
-    while ((result = g_async_queue_try_pop(queue)) != NULL) {
+    while ((result = g_async_queue_try_pop(self->queue)) != NULL) {
         self->deliver_callback(self, result, self->user_data);
     }
 
-    return TRUE;
+    return FALSE;
 }
 
 ///////////////////////
@@ -65,16 +60,7 @@ MooseMetadataThreads * moose_mdthreads_new(
         max_threads,
         FALSE,
         &error
-        );
-
-    /* Watch for the Queue, returns an ID */
-    self->watch = moose_async_queue_watch_new(
-        self->queue,
-        100,
-        moose_mdthreads_mainloop_callback,
-        self,
-        NULL
-        );
+    );
 
     /* Be nice and check for the error */
     if (error != NULL) {
@@ -95,7 +81,7 @@ void moose_mdthreads_push(MooseMetadataThreads * self, void * data)
     g_assert(self);
 
     /* Check if not destroyed yet */
-    if (self->watch != -1) {
+    if (self->pool != NULL) {
         g_thread_pool_push(self->pool, data, NULL);
     }
 
@@ -107,6 +93,7 @@ void moose_mdthreads_forward(MooseMetadataThreads * self, void * result)
 {
     if (result != NULL) {
         g_async_queue_push(self->queue, result);
+        g_idle_add(moose_mdthreads_mainloop_callback, self);
     }
 
 }
@@ -117,12 +104,9 @@ void moose_mdthreads_free(MooseMetadataThreads * self)
 {
     g_assert(self);
 
-    /* Make sure no callbacks are called anymore */
-    g_source_remove(self->watch);
-    self->watch = -1;
-
     /* Stop the ThreadPool */
     g_thread_pool_free(self->pool, TRUE, FALSE);
+    self->pool = NULL;
 
     /* Get rid of the Queue */
     g_async_queue_unref(self->queue);
