@@ -98,7 +98,7 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
     MooseClient * self = store->client;
     int progress_counter = 0;
     size_t db_version = 0;
-    MooseStatus * status = moose_ref_status(store->client);
+    MooseStatus * status = moose_client_ref_status(store->client);
 
     int number_of_songs = moose_status_stats_get_number_of_songs(status);
 
@@ -297,7 +297,7 @@ void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
 
     if (store->force_update_plchanges == false) {
         size_t current_pl_version = -1;
-        MooseStatus * status = moose_ref_status(store->client);
+        MooseStatus * status = moose_client_ref_status(store->client);
         if (status != NULL) {
             current_pl_version = moose_status_get_queue_version(status);
         } else {

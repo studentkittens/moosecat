@@ -1,5 +1,5 @@
 #include "moose-mpd-update.h"
-#include "moose-mpd-protocol.h"
+#include "moose-mpd-client.h"
 #include "moose-mpd-signal-helper.h"
 #include "moose-status-private.h"
 
@@ -24,7 +24,7 @@ const enum mpd_idle on_rg_status_update = (0 | MPD_IDLE_OPTIONS);
 /* This will be sended (as Integer)
  * to the Queue to break out of the poll loop
  */
-#define THREAD_TERMINATOR (MPD_IDLE_MESSAGE)
+#define THREAD_TERMINATOR (MPD_IDLE_STICKER)
 
 /* Little hack:
  *
@@ -70,8 +70,6 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
         return;
     }
 
-    g_printerr("UPDATE CONTEXT\n");
-
     const bool update_status = (events & on_status_update);
     const bool update_stats = (events & on_stats_update);
     const bool update_song = (events & on_song_update);
@@ -111,7 +109,7 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
         }
 
         if (tmp_status_struct) {
-            MooseStatus * status = moose_ref_status(self);
+            MooseStatus * status = moose_client_ref_status(self);
 
             if (data->status != NULL) {
                 data->last_song_data.id = moose_status_get_song_id(data->status);
@@ -137,7 +135,7 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
         tmp_stats_struct = mpd_recv_stats(conn);
 
         if (tmp_stats_struct) {
-            MooseStatus * status = moose_ref_status(self);
+            MooseStatus * status = moose_client_ref_status(self);
             moose_status_update_stats(status, tmp_stats_struct);
             moose_status_unref(status);
             mpd_stats_free(tmp_stats_struct);
@@ -151,7 +149,7 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
     if (update_rg) {
         struct mpd_pair * mode = mpd_recv_pair_named(conn, "replay_gain_mode");
         if (mode != NULL) {
-            MooseStatus * status = moose_ref_status(self);
+            MooseStatus * status = moose_client_ref_status(self);
             if (status != NULL) {
                 moose_status_set_replay_gain_mode(status, mode->value);
             }
@@ -181,7 +179,7 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
             g_assert(empty == NULL);
         }
 
-        MooseStatus * status = moose_ref_status(self);
+        MooseStatus * status = moose_client_ref_status(self);
         moose_status_set_current_song(status, new_song);
         moose_status_unref(status);
 
@@ -214,7 +212,7 @@ void moose_priv_outputs_update(MooseUpdateData * data, MooseClient * client, enu
             moose_shelper_report_error(data->client, conn);
         } else {
             struct mpd_output * output = NULL;
-            MooseStatus * status = moose_ref_status(client);
+            MooseStatus * status = moose_client_ref_status(client);
             moose_status_outputs_clear(status);
 
             while ((output = mpd_recv_output(conn)) != NULL) {
@@ -239,7 +237,7 @@ static bool moose_update_is_a_seek_event(MooseUpdateData * data, enum mpd_idle e
         enum mpd_state curr_song_state = MOOSE_STATE_UNKNOWN;
 
         /* Get the current data */
-        MooseStatus * status = moose_ref_status(data->client);
+        MooseStatus * status = moose_client_ref_status(data->client);
         curr_song_id = moose_status_get_song_id(status);
         curr_song_state = moose_status_get_state(status);
         moose_status_unref(status);
@@ -307,7 +305,7 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
     }
 
     MooseState state = MOOSE_STATE_UNKNOWN;
-    MooseStatus * status = moose_ref_status(self);
+    MooseStatus * status = moose_client_ref_status(self);
     if (status != NULL) {
         state = moose_status_get_state(status);
     }

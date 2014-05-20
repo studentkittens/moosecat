@@ -211,7 +211,7 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
 # ../../ is relative to the cython'd file.
 # The file is written to build/cython/moose.h
 # So it needs to be two levels up.
-cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
+cdef extern from "../../lib/mpd/moose-mpd-client.h":
 
     ctypedef enum MoosePmType:
         PM_IDLE 'MOOSE_PM_IDLE'
@@ -271,7 +271,7 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     bool moose_outputs_set_state(MooseClient *, const char *, bool)
 
     # Locking:
-    MooseStatus * moose_ref_status(MooseClient *)
+    MooseStatus * moose_client_ref_status(MooseClient *)
     mpd_stats * moose_lock_statistics(MooseClient *)
     MooseSong * moose_lock_current_song(MooseClient *)
     void moose_unlock_status(MooseClient *)

@@ -1,4 +1,4 @@
-#include "moose-mpd-protocol.h"
+#include "moose-mpd-client.h"
 #include "moose-mpd-signal-helper.h"
 #include "moose-mpd-update.h"
 

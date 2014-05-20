@@ -5,7 +5,7 @@
 #include "misc/moose-misc-external-logs.h"
 #include "misc/moose-misc-zeroconf.h"
 
-#include "mpd/moose-mpd-protocol.h"
+#include "mpd/moose-mpd-client.h"
 #include "mpd/moose-mpd-client.h"
 
 #include "store/moose-store.h"

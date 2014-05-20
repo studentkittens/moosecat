@@ -283,7 +283,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     /* check #4 */
     size_t cached_db_version = moose_stprv_get_db_version(self);
     size_t current_db_version = 0;
-    MooseStatus * status = moose_ref_status(self->client);
+    MooseStatus * status = moose_client_ref_status(self->client);
 
     current_db_version = moose_status_stats_get_db_update_time(status);
     moose_status_unref(status);

@@ -5,7 +5,7 @@
 #include <mpd/client.h>
 #include <mpd/async.h>
 
-#include "../moose-mpd-protocol.h"
+#include "../moose-mpd-client.h"
 
 typedef enum mpd_async_event mpd_async_event;
 typedef struct mpd_connection mpd_connection;

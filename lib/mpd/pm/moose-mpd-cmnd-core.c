@@ -1,6 +1,6 @@
 #include "moose-mpd-cmnd-core.h"
 #include "moose-mpd-common.h"
-#include "../moose-mpd-protocol.h"
+#include "../moose-mpd-client.h"
 #include "../moose-mpd-signal-helper.h"
 
 #include <glib.h>

@@ -1,5 +1,5 @@
 #include "moose-mpd-signal.h"
-#include "moose-mpd-protocol.h"
+#include "moose-mpd-client.h"
 
 /* memset() */
 #include <string.h>

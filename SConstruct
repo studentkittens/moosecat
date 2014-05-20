@@ -334,4 +334,4 @@ def cythonPseudoBuilder(env, source):
     )
 
 env.AddMethod(cythonPseudoBuilder, 'Cython')
-env.Cython('moosecat/core/moose')
+# env.Cython('moosecat/core/moose')

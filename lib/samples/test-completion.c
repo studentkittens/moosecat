@@ -1,4 +1,4 @@
-#include "../mpd/moose-mpd-protocol.h"
+#include "../mpd/moose-mpd-client.h"
 #include "../store/moose-store.h"
 #include "../store/moose-store-completion.h"
 

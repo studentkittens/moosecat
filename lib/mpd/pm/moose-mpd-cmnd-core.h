@@ -1,4 +1,4 @@
-#include "../moose-mpd-protocol.h"
+#include "../moose-mpd-client.h"
 
 #ifndef CMND_CORE_H
 #define CMND_CORE_H

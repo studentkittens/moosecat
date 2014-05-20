@@ -32,7 +32,7 @@ There is a bit of hackery in here.
 
 Used headers:
 
-    lib/mpd/moose-mpd-protocol.h
+    lib/mpd/moose-mpd-client.h
     lib/mpd/moose-mpd-client.h
     lib/store/moose-store.h
 '''
@@ -414,7 +414,7 @@ cdef class Client:
     def lock_status(self):
         'Get the current :class:`.Status` object and takes care of locking.'
         try:
-            yield status_from_ptr(c.moose_ref_status(self._p()), self._p())
+            yield status_from_ptr(c.moose_client_ref_status(self._p()), self._p())
         finally:
             c.moose_unlock_status(self._p())
 

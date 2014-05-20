@@ -6,7 +6,7 @@ static void signal_event(
     void * user_data)
 {
     g_printerr("event = %d\n", event);
-    MooseStatus * status = moose_ref_status(client);
+    MooseStatus * status = moose_client_ref_status(client);
     g_printerr("State: %d\n", moose_status_get_state(status));
     moose_status_unref(status);
     g_printerr("Unlocked.\n");

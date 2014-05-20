@@ -239,7 +239,7 @@ void moose_stprv_insert_meta_attributes(MooseStore * self)
 
     char * insert_meta_sql = NULL;
     int queue_version = -1;
-    MooseStatus * status = moose_ref_status(self->client);
+    MooseStatus * status = moose_client_ref_status(self->client);
 
     if (status != NULL) {
         queue_version = moose_status_get_queue_version(status);
