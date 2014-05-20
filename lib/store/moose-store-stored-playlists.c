@@ -208,7 +208,7 @@ static void moose_stprv_spl_listplaylists(MooseStore * store)
 
     store->spl.stack = moose_playlist_new_full(10, (GDestroyNotify)mpd_playlist_free);
 
-    struct mpd_connection * conn = moose_get(self);
+    struct mpd_connection * conn = moose_client_get(self);
     if (conn != NULL) {
         struct mpd_playlist * playlist = NULL;
         mpd_send_list_playlists(conn);
@@ -225,7 +225,7 @@ static void moose_stprv_spl_listplaylists(MooseStore * store)
                                           "Cannot get connection to get listplaylists (not connected?)"
                                           );
     }
-    moose_put(self);
+    moose_client_put(self);
 }
 ///////////////////
 
@@ -463,7 +463,7 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
             sqlite3_free(sql);
 
             /* Acquire the connection (this locks the connection for others) */
-            struct mpd_connection * conn = moose_get(self);
+            struct mpd_connection * conn = moose_client_get(self);
             if (conn != NULL) {
 
                 if (mpd_send_list_playlist(conn, mpd_playlist_get_path(playlist))) {
@@ -491,7 +491,7 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
             }
 
             /* Release the connection mutex */
-            moose_put(self);
+            moose_client_put(self);
 
             if (sqlite3_finalize(insert_stmt) != SQLITE_OK)
                 REPORT_SQL_ERROR(store, "Cannot finalize INSERT stmt");

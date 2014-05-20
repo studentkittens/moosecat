@@ -178,9 +178,9 @@ cdef class Client:
         This is not connected yet.
         '''
         if protocol_machine == 'idle':
-            self._cl = c.moose_create(c.PM_IDLE)
+            self._cl = c.moose_client_create(c.PM_IDLE)
         else:
-            self._cl = c.moose_create(c.PM_COMMAND)
+            self._cl = c.moose_client_create(c.PM_COMMAND)
 
         self._store = NULL
         self._store_wrapper = None
@@ -193,7 +193,7 @@ cdef class Client:
         '''
         Disconnect the Client, and free the moose_p()ient structure.
         '''
-        c.moose_free(self._p())
+        c.moose_client_unref(self._p())
 
     def store_is_initialized(self):
         return not (self._store_wrapper is None)
@@ -219,7 +219,7 @@ cdef class Client:
             else:
                 b_host = b'localhost'
 
-            err = c.moose_connect(self._p(), NULL, b_host, port, timeout_sec)
+            err = c.moose_client_connect(self._p(), NULL, b_host, port, timeout_sec)
             if err == NULL:
                 return None
             else:
@@ -236,7 +236,7 @@ cdef class Client:
         Will trigger the connectivity signal.
         '''
         cdef char * err = NULL
-        err = c.moose_disconnect(self._p())
+        err = c.moose_client_disconnect(self._p())
         return (err == NULL)
 
     def sync(self, event_mask=0xFFFFFFFFF):
@@ -249,7 +249,7 @@ cdef class Client:
         :param event_mask: Bit OR'd combinations of the event you want to emulate
         '''
         cdef c.mpd_idle event = event_mask
-        c.moose_force_sync(self._p(), event)
+        c.moose_client_force_sync(self._p(), event)
 
     #############
     #  Signals  #
@@ -306,7 +306,7 @@ cdef class Client:
                 print('Warning: Unknown signal passed. This should not happen.')
 
             if c_func != NULL:
-                c.moose_signal_add_masked(
+                c.moose_client_signal_add_masked(
                         self._p(), b_name,
                         <void*> c_func,
                         <void*> data, mask
@@ -315,7 +315,7 @@ cdef class Client:
     def signal_rm(self, signal_name, func):
         'Remove a signal from the callable list'
         with self._valid_signal_name(signal_name) as b_name:
-            c.moose_signal_rm(self._p(), b_name, <void*> func)
+            c.moose_client_signal_rm(self._p(), b_name, <void*> func)
 
             # Remove the ref to the internally hold callback data,
             # so this can get garbage collected, properly counted.
@@ -324,7 +324,7 @@ cdef class Client:
     def signal_count(self, signal_name):
         'Return the number of registerd signals'
         with self._valid_signal_name(signal_name) as b_name:
-            return c.moose_signal_length(self._p(), b_name)
+            return c.moose_client_signal_length(self._p(), b_name)
 
     def signal_dispatch(self, signal_name, *args):
         'Dispatch a signal manually'
@@ -339,15 +339,15 @@ cdef class Client:
             # Check the signal-name, and dispatch it differently.
             if signal_name == 'client-event':
                 event = int(args[0])
-                c.moose_signal_dispatch(self._p(), b_name, self._p(), event)
+                c.moose_client_signal_dispatch(self._p(), b_name, self._p(), event)
             elif signal_name == 'connectivity':
                 server_changed = int(args[0])
                 was_connected = int(args[1])
-                c.moose_signal_dispatch(self._p(), b_name,self._p(), server_changed, was_connected)
+                c.moose_client_signal_dispatch(self._p(), b_name,self._p(), server_changed, was_connected)
             elif signal_name == 'logging':
                 error_msg = args[0]
                 log_level = LOG_LEVEL_MAP.get(args[1], c.MOOSE_LOG_INFO)
-                c.moose_signal_dispatch(self._p(), b_name, self._p(), error_msg, log_level)
+                c.moose_client_signal_dispatch(self._p(), b_name, self._p(), error_msg, log_level)
 
     def signal(self, signal_name, mask=None):
         'For use as a decorator over a function.'
@@ -369,11 +369,11 @@ cdef class Client:
         :param repeat_ms: Number of seconds to wait betwenn status updates.
         :param trigger_idle: If the idle-signal shall be called.
         '''
-        c.moose_status_timer_register(self._p(), repeat_ms, trigger_idle)
+        c.moose_client_status_timer_register(self._p(), repeat_ms, trigger_idle)
 
     def status_timer_shutdown(self):
         'Reverse a previous call to status_timer_activate()'
-        c.moose_status_timer_unregister(self._p())
+        c.moose_client_status_timer_unregister(self._p())
 
     ################
     #  Properties  #
@@ -382,28 +382,28 @@ cdef class Client:
     property status_timer_is_active:
         'Check if this Client currently is auto-querying status updates'
         def __get__(self):
-            return c.moose_status_timer_is_active(self._p())
+            return c.moose_client_status_timer_is_active(self._p())
 
     property is_connected:
         'Check if this Client is still connected  to the server'
         def __get__(self):
-            return c.moose_is_connected(self._p())
+            return c.moose_client_is_connected(self._p())
 
     property timeout:
         'Get the timeout in seconds which is set for this client'
         def __get__(self):
-            return c.moose_get_timeout(self._p())
+            return c.moose_client_get_timeout(self._p())
 
     property host:
         'Get the host this client is currently connected to'
         def __get__(self):
-            b_host = <char*>c.moose_get_host(self._p())
+            b_host = <char*>c.moose_client_get_host(self._p())
             return stringify(b_host)
 
     property port:
         'Get the port this client is currently connected to'
         def __get__(self):
-            return c.moose_get_port(self._p())
+            return c.moose_client_get_port(self._p())
 
     property signal_names:
         'A list of valid signal names. (May be used to verfiy.)'
@@ -789,7 +789,7 @@ cdef class Client:
 
         Will only block when connected.
         '''
-        c.moose_block_till_sync(self._p())
+        c.moose_client_block_till_sync(self._p())
 
     def raw_send(self, command, *args):
         '''

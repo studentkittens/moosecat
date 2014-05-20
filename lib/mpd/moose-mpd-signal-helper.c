@@ -22,7 +22,7 @@ static bool moose_shelper_report_error_impl(struct MooseClient * self, struct mp
 {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
-            moose_signal_dispatch(
+            moose_client_signal_dispatch(
                 self, "logging", self,
                 "Connection to MPD was closed (IsFatal=maybe?)",
                 MOOSE_LOG_WARNING,
@@ -107,7 +107,7 @@ void moose_shelper_report_error_printf(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        moose_signal_dispatch(self, "logging", self, full_string, MOOSE_LOG_ERROR, FALSE);
+        moose_client_signal_dispatch(self, "logging", self, full_string, MOOSE_LOG_ERROR, FALSE);
     }
 
     va_end(list_ptr);
@@ -125,7 +125,7 @@ void moose_shelper_report_progress(
     va_start(list_ptr, format);
 
     if (g_vasprintf(&full_string, format, list_ptr) != 0 && full_string) {
-        moose_signal_dispatch(self, "logging", self, full_string, MOOSE_LOG_INFO, TRUE);
+        moose_client_signal_dispatch(self, "logging", self, full_string, MOOSE_LOG_INFO, TRUE);
     }
 
     va_end(list_ptr);
@@ -157,9 +157,9 @@ void moose_shelper_report_connectivity(
 
 
     /* Dispatch *after* host being set */
-    moose_signal_dispatch(self, "connectivity",
+    moose_client_signal_dispatch(self, "connectivity",
                           self, server_changed,
-                          moose_is_connected(self)
+                          moose_client_is_connected(self)
                           );
 }
 
@@ -183,6 +183,6 @@ void moose_shelper_report_operation_finished(
 
     if (op < signal_to_name_table_size) {
         operation = signal_to_name_table[op];
-        moose_signal_dispatch(self, "logging", self, operation, MOOSE_LOG_INFO, FALSE);
+        moose_client_signal_dispatch(self, "logging", self, operation, MOOSE_LOG_INFO, FALSE);
     }
 }

@@ -115,7 +115,7 @@ typedef struct MooseClient {
         GList * commands;
     } command_list;
 
-    /* The thread moose_create() was called from */
+    /* The thread moose_client_create() was called from */
     GThread * initial_thread;
 
 } MooseClient;
@@ -137,9 +137,9 @@ typedef struct MooseClient {
  *
  * @param protocol_machine the name of the protocol machine
  *
- * @return a newly allocated MooseClient, free with moose_free()
+ * @return a newly allocated MooseClient, free with moose_client_unref()
  */
-MooseClient * moose_create(MoosePmType pm);
+MooseClient * moose_client_create(MoosePmType pm);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
@@ -158,7 +158,7 @@ MooseClient * moose_create(MoosePmType pm);
  *
  * @return NULL on success, or an error string describing the kind of error.
  */
-char * moose_connect(
+char * moose_client_connect(
     MooseClient * self,
     GMainContext * context,
     const char * host,
@@ -173,14 +173,14 @@ char * moose_connect(
  *
  * @return a working mpd_connection or NULL
  */
-struct mpd_connection * moose_get(MooseClient * self);
+struct mpd_connection * moose_client_get(MooseClient * self);
 
 /**
  * @brief Put conenction back to event listening
  *
  * @param self the connector to operate on
  */
-void moose_put(MooseClient * self);
+void moose_client_put(MooseClient * self);
 
 /**
  * @brief Checks if the connector is connected.
@@ -189,7 +189,7 @@ void moose_put(MooseClient * self);
  *
  * @return true when connected
  */
-bool moose_is_connected(MooseClient * self);
+bool moose_client_is_connected(MooseClient * self);
 
 /**
  * @brief Disconnect connection and free all.
@@ -198,7 +198,7 @@ bool moose_is_connected(MooseClient * self);
  *
  * @return a error string, or NULL if no error happened
  */
-char * moose_disconnect(MooseClient * self);
+char * moose_client_disconnect(MooseClient * self);
 
 /**
  * @brief Free all data associated with this connector.
@@ -207,7 +207,7 @@ char * moose_disconnect(MooseClient * self);
  *
  * @param self the connector to operate on
  */
-void moose_free(MooseClient * self);
+void moose_client_unref(MooseClient * self);
 
 ///////////////////////////////
 
@@ -231,14 +231,14 @@ void moose_free(MooseClient * self);
  * @param callback_func the function to call. Prototype depends on signal_name.
  * @param user_data optional user_data to pass to the function.
  */
-void moose_signal_add(
+void moose_client_signal_add(
     MooseClient * self,
     const char * signal_name,
     void * callback_func,
     void * user_data);
 
 /**
- * @brief Same as moose_signal_add, but only
+ * @brief Same as moose_client_signal_add, but only
  *
  * The mask param has only effect on the client-event.
  *
@@ -248,7 +248,7 @@ void moose_signal_add(
  * @param user_data
  * @param mask
  */
-void moose_signal_add_masked(
+void moose_client_signal_add_masked(
     MooseClient * self,
     const char * signal_name,
     void * callback_func,
@@ -262,7 +262,7 @@ void moose_signal_add_masked(
  * @param signal_name the signal name this function was registered on.
  * @param callback_addr the addr. of the registered function.
  */
-void moose_signal_rm(
+void moose_client_signal_rm(
     MooseClient * self,
     const char * signal_name,
     void * callback_addr);
@@ -274,7 +274,7 @@ void moose_signal_rm(
  * @param signal_name the name of the signal to dispatch.
  * @param ... variable args. See above.
  */
-void moose_signal_dispatch(
+void moose_client_signal_dispatch(
     MooseClient * self,
     const char * signal_name,
     ...);
@@ -289,7 +289,7 @@ void moose_signal_dispatch(
  *
  * @return 0 - inf
  */
-int moose_signal_length(
+int moose_client_signal_length(
     MooseClient * self,
     const char * signal_name);
 
@@ -302,7 +302,7 @@ int moose_signal_length(
  * @param self the client to operate on.
  * @param events an eventmask. Pass INT_MAX to update all.
  */
-void moose_force_sync(
+void moose_client_force_sync(
     MooseClient * self,
     enum mpd_idle events);
 
@@ -315,7 +315,7 @@ void moose_force_sync(
  *
  * @return the hostname, do not free or change it!
  */
-const char * moose_get_host(MooseClient * self);
+const char * moose_client_get_host(MooseClient * self);
 
 /**
  * @brief Get the Port being currently connected to.
@@ -324,7 +324,7 @@ const char * moose_get_host(MooseClient * self);
  *
  * @return the port or -1 on error.
  */
-unsigned moose_get_port(MooseClient * self);
+unsigned moose_client_get_port(MooseClient * self);
 
 /**
  * @brief Get the currently set timeout.
@@ -333,13 +333,13 @@ unsigned moose_get_port(MooseClient * self);
  *
  * @return the timeout in seconds, or -1 on error.
  */
-float moose_get_timeout(MooseClient * self);
+float moose_client_get_timeout(MooseClient * self);
 
 /**
  * @brief Activate a status timer
  *
  * This will cause moosecat to schedule status update every repeat_ms ms.
- * Call moose_status_timer_unregister to deactivate it.
+ * Call moose_client_status_timer_unregister to deactivate it.
  *
  * This is useful for kbit rate changes which will only be update when
  * an idle event requires it.
@@ -348,7 +348,7 @@ float moose_get_timeout(MooseClient * self);
  * @param repeat_ms repeat interval
  * @param trigger_event
  */
-void moose_status_timer_register(
+void moose_client_status_timer_register(
     MooseClient * self,
     int repeat_ms,
     bool trigger_event);
@@ -358,7 +358,7 @@ void moose_status_timer_register(
  *
  * @param self the client to operate on.
  */
-void moose_status_timer_unregister(
+void moose_client_status_timer_unregister(
     MooseClient * self);
 
 /**
@@ -368,7 +368,7 @@ void moose_status_timer_unregister(
  *
  * @return false on inactive status timer
  */
-bool moose_status_timer_is_active(MooseClient * self);
+bool moose_client_status_timer_is_active(MooseClient * self);
 
 MooseStatus * moose_ref_status(MooseClient * self);
 
@@ -379,8 +379,10 @@ MooseStatus * moose_ref_status(MooseClient * self);
  * This is useful for debugging purpose, not much for real applications.
  * Will only block if connected.
  *
+ * TODO: Deprectated, remove.
+ *
  * @param self client to wait upon on
  */
-void moose_block_till_sync(MooseClient * self);
+void moose_client_block_till_sync(MooseClient * self);
 
 #endif /* end of include guard: PROTOCOL_H */

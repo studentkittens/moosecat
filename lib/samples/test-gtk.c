@@ -122,10 +122,10 @@ static EntryTag * setup_client(void)
     EntryTag * rc = NULL;
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer * setup_timer = g_timer_new();
-    MooseClient * client = moose_create(MOOSE_PM_COMMAND);
-    moose_connect(client, NULL, "localhost", 6600, 2.0);
+    MooseClient * client = moose_client_create(MOOSE_PM_COMMAND);
+    moose_client_connect(client, NULL, "localhost", 6600, 2.0);
 
-    if (client && moose_is_connected(client)) {
+    if (client && moose_client_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
         MooseStoreSettings * settings = moose_store_settings_new();
@@ -143,7 +143,7 @@ static EntryTag * setup_client(void)
             rc->song_buf = moose_playlist_new_full(1000, NULL);
         }
 
-        moose_signal_add_masked(client, "client-event",
+        moose_client_signal_add_masked(client, "client-event",
                                 on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
     }
 

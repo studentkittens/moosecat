@@ -35,7 +35,7 @@ static void print_connectivity(
     G_GNUC_UNUSED void * user_data)
 {
     g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
-            server_changed, was_connected, moose_is_connected(self)
+            server_changed, was_connected, moose_client_is_connected(self)
             );
 }
 
@@ -64,12 +64,12 @@ static gboolean timeout_client_change(gpointer user_data)
 
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
 {
-    MooseClient * self = moose_create(MOOSE_PM_IDLE);
+    MooseClient * self = moose_client_create(MOOSE_PM_IDLE);
 
-    moose_connect(self, NULL, "localhost", 6600, 10.0);
-    moose_signal_add(self, "logging", print_logging, NULL);
-    moose_signal_add(self, "client-event", print_event, NULL);
-    moose_signal_add(self, "connectivity", print_connectivity, NULL);
+    moose_client_connect(self, NULL, "localhost", 6600, 10.0);
+    moose_client_signal_add(self, "logging", print_logging, NULL);
+    moose_client_signal_add(self, "client-event", print_event, NULL);
+    moose_client_signal_add(self, "connectivity", print_connectivity, NULL);
 
     MooseStoreSettings * settings = moose_store_settings_new();
     settings->use_memory_db = TRUE;
@@ -85,5 +85,5 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
 
     moose_store_close(db);
     moose_store_settings_destroy(settings);
-    moose_free(self);
+    moose_client_unref(self);
 }

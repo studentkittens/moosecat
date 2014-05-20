@@ -117,7 +117,7 @@ static void idler_report_error(
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        moose_signal_dispatch((MooseClient *)self, "logging", self, error_msg, MOOSE_LOG_ERROR, FALSE);
+        moose_client_signal_dispatch((MooseClient *)self, "logging", self, error_msg, MOOSE_LOG_ERROR, FALSE);
     }
     self->is_running_extern = FALSE;
 }
@@ -230,7 +230,7 @@ static void idler_dispatch_events(MooseIdleClient * self, enum mpd_idle events)
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        moose_force_sync((MooseClient *)self, events);
+        moose_client_force_sync((MooseClient *)self, events);
     }
     self->is_running_extern = FALSE;
     /* reenter idle-mode (we did not leave by calling idler_leave though!) */

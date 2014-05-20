@@ -58,15 +58,15 @@ static void moose_update_data_push_full(MooseUpdateData * data, enum mpd_idle ev
 
 static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idle events)
 {
-    if (self == NULL || events == 0 || moose_is_connected(self) == false) {
+    if (self == NULL || events == 0 || moose_client_is_connected(self) == false) {
         return;
     }
 
-    struct mpd_connection * conn = moose_get(self);
+    struct mpd_connection * conn = moose_client_get(self);
     MooseUpdateData * data = self->_update_data;
 
     if (conn == NULL) {
-        moose_put(self);
+        moose_client_put(self);
         return;
     }
 
@@ -194,7 +194,7 @@ static void moose_update_context_info_cb(struct MooseClient * self, enum mpd_idl
         moose_shelper_report_error(self, conn);
     }
 
-    moose_put(self);
+    moose_client_put(self);
 }
 
 ////////////////////////
@@ -207,7 +207,7 @@ void moose_priv_outputs_update(MooseUpdateData * data, MooseClient * client, enu
     if ((event & MPD_IDLE_OUTPUT) == 0)
         return /* because of no relevant event */;
 
-    struct mpd_connection * conn = moose_get(data->client);
+    struct mpd_connection * conn = moose_client_get(data->client);
 
     if (conn != NULL) {
         if (mpd_send_outputs(conn) == false) {
@@ -227,7 +227,7 @@ void moose_priv_outputs_update(MooseUpdateData * data, MooseClient * client, enu
             moose_shelper_report_error(data->client, conn);
         }
     }
-    moose_put(data->client);
+    moose_client_put(data->client);
 }
 
 ////////////////////////
@@ -283,16 +283,8 @@ static gpointer moose_update_thread(gpointer user_data)
             event_mask |= MPD_IDLE_SEEK;
         }
 
-        g_mutex_lock(&data->sync_mtx); {
-            data->sync_id += 1;
-            g_cond_broadcast(&data->sync_cond);
-        }
-        g_mutex_unlock(&data->sync_mtx);
-
-        g_printerr("TRigger it: %d\n", trigger_it);
-
         if (trigger_it) {
-            moose_signal_dispatch(data->client, "client-event", data->client, event_mask);
+            moose_client_signal_dispatch(data->client, "client-event", data->client, event_mask);
         }
     }
 
@@ -310,7 +302,7 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
     struct MooseClient * self = user_data;
     MooseUpdateData * data = self->_update_data;
 
-    if (moose_is_connected(self) == false) {
+    if (moose_client_is_connected(self) == false) {
         return false;
     }
 
@@ -413,9 +405,6 @@ MooseUpdateData * moose_update_data_new(struct MooseClient * self)
     data->event_queue = g_async_queue_new();
 
     g_mutex_init(&data->status_timer.mutex);
-    g_mutex_init(&data->sync_mtx);
-    g_cond_init(&data->sync_cond);
-    data->sync_id = 0;
 
     data->last_song_data.id = -1;
     data->last_song_data.state = MOOSE_STATE_UNKNOWN;
@@ -449,8 +438,6 @@ void moose_update_data_destroy(MooseUpdateData * data)
     data->event_queue = NULL;
     data->update_thread = NULL;
 
-    g_cond_clear(&data->sync_cond);
-    g_mutex_clear(&data->sync_mtx);
     g_mutex_clear(&data->status_timer.mutex);
 
     g_slice_free(MooseUpdateData, data);
@@ -471,17 +458,4 @@ void moose_update_reset(MooseUpdateData * data)
         moose_status_unref(data->status);
     }
     data->status = NULL;
-}
-
-////////////////////////
-
-void moose_update_block_till_sync(MooseUpdateData * data)
-{
-    g_mutex_lock(&data->sync_mtx); {
-        int old_update_id = data->sync_id;
-        while (data->sync_id == old_update_id) {
-            g_cond_wait(&data->sync_cond, &data->sync_mtx);
-        }
-    }
-    g_mutex_unlock(&data->sync_mtx);
 }

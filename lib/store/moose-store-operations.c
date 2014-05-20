@@ -161,7 +161,7 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
         &tag
         );
 
-    struct mpd_connection * conn = moose_get(store->client);
+    struct mpd_connection * conn = moose_client_get(store->client);
     if (conn != NULL) {
         struct mpd_entity * ent = NULL;
 
@@ -188,7 +188,7 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
             moose_shelper_report_error(store->client, conn);
         }
     }
-    moose_put(store->client);
+    moose_client_put(store->client);
 
     /* tell SQL thread kindly to die, but wait for him to bleed */
     g_async_queue_push(queue, queue);
@@ -331,7 +331,7 @@ void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
 
     /* Now do the actual hard work, send the actual plchanges command,
      * loop over the retrieved contents, and push them to the SQL Thread */
-    struct mpd_connection * conn = moose_get(store->client);
+    struct mpd_connection * conn = moose_client_get(store->client);
     if (conn != NULL) {
         g_timer_start(timer);
 
@@ -371,7 +371,7 @@ void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
             moose_shelper_report_error(store->client, conn);
         }
     }
-    moose_put(store->client);
+    moose_client_put(store->client);
 
     /* Killing the SQL thread softly. */
     g_async_queue_push(queue, queue);

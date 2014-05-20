@@ -11,8 +11,8 @@ int main(int argc, char * * argv)
         return -1;
     }
 
-    MooseClient * client = moose_create(MOOSE_PM_IDLE);
-    char * err = moose_connect(client, NULL, "localhost", 6600, 2);
+    MooseClient * client = moose_client_create(MOOSE_PM_IDLE);
+    char * err = moose_client_connect(client, NULL, "localhost", 6600, 2);
 
     if (err != NULL) {
         g_print("Err: %s\n", err);
@@ -20,7 +20,7 @@ int main(int argc, char * * argv)
         return EXIT_FAILURE;
     }
 
-    if (moose_is_connected(client) == FALSE) {
+    if (moose_client_is_connected(client) == FALSE) {
         g_print("Not connected.\n");
         return EXIT_FAILURE;
     }
@@ -52,8 +52,8 @@ int main(int argc, char * * argv)
     g_timer_destroy(pl_timer);
     moose_playlist_clear(songs);
 
-    moose_disconnect(client);
-    moose_free(client);
+    moose_client_disconnect(client);
+    moose_client_unref(client);
 
     return 0;
 }

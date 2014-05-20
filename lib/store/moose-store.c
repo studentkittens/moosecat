@@ -263,19 +263,19 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
 
     /* check #3 */
     unsigned cached_port = moose_stprv_get_mpd_port(self);
-    if (cached_port != moose_get_port(self->client)) {
+    if (cached_port != moose_client_get_port(self->client)) {
         moose_shelper_report_progress(self->client, true,
                                       "database: %s's port changed (old=%d, new=%d), creating new.",
-                                      db_path, cached_port, moose_get_port(self->client)
+                                      db_path, cached_port, moose_client_get_port(self->client)
                                       );
         goto close_handle;
     }
 
     cached_hostname = moose_stprv_get_mpd_host(self);
-    if (g_strcmp0(cached_hostname, moose_get_host(self->client)) != 0) {
+    if (g_strcmp0(cached_hostname, moose_client_get_host(self->client)) != 0) {
         moose_shelper_report_progress(self->client, true,
                                       "database: %s's host changed (old=%s, new=%s), creating new.",
-                                      db_path, cached_hostname, moose_get_host(self->client)
+                                      db_path, cached_hostname, moose_client_get_host(self->client)
                                       );
         goto close_handle;
     }
@@ -454,15 +454,15 @@ static void moose_store_connectivity_callback(
 {
     g_assert(self && client && self->client == client);
 
-    if (moose_is_connected(client)) {
+    if (moose_client_is_connected(client)) {
         if (server_changed) {
 
             moose_stprv_lock_attributes(self);
 
             moose_store_shutdown(self);
             g_free(self->mirrored_host);
-            self->mirrored_host = g_strdup(moose_get_host(client));
-            self->mirrored_port = moose_get_port(client);
+            self->mirrored_host = g_strdup(moose_client_get_host(client));
+            self->mirrored_port = moose_client_get_port(client);
             moose_store_buildup(self);
 
             //moose_store_rebuild(self);
@@ -669,8 +669,8 @@ MooseStore * moose_store_create(MooseClient * client, MooseStoreSettings * setti
     store->client = client;
 
     /* Remember the host/port */
-    store->mirrored_host = g_strdup(moose_get_host(client));
-    store->mirrored_port = moose_get_port(client);
+    store->mirrored_host = g_strdup(moose_client_get_host(client));
+    store->mirrored_port = moose_client_get_port(client);
 
     /* create the full path to the db */
     store->db_directory = g_strdup(store->settings->db_directory);
@@ -711,8 +711,8 @@ void moose_store_close(MooseStore * self)
     if (self == NULL)
         return;
 
-    moose_signal_rm(self->client, "client-event", moose_store_update_callback);
-    moose_signal_rm(self->client, "connectivity", moose_store_connectivity_callback);
+    moose_client_signal_rm(self->client, "client-event", moose_store_update_callback);
+    moose_client_signal_rm(self->client, "connectivity", moose_store_connectivity_callback);
 
     moose_stprv_lock_attributes(self);
 

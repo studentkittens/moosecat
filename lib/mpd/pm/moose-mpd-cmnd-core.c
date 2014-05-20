@@ -136,9 +136,9 @@ static gpointer cmnder_listener_thread(gpointer data)
 
     char * error_message = NULL;
     struct mpd_connection * idle_con = mpd_connect((MooseClient *)self,
-                                                   moose_get_host((MooseClient *)self),
-                                                   moose_get_port((MooseClient *)self),
-                                                   moose_get_timeout((MooseClient *)self),
+                                                   moose_client_get_host((MooseClient *)self),
+                                                   moose_client_get_port((MooseClient *)self),
+                                                   moose_client_get_timeout((MooseClient *)self),
                                                    &error_message
                                                    );
 
@@ -157,7 +157,7 @@ static gpointer cmnder_listener_thread(gpointer data)
                 }
 
                 if (cmnder_get_run_listener(self, g_thread_self())) {
-                    moose_force_sync((MooseClient *)self, events);
+                    moose_client_force_sync((MooseClient *)self, events);
                 }
             }
         }
@@ -256,7 +256,7 @@ void cmnder_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean *
  * (in the mainloop) the whole thing:
  *   a) would only work with the mainloop attached. (not to serious, but still)
  *   b) may interfer with other threads using the connection
- *   c) moose_get() may deadlock, if the connection hasn't been previously unlocked.
+ *   c) moose_client_get() may deadlock, if the connection hasn't been previously unlocked.
  *      (this might happen if an client operation invokes the mainloop)
  *
  *
@@ -275,8 +275,8 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
             break;
         }
 
-        if (moose_is_connected((MooseClient *)self)) {
-            mpd_connection * con = moose_get((MooseClient *)self);
+        if (moose_client_is_connected((MooseClient *)self)) {
+            mpd_connection * con = moose_client_get((MooseClient *)self);
 
             if (con != NULL) {
                 if (mpd_send_command(con, "ping", NULL) == false)
@@ -286,7 +286,7 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
                     moose_shelper_report_error((MooseClient *)self, con);
             }
 
-            moose_put((MooseClient *)self);
+            moose_client_put((MooseClient *)self);
         }
 
         if (cmnder_get_run_pinger(self)) {

@@ -143,7 +143,7 @@ MooseStoreCompletion * moose_store_cmpl_new(struct MooseStore * store)
 
     MooseStoreCompletion * self = g_slice_new0(MooseStoreCompletion);
     self->store = store;
-    moose_signal_add_masked(
+    moose_client_signal_add_masked(
         self->store->client, "client-event",
         moose_store_cmpl_client_event, self,
         MPD_IDLE_DATABASE

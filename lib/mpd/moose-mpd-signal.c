@@ -108,7 +108,7 @@ void moose_priv_signal_list_report_event_v(MooseSignalList * list, const char * 
         break;
     }
     case MOOSE_SIGNAL_FATAL_ERROR: {
-        moose_disconnect(data->client);
+        moose_client_disconnect(data->client);
     }
     default:  {
         /* Should not happen */

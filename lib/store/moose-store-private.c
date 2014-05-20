@@ -248,8 +248,8 @@ void moose_stprv_insert_meta_attributes(MooseStore * self)
             moose_status_stats_get_db_update_time(status),
             queue_version,
             MOOSE_DB_SCHEMA_VERSION,
-            moose_get_port(self->client),
-            moose_get_host(self->client)
+            moose_client_get_port(self->client),
+            moose_client_get_host(self->client)
             );
     }
     moose_status_unref(status);

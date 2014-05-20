@@ -561,7 +561,7 @@ static bool handle_seekcur(MooseClient * self, struct mpd_connection * conn, con
 
     /* there is 'seekcur' in newer mpd versions,
      * but we can emulate it easily */
-    if (moose_is_connected(self)) {
+    if (moose_client_is_connected(self)) {
         int curr_id = 0;
 
         MooseStatus * status = moose_ref_status(self);
@@ -839,7 +839,7 @@ static bool moose_client_execute(
 
         /* -2 because: -1 for off-by-one and -1 for not counting the command itself */
         if ((arguments - 2) >= handler->num_args) {
-            if (moose_is_connected(self)) {
+            if (moose_client_is_connected(self)) {
                 result = handler->handler(self, conn, (const char * *)&parts[1]);
             }
         } else {
@@ -888,7 +888,7 @@ static void * moose_client_command_dispatcher(
 
         /* Free input (since it was strdrup'd) */
         bool free_input = true;
-        if (moose_is_connected(self) == false) {
+        if (moose_client_is_connected(self) == false) {
             result = false;
         } else /* commit */
         if (moose_client_command_list_is_start_or_end(input) == -1) {
@@ -896,7 +896,7 @@ static void * moose_client_command_dispatcher(
         } else /* active command */
         if (moose_client_command_list_is_active(self)) {
             moose_client_command_list_append(self, input);
-            if (moose_is_connected(self)) {
+            if (moose_client_is_connected(self)) {
                 result = true;
                 free_input = false;
             }
@@ -905,14 +905,14 @@ static void * moose_client_command_dispatcher(
             moose_client_command_list_begin(self);
             result = true;
         } else {
-            struct mpd_connection * conn = moose_get(self);
-            if (conn != NULL && moose_is_connected(self)) {
+            struct mpd_connection * conn = moose_client_get(self);
+            if (conn != NULL && moose_client_is_connected(self)) {
                 result = moose_client_execute(self, input, conn);
                 if (mpd_response_finish(conn) == false) {
                     moose_shelper_report_error(self, conn);
                 }
             }
-            moose_put(self);
+            moose_client_put(self);
         }
 
         if (free_input) {
@@ -987,7 +987,7 @@ static bool moose_client_command_list_commit(MooseClient * self)
     /* Elements were prepended, so we'll just reverse the list */
     self->command_list.commands = g_list_reverse(self->command_list.commands);
 
-    struct mpd_connection * conn = moose_get(self);
+    struct mpd_connection * conn = moose_client_get(self);
     if (conn != NULL) {
         if (mpd_command_list_begin(conn, false) != false) {
             for (GList * iter = self->command_list.commands; iter != NULL; iter = iter->next) {
@@ -1012,7 +1012,7 @@ static bool moose_client_command_list_commit(MooseClient * self)
     self->command_list.commands = NULL;
 
     /* Put mutex back */
-    moose_put(self);
+    moose_client_put(self);
 
     g_mutex_lock(&self->command_list.is_active_mtx);
     self->command_list.is_active = 0;

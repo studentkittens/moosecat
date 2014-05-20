@@ -15,7 +15,7 @@
 /**
  * @brief Initialize client.
  *
- * This is called for you by moose_create()
+ * This is called for you by moose_client_create()
  *
  * @param self the client to operate on
  */
@@ -24,7 +24,7 @@ void moose_client_init(MooseClient * self);
 /**
  * @brief Destroy client internal structures.
  *
- * This is called for you by moose_free()
+ * This is called for you by moose_client_unref()
  *
  * @param self the client to operate on
  */

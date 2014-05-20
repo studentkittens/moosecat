@@ -26,11 +26,6 @@ typedef struct MooseUpdateData {
         GMutex mutex;
     } status_timer;
 
-    /* Support for blockingtillnextupdate */
-    GCond sync_cond;
-    GMutex sync_mtx;
-    int sync_id;
-
     /* ID of the last played song or -1 */
     struct {
         long id;
@@ -102,12 +97,3 @@ void moose_update_unregister_status_timer(struct MooseClient * self);
  * @return True if active.
  */
 bool moose_update_status_timer_is_active(struct MooseClient * self);
-
-/**
- * @brief Block till next update finished.
- *
- * Useful for debugging/testing programs.
- *
- * @param data corresponding data
- */
-void moose_update_block_till_sync(MooseUpdateData * data);

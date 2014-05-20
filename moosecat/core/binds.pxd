@@ -236,34 +236,34 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     #############
 
     # Network:
-    MooseClient *moose_create(MoosePmType)
-    char *moose_connect( MooseClient *, void *, const char *, int, float)
-    bool moose_is_connected(MooseClient *)
-    char *moose_disconnect(MooseClient *)
-    void moose_free(MooseClient *)
+    MooseClient *moose_client_create(MoosePmType)
+    char *moose_client_connect( MooseClient *, void *, const char *, int, float)
+    bool moose_client_is_connected(MooseClient *)
+    char *moose_client_disconnect(MooseClient *)
+    void moose_client_unref(MooseClient *)
 
     # These two shall remain hidden, so the Python layer
     # is uanableto screw with the connection.
-    # mpd_connection *moose_get(MooseClient *)
-    # void moose_put(MooseClient *)
+    # mpd_connection *moose_client_get(MooseClient *)
+    # void moose_client_put(MooseClient *)
 
     # Signals:
-    void moose_signal_add(MooseClient *, const char *, void *, void *)
-    void moose_signal_add_masked(MooseClient *, const char *, void *, void *, mpd_idle )
-    void moose_signal_rm(MooseClient *, const char *, void *)
-    void moose_signal_dispatch(MooseClient *, const char *, ...)
-    int moose_signal_length(MooseClient *, const char *)
+    void moose_client_signal_add(MooseClient *, const char *, void *, void *)
+    void moose_client_signal_add_masked(MooseClient *, const char *, void *, void *, mpd_idle )
+    void moose_client_signal_rm(MooseClient *, const char *, void *)
+    void moose_client_signal_dispatch(MooseClient *, const char *, ...)
+    int moose_client_signal_length(MooseClient *, const char *)
 
     # Meta:
-    void moose_force_sync(MooseClient *, mpd_idle events)
-    const char *moose_get_host(MooseClient *)
-    unsigned moose_get_port(MooseClient *)
-    float moose_get_timeout(MooseClient *)
+    void moose_client_force_sync(MooseClient *, mpd_idle events)
+    const char *moose_client_get_host(MooseClient *)
+    unsigned moose_client_get_port(MooseClient *)
+    float moose_client_get_timeout(MooseClient *)
 
     # Status Timer
-    void moose_status_timer_register(MooseClient *, int, bool)
-    void moose_status_timer_unregister(MooseClient *)
-    bool moose_status_timer_is_active(MooseClient *)
+    void moose_client_status_timer_register(MooseClient *, int, bool)
+    void moose_client_status_timer_unregister(MooseClient *)
+    bool moose_client_status_timer_is_active(MooseClient *)
 
     # Outputs:
     bool moose_outputs_get_state(MooseClient *, const char *)
@@ -279,7 +279,7 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     void moose_unlock_current_song(MooseClient *)
     void moose_lock_outputs(MooseClient *)
     void moose_unlock_outputs(MooseClient *)
-    void moose_block_till_sync(MooseClient *) nogil
+    void moose_client_block_till_sync(MooseClient *) nogil
 
 
 ###########################################################################

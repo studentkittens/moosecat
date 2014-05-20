@@ -5,10 +5,10 @@
 
 int main(void)
 {
-    MooseClient * client = moose_create(MOOSE_PM_IDLE);
-    moose_connect(client, NULL, "localhost", 6601, 2);
+    MooseClient * client = moose_client_create(MOOSE_PM_IDLE);
+    moose_client_connect(client, NULL, "localhost", 6601, 2);
 
-    if (moose_is_connected(client)) {
+    if (moose_client_is_connected(client)) {
 
         long job_id = 0;
 
@@ -39,6 +39,6 @@ int main(void)
 
     puts("-- Freeing client.");
 
-    moose_free(client);
+    moose_client_unref(client);
     return 0;
 }

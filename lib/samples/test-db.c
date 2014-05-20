@@ -31,7 +31,7 @@ static void print_connectivity(
     G_GNUC_UNUSED void * user_data)
 {
     g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
-            server_changed, was_connected, moose_is_connected(self)
+            server_changed, was_connected, moose_client_is_connected(self)
             );
 }
 
@@ -44,18 +44,18 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    MooseClient * client = moose_create(MOOSE_PM_IDLE);
+    MooseClient * client = moose_client_create(MOOSE_PM_IDLE);
 
     /* Trigger some bugs */
     for (int i = 0; i < 1; i++) {
-        moose_connect(client, NULL, "localhost", 6601, 10.0);
-        moose_disconnect(client);
+        moose_client_connect(client, NULL, "localhost", 6601, 10.0);
+        moose_client_disconnect(client);
     }
 
-    moose_connect(client, NULL, "localhost", 6601, 10.0);
-    moose_signal_add(client, "logging", print_logging, NULL);
-    moose_signal_add(client, "client-event", print_event, NULL);
-    moose_signal_add(client, "connectivity", print_connectivity, NULL);
+    moose_client_connect(client, NULL, "localhost", 6601, 10.0);
+    moose_client_signal_add(client, "logging", print_logging, NULL);
+    moose_client_signal_add(client, "client-event", print_event, NULL);
+    moose_client_signal_add(client, "connectivity", print_connectivity, NULL);
 
 
     MooseStoreSettings * settings = moose_store_settings_new();
@@ -87,7 +87,7 @@ int main(int argc, char * argv[])
                     break;
 
                 if (g_strcmp0(line_buf, ":u") == 0) {
-                    moose_force_sync(client, INT_MAX);
+                    moose_client_force_sync(client, INT_MAX);
                     continue;
                 }
 
@@ -104,12 +104,12 @@ int main(int argc, char * argv[])
                 }
 
                 if (g_strcmp0(line_buf, ":disconnect") == 0) {
-                    moose_disconnect(client);
+                    moose_client_disconnect(client);
                     continue;
                 }
 
                 if (g_strcmp0(line_buf, ":connect") == 0) {
-                    moose_connect(client, NULL, "localhost", 6600, 10.0);
+                    moose_client_connect(client, NULL, "localhost", 6600, 10.0);
                     continue;
                 }
 
@@ -240,5 +240,5 @@ int main(int argc, char * argv[])
 
     moose_store_close(db);
     moose_store_settings_destroy(settings);
-    moose_free(client);
+    moose_client_unref(client);
 }
