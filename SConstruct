@@ -131,7 +131,6 @@ def FindLibmoosecatSource():
     c_files += Glob('lib/mpd/*.c')
     c_files += Glob('lib/mpd/pm/*.c')
     c_files += Glob('lib/misc/*.c')
-    c_files += Glob('lib/util/*.c')
     c_files += Glob('lib/store/*.c')
     c_files += Glob('lib/gtk/*.c')
     c_files += Glob('lib/store/libart/*.c')

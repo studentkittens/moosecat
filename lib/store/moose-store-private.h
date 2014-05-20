@@ -153,4 +153,21 @@ void moose_stprv_lock_attributes(MooseStore * self);
  */
 void moose_stprv_unlock_attributes(MooseStore * self);
 
+/* @brief Count the 'depth' of a path.
+ * @param dir_path the path to count
+ *
+ * Examples:
+ *
+ *  Path:     Depth:
+ *  /         0
+ *  a/        0
+ *  a         0
+ *  a/b       1
+ *  a/b/      1
+ *  a/b/c     2
+ *
+ *  @return the depth.
+ */
+int moose_stprv_path_get_depth(const char * dir_path);
+
 #endif /* end of include guard: MOOSE_DB_PRIVATE_H */

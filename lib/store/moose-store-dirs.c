@@ -3,7 +3,6 @@
 #include "moose-store-macros.h"
 
 #include "../mpd/moose-mpd-signal-helper.h"
-#include "../util/moose-util-paths.h"
 
 #include <glib.h>
 #include <string.h>
@@ -70,7 +69,7 @@ void moose_stprv_dir_insert(MooseStore * self, const char * path)
     int pos_idx = 1;
     int error_id = SQLITE_OK;
     bind_txt(self, DIR_INSERT, pos_idx, path, error_id);
-    bind_int(self, DIR_INSERT, pos_idx, moose_path_get_depth(path), error_id);
+    bind_int(self, DIR_INSERT, pos_idx, moose_stprv_path_get_depth(path), error_id);
 
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot bind stuff to INSERT statement");

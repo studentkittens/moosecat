@@ -1,7 +1,6 @@
 #include "moose-mpd-cmnd-core.h"
 #include "moose-mpd-common.h"
-#include "../../util/moose-util-gasyncqueue-watch.h"
-#include "../../util/moose-util-sleep-grained.h"
+#include "../../misc/moose-misc-gasyncqueue-watch.h"
 #include "../moose-mpd-protocol.h"
 #include "../moose-mpd-signal-helper.h"
 
@@ -95,7 +94,6 @@ typedef struct {
 //////////////////////
 
 /* We want to make helgrind happy. */
-
 static bool cmnder_get_run_pinger(MooseCmndClient * self)
 {
     volatile bool result = false;
@@ -236,6 +234,23 @@ static void cmnder_reset(MooseCmndClient * self)
 }
 //////////////////////////
 
+void cmnder_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean * check)
+{
+    g_assert(check);
+
+    if (interval_ms == 0) {
+        if (*check) g_usleep((ms) * 1000);
+    } else {
+        unsigned n = ms / interval_ms;
+
+        for (unsigned i = 0; i < n && *check; ++i) {
+            g_usleep(interval_ms * 1000);
+        }
+
+        if (*check) g_usleep((ms % interval_ms) * 1000);
+    }
+}
+
 /* Loop, and send pings to the server once every connection_timeout_ms milliseconds.
  *
  * Why another thread? Because if we'd using a timeout event
@@ -254,7 +269,7 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
     g_assert(self);
 
     while (cmnder_get_run_pinger(self)) {
-        moose_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
+        cmnder_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
                             PING_SLEEP_TIMEOUT, &self->run_pinger);
 
         if (cmnder_get_run_pinger(self) == false) {
@@ -276,7 +291,7 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
         }
 
         if (cmnder_get_run_pinger(self)) {
-            moose_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
+            cmnder_sleep_grained(MAX(self->connection_timeout_ms, 100) / 2,
                                 PING_SLEEP_TIMEOUT, &self->run_pinger);
         }
     }

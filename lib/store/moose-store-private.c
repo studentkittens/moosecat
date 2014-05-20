@@ -5,7 +5,6 @@
 #include "../mpd/moose-mpd-signal-helper.h"
 #include "../mpd/moose-mpd-update.h"
 #include "../mpd/moose-song-private.h"
-#include "../util/moose-util-paths.h"
 
 /* strlen() */
 #include <string.h>
@@ -496,7 +495,7 @@ bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
     /* Constant Value. See Create statement. */
     bind_int(db, INSERT, pos_idx,  0, error_id);
 
-    bind_int(db, INSERT, pos_idx, moose_path_get_depth(moose_song_get_uri(song)), error_id);
+    bind_int(db, INSERT, pos_idx, moose_stprv_path_get_depth(moose_song_get_uri(song)), error_id);
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
@@ -1039,4 +1038,29 @@ void moose_stprv_queue_insert_posid(MooseStore * self, int pos, int idx, const c
 
     CLEAR_BINDS_BY_NAME(self, QUEUE_INSERT_ROW);
     sqlite3_reset(SQL_STMT(self, QUEUE_INSERT_ROW));
+}
+
+///////////////////
+
+int moose_stprv_path_get_depth(const char * dir_path)
+{
+    int dir_depth = 0;
+    char * cursor = (char *)dir_path;
+
+    if (dir_path == NULL)
+        return -1;
+
+    for (;;) {
+        gunichar curr = g_utf8_get_char_validated(cursor, -1);
+        cursor = g_utf8_next_char(cursor);
+
+        if (*cursor != (char)0) {
+            if (curr == (gunichar)'/')
+                ++dir_depth;
+        } else {
+            break;
+        }
+    }
+
+    return dir_depth;
 }

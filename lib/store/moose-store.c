@@ -1,7 +1,7 @@
 #include "../mpd/moose-mpd-signal-helper.h"
 #include "../mpd/moose-mpd-signal.h"
 #include "../mpd/moose-mpd-update.h"
-#include "../util/moose-util-gzip.h"
+#include "../misc/moose-misc-gzip.h"
 
 #include "moose-store-stored-playlists.h"
 #include "moose-store-operations.h"
