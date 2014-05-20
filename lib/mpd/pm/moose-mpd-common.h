@@ -11,24 +11,6 @@ typedef enum mpd_async_event mpd_async_event;
 typedef struct mpd_connection mpd_connection;
 
 /**
- * @brief Convert a GIOCondition to a mpd_async_event
- *
- * @param condition the GIOCondition member
- *
- * @return the corresponding mpd_async_event
- */
-mpd_async_event gio_to_mpd_async(GIOCondition condition);
-
-/**
- * @brief Convert a mpd_async_event to a GIOCondition
- *
- * @param events a mpd_async_event member
- *
- * @return the corresponding GIOCondition
- */
-GIOCondition mpd_async_to_gio(mpd_async_event events);
-
-/**
  * @brief Helper to create a mpd_connection with built-in error checks
  *
  * @param host a hostname or IP
