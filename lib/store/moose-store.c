@@ -283,11 +283,10 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     /* check #4 */
     size_t cached_db_version = moose_stprv_get_db_version(self);
     size_t current_db_version = 0;
-    struct mpd_stats * stats = moose_lock_statistics(self->client);
-    if (stats != NULL) {
-        current_db_version = mpd_stats_get_db_update_time(stats);
-    }
-    moose_unlock_statistics(self->client);
+    MooseStatus * status = moose_ref_status(self->client);
+
+    current_db_version = moose_status_stats_get_db_update_time(status);
+    moose_status_unref(status);
 
     if (cached_db_version != current_db_version)
         goto close_handle;
@@ -371,7 +370,7 @@ static void moose_store_buildup(MooseStore * self)
         self->force_update_listallinfo = true;
         self->force_update_plchanges = true;
 
-        self->stack = moose_playlist_new_full(100, (GDestroyNotify)moose_song_free);
+        self->stack = moose_playlist_new_full(100, (GDestroyNotify)moose_song_unref);
 
         /* the database is new, so no pos/id information is there yet
          * we need to query mpd, update db && queue info */
@@ -384,7 +383,7 @@ static void moose_store_buildup(MooseStore * self)
         moose_stprv_dir_prepare_statemtents(self);
 
         /* stack is allocated to the old size */
-        self->stack = moose_playlist_new_full(song_count + 1, (GDestroyNotify)moose_song_free);
+        self->stack = moose_playlist_new_full(song_count + 1, (GDestroyNotify)moose_song_unref);
 
         /* load the old database into memory */
         moose_stprv_load_or_save(self, false, db_path);

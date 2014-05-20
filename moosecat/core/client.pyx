@@ -414,7 +414,7 @@ cdef class Client:
     def lock_status(self):
         'Get the current :class:`.Status` object and takes care of locking.'
         try:
-            yield status_from_ptr(c.moose_lock_status(self._p()), self._p())
+            yield status_from_ptr(c.moose_ref_status(self._p()), self._p())
         finally:
             c.moose_unlock_status(self._p())
 

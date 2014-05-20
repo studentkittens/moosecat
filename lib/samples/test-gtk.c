@@ -140,15 +140,7 @@ static EntryTag * setup_client(void)
             rc->client = client;
             rc->store = store;
             rc->profile_timer = g_timer_new();
-
-            int number_of_songs = 1000;
-            struct mpd_stats * stats = moose_lock_statistics(client);
-            if (stats != NULL) {
-                number_of_songs = mpd_stats_get_number_of_songs(stats);
-            }
-            moose_unlock_statistics(client);
-
-            rc->song_buf = moose_playlist_new_full(number_of_songs, NULL);
+            rc->song_buf = moose_playlist_new_full(1000, NULL);
         }
 
         moose_signal_add_masked(client, "client-event",

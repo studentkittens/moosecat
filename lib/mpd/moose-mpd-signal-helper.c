@@ -1,7 +1,6 @@
 #include "moose-mpd-protocol.h"
 #include "moose-mpd-signal-helper.h"
 #include "moose-mpd-update.h"
-#include "moose-mpd-outputs.h"
 
 #include <glib/gprintf.h>
 #include <string.h>

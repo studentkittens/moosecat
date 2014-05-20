@@ -79,9 +79,11 @@ MooseSong * moose_song_new(void)
     return g_object_new(MOOSE_TYPE_SONG, NULL);
 }
 
-void moose_song_free(MooseSong * self)
+void moose_song_unref(MooseSong * self)
 {
-    g_object_unref(self);
+    if (self != NULL) {
+        g_object_unref(self);
+    }
 }
 
 ///////////////////////////////

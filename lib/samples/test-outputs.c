@@ -16,17 +16,17 @@ int main(void)
          */
         moose_block_till_sync(client);
 
-        moose_lock_outputs(client);
-        const char * * op_list = moose_outputs_get_names(client);
+        // moose_lock_outputs(client);
+        // const char * * op_list = moose_outputs_get_names(client);
 
-        for (int i = 0; op_list[i]; ++i) {
-            g_printerr("%20s: %3s\n",
-                       op_list[i],
-                       moose_outputs_get_state(client, op_list[i]) ? "Yes" : " No"
-                       );
-        }
-        moose_unlock_outputs(client);
-        g_free(op_list);
+        // for (int i = 0; op_list[i]; ++i) {
+        //     g_printerr("%20s: %3s\n",
+        //                op_list[i],
+        //                moose_outputs_get_state(client, op_list[i]) ? "Yes" : " No"
+        //                );
+        // }
+        // moose_unlock_outputs(client);
+        // g_free(op_list);
 
         moose_client_wait(client);
         moose_disconnect(client);

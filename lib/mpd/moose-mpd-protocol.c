@@ -5,8 +5,6 @@
 #include "pm/moose-mpd-idle-core.h"
 
 #include "moose-mpd-signal-helper.h"
-#include "moose-mpd-outputs.h"
-
 #include "moose-mpd-client.h"
 
 /* memset() */
@@ -59,7 +57,6 @@ MooseClient * moose_create(MoosePmType pm)
         moose_priv_signal_list_init(&client->_signals);
 
         client->_update_data = moose_update_data_new(client);
-        client->_outputs = moose_priv_outputs_new(client);
         client->initial_thread = g_thread_self();
     }
 
@@ -224,8 +221,8 @@ void moose_free(MooseClient * self)
     if (self->_host != NULL) {
         g_free(self->_host);
     }
-    g_rec_mutex_unlock(&self->_client_attr_mutex);
 
+    g_rec_mutex_unlock(&self->_client_attr_mutex);
     g_rec_mutex_clear(&self->_getput_mutex);
     g_rec_mutex_clear(&self->_client_attr_mutex);
 
@@ -373,91 +370,12 @@ void moose_status_timer_register(
     moose_update_register_status_timer(self, repeat_ms, trigger_event);
 }
 
-///////////////////
-//    OUTPUTS    //
-///////////////////
-
-bool moose_outputs_get_state(MooseClient * self, const char * output_name)
-{
-    g_assert(self);
-
-    return moose_priv_outputs_get_state(self->_outputs, output_name);
-}
-
-///////////////////
-
-const char * * moose_outputs_get_names(MooseClient * self)
-{
-    g_assert(self);
-
-    return moose_priv_outputs_get_names(self->_outputs);
-}
-
-///////////////////
-
-bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool state)
-{
-    g_assert(self);
-
-    return moose_priv_outputs_set_state(self->_outputs, output_name, state);
-}
-
-////////////////////////
-//    LOCKING STUFF   //
-////////////////////////
-
-MooseStatus * moose_lock_status(struct MooseClient * self) {
-    g_rec_mutex_lock(&self->_update_data->mtx_status);
-    return self->_update_data->status;
-}
-
-////////////////////////
-
-void moose_unlock_status(struct MooseClient * self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_status);
-}
-
-////////////////////////
-
-struct mpd_stats * moose_lock_statistics(struct MooseClient * self) {
-    g_rec_mutex_lock(&self->_update_data->mtx_statistics);
-    return self->_update_data->statistics;
-}
-
-////////////////////////
-
-void moose_unlock_statistics(struct MooseClient * self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_statistics);
-}
-
-////////////////////////
-
-MooseSong * moose_lock_current_song(struct MooseClient * self) {
-    g_rec_mutex_lock(&self->_update_data->mtx_current_song);
-    return self->_update_data->current_song;
-}
-
-////////////////////////
-
-void moose_unlock_current_song(struct MooseClient * self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_current_song);
-}
-
-////////////////////////
-
-void moose_lock_outputs(struct MooseClient * self)
-{
-    g_rec_mutex_lock(&self->_update_data->mtx_outputs);
-}
-
-////////////////////////
-
-void moose_unlock_outputs(struct MooseClient * self)
-{
-    g_rec_mutex_unlock(&self->_update_data->mtx_outputs);
+MooseStatus * moose_ref_status(struct MooseClient * self) {
+    MooseStatus * status = self->_update_data->status;
+    if (status != NULL) {
+        g_object_ref(status);
+    }
+    return status;
 }
 
 ////////////////////////

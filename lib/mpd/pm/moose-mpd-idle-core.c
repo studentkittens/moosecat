@@ -184,10 +184,11 @@ static void idler_dispatch_events(MooseIdleClient * self, enum mpd_idle events)
      * So we set this flag to indicate we're running.
      * It is resette by idler_enter().
      * */
+    g_printerr("DISPATCHING events: %d\n", events);
+
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        // moose_shelper_report_client_event((MooseClient *)self, events);
         moose_force_sync((MooseClient *)self, events);
     }
     self->is_running_extern = FALSE;
@@ -208,10 +209,11 @@ static bool idler_process_received(MooseIdleClient * self)
 
         switch (result) {
         case MPD_PARSER_MALFORMED:
-            idler_report_error(self,
-                               MPD_ERROR_MALFORMED,
-                               "cannot parse malformed response"
-                               );
+            idler_report_error(
+                self,
+                MPD_ERROR_MALFORMED,
+                "cannot parse malformed response"
+                );
             return false;
 
         case MPD_PARSER_SUCCESS:

@@ -35,7 +35,7 @@ cdef extern from "../../lib/mpd/moose-song.h":
         MOOSE_TAG_COUNT
 
     MooseSong * moose_song_new()
-    void moose_song_free(MooseSong *)
+    void moose_song_unref(MooseSong *)
     char * moose_song_get_tag(MooseSong *, MooseTagType tag)
     void moose_song_set_tag(MooseSong *, MooseTagType tag, char *)
     const char * moose_song_get_uri(MooseSong *)
@@ -271,7 +271,7 @@ cdef extern from "../../lib/mpd/moose-mpd-protocol.h":
     bool moose_outputs_set_state(MooseClient *, const char *, bool)
 
     # Locking:
-    MooseStatus * moose_lock_status(MooseClient *)
+    MooseStatus * moose_ref_status(MooseClient *)
     mpd_stats * moose_lock_statistics(MooseClient *)
     MooseSong * moose_lock_current_song(MooseClient *)
     void moose_unlock_status(MooseClient *)

@@ -4,6 +4,7 @@
 
 #include "../mpd/moose-mpd-signal-helper.h"
 #include "../mpd/moose-mpd-update.h"
+#include "../mpd/moose-song-private.h"
 #include "../util/moose-util-paths.h"
 
 /* strlen() */
@@ -239,31 +240,20 @@ void moose_stprv_insert_meta_attributes(MooseStore * self)
 
     char * insert_meta_sql = NULL;
     int queue_version = -1;
-    MooseStatus * status = moose_lock_status(self->client);
+    MooseStatus * status = moose_ref_status(self->client);
 
     if (status != NULL) {
         queue_version = moose_status_get_queue_version(status);
+        insert_meta_sql = sqlite3_mprintf(
+            SQL_CODE(META),
+            moose_status_stats_get_db_update_time(status),
+            queue_version,
+            MOOSE_DB_SCHEMA_VERSION,
+            moose_get_port(self->client),
+            moose_get_host(self->client)
+            );
     }
-    moose_unlock_status(self->client);
-
-    if (status != NULL) {
-        time_t db_update_time = 0;
-        struct mpd_stats * stats = moose_lock_statistics(self->client);
-        if (stats != NULL) {
-            db_update_time = mpd_stats_get_db_update_time(stats);
-        }
-        moose_unlock_statistics(self->client);
-
-        if (stats != NULL) {
-            insert_meta_sql = sqlite3_mprintf(SQL_CODE(META),
-                                              db_update_time,
-                                              queue_version,
-                                              MOOSE_DB_SCHEMA_VERSION,
-                                              moose_get_port(self->client),
-                                              moose_get_host(self->client)
-                                              );
-        }
-    }
+    moose_status_unref(status);
 
     if (insert_meta_sql != NULL) {
         if (sqlite3_exec(self->handle, insert_meta_sql, NULL, NULL, NULL) != SQLITE_OK)

@@ -15,15 +15,8 @@ typedef struct MooseUpdateData {
     GAsyncQueue * event_queue;
     GThread * update_thread;
     struct MooseClient * client;
-    GRecMutex
-        mtx_current_song,
-        mtx_status,
-        mtx_statistics,
-        mtx_outputs;
 
-    MooseSong * current_song;
-    struct mpd_stats * statistics;
-    MooseStatus *status;
+    MooseStatus * status;
 
     struct {
         int timeout_id;

@@ -1,6 +1,5 @@
 #include "moose-mpd-client.h"
 #include "moose-mpd-signal-helper.h"
-#include "moose-mpd-outputs.h"
 #include "moose-mpd-update.h"
 
 #include <string.h>
@@ -157,8 +156,10 @@ static bool handle_queue_delete_range(MooseClient * self, struct mpd_connection 
 static bool handle_output_switch(MooseClient * self, struct mpd_connection * conn, const char * * argv)
 {
     const char * output_name = argv[0];
-    int output_id = moose_priv_outputs_name_to_id(self->_outputs, output_name);
-
+    // int output_id = moose_priv_outputs_name_to_id(self->_outputs, output_name);
+    //
+    // TODO
+    int output_id = 0;
 
     intarg_named(argv[1], mode);
 
@@ -562,12 +563,16 @@ static bool handle_seekcur(MooseClient * self, struct mpd_connection * conn, con
      * but we can emulate it easily */
     if (moose_is_connected(self)) {
         int curr_id = 0;
-        MooseSong * current_song = moose_lock_current_song(self);
+
+        MooseStatus * status = moose_ref_status(self);
+        MooseSong * current_song = moose_status_get_current_song(status);
+        moose_status_unref(status);
+
         if (current_song != NULL) {
             curr_id = moose_song_get_id(current_song);
-            moose_unlock_current_song(self);
+            moose_song_unref(current_song);
         } else {
-            moose_unlock_current_song(self);
+            moose_song_unref(current_song);
             return false;
         }
 

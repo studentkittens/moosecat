@@ -38,7 +38,7 @@ static gpointer moose_store_do_list_all_info_sql_thread(gpointer user_data)
 
             MooseSong * song = moose_song_new_from_struct(
                 (struct mpd_song *)mpd_entity_get_song(ent)
-            );
+                );
 
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);
@@ -98,26 +98,14 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
     MooseClient * self = store->client;
     int progress_counter = 0;
     size_t db_version = 0;
-    struct mpd_stats * stats = moose_lock_statistics(store->client);
+    MooseStatus * status = moose_ref_status(store->client);
 
-    if (stats == NULL) {
-        moose_unlock_statistics(store->client);
-        return;
-    }
-
-    int number_of_songs = mpd_stats_get_number_of_songs(stats);
-    moose_unlock_statistics(store->client);
+    int number_of_songs = moose_status_stats_get_number_of_songs(status);
 
     db_version = moose_stprv_get_db_version(store);
 
     if (store->force_update_listallinfo == false) {
-        struct mpd_stats * stats = moose_lock_statistics(store->client);
-        if (stats == NULL) {
-            return;
-        }
-
-        size_t db_update_time = mpd_stats_get_db_update_time(stats);
-        moose_unlock_statistics(store->client);
+        size_t db_update_time = moose_status_stats_get_db_update_time(status);
 
         if (db_update_time  == db_version) {
             moose_shelper_report_progress(
@@ -135,6 +123,7 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
     } else {
         moose_shelper_report_progress(self, true, "database: Doing forced listallinfo");
     }
+    moose_status_unref(status);
 
     GTimer * timer = NULL;
     GAsyncQueue * queue = g_async_queue_new();
@@ -160,7 +149,7 @@ void moose_store_oper_listallinfo(MooseStore * store, volatile bool * cancel)
 
     store->stack = moose_playlist_new_full(
         number_of_songs + 1,
-        (GDestroyNotify)moose_song_free
+        (GDestroyNotify)moose_song_unref
         );
 
     /* Profiling */
@@ -256,7 +245,7 @@ gpointer moose_store_do_plchanges_sql_thread(gpointer user_data)
                 moose_song_get_id(song),
                 moose_song_get_uri(song)
                 );
-            moose_song_free(song);
+            moose_song_unref(song);
         }
     }
 
@@ -308,13 +297,13 @@ void moose_store_oper_plchanges(MooseStore * store, volatile bool * cancel)
 
     if (store->force_update_plchanges == false) {
         size_t current_pl_version = -1;
-        MooseStatus * status = moose_lock_status(store->client);
+        MooseStatus * status = moose_ref_status(store->client);
         if (status != NULL) {
             current_pl_version = moose_status_get_queue_version(status);
         } else {
             current_pl_version = last_pl_version;
         }
-        moose_unlock_status(store->client);
+        moose_status_unref(status);
 
         if (last_pl_version == current_pl_version) {
             moose_shelper_report_progress(

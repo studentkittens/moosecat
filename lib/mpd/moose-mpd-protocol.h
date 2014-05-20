@@ -102,9 +102,6 @@ typedef struct MooseClient {
     /* Signal functions are stored in here */
     MooseSignalList _signals;
 
-    /* Outputs of MPD */
-    struct MooseOutputsData * _outputs;
-
     /* Data Used by the Status/Song/Stats Update Module */
     struct MooseUpdateData * _update_data;
 
@@ -412,107 +409,8 @@ const char * * moose_outputs_get_names(MooseClient * self);
  */
 bool moose_outputs_set_state(MooseClient * self, const char * output_name, bool state);
 
-/**
- * @brief Lock against modification of the current MooseStatus object
- *
- * You usually would do this in order to get an attribute of an status object.
- * If libmoosecat would lock it on every get there might happen things like:
- *
- *   // implict lock
- *   status.get_id() // 70
- *   // implict unlock
- *   // implict lock
- *   status.get_id() // 71
- *   // implict unlock
- *
- *  Therefore you lock the song explicitly and unlock it again when you're done.
- *
- *  MooseStatus * status = moose_lock_status(client);
- *  if(status != NULL) {
- *      moose_status_get_song_id(status);  // 70
- *      moose_status_get_song_id(status);  // 70
- *  }
- *  moose_unlock_status(client);
- *
- * Unlock always. Even if status is NULL!
- *
- * This is the only way to get the status object.
- *
- * @param self the client holding the object
- *
- * @return the locked mpd_status
- */
-MooseStatus * moose_lock_status(MooseClient * self);
 
-/**
- * @brief The pendant to moose_lock_status()
- *
- * See moose_lock_status() for a more detailed description/example.
- *
- * @param self the client holding the status
- */
-void moose_unlock_status(MooseClient * self);
-
-/**
- * @brief Lock the current statistics.
- *
- * See moose_lock_status() for a detailed description.
- *
- * @param self the client that holds the current statistics
- *
- * @return a locked struct mpd_stats
- */
-struct mpd_stats * moose_lock_statistics(MooseClient * self);
-
-
-/**
- * @brief The pendant to moose_lock_statistics()
- *
- * See moose_lock_status() for a more detailed description/example.
- *
- * @param self the client holding the statistics
- */
-void moose_unlock_statistics(MooseClient * self);
-
-/**
- * @brief Lock the current song.
- *
- * See moose_lock_status() for a detailed description.
- *
- * @param self the client that holds the current song
- *
- * @return a locked MooseSong
- */
-MooseSong * moose_lock_current_song(MooseClient * self);
-
-/**
- * @brief The pendant to moose_lock_current_song()
- *
- * See moose_lock_status() for a more detailed description/example.
- *
- * @param self the client holding the current song
- */
-void moose_unlock_current_song(MooseClient * self);
-
-/**
- * @brief Lock the current set of outputs.
- *
- * See moose_lock_status() for a detailed description.
- *
- * Use moose_outputs_get_names() to acquire a list of names
- *
- * @param self the client that holds the current set of outputs
- */
-void moose_lock_outputs(MooseClient * self);
-
-/**
- * @brief The pendant to moose_lock_outputs()
- *
- * See moose_lock_status() for a more detailed description/example.
- *
- * @param self the client holding the current set of outouts
- */
-void moose_unlock_outputs(MooseClient * self);
+MooseStatus * moose_ref_status(MooseClient * self);
 
 
 /**

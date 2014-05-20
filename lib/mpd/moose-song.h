@@ -99,12 +99,12 @@ MooseSong * moose_song_new_from_struct(struct mpd_song * song);
 void moose_song_convert(MooseSong * self, struct mpd_song * song);
 
 /**
- * moose_song_free:
+ * moose_song_unref:
  * @self: a #MooseSong
  *
  * Unrefs a #MooseSong
  */
-void moose_song_free(MooseSong * self);
+void moose_song_unref(MooseSong * self);
 
 /**
  * moose_song_get_tag:
@@ -118,16 +118,6 @@ void moose_song_free(MooseSong * self);
 char * moose_song_get_tag(MooseSong * self, MooseTagType tag);
 
 /**
- * moose_song_set_tag:
- * @self: a #MooseSong
- * @tag: one of #MooseTagType
- * @value: The string to set.
- *
- * Set a certain tag to the song.
- */
-void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value);
-
-/**
  * moose_song_get_uri:
  * @self: a #MooseSong
  *
@@ -136,17 +126,6 @@ void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value);
  * Returns: (transfer none): The uri as string.
  */
 const char * moose_song_get_uri(MooseSong * self);
-
-/**
- * moose_song_set_uri:
- * @self: a #MooseSong
- * @uri: The Uri to set.
- *
- * Get the Uri (i.e. Filename of the song, if ^file://) of the Song.
- *
- * Returns: (transfer none): The uri as string.
- */
-void moose_song_set_uri(MooseSong * self, const char * uri);
 
 
 /**
@@ -160,15 +139,6 @@ void moose_song_set_uri(MooseSong * self, const char * uri);
 unsigned moose_song_get_duration(MooseSong * self);
 
 /**
- * moose_song_set_duration:
- * @self: a #MooseSong
- * @duration: The duration to set.
- *
- * Set the duration.
- */
-void moose_song_set_duration(MooseSong * self, unsigned duration);
-
-/**
  * moose_song_get_last_modified:
  * @self: a #MooseSong
  *
@@ -177,15 +147,6 @@ void moose_song_set_duration(MooseSong * self, unsigned duration);
  * Returns: The last_modified
  */
 time_t moose_song_get_last_modified(MooseSong * self);
-
-/**
- * moose_song_set_duration:
- * @self: a #MooseSong
- * @duration: The duration to set.
- *
- * Set the duration.
- */
-void moose_song_set_last_modified(MooseSong * self, time_t last_modified);
 
 /**
  * moose_song_get_pos:
@@ -198,15 +159,6 @@ void moose_song_set_last_modified(MooseSong * self, time_t last_modified);
 unsigned moose_song_get_pos(MooseSong * self);
 
 /**
- * moose_song_set_pos:
- * @self: a #MooseSong
- * @pos: The pos to set.
- *
- * Set the pos.
- */
-void moose_song_set_pos(MooseSong * self, unsigned pos);
-
-/**
  * moose_song_get_id:
  * @self: a #MooseSong
  *
@@ -217,15 +169,6 @@ void moose_song_set_pos(MooseSong * self, unsigned pos);
 unsigned moose_song_get_id(MooseSong * self);
 
 /**
- * moose_song_set_id:
- * @self: a #MooseSong
- * @id: The id to set.
- *
- * Set the id.
- */
-void moose_song_set_id(MooseSong * self, unsigned id);
-
-/**
  * moose_song_get_prio:
  * @self: a #MooseSong
  *
@@ -234,15 +177,6 @@ void moose_song_set_id(MooseSong * self, unsigned id);
  * Returns: The prio
  */
 unsigned moose_song_get_prio(MooseSong * self);
-
-/**
- * moose_song_set_prio:
- * @self: a #MooseSong
- * @prio: The prio to set.
- *
- * Set the prio.
- */
-void moose_song_set_prio(MooseSong * self, unsigned prio);
 
 G_END_DECLS
 
