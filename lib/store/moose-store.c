@@ -2,11 +2,7 @@
 #include "../mpd/moose-mpd-signal.h"
 #include "../misc/moose-misc-gzip.h"
 
-#include "moose-store-stored-playlists.h"
-#include "moose-store-operations.h"
 #include "moose-store-private.h"
-#include "moose-store-macros.h"
-#include "moose-store-dirs.h"
 #include "moose-store.h"
 
 /* g_unlink() */
@@ -318,9 +314,6 @@ static void moose_store_shutdown(MooseStore * self)
     g_object_unref(self->stack);
     self->stack = NULL;
 
-    /* Free list of stored playlists */
-    moose_stprv_spl_destroy(self);
-
     char * db_path = moose_store_construct_full_dbpath(self, self->db_directory);
 
     if (self->write_to_disk)
@@ -329,7 +322,6 @@ static void moose_store_shutdown(MooseStore * self)
     if (self->settings->use_compression && moose_gzip(db_path) == false)
         moose_shelper_report_progress(self->client, true, "Note: Nothing to zip.\n");
 
-    moose_stprv_dir_finalize_statements(self);
     moose_stprv_close_handle(self, true);
     self->handle = NULL;
 
@@ -360,7 +352,6 @@ static void moose_store_buildup(MooseStore * self)
          * or an backup will be loaded into memory */
         moose_strprv_open_memdb(self);
         moose_stprv_prepare_all_statements(self);
-        moose_stprv_dir_prepare_statemtents(self);
 
         /* make sure we inserted the meta info at least once */
         moose_stprv_insert_meta_attributes(self);
@@ -379,7 +370,6 @@ static void moose_store_buildup(MooseStore * self)
          * or an backup will be loaded into memory */
         moose_strprv_open_memdb(self);
         moose_stprv_prepare_all_statements(self);
-        moose_stprv_dir_prepare_statemtents(self);
 
         /* stack is allocated to the old size */
         self->stack = moose_playlist_new_full(song_count + 1, (GDestroyNotify)moose_song_unref);
@@ -389,9 +379,6 @@ static void moose_store_buildup(MooseStore * self)
 
         moose_store_send_job_no_args(self, MOOSE_OPER_DESERIALIZE);
     }
-
-    /* Playlist support */
-    moose_stprv_spl_init(self);
 
     g_free(db_path);
 }
@@ -531,13 +518,13 @@ void * moose_store_job_execute_callback(
         }
 
         if (data->op & MOOSE_OPER_LISTALLINFO) {
-            moose_store_oper_listallinfo(self, cancel_op);
+            moose_stprv_oper_listallinfo(self, cancel_op);
             data->op |= (MOOSE_OPER_PLCHANGES | MOOSE_OPER_SPL_UPDATE | MOOSE_OPER_UPDATE_META);
             self->force_update_listallinfo = false;
         }
 
         if (data->op & MOOSE_OPER_PLCHANGES) {
-            moose_store_oper_plchanges(self, cancel_op);
+            moose_stprv_oper_plchanges(self, cancel_op);
             data->op |= (MOOSE_OPER_SPL_UPDATE | MOOSE_OPER_UPDATE_META);
             self->force_update_plchanges = false;
         }
@@ -560,7 +547,8 @@ void * moose_store_job_execute_callback(
         }
 
         if (data->op & MOOSE_OPER_SPL_LIST_ALL) {
-            moose_stprv_spl_get_known_playlists(self, data->out_stack);
+            // TODO!
+            // moose_stprv_spl_get_known_playlists(self, data->out_stack);
             result = data->out_stack;
         }
 

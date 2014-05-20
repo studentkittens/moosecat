@@ -1,5 +1,4 @@
 #include "moose-store-private.h"
-#include "moose-store-macros.h"
 #include "moose-store-query-parser.h"
 
 #include "../mpd/moose-mpd-signal-helper.h"
@@ -11,11 +10,29 @@
 /* strtol() */
 #include <stdlib.h>
 
-/* gmtime(), strftime() */
-#ifndef _POSIX_SOURCE
-    #define _POSIX_SOURCE
-#endif
-#include <time.h>
+#define BIND_INT(db, type, pos_idx, value, error_id) \
+    error_id |= sqlite3_bind_int(SQL_STMT(db, type), (pos_idx)++, value);
+
+#define BIND_TXT(db, type, pos_idx, value, error_id) \
+    error_id |= sqlite3_bind_text(SQL_STMT(db, type), (pos_idx)++, value, -1, NULL);
+
+#define BIND_TAG(db, type, pos_idx, song, tag_id, error_id) \
+    BIND_TXT(db, type, pos_idx, moose_song_get_tag(song, tag_id), error_id)
+
+
+
+#define REPORT_SQL_ERROR(store, message)                                                           \
+    moose_shelper_report_error_printf(store->client, "[%s:%d] %s -> %s (#%d)",                       \
+                                      __FILE__, __LINE__, message,                                   \
+                                      sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle)) \
+
+#define CLEAR_BINDS(stmt)          \
+    sqlite3_reset(stmt);          \
+    sqlite3_clear_bindings(stmt); \
+
+#define CLEAR_BINDS_BY_NAME(store, type) \
+    CLEAR_BINDS(SQL_STMT(store, type))
+
 
 #define SQL_CODE(NAME) \
     _sql_stmts[STMT_SQL_ ## NAME]
@@ -71,6 +88,13 @@ enum {
     STMT_SQL_BEGIN,
     /* commit statement */
     STMT_SQL_COMMIT,
+    STMT_SQL_DIR_INSERT,
+    STMT_SQL_DIR_SEARCH_PATH,
+    STMT_SQL_DIR_SEARCH_DEPTH,
+    STMT_SQL_DIR_SEARCH_PATH_AND_DEPTH,
+    STMT_SQL_DIR_DELETE_ALL,
+    STMT_SQL_DIR_STMT_COUNT,
+    STMT_SQL_SPL_SELECT_TABLES,
     /* === total number of defined sources === */
     STMT_SQL_SOURCE_COUNT
     /* ======================================= */
@@ -105,6 +129,7 @@ enum {
 };
 
 ///////////////////
+
 static const char * _sql_stmts[] = {
     [STMT_SQL_CREATE] =
         "PRAGMA foreign_keys = ON;                                                                          \n"
@@ -196,6 +221,24 @@ static const char * _sql_stmts[] = {
         "BEGIN IMMEDIATE;",
     [STMT_SQL_COMMIT] =
         "COMMIT;",
+    [STMT_SQL_DIR_INSERT] = 
+        "INSERT INTO dirs VALUES(?, ?);",
+    [STMT_SQL_DIR_DELETE_ALL] =
+        "DELETE FROM dirs;",
+    [STMT_SQL_DIR_SEARCH_PATH] =
+        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    [STMT_SQL_DIR_SEARCH_DEPTH] =
+        "SELECT -1, path FROM dirs WHERE depth = ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    [STMT_SQL_DIR_SEARCH_PATH_AND_DEPTH] =
+        "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
+        "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
+        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    [STMT_SQL_SPL_SELECT_TABLES] =
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;",
     [STMT_SQL_SOURCE_COUNT] =
         ""
 };
@@ -414,6 +457,10 @@ void moose_stprv_close_handle(MooseStore * self, bool free_statements)
         REPORT_SQL_ERROR(self, "Warning: Unable to close db connection");
         self->handle = NULL;
     }
+    if (self->spl_stack != NULL) {
+        g_ptr_array_free(self->spl_stack, true);
+        self->spl_stack = NULL;
+    }
 }
 
 ////////////////////////////////
@@ -463,38 +510,38 @@ bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
 
     /* bind basic attributes */
     // TODO TODO TODO: Start/End is empty.
-    bind_txt(db, INSERT, pos_idx, moose_song_get_uri(song), error_id);
-    bind_int(db, INSERT, pos_idx, 0, error_id);
-    bind_int(db, INSERT, pos_idx, 1, error_id);
-    bind_int(db, INSERT, pos_idx, moose_song_get_duration(song), error_id);
-    bind_int(db, INSERT, pos_idx, moose_song_get_last_modified(song), error_id);
+    BIND_TXT(db, INSERT, pos_idx, moose_song_get_uri(song), error_id);
+    BIND_INT(db, INSERT, pos_idx, 0, error_id);
+    BIND_INT(db, INSERT, pos_idx, 1, error_id);
+    BIND_INT(db, INSERT, pos_idx, moose_song_get_duration(song), error_id);
+    BIND_INT(db, INSERT, pos_idx, moose_song_get_last_modified(song), error_id);
 
     /* bind tags */
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_ARTIST, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_ALBUM, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_TITLE, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_ALBUM_ARTIST, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_TRACK, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_NAME, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_GENRE, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_DATE, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_ARTIST, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_ALBUM, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_TITLE, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_ALBUM_ARTIST, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_TRACK, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_NAME, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_GENRE, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_DATE, error_id);
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(db, "WARNING: Error while binding");
     }
 
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_COMPOSER, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_PERFORMER, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_COMMENT, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_DISC, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ARTISTID, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMID, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
-    bind_tag(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_TRACKID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_COMPOSER, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_PERFORMER, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_COMMENT, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_DISC, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ARTISTID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_TRACKID, error_id);
 
     /* Constant Value. See Create statement. */
-    bind_int(db, INSERT, pos_idx,  0, error_id);
+    BIND_INT(db, INSERT, pos_idx,  0, error_id);
 
-    bind_int(db, INSERT, pos_idx, moose_stprv_path_get_depth(moose_song_get_uri(song)), error_id);
+    BIND_INT(db, INSERT, pos_idx, moose_stprv_path_get_depth(moose_song_get_uri(song)), error_id);
 
     /* this is one error check for all the blocks above */
     if (error_id != SQLITE_OK)
@@ -668,8 +715,8 @@ int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bo
         select_stmt = SQL_STMT(self, SELECT_MATCHED_ALL);
     } else {
         select_stmt = SQL_STMT(self, SELECT_MATCHED);
-        bind_txt(self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
-        bind_int(self, SELECT_MATCHED, pos_id, limit_len, error_id);
+        BIND_TXT(self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
+        BIND_INT(self, SELECT_MATCHED, pos_id, limit_len, error_id);
     }
 
     if (error_id != SQLITE_OK) {
@@ -952,7 +999,7 @@ int moose_stprv_queue_clip(MooseStore * self, int since_pos)
     int error_id = SQLITE_OK;
     sqlite3_stmt * clear_stmt = SQL_STMT(self, QUEUE_CLEAR);
 
-    bind_int(self, QUEUE_CLEAR, pos_idx, MAX(-1, since_pos - 1), error_id);
+    BIND_INT(self, QUEUE_CLEAR, pos_idx, MAX(-1, since_pos - 1), error_id);
 
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot bind stuff to clip statement");
@@ -1022,9 +1069,9 @@ void moose_stprv_queue_update_stack_posid(MooseStore * self)
 void moose_stprv_queue_insert_posid(MooseStore * self, int pos, int idx, const char * file)
 {
     int pos_idx = 1, error_id = SQLITE_OK;
-    bind_txt(self, QUEUE_INSERT_ROW, pos_idx, file, error_id);
-    bind_int(self, QUEUE_INSERT_ROW, pos_idx, pos, error_id);
-    bind_int(self, QUEUE_INSERT_ROW, pos_idx, idx, error_id);
+    BIND_TXT(self, QUEUE_INSERT_ROW, pos_idx, file, error_id);
+    BIND_INT(self, QUEUE_INSERT_ROW, pos_idx, pos, error_id);
+    BIND_INT(self, QUEUE_INSERT_ROW, pos_idx, idx, error_id);
     pos_idx = 1;
 
     if (error_id != SQLITE_OK) {
@@ -1062,4 +1109,1143 @@ int moose_stprv_path_get_depth(const char * dir_path)
     }
 
     return dir_depth;
+}
+
+///////////////////
+///////////////////
+///////////////////
+///////////////////
+
+void moose_stprv_dir_insert(MooseStore * self, const char * path)
+{
+    g_assert(self);
+    g_assert(path);
+
+    int pos_idx = 1;
+    int error_id = SQLITE_OK;
+    BIND_TXT(self, DIR_INSERT, pos_idx, path, error_id);
+    BIND_INT(self, DIR_INSERT, pos_idx, moose_stprv_path_get_depth(path), error_id);
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR(self, "Cannot bind stuff to INSERT statement");
+        return;
+    }
+
+    if (sqlite3_step(SQL_STMT(self, DIR_INSERT)) != SQLITE_DONE) {
+        REPORT_SQL_ERROR(self, "cannot INSERT directory");
+    }
+
+    /* Make sure bindings are ready for the next insert */
+    CLEAR_BINDS_BY_NAME(self, DIR_INSERT);
+    sqlite3_reset(SQL_STMT(self, DIR_INSERT));
+}
+
+//////////////////
+
+void moose_stprv_dir_delete(MooseStore * self)
+{
+    g_assert(self);
+
+    if (sqlite3_step(SQL_STMT(self, DIR_DELETE_ALL)) != SQLITE_DONE) {
+        REPORT_SQL_ERROR(self, "cannot DELETE * from dirs");
+    }
+    sqlite3_reset(SQL_STMT(self, DIR_DELETE_ALL));
+}
+
+//////////////////
+
+int moose_stprv_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth)
+{
+    g_assert(self);
+    g_assert(stack);
+    int returned = 0;
+    int pos_idx = 1;
+    int error_id = SQLITE_OK;
+
+    if (directory && *directory == '/')
+        directory = NULL;
+
+    sqlite3_stmt * select_stmt = NULL;
+
+    if (directory != NULL && depth < 0) {
+        select_stmt = SQL_STMT(self, DIR_SEARCH_PATH);
+        BIND_TXT(self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
+        BIND_TXT(self, DIR_SEARCH_PATH, pos_idx, directory, error_id);
+    } else if (directory == NULL && depth >= 0) {
+        select_stmt = SQL_STMT(self, DIR_SEARCH_DEPTH);
+        BIND_INT(self, DIR_SEARCH_DEPTH, pos_idx, depth, error_id);
+        BIND_INT(self, DIR_SEARCH_DEPTH, pos_idx, depth, error_id);
+    } else if (directory != NULL && depth >= 0) {
+        select_stmt = SQL_STMT(self, DIR_SEARCH_PATH_AND_DEPTH);
+        BIND_INT(self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
+        BIND_TXT(self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
+        BIND_INT(self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, depth, error_id);
+        BIND_TXT(self, DIR_SEARCH_PATH_AND_DEPTH, pos_idx, directory, error_id);
+    } else {
+        return -1;
+    }
+
+    if (error_id != SQLITE_OK) {
+        REPORT_SQL_ERROR(self, "Cannot bind stuff to directory select");
+        return -2;
+    } else {
+        while (sqlite3_step(select_stmt) == SQLITE_ROW) {
+            const char * rowid = (const char *)sqlite3_column_text(select_stmt, 0);
+            const char * path = (const char *)sqlite3_column_text(select_stmt, 1);
+            moose_playlist_append(stack, g_strjoin(":", rowid, path, NULL));
+            ++returned;
+        }
+
+        if (sqlite3_errcode(self->handle) != SQLITE_DONE) {
+            REPORT_SQL_ERROR(self, "Some error occured during selecting directories");
+            return -3;
+        }
+
+        CLEAR_BINDS(select_stmt);
+        sqlite3_reset(select_stmt);
+    }
+
+    return returned;
+}
+
+
+///////////////////
+///////////////////
+///////////////////
+///////////////////
+
+typedef struct {
+    MooseStore * store;
+    GAsyncQueue * queue;
+} MooseStoreQueueTag;
+
+
+/* Popping this from a GAsyncQueue means
+ * the queue is empty and we night to do some actions
+ */
+#define EMPTY_QUEUE_INDICATOR 0x1
+
+///////////////////////////////////
+
+static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data)
+{
+    MooseStoreQueueTag * tag = user_data;
+    MooseStore * self = tag->store;
+    GAsyncQueue * queue = tag->queue;
+
+    struct mpd_entity * ent = NULL;
+
+    /* Begin a new transaction */
+    moose_stprv_begin(self);
+
+    while ((gpointer)(ent = g_async_queue_pop(queue)) != queue) {
+        switch (mpd_entity_get_type(ent)) {
+        case MPD_ENTITY_TYPE_SONG: {
+
+            MooseSong * song = moose_song_new_from_struct(
+                (struct mpd_song *)mpd_entity_get_song(ent)
+                );
+
+            moose_playlist_append(self->stack, song);
+            moose_stprv_insert_song(self, song);
+            mpd_entity_free(ent);
+
+            break;
+        }
+
+        case MPD_ENTITY_TYPE_DIRECTORY: {
+            const struct mpd_directory * dir = mpd_entity_get_directory(ent);
+
+            if (dir != NULL) {
+                moose_stprv_dir_insert(self, mpd_directory_get_path(dir));
+                mpd_entity_free(ent);
+            }
+
+            break;
+        }
+
+        case MPD_ENTITY_TYPE_PLAYLIST:
+        default: {
+            mpd_entity_free(ent);
+            ent = NULL;
+        }
+        }
+    }
+
+    /* Commit changes */
+    moose_stprv_commit(self);
+
+    return NULL;
+}
+
+///////////////////////////////////
+
+/*
+ * Query a 'listallinfo' from the MPD Server, and insert all returned
+ * song into the database and the pointer stack.
+ *
+ * Other items like directories and playlists are discarded at the moment.
+ *
+ * BUGS: mpd's protocol reference states that
+ *       very large query-responses might cause
+ *       a client disconnect by the server...
+ *
+ *       If this is happening, it might be because of this,
+ *       but till now this did not happen.
+ *
+ *       Also, this value is adjustable in mpd.conf
+ *       e.g. max_command_list_size "16192"
+ */
+void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
+{
+    g_assert(store);
+    g_assert(store->client);
+
+    MooseClient * self = store->client;
+    int progress_counter = 0;
+    size_t db_version = 0;
+    MooseStatus * status = moose_client_ref_status(store->client);
+
+    int number_of_songs = moose_status_stats_get_number_of_songs(status);
+
+    db_version = moose_stprv_get_db_version(store);
+
+    if (store->force_update_listallinfo == false) {
+        size_t db_update_time = moose_status_stats_get_db_update_time(status);
+
+        if (db_update_time  == db_version) {
+            moose_shelper_report_progress(
+                self, true,
+                "database: Will not update database, timestamp didn't change."
+                );
+            return;
+        } else {
+            moose_shelper_report_progress(
+                self, true,
+                "database: Will update database (%u != %u)",
+                (unsigned)db_update_time, (unsigned)db_version
+                );
+        }
+    } else {
+        moose_shelper_report_progress(self, true, "database: Doing forced listallinfo");
+    }
+    moose_status_unref(status);
+
+    GTimer * timer = NULL;
+    GAsyncQueue * queue = g_async_queue_new();
+    GThread * sql_thread = NULL;
+
+    MooseStoreQueueTag tag;
+    tag.queue = queue;
+    tag.store = store;
+
+    /* We're building the whole table new,
+     * so throw away old data */
+    moose_stprv_delete_songs_table(store);
+    moose_stprv_dir_delete(store);
+
+    /* Also throw away current stack, and reallocate it
+     * to the fitting size.
+     *
+     * Apparently GPtrArray does not support reallocating,
+     * without adding NULL-cells to the array? */
+    if (store->stack != NULL) {
+        g_object_unref(store->stack);
+    }
+
+    store->stack = moose_playlist_new_full(
+        number_of_songs + 1,
+        (GDestroyNotify)moose_song_unref
+        );
+
+    /* Profiling */
+    timer = g_timer_new();
+
+    sql_thread = g_thread_new(
+        "sql-thread",
+        moose_stprv_do_list_all_info_sql_thread,
+        &tag
+        );
+
+    struct mpd_connection * conn = moose_client_get(store->client);
+    if (conn != NULL) {
+        struct mpd_entity * ent = NULL;
+
+        g_timer_start(timer);
+
+        /* Order the real big list */
+        mpd_send_list_all_meta(conn, "/");
+
+        while ((ent = mpd_recv_entity(conn)) != NULL) {
+            if (moose_jm_check_cancel(store->jm, cancel)) {
+                moose_shelper_report_progress(
+                    self, false, "database: listallinfo cancelled!"
+                    );
+                break;
+            }
+
+            ++progress_counter;
+
+            g_async_queue_push(queue, ent);
+        }
+
+        /* This should only happen if the operation was cancelled */
+        if (mpd_response_finish(conn) == false) {
+            moose_shelper_report_error(store->client, conn);
+        }
+    }
+    moose_client_put(store->client);
+
+    /* tell SQL thread kindly to die, but wait for him to bleed */
+    g_async_queue_push(queue, queue);
+    g_thread_join(sql_thread);
+
+    moose_shelper_report_progress(
+        self, true, "database: retrieved %d songs from mpd (took %2.3fs)",
+        number_of_songs, g_timer_elapsed(timer, NULL)
+        );
+
+    moose_shelper_report_operation_finished(self, MOOSE_OP_DB_UPDATED);
+
+    g_async_queue_unref(queue);
+    g_timer_destroy(timer);
+}
+
+
+///////////////////////////////////
+
+static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data)
+{
+    MooseStoreQueueTag * tag = user_data;
+    MooseStore * self = tag->store;
+    GAsyncQueue * queue = tag->queue;
+
+    int clipped = 0;
+    bool first_song_passed = false;
+    MooseSong * song = NULL;
+    GTimer * timer = g_timer_new();
+    gdouble clip_time = 0.0, posid_time = 0.0, stack_time = 0.0;
+
+    /* start a transaction */
+    moose_stprv_begin(self);
+
+    while ((gpointer)(song = g_async_queue_pop(queue)) != queue) {
+        if (first_song_passed == false || song == (gpointer)EMPTY_QUEUE_INDICATOR) {
+            g_timer_start(timer);
+
+            int start_position = -1;
+            if (song != (gpointer)EMPTY_QUEUE_INDICATOR) {
+                start_position = moose_song_get_pos(song);
+            }
+            clipped = moose_stprv_queue_clip(self, start_position);
+            clip_time = g_timer_elapsed(timer, NULL);
+            g_timer_start(timer);
+
+            first_song_passed = true;
+        }
+
+        if (song != (gpointer)EMPTY_QUEUE_INDICATOR) {
+            moose_stprv_queue_insert_posid(
+                self,
+                moose_song_get_pos(song),
+                moose_song_get_id(song),
+                moose_song_get_uri(song)
+                );
+            moose_song_unref(song);
+        }
+    }
+
+    posid_time = g_timer_elapsed(timer, NULL);
+
+    if (clipped > 0) {
+        moose_shelper_report_progress(
+            self->client,
+            true,
+            "database: Clipped %d songs.",
+            clipped
+            );
+    }
+
+    /* Commit all those update statements */
+    moose_stprv_commit(self);
+
+    /* Update the pos/id data in the song stack (=> sync with db) */
+    g_timer_start(timer);
+    moose_stprv_queue_update_stack_posid(self);
+    stack_time = g_timer_elapsed(timer, NULL);
+    g_timer_destroy(timer);
+
+    moose_shelper_report_progress(
+        self->client, true,
+        "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
+        clip_time, posid_time, stack_time
+        );
+
+    return NULL;
+}
+
+///////////////////////////////////
+
+void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
+{
+    g_assert(store);
+
+    MooseClient * self = store->client;
+
+    int progress_counter = 0;
+    size_t last_pl_version = 0;
+
+    /* get last version of the queue (which we're having already.
+     * (in case full queue is wanted take first version) */
+    if (store->force_update_plchanges == false) {
+        last_pl_version = moose_stprv_get_pl_version(store);
+    }
+
+    if (store->force_update_plchanges == false) {
+        size_t current_pl_version = -1;
+        MooseStatus * status = moose_client_ref_status(store->client);
+        if (status != NULL) {
+            current_pl_version = moose_status_get_queue_version(status);
+        } else {
+            current_pl_version = last_pl_version;
+        }
+        moose_status_unref(status);
+
+        if (last_pl_version == current_pl_version) {
+            moose_shelper_report_progress(
+                self, true,
+                "database: Will not update queue, version didn't change (%d == %d)",
+                (int)last_pl_version, (int)current_pl_version
+                );
+            return;
+        }
+    }
+
+    GAsyncQueue * queue = g_async_queue_new();
+    GThread * sql_thread = NULL;
+    GTimer * timer = NULL;
+
+    MooseStoreQueueTag tag;
+    tag.queue = queue;
+    tag.store = store;
+
+    /* needs to be started after inserting meta attributes, since it calls 'begin;' */
+    sql_thread = g_thread_new("queue-update", moose_stprv_do_plchanges_sql_thread, &tag);
+
+    /* timing */
+    timer = g_timer_new();
+
+    /* Now do the actual hard work, send the actual plchanges command,
+     * loop over the retrieved contents, and push them to the SQL Thread */
+    struct mpd_connection * conn = moose_client_get(store->client);
+    if (conn != NULL) {
+        g_timer_start(timer);
+
+        moose_shelper_report_progress(
+            self, true,
+            "database: Queue was updated. Will do ,,plchanges %d''",
+            (int)last_pl_version);
+
+        if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
+            struct mpd_song * song_struct = NULL;
+
+            while ((song_struct = mpd_recv_song(conn)) != NULL) {
+                MooseSong * song = moose_song_new_from_struct(song_struct);
+                mpd_song_free(song_struct);
+
+                if (moose_jm_check_cancel(store->jm, cancel)) {
+                    moose_shelper_report_progress(
+                        self, false, "database: plchanges canceled!"
+                        );
+
+                    break;
+                }
+
+                ++progress_counter;
+
+                g_async_queue_push(queue, song);
+            }
+
+            /* Empty queue - we need to notift he other thread
+             * */
+            if (progress_counter == 0) {
+                g_async_queue_push(queue, (gpointer)EMPTY_QUEUE_INDICATOR);
+            }
+        }
+
+        if (mpd_response_finish(conn) == false) {
+            moose_shelper_report_error(store->client, conn);
+        }
+    }
+    moose_client_put(store->client);
+
+    /* Killing the SQL thread softly. */
+    g_async_queue_push(queue, queue);
+    g_thread_join(sql_thread);
+
+    /* a bit of timing report */
+    moose_shelper_report_progress(
+        self, true,
+        "database: updated %d song's pos/id (took %2.3fs)",
+        progress_counter, g_timer_elapsed(timer, NULL)
+        );
+
+    moose_shelper_report_operation_finished(self, MOOSE_OP_QUEUE_UPDATED);
+
+    g_async_queue_unref(queue);
+    g_timer_destroy(timer);
+}
+
+/*
+ * Random thoughts about storing playlists:
+ *
+ * Create pl table:
+ * CREATE TABLE %q (song_idx integer, FOREIGN KEY(song_idx) REFERENCES songs(rowid));
+ *
+ * Update a playlist:
+ * BEGIN IMMEDIATE;
+ * DELETE FROM spl_%q;
+ * INSERT INTO spl_%q VALUES((SELECT rowid FROM songs_content WHERE c0uri = %Q));
+ * ...
+ * COMMIT;
+ *
+ * Select songs from playlist:
+ * SELECT rowid FROM songs JOIN spl%q ON songs.rowid = spl_%q.song_idx WHERE artist MATCH ?;
+ *
+ *
+ * Delete playlist:
+ * DROP spl_%q;
+ *
+ * List all loaded playlists:
+ * SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;
+ *
+ * The plan:
+ * On startup OR on MPD_IDLE_STORED_PLAYLIST:
+ *    Get all playlists, either through:
+ *        listplaylists
+ *    or during:
+ *        listallinfo
+ *
+ *    The mpd_playlist objects are stored in a stack.
+ *
+ *    Sync those with the database, i.e. playlists that are not up-to-date,
+ *    or were deleted are dropped. New playlists are __not__ created.
+ *    If the playlist was out of date it gets recreated.
+ *
+ * On playlist load:
+ *    Send 'listplaylist <pl_name>', create a table named spl_<pl_name>,
+ *    and fill in all the song-ids
+ */
+
+///////////////////
+
+static char * moose_stprv_spl_construct_table_name(struct mpd_playlist * playlist)
+{
+    g_assert(playlist);
+    return g_strdup_printf("spl_%x_%s",
+                           (unsigned)mpd_playlist_get_last_modified(playlist),
+                           mpd_playlist_get_path(playlist));
+}
+
+///////////////////
+
+static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT */ time_t * last_modified)
+{
+    g_assert(table_name);
+
+    for (size_t i = 0; table_name[i] != 0; ++i) {
+        if (table_name[i] == '_') {
+            if (last_modified != NULL) {
+                *last_modified = g_ascii_strtoll(&table_name[i + 1], NULL, 16);
+            }
+
+            char * name_begin = strchr(&table_name[i + 1], '_');
+
+            if (name_begin != NULL)
+                return g_strdup(name_begin + 1);
+            else
+                return NULL;
+        }
+    }
+
+    return NULL;
+}
+
+///////////////////
+
+static void moose_stprv_spl_drop_table(MooseStore   * self, const char * table_name)
+{
+    g_assert(table_name);
+    g_assert(self);
+    char * sql = sqlite3_mprintf("DROP TABLE IF EXISTS %q;", table_name);
+    if (sql != NULL) {
+        if (sqlite3_exec(self->handle, sql, 0, 0, 0) != SQLITE_OK) {
+            REPORT_SQL_ERROR(self, "Cannot DROP some stored playlist table...");
+        }
+
+        sqlite3_free(sql);
+    }
+}
+
+///////////////////
+
+static void moose_stprv_spl_create_table(MooseStore * self, const char * table_name)
+{
+    g_assert(self);
+    g_assert(table_name);
+    char * sql = sqlite3_mprintf(
+        "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);", table_name
+    );
+
+    if (sql != NULL) {
+        if (sqlite3_exec(self->handle, sql, 0, 0, 0) != SQLITE_OK) {
+            REPORT_SQL_ERROR(self, "Cannot CREATE some stored playlist table...");
+        }
+
+        sqlite3_free(sql);
+    }
+}
+
+///////////////////
+
+static void moose_stprv_spl_delete_content(MooseStore * self, const char * table_name)
+{
+    g_assert(self);
+    g_assert(table_name);
+    moose_stprv_spl_drop_table(self, table_name);
+    moose_stprv_spl_create_table(self, table_name);
+}
+
+///////////////////
+
+static struct mpd_playlist * moose_stprv_spl_name_to_playlist(MooseStore * store, const char * playlist_name) {
+    g_assert(store);
+
+    struct mpd_playlist * playlist_result = NULL;
+    unsigned length = store->spl_stack->len;
+
+    for (unsigned i = 0; i < length; ++i) {
+        struct mpd_playlist * playlist = g_ptr_array_index(store->spl_stack, i);
+
+        if (playlist && g_strcmp0(playlist_name, mpd_playlist_get_path(playlist)) == 0) {
+            playlist_result = playlist;
+        }
+    }
+
+    return playlist_result;
+}
+
+///////////////////
+
+static void moose_stprv_spl_listplaylists(MooseStore * store)
+{
+    g_assert(store);
+    g_assert(store->client);
+    MooseClient * self = store->client;
+
+    if (store->spl_stack != NULL) {
+        g_ptr_array_free(store->spl_stack, true);
+        store->spl_stack = NULL;
+    }
+
+    store->spl_stack = g_ptr_array_new_with_free_func((GDestroyNotify)mpd_playlist_free);
+
+    struct mpd_connection * conn = moose_client_get(self);
+    if (conn != NULL) {
+        struct mpd_playlist * playlist = NULL;
+        mpd_send_list_playlists(conn);
+
+        while ((playlist = mpd_recv_playlist(conn)) != NULL) {
+            g_ptr_array_add(store->spl_stack, playlist);
+        }
+
+        if (mpd_response_finish(conn) == false) {
+            moose_shelper_report_error(self, conn);
+        }
+    } else {
+        moose_shelper_report_error_printf(store->client,
+                                          "Cannot get connection to get listplaylists (not connected?)"
+                                          );
+    }
+    moose_client_put(self);
+}
+///////////////////
+
+static GList * moose_stprv_spl_get_loaded_list(MooseStore * self)
+{
+    GList * table_name_list = NULL;
+
+    /* Select all table names from db that start with spl_ */
+    while (sqlite3_step(SQL_STMT(self, SPL_SELECT_TABLES)) == SQLITE_ROW) {
+        table_name_list = g_list_prepend(
+            table_name_list,
+            g_strdup(
+                (char *)sqlite3_column_text(SQL_STMT(self, SPL_SELECT_TABLES), 0)
+                )
+            );
+    }
+
+    /* Be nice, and always check for errors */
+    int error = sqlite3_errcode(self->handle);
+
+    if (error != SQLITE_DONE && error != SQLITE_OK) {
+        REPORT_SQL_ERROR(self, "Some error while selecting all playlists");
+    } else {
+        CLEAR_BINDS_BY_NAME(self, SPL_SELECT_TABLES);
+    }
+
+    return table_name_list;
+}
+
+///////////////////
+
+static int moose_stprv_spl_get_song_count(MooseStore * self, struct mpd_playlist * playlist)
+{
+    g_assert(self);
+
+    int count = -1;
+    char * table_name = moose_stprv_spl_construct_table_name(playlist);
+
+    if (table_name != NULL) {
+        char * dyn_sql = sqlite3_mprintf("SELECT count(*) FROM %q;", table_name);
+
+        if (dyn_sql != NULL) {
+            sqlite3_stmt * count_stmt = NULL;
+
+            if (sqlite3_prepare_v2(self->handle, dyn_sql, -1, &count_stmt, NULL) != SQLITE_OK) {
+                REPORT_SQL_ERROR(self, "Cannot prepare COUNT stmt!");
+            } else {
+                if (sqlite3_step(count_stmt) == SQLITE_ROW) {
+                    count = sqlite3_column_int(count_stmt, 0);
+                }
+
+                if (sqlite3_step(count_stmt) != SQLITE_DONE) {
+                    REPORT_SQL_ERROR(self, "Cannot count songs in stored playlist table.");
+                }
+            }
+
+            sqlite3_free(dyn_sql);
+        }
+
+        g_free(table_name);
+    }
+    return count;
+}
+
+/////////////////// PUBLIC AREA ///////////////////
+
+void moose_stprv_spl_update(MooseStore * self)
+{
+    g_assert(self);
+
+    /* Get a new list of playlists from mpd */
+    moose_stprv_spl_listplaylists(self);
+
+    GList * table_name_list = moose_stprv_spl_get_loaded_list(self);
+
+    moose_shelper_report_progress(self->client, true, "database: Updating stored playlists...");
+
+    /* Filter all Playlist Tables that do not exist anymore in the current playlist stack.
+     * i.e. those that were deleted, or accidentally created. */
+    for (GList * iter = table_name_list; iter;) {
+        char * drop_table_name = iter->data;
+
+        if (drop_table_name != NULL) {
+            bool is_valid = false;
+
+            for (unsigned i = 0; i < self->spl_stack->len; ++i) {
+                struct mpd_playlist * playlist = g_ptr_array_index(self->spl_stack, i);
+                char * valid_table_name = moose_stprv_spl_construct_table_name(playlist);
+                is_valid = (g_strcmp0(valid_table_name, drop_table_name) == 0);
+                g_free(valid_table_name);
+
+                if (is_valid) {
+                    break;
+                }
+            }
+
+            if (is_valid == false) {
+                /* drop invalid table */
+                moose_shelper_report_progress(
+                    self->client, true,
+                    "database: Dropping orphaned playlist-table ,,%s''",
+                    drop_table_name
+                    );
+                moose_stprv_spl_drop_table(self, drop_table_name);
+                iter = iter->next;
+                table_name_list = g_list_delete_link(table_name_list, iter);
+                continue;
+            }
+        }
+
+        iter = iter->next;
+    }
+
+    /* Iterate over all loaded mpd_playlists,
+    * and find the corresponding table_name.
+    *
+    * If desired, also call load() on it.  */
+    for (unsigned i = 0; i < self->spl_stack->len; ++i) {
+        struct mpd_playlist * playlist = g_ptr_array_index(self->spl_stack, i);
+
+        if (playlist != NULL) {
+            /* Find matching playlists by name.
+             * If the playlist is too old:
+             *    Re-Load it.
+             * If the playlist does not exist in the stack anymore:
+             *    Drop it.
+             */
+            for (GList * iter = table_name_list; iter; iter = iter->next) {
+                char * old_table_name = iter->data;
+                time_t old_pl_time = 0;
+                char * old_pl_name = moose_stprv_spl_parse_table_name(old_table_name, &old_pl_time);
+
+                if (g_strcmp0(old_pl_name, mpd_playlist_get_path(playlist)) == 0) {
+                    time_t new_pl_time = mpd_playlist_get_last_modified(playlist);
+
+                    if (new_pl_time == old_pl_time) {
+                        /* nothing has changed */
+                    } else if (new_pl_time > old_pl_time) {
+                        /* reload old_pl? */
+                        moose_stprv_spl_load(self, playlist);
+                    } else {
+                        /* This should not happen */
+                        g_assert_not_reached();
+                    }
+
+                    g_free(old_pl_name);
+                    break;
+                }
+
+                g_free(old_pl_name);
+            }
+        }
+    }
+
+    /* table names were dyn. allocated. */
+    g_list_free_full(table_name_list, g_free);
+
+    moose_shelper_report_operation_finished(self->client, MOOSE_OP_SPL_LIST_UPDATED);
+}
+
+///////////////////
+
+bool moose_stprv_spl_is_loaded(MooseStore * store, struct mpd_playlist * playlist)
+{
+    bool result = false;
+
+    /* Construct the table name for comparasion */
+    char * table_name = moose_stprv_spl_construct_table_name(playlist);
+    GList * table_names = moose_stprv_spl_get_loaded_list(store);
+
+    for (GList * iter = table_names; iter != NULL; iter = iter->next) {
+        char * comp_table_name = iter->data;
+        if (g_ascii_strcasecmp(comp_table_name, table_name) == 0) {
+
+            /* Get the actual playlist name from the table name and the last_mod date */
+            time_t comp_last_mod = 0;
+            g_free(moose_stprv_spl_parse_table_name(
+                       comp_table_name, &comp_last_mod
+                       ));
+
+            if (comp_last_mod == mpd_playlist_get_last_modified(playlist)) {
+                result = true;
+                break;
+            }
+        }
+    }
+
+    g_free(table_name);
+    g_list_free_full(table_names, g_free);
+
+    return result;
+}
+
+///////////////////
+
+bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
+{
+    g_assert(store);
+    g_assert(store->client);
+    g_assert(playlist);
+
+    bool successfully_loaded = false;
+    MooseClient * self = store->client;
+
+    if (moose_stprv_spl_is_loaded(store, playlist)) {
+        moose_shelper_report_progress(
+            self, true,
+            "database: Stored playlist '%s' already loaded - skipping.",
+            mpd_playlist_get_path(playlist)
+            );
+        /* This is fine too. */
+        return true;
+    } else {
+        moose_shelper_report_progress(self, true,
+                                      "database: Loading stored playlist '%s'...",
+                                      mpd_playlist_get_path(playlist)
+                                      );
+    }
+
+    sqlite3_stmt * insert_stmt = NULL;
+    char * table_name = moose_stprv_spl_construct_table_name(playlist);
+
+    if (table_name != NULL) {
+        moose_stprv_begin(store);
+        moose_stprv_spl_delete_content(store, table_name);
+        char * sql = sqlite3_mprintf(
+            "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri  = ?));",
+            table_name
+        );
+
+        if (sql != NULL) {
+            if (sqlite3_prepare_v2(store->handle, sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
+                REPORT_SQL_ERROR(store, "Cannot prepare INSERT stmt!");
+                return false;
+            }
+
+            moose_shelper_report_progress(self, true, "database: Loading stored playlist ,,%s'' from MPD", table_name);
+            sqlite3_free(sql);
+
+            /* Acquire the connection (this locks the connection for others) */
+            struct mpd_connection * conn = moose_client_get(self);
+            if (conn != NULL) {
+
+                if (mpd_send_list_playlist(conn, mpd_playlist_get_path(playlist))) {
+                    struct mpd_pair * file_pair = NULL;
+
+                    while ((file_pair = mpd_recv_pair_named(conn, "file")) != NULL) {
+                        if (sqlite3_bind_text(insert_stmt, 1, file_pair->value, -1, NULL) != SQLITE_OK)
+                            REPORT_SQL_ERROR(store, "Cannot bind filename to SPL-Insert");
+
+                        if (sqlite3_step(insert_stmt) != SQLITE_DONE) {
+                            REPORT_SQL_ERROR(store, "Cannot insert song index to stored playlist.");
+                        }
+
+                        CLEAR_BINDS(insert_stmt);
+                        mpd_return_pair(conn, file_pair);
+                    }
+
+                    if (mpd_response_finish(conn) == FALSE) {
+                        moose_shelper_report_error(self, conn);
+                    } else {
+                        moose_shelper_report_operation_finished(self, MOOSE_OP_SPL_UPDATED);
+                        successfully_loaded = true;
+                    }
+                }
+            }
+
+            /* Release the connection mutex */
+            moose_client_put(self);
+
+            if (sqlite3_finalize(insert_stmt) != SQLITE_OK)
+                REPORT_SQL_ERROR(store, "Cannot finalize INSERT stmt");
+        }
+
+        moose_stprv_commit(store);
+        g_free(table_name);
+    }
+
+    return successfully_loaded;
+}
+
+///////////////////
+
+bool moose_stprv_spl_load_by_playlist_name(MooseStore * store, const char * playlist_name)
+{
+    g_assert(store);
+    g_assert(playlist_name);
+    struct mpd_playlist * playlist = moose_stprv_spl_name_to_playlist(store, playlist_name);
+
+    if (playlist != NULL) {
+        moose_stprv_spl_load(store, playlist);
+        return true;
+    } else {
+        moose_shelper_report_error_printf(store->client, "Could not find stored playlist ,,%s''", playlist_name);
+        return false;
+    }
+}
+
+///////////////////
+
+static inline int moose_stprv_spl_hash_compare(gconstpointer a, gconstpointer b)
+{
+    return *((gconstpointer * *)a) - *((gconstpointer * *)b);
+}
+
+///////////////////
+
+static int moose_stprv_spl_bsearch_cmp(const void * key, const void * array)
+{
+    return key - *(void * *)array;
+}
+
+///////////////////
+
+static int moose_stprv_spl_filter_id_list(MooseStore * store, GPtrArray * song_ptr_array, const char * match_clause, MoosePlaylist * out_stack)
+{
+    /* Roughly estimate the number of song pointer to expect */
+    int preallocations = moose_playlist_length(store->stack) /
+                         (((match_clause) ? MAX(strlen(match_clause), 1) : 1) * 2);
+
+    /* Temp. container to hold the query on the database */
+    MoosePlaylist * db_songs = moose_playlist_new_full(preallocations, NULL);
+
+    if (moose_stprv_select_to_stack(store, match_clause, false, db_songs, -1) > 0) {
+        for (size_t i = 0; i < moose_playlist_length(db_songs); ++i) {
+            MooseSong * song = moose_playlist_at(db_songs, i);
+            if (bsearch(
+                    song,
+                    song_ptr_array->pdata,
+                    song_ptr_array->len,
+                    sizeof(gpointer),
+                    moose_stprv_spl_bsearch_cmp
+                    )
+                ) {
+                moose_playlist_append(out_stack, song);
+            }
+        }
+    }
+
+    /* Set them free */
+    g_object_unref(db_songs);
+
+    return moose_playlist_length(out_stack);
+}
+
+///////////////////
+
+int moose_stprv_spl_select_playlist(MooseStore * store, MoosePlaylist * out_stack, const char * playlist_name, const char * match_clause)
+{
+    g_assert(store);
+    g_assert(playlist_name);
+    g_assert(out_stack);
+
+    /*
+     * Algorithm:
+     *
+     * ids = sort('select id from spl_xzy_1234')
+     * songs = queue_search(match_clause)
+     * for song in songs:
+     *     if bsearch(songs, song.id) == FOUND:
+     *          results.append(song)
+     *
+     * return len(songs)
+     *
+     *
+     * (JOIN is much more expensive, that's why.)
+     */
+
+    int rc = 0;
+    char * table_name, * dyn_sql;
+    GPtrArray * song_ptr_array = NULL;
+    sqlite3_stmt * pl_id_stmt = NULL;
+    struct mpd_playlist * playlist;
+
+    if (match_clause && *match_clause == 0) {
+        match_clause = NULL;
+    }
+
+    /* Try to find the playlist structure in the playlist_struct list by name */
+    if ((playlist = moose_stprv_spl_name_to_playlist(store, playlist_name)) == NULL) {
+        return -1;
+    }
+
+    /* Use the acquired playlist to find out the correct playlist name */
+    if ((table_name = moose_stprv_spl_construct_table_name(playlist)) == NULL) {
+        return -2;
+    }
+
+    /* Use the table name to construct a select on this table */
+    if ((dyn_sql = sqlite3_mprintf("SELECT song_idx FROM %q;", table_name)) == NULL) {
+        sqlite3_free(table_name);
+        return -3;
+    }
+
+    if (sqlite3_prepare_v2(store->handle, dyn_sql, -1, &pl_id_stmt, NULL) != SQLITE_OK) {
+        REPORT_SQL_ERROR(store, "Cannot prepare playlist search statement");
+    } else {
+        int song_count = moose_stprv_spl_get_song_count(store, playlist);
+        song_ptr_array = g_ptr_array_sized_new(MAX(song_count, 1));
+
+        while (sqlite3_step(pl_id_stmt) == SQLITE_ROW) {
+            /* Get the actual song */
+            int song_idx = sqlite3_column_int(pl_id_stmt, 0);
+            if (0 < song_idx && song_idx <= (int)moose_playlist_length(store->stack)) {
+                MooseSong * song = moose_playlist_at(store->stack, song_idx - 1);
+
+                /* Remember the pointer */
+                g_ptr_array_add(song_ptr_array, song);
+            }
+        }
+
+        if (sqlite3_errcode(store->handle) != SQLITE_DONE) {
+            REPORT_SQL_ERROR(store, "Error while matching stuff in playlist");
+        } else {
+            if (sqlite3_finalize(pl_id_stmt) != SQLITE_OK) {
+                REPORT_SQL_ERROR(store, "Error while finalizing getid statement");
+            } else {
+                g_ptr_array_sort(song_ptr_array, moose_stprv_spl_hash_compare);
+                rc = moose_stprv_spl_filter_id_list(store, song_ptr_array, match_clause, out_stack);
+            }
+        }
+
+        g_ptr_array_free(song_ptr_array, true);
+    }
+
+    g_free(table_name);
+    sqlite3_free(dyn_sql);
+
+
+    return rc;
+}
+
+///////////////////
+
+int moose_stprv_spl_get_loaded_playlists(MooseStore * store, MoosePlaylist * stack)
+{
+    g_assert(store);
+    g_assert(stack);
+
+    int rc = 0;
+    GList * table_name_list = moose_stprv_spl_get_loaded_list(store);
+
+    if (table_name_list != NULL) {
+        for (GList * iter = table_name_list; iter; iter = iter->next) {
+            char * table_name = iter->data;
+
+            if (table_name != NULL) {
+                char * playlist_name = moose_stprv_spl_parse_table_name(table_name, NULL);
+
+                if (playlist_name != NULL) {
+                    struct mpd_playlist * playlist = moose_stprv_spl_name_to_playlist(store, playlist_name);
+
+                    if (playlist != NULL) {
+                        moose_playlist_append(stack, playlist);
+                        ++rc;
+                    }
+
+                    g_free(playlist_name);
+                }
+
+                g_free(table_name);
+            }
+        }
+
+        g_list_free(table_name_list);
+    }
+
+    return rc;
+}
+
+///////////////////
+
+int moose_stprv_spl_get_known_playlists(MooseStore * store, GPtrArray* stack)
+{
+    for (unsigned i = 0; i < store->spl_stack->len; ++i) {
+        g_ptr_array_add(
+            stack, g_ptr_array_index(store->spl_stack, i)
+        );
+    }
+    return store->spl_stack->len;
 }
