@@ -67,10 +67,7 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
     moose_client_signal_add(self, "client-event", print_event, NULL);
     moose_client_signal_add(self, "connectivity", print_connectivity, NULL);
 
-    MooseStoreSettings * settings = moose_store_settings_new();
-    settings->use_memory_db = TRUE;
-    settings->use_compression = FALSE;
-    MooseStore * db = moose_store_create(self, settings);
+    MooseStore * db = moose_store_create_full(self, NULL, NULL, TRUE, FALSE);
 
     GMainLoop * loop = g_main_loop_new(NULL, true);
     g_timeout_add(2000, timeout_client_change, self);
@@ -80,6 +77,5 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
     g_main_loop_unref(loop);
 
     moose_store_close(db);
-    moose_store_settings_destroy(settings);
     moose_client_unref(self);
 }

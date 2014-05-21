@@ -346,7 +346,7 @@ void moose_status_convert(MooseStatus * self, const struct mpd_status * status)
         self->priv->consume = mpd_status_get_consume(status);
         self->priv->queue_length = mpd_status_get_queue_length(status);
         self->priv->queue_version = mpd_status_get_queue_version(status);
-        self->priv->state = mpd_status_get_state(status);
+        self->priv->state = (MooseState) mpd_status_get_state(status);
         self->priv->crossfade = mpd_status_get_crossfade(status);
         self->priv->mixrampdb = mpd_status_get_mixrampdb(status);
         self->priv->mixrampdelay = mpd_status_get_mixrampdelay(status);
@@ -478,7 +478,7 @@ const char * moose_status_get_replay_gain_mode(const MooseStatus * self)
 
 void moose_status_set_replay_gain_mode(const MooseStatus * self, const char * mode)
 {
-    g_return_val_if_fail(self, NULL);
+    g_return_if_fail(self);
 
     if (mode != NULL) {
         g_rw_lock_writer_lock(&self->priv->ref_lock); {

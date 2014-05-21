@@ -215,7 +215,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     /* check #1 */
     if (g_file_test(db_path, G_FILE_TEST_IS_REGULAR) == TRUE) {
         exist_check = TRUE;
-    } else if (self->settings->use_compression) {
+    } else if (self->settings.use_compression) {
         char * zip_path = g_strdup_printf("%s%s", db_path, MOOSE_GZIP_ENDING);
         exist_check = g_file_test(zip_path, G_FILE_TEST_IS_REGULAR);
         GTimer * zip_timer = g_timer_new();
@@ -319,13 +319,13 @@ static void moose_store_shutdown(MooseStore * self)
     if (self->write_to_disk)
         moose_stprv_load_or_save(self, true, db_path);
 
-    if (self->settings->use_compression && moose_gzip(db_path) == false)
+    if (self->settings.use_compression && moose_gzip(db_path) == false)
         moose_shelper_report_progress(self->client, true, "Note: Nothing to zip.\n");
 
     moose_stprv_close_handle(self, true);
     self->handle = NULL;
 
-    if (self->settings->use_memory_db == false) {
+    if (self->settings.use_memory_db == false) {
         g_unlink(MOOSE_STORE_TMP_DB_PATH);
     }
 
@@ -635,7 +635,18 @@ cleanup:
 //                          //
 //////////////////////////////
 
-MooseStore * moose_store_create(MooseClient * client, MooseStoreSettings * settings)
+MooseStore * moose_store_create(MooseClient *client)
+{
+    return moose_store_create_full(client, NULL, NULL, true, true);
+}
+
+MooseStore * moose_store_create_full(
+    MooseClient * client, 
+    const char *db_directory,
+    const char *tokenizer,
+    bool use_memory_db,
+    bool use_compression
+)
 {
     g_assert(client);
 
@@ -650,7 +661,9 @@ MooseStore * moose_store_create(MooseClient * client, MooseStoreSettings * setti
     store->jm = moose_jm_create(moose_store_job_execute_callback, store);
 
     /* Settings */
-    store->settings = (settings) ? settings : moose_store_settings_new();
+    store->settings.tokenizer = (tokenizer) ? tokenizer : "porter";
+    store->settings.use_memory_db = use_memory_db;
+    store->settings.use_compression = use_compression;
 
     /* client is used to keep the db content updated */
     store->client = client;
@@ -660,7 +673,7 @@ MooseStore * moose_store_create(MooseClient * client, MooseStoreSettings * setti
     store->mirrored_port = moose_client_get_port(client);
 
     /* create the full path to the db */
-    store->db_directory = g_strdup(store->settings->db_directory);
+    store->db_directory = g_strdup(db_directory);
 
     /* Do the actual hard work */
     moose_store_buildup(store);
@@ -715,7 +728,6 @@ void moose_store_close(MooseStore * self)
     /* NOTE: Settings should be destroyed by caller,
      *       Since it should be valid to call close()
      *       several times.
-     * moose_store_settings_destroy (self->settings);
      */
     g_free(self->mirrored_host);
     g_free(self->db_directory);

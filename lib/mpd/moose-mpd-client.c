@@ -601,7 +601,7 @@ static bool handle_queue_delete_range(MooseClient * self, struct mpd_connection 
 
 static bool handle_output_switch(MooseClient * self, struct mpd_connection * conn, const char * * argv)
 {
-    const char * output_name = argv[0];
+    // const char * output_name = argv[0];
     // int output_id = moose_priv_outputs_name_to_id(self->_outputs, output_name);
     //
     // TODO
@@ -1772,7 +1772,7 @@ static bool moose_update_is_a_seek_event(MooseClient * self, enum mpd_idle event
 {
     if (event_mask & MPD_IDLE_PLAYER) {
         long curr_song_id = -1;
-        enum mpd_state curr_song_state = MOOSE_STATE_UNKNOWN;
+        MooseState curr_song_state = MOOSE_STATE_UNKNOWN;
 
         /* Get the current data */
         MooseStatus * status = moose_client_ref_status(self);

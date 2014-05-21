@@ -57,11 +57,7 @@ int main(int argc, char * argv[])
     moose_client_signal_add(client, "client-event", print_event, NULL);
     moose_client_signal_add(client, "connectivity", print_connectivity, NULL);
 
-
-    MooseStoreSettings * settings = moose_store_settings_new();
-    settings->use_memory_db = FALSE;
-    settings->use_compression = FALSE;
-    MooseStore * db = moose_store_create(client, settings);
+    MooseStore * db = moose_store_create_full(client, NULL, NULL, false, false);
 
     moose_store_playlist_load(db, "test1");
 
@@ -218,9 +214,9 @@ int main(int argc, char * argv[])
                         g_print("%04d/%04d %-35s | %-35s | %-35s\n",
                                 moose_song_get_pos(song),
                                 moose_song_get_id(song),
-                                moose_song_get_tag(song, MPD_TAG_ARTIST),
-                                moose_song_get_tag(song, MPD_TAG_ALBUM),
-                                moose_song_get_tag(song, MPD_TAG_TITLE));
+                                moose_song_get_tag(song, MOOSE_TAG_ARTIST),
+                                moose_song_get_tag(song, MOOSE_TAG_ALBUM),
+                                moose_song_get_tag(song, MOOSE_TAG_TITLE));
                     }
                 } else {
                     g_print("=> No results.\n");
@@ -239,6 +235,5 @@ int main(int argc, char * argv[])
     }
 
     moose_store_close(db);
-    moose_store_settings_destroy(settings);
     moose_client_unref(client);
 }

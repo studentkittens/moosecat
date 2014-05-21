@@ -128,7 +128,7 @@ typedef struct MooseClient {
      * */
     struct {
         long id;
-        enum mpd_state state;
+        MooseState state;
     } last_song_data;
 } MooseClient;
 

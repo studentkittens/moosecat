@@ -55,8 +55,8 @@ static gboolean timeout_client_change(gpointer user_data)
     MooseStore * store = user_data;
     MooseStoreCompletion * cmpl = moose_store_get_completion(store);
     g_printerr("C %p\n", cmpl);
-    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Akrea"));
-    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MPD_TAG_ARTIST, "Knork"));
+    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MOOSE_TAG_ARTIST, "Akrea"));
+    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MOOSE_TAG_ARTIST, "Knork"));
     return false;
 }
 
@@ -71,10 +71,9 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
     moose_client_signal_add(self, "client-event", print_event, NULL);
     moose_client_signal_add(self, "connectivity", print_connectivity, NULL);
 
-    MooseStoreSettings * settings = moose_store_settings_new();
-    settings->use_memory_db = TRUE;
-    settings->use_compression = FALSE;
-    MooseStore * db = moose_store_create(self, settings);
+    MooseStore * db = moose_store_create_full(
+        self, NULL, NULL, TRUE, FALSE 
+    );
 
     GMainLoop * loop = g_main_loop_new(NULL, true);
     g_timeout_add(3000, timeout_client_change, db);
@@ -84,6 +83,5 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
     g_main_loop_unref(loop);
 
     moose_store_close(db);
-    moose_store_settings_destroy(settings);
     moose_client_unref(self);
 }

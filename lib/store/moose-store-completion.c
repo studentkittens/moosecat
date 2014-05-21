@@ -18,7 +18,7 @@ typedef struct MooseStoreCompletion {
 typedef struct MooseStoreCompletionIterTag {
     MooseStoreCompletion * self;
     char * result;
-    enum mpd_tag_type tag;
+    MooseTagType tag;
 } MooseStoreCompletionIterTag;
 
 ////////////////////////////////////////////
@@ -41,7 +41,7 @@ static char * moose_store_cmpl_normalize_string(const char * input)
 
 ////////////////////////////////////////////
 
-static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, enum mpd_tag_type tag)
+static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, MooseTagType tag)
 {
     g_assert(self);
     g_assert(tag < MPD_TAG_COUNT);
@@ -165,7 +165,7 @@ void moose_store_cmpl_free(MooseStoreCompletion * self)
 
 ////////////////////////////////////////////
 
-char * moose_store_cmpl_lookup(MooseStoreCompletion * self, enum mpd_tag_type tag, const char * key)
+char * moose_store_cmpl_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key)
 {
     g_assert(self);
     g_assert(tag < MPD_TAG_COUNT);

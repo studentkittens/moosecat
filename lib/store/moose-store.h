@@ -2,7 +2,6 @@
 #define DB_GUARD_H
 
 #include "moose-store-playlist.h"
-#include "moose-store-settings.h"
 #include "../mpd/moose-mpd-client.h"
 #include "sqlite3.h"
 
@@ -28,9 +27,6 @@ typedef struct MooseStore {
 
     /* client associated with this store */
     MooseClient * client;
-
-    /* Various user defined settings go here */
-    MooseStoreSettings * settings;
 
     /* Write database to disk?
      * on changes this gets set to True
@@ -76,6 +72,36 @@ typedef struct MooseStore {
 
     struct MooseStoreCompletion * completion;
 
+    struct {
+        /* Open the database entireyl in memory.
+        * (i.e. use ":memory" as db name).
+        *
+        * Adv: Little bit faster on few systems.
+        * Dis: Higher memory usage. (~5-10 MB)
+        *
+        * Default: True.
+        */
+        bool use_memory_db;
+
+        /* Compress / Uncompress database
+        * on close/startup.
+        *
+        * Adv: Less HD usage (12 MB vs. 3 MB)
+        * Dis: Little bit slower startup.
+        *
+        * Default: True.
+        */
+        bool use_compression;
+
+        /* Tokenizer algorithm to use to split words. NULL == default == "porter"
+        * See: http://www.sqlite.org/fts3.html#tokenizer
+        * Supported: see MOOSE_STORE_SUPPORTED_TOKENIZERS in db_private.h
+        *
+        * Default: "porter", which is able to match "Smile" with "Smiling"
+        */
+        const char * tokenizer;
+    } settings;
+
 } MooseStore;
 
 
@@ -103,7 +129,15 @@ typedef struct MooseStore {
  *
  * @return a new MooseStore , free with moose_store_close()
  */
-MooseStore * moose_store_create(MooseClient * client, MooseStoreSettings * settings);
+MooseStore * moose_store_create(MooseClient *client);
+
+MooseStore * moose_store_create_full(
+    MooseClient * client, 
+    const char *db_directory,
+    const char *tokenizer,
+    bool use_memory_db,
+    bool use_compression
+);
 
 /**
  * @brief Close the MooseStore.

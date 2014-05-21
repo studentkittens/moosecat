@@ -310,14 +310,14 @@ bool moose_stprv_create_song_table(MooseStore * self)
 {
     g_assert(self);
 
-    if (self->settings->tokenizer == NULL) {
-        self->settings->tokenizer = "porter";
+    if (self->settings.tokenizer == NULL) {
+        self->settings.tokenizer = "porter";
     } else { /* validate tokenizer string */
         bool found = false;
         const char * allowed[] = {"simple", "porter", "unicode61", "icu", NULL};
 
         for (int i = 0; allowed[i]; ++i) {
-            if (g_strcmp0(allowed[i], self->settings->tokenizer) == 0) {
+            if (g_strcmp0(allowed[i], self->settings.tokenizer) == 0) {
                 found = true;
                 break;
             }
@@ -327,16 +327,16 @@ bool moose_stprv_create_song_table(MooseStore * self)
             moose_shelper_report_error_printf(
                 self->client,
                 "Tokenizer ,,%s'' is unknown. Defaulting to 'porter'.",
-                self->settings->tokenizer
+                self->settings.tokenizer
                 );
 
-            self->settings->tokenizer = "porter";
+            self->settings.tokenizer = "porter";
         }
     }
 
     char * sql_create = g_strdup_printf(
         SQL_CODE(CREATE),
-        self->settings->tokenizer
+        self->settings.tokenizer
         );
 
     if (sqlite3_exec(self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
@@ -413,7 +413,7 @@ sqlite3_stmt * * moose_stprv_prepare_all_statements_listed(MooseStore * self, co
 bool moose_strprv_open_memdb(MooseStore * self)
 {
     g_assert(self);
-    const char * db_name = (self->settings->use_memory_db) ? ":memory:" : MOOSE_STORE_TMP_DB_PATH;
+    const char * db_name = (self->settings.use_memory_db) ? ":memory:" : MOOSE_STORE_TMP_DB_PATH;
 
     if (sqlite3_open(db_name, &self->handle) != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "ERROR: cannot open :memory: database. Dude, that's weird...");
@@ -517,26 +517,26 @@ bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
     BIND_INT(db, INSERT, pos_idx, moose_song_get_last_modified(song), error_id);
 
     /* bind tags */
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_ARTIST, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_ALBUM, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_TITLE, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_ALBUM_ARTIST, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_TRACK, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_NAME, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_GENRE, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_DATE, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_ARTIST, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_ALBUM, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_TITLE, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_ALBUM_ARTIST, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_TRACK, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_NAME, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_GENRE, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_DATE, error_id);
     if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(db, "WARNING: Error while binding");
     }
 
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_COMPOSER, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_PERFORMER, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_COMMENT, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_DISC, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ARTISTID, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMID, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
-    BIND_TAG(db, INSERT, pos_idx, song, MPD_TAG_MUSICBRAINZ_TRACKID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_COMPOSER, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_PERFORMER, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_COMMENT, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_DISC, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_MUSICBRAINZ_ARTISTID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_MUSICBRAINZ_ALBUMID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID, error_id);
+    BIND_TAG(db, INSERT, pos_idx, song, MOOSE_TAG_MUSICBRAINZ_TRACKID, error_id);
 
     /* Constant Value. See Create statement. */
     BIND_INT(db, INSERT, pos_idx,  0, error_id);

@@ -70,9 +70,9 @@ static void update_view(EntryTag * tag, const char * search_text)
         MooseSong * song = moose_playlist_at(tag->song_buf, i);
         gtk_list_store_append(list_store, &iter);
         gtk_list_store_set(list_store, &iter,
-                           COLUMN_ARTIST, moose_song_get_tag(song, MPD_TAG_ARTIST),
-                           COLUMN_ALBUM, moose_song_get_tag(song, MPD_TAG_ALBUM),
-                           COLUMN_TITLE, moose_song_get_tag(song, MPD_TAG_TITLE),
+                           COLUMN_ARTIST, moose_song_get_tag(song, MOOSE_TAG_ARTIST),
+                           COLUMN_ALBUM, moose_song_get_tag(song, MOOSE_TAG_ALBUM),
+                           COLUMN_TITLE, moose_song_get_tag(song, MOOSE_TAG_TITLE),
                            -1);
     }
 
@@ -128,11 +128,9 @@ static EntryTag * setup_client(void)
     if (client && moose_client_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
-        MooseStoreSettings * settings = moose_store_settings_new();
-        settings->use_memory_db = FALSE;
-        settings->use_compression = FALSE;
-
-        MooseStore * store = moose_store_create(client, settings);
+        MooseStore * store = moose_store_create_full(
+            client, NULL, NULL, false, false
+        );
         db_setup = g_timer_elapsed(setup_timer, NULL);
 
         if (store != NULL) {

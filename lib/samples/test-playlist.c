@@ -25,7 +25,7 @@ int main(int argc, char * * argv)
         return EXIT_FAILURE;
     }
 
-    MooseStore * store = moose_store_create(client, NULL);
+    MooseStore * store = moose_store_create(client);
     moose_store_wait(store);
 
     MoosePlaylist * songs = moose_playlist_new();
@@ -41,9 +41,9 @@ int main(int argc, char * * argv)
     for (size_t i = 0; i < moose_playlist_length(songs); ++i) {
         MooseSong * song = moose_playlist_at(songs, i);
         g_print("%s\t%s\t%s\t%s\n",
-                moose_song_get_tag(song, MPD_TAG_ARTIST),
-                moose_song_get_tag(song, MPD_TAG_ALBUM),
-                moose_song_get_tag(song, MPD_TAG_TITLE),
+                moose_song_get_tag(song, MOOSE_TAG_ARTIST),
+                moose_song_get_tag(song, MOOSE_TAG_ALBUM),
+                moose_song_get_tag(song, MOOSE_TAG_TITLE),
                 moose_song_get_uri(song)
                 );
     }

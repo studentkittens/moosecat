@@ -678,7 +678,7 @@ char * moose_zeroconf_server_get_domain(MooseZeroconfServer * server)
 
 int moose_zeroconf_server_get_port(MooseZeroconfServer * server)
 {
-    g_return_val_if_fail(server, NULL);
+    g_return_val_if_fail(server, -1);
 
     int port;
     g_object_get(server, "port", &port, NULL);
