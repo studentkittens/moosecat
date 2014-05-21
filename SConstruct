@@ -248,7 +248,7 @@ for pkg in DEPS.keys():
 
 if 'CC' in os.environ:
     conf.env.Replace(CC=os.environ['CC'])
-    print(">> Using compiler " + os.environ['CC'])
+    print(">> Using compiler: " + os.environ['CC'])
 
 
 if 'CFLAGS' in os.environ:
@@ -260,16 +260,19 @@ if 'LDFLAGS' in os.environ:
     conf.env.Append(LINKFLAGS=os.environ['LDFLAGS'])
     print(">> Appending custom link flags : " + os.environ['LDFLAGS'])
 
-
 # Needed/Adviceable flags:
 conf.env.Append(CCFLAGS=[
-    '-std=c11', '-pipe', '-fPIC', '-g', '-O1', '-lto'
+    '-std=c11', '-pipe', '-fPIC', '-g', '-O1'
 ])
 
 # Optional flags:
 conf.env.Append(CFLAGS=[
-    '-Wall', '-W'
+    '-Wall', '-W', '-Wextra'
 ])
+
+if conf.env['CC'] == 'gcc':
+    # GCC-Specific Options.
+    conf.env.Append(CCFLAGS=['-lto'])
 
 # Sqlite Flags (needed):
 conf.env.Append(CFLAGS=[
