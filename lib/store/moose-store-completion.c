@@ -44,7 +44,7 @@ static char * moose_store_cmpl_normalize_string(const char * input)
 static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, MooseTagType tag)
 {
     g_assert(self);
-    g_assert(tag < MPD_TAG_COUNT);
+    g_assert(tag < MOOSE_TAG_COUNT);
 
     MoosePlaylist * copy = moose_playlist_new();
     moose_store_gw(self->store,
@@ -168,7 +168,7 @@ void moose_store_cmpl_free(MooseStoreCompletion * self)
 char * moose_store_cmpl_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key)
 {
     g_assert(self);
-    g_assert(tag < MPD_TAG_COUNT);
+    g_assert(tag < MOOSE_TAG_COUNT);
 
     /* Get an Index (the patricia tree) */
     art_tree * tree = self->trees[tag];
