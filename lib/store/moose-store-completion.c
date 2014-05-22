@@ -10,22 +10,98 @@
 /* Internal, but not mine */
 #include "libart/art.h"
 
-typedef struct MooseStoreCompletion {
+typedef struct _MooseStoreCompletionPrivate {
     MooseStore * store;
     art_tree * trees[MPD_TAG_COUNT];
-} MooseStoreCompletion;
+} MooseStoreCompletionPrivate;
 
-typedef struct MooseStoreCompletionIterTag {
+typedef struct _MooseStoreCompletionIterTag {
     MooseStoreCompletion * self;
     char * result;
     MooseTagType tag;
 } MooseStoreCompletionIterTag;
 
+
+G_DEFINE_TYPE_WITH_PRIVATE(
+    MooseStoreCompletion, moose_store_completion, G_TYPE_OBJECT
+);
+
+static void moose_store_completion_clear(MooseStoreCompletion * self)
+{
+    g_assert(self);
+
+    for (size_t i = 0; i < MPD_TAG_COUNT; ++i) {
+        art_tree * tree = self->priv->trees[i];
+        self->priv->trees[i] = NULL;
+
+        if (tree != NULL) {
+            destroy_art_tree(tree);
+            g_slice_free(art_tree, tree);
+        }
+    }
+}
+
+////////////////////////////////////////////
+
+static void moose_store_completion_client_event(
+    G_GNUC_UNUSED MooseClient * client,
+    G_GNUC_UNUSED enum mpd_idle event,
+    void * user_data
+    )
+{
+    MooseStoreCompletion * self = user_data;
+    moose_store_completion_clear(self);
+}
+
+////////////////////////////////////////////
+
+static void moose_store_completion_finalize(GObject * gobject)
+{
+    MooseStoreCompletion * self = MOOSE_STORE_COMPLETION(gobject);
+    if (self == NULL) {
+        return;
+    }
+
+    moose_store_completion_clear(self);
+
+    /* Always chain up to the parent class; as with dispose(), finalize()
+     * is guaranteed to exist on the parent's class virtual function table
+     */
+    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
+}
+
+static void moose_store_completion_class_init(MooseStoreCompletionClass * klass)
+{
+    GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
+    gobject_class->finalize = moose_store_completion_finalize;
+}
+
+static void moose_store_completion_init(MooseStoreCompletion * self)
+{
+    MooseStoreCompletionPrivate *priv;
+    self->priv = moose_store_completion_get_instance_private(self);
+    priv = self->priv;
+
+    // TODO... store.
+
+    priv->store = NULL;
+
+    g_assert(priv->store);
+
+    moose_client_signal_add_masked(
+        NULL, // TODO: Store.
+        "client-event",
+        moose_store_completion_client_event,
+        self,
+        MPD_IDLE_DATABASE
+    );
+}
+
 ////////////////////////////////////////////
 //            IMPLEMENTATION              //
 ////////////////////////////////////////////
 
-static char * moose_store_cmpl_normalize_string(const char * input)
+static char * moose_store_completion_normalize_string(const char * input)
 {
     char * utf8_lower = g_utf8_strdown(input, -1);
     if (utf8_lower != NULL) {
@@ -41,17 +117,17 @@ static char * moose_store_cmpl_normalize_string(const char * input)
 
 ////////////////////////////////////////////
 
-static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, MooseTagType tag)
+static art_tree * moose_store_completion_create_index(MooseStoreCompletion * self, MooseTagType tag)
 {
     g_assert(self);
     g_assert(tag < MOOSE_TAG_COUNT);
 
     MoosePlaylist * copy = moose_playlist_new();
-    moose_store_gw(self->store,
-                   moose_store_search_to_stack(
-                       self->store, "*", FALSE, copy, -1
-                       )
-                   );
+    moose_store_gw(self->priv->store,
+        moose_store_search_to_stack(
+            self->priv->store, "*", FALSE, copy, -1
+        )
+    );
 
     art_tree * tree = g_slice_new0(art_tree);
     init_art_tree(tree);
@@ -62,7 +138,7 @@ static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, Moo
         if (song != NULL) {
             const char * word = moose_song_get_tag(song, tag);
             if (word != NULL) {
-                char * normalized = moose_store_cmpl_normalize_string(word);
+                char * normalized = moose_store_completion_normalize_string(word);
                 art_insert(
                     tree, (unsigned char *)normalized, strlen(normalized),
                     GINT_TO_POINTER(i)
@@ -71,8 +147,8 @@ static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, Moo
             }
         }
     }
-    self->trees[tag] = tree;
-    moose_store_release(self->store);
+    self->priv->trees[tag] = tree;
+    moose_store_release(self->priv->store);
     g_object_unref(copy);
 
     return tree;
@@ -80,20 +156,20 @@ static art_tree * moose_store_cmpl_create_index(MooseStoreCompletion * self, Moo
 
 ////////////////////////////////////////////
 
-static int moose_store_cmpl_art_callback(void * user_data, const unsigned char * key, uint32_t key_len, void * value)
+static int moose_store_completion_art_callback(void * user_data, const unsigned char * key, uint32_t key_len, void * value)
 {
     /* copy the first suggestion, key is not nul-terminated. */
     MooseStoreCompletionIterTag * data = user_data;
     int song_idx = GPOINTER_TO_INT(value);
 
-    moose_stprv_lock_attributes(data->self->store); {
-        MooseSong * song = moose_playlist_at(data->self->store->stack, song_idx);
+    moose_stprv_lock_attributes(data->self->priv->store); {
+        MooseSong * song = moose_playlist_at(data->self->priv->store->stack, song_idx);
         if (song != NULL) {
             /* Try to retrieve the original song */
             data->result = g_strdup(moose_song_get_tag(song, data->tag));
         }
     }
-    moose_stprv_unlock_attributes(data->self->store);
+    moose_stprv_unlock_attributes(data->self->priv->store);
 
     if (data->result == NULL) {
         /* Fallback */
@@ -105,75 +181,39 @@ static int moose_store_cmpl_art_callback(void * user_data, const unsigned char *
 }
 
 ////////////////////////////////////////////
+//               PUBLIC API               //
+////////////////////////////////////////////
 
-static void moose_store_cmpl_clear(MooseStoreCompletion * self)
+MooseStoreCompletion * moose_store_completion_new(struct MooseStore * store)
+{
+    g_assert(store);
+
+    // TODO: Pass store as construction property.
+    return g_object_new(MOOSE_TYPE_STORE_COMPLETION, NULL);
+}
+
+////////////////////////////////////////////
+
+void moose_store_completion_unref(MooseStoreCompletion * self)
 {
     g_assert(self);
 
-    for (size_t i = 0; i < MPD_TAG_COUNT; ++i) {
-        art_tree * tree = self->trees[i];
-        self->trees[i] = NULL;
-
-        if (tree != NULL) {
-            destroy_art_tree(tree);
-            g_slice_free(art_tree, tree);
-        }
+    if(self != NULL) {
+        g_object_unref(self);
     }
 }
 
 ////////////////////////////////////////////
 
-static void moose_store_cmpl_client_event(
-    G_GNUC_UNUSED MooseClient * client,
-    G_GNUC_UNUSED enum mpd_idle event,
-    void * user_data
-    )
-{
-    MooseStoreCompletion * self = user_data;
-    moose_store_cmpl_clear(self);
-}
-
-////////////////////////////////////////////
-//               PUBLIC API               //
-////////////////////////////////////////////
-
-MooseStoreCompletion * moose_store_cmpl_new(struct MooseStore * store)
-{
-    g_assert(store);
-
-    MooseStoreCompletion * self = g_slice_new0(MooseStoreCompletion);
-    self->store = store;
-    moose_client_signal_add_masked(
-        self->store->client, "client-event",
-        moose_store_cmpl_client_event, self,
-        MPD_IDLE_DATABASE
-        );
-    return self;
-}
-
-////////////////////////////////////////////
-
-void moose_store_cmpl_free(MooseStoreCompletion * self)
-{
-    g_assert(self);
-
-    moose_store_cmpl_clear(self);
-
-    self->store = NULL;
-    g_slice_free(MooseStoreCompletion, self);
-}
-
-////////////////////////////////////////////
-
-char * moose_store_cmpl_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key)
+char * moose_store_completion_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key)
 {
     g_assert(self);
     g_assert(tag < MOOSE_TAG_COUNT);
 
     /* Get an Index (the patricia tree) */
-    art_tree * tree = self->trees[tag];
+    art_tree * tree = self->priv->trees[tag];
     if (tree == NULL) {
-        tree = moose_store_cmpl_create_index(self, tag);
+        tree = moose_store_completion_create_index(self, tag);
     }
 
     /* NULL-keys are okay, those pre-compute the index. */
@@ -181,7 +221,7 @@ char * moose_store_cmpl_lookup(MooseStoreCompletion * self, MooseTagType tag, co
         return NULL;
     }
 
-    char * normalized_key = moose_store_cmpl_normalize_string(key);
+    char * normalized_key = moose_store_completion_normalize_string(key);
     if (normalized_key == NULL) {
         return NULL;
     }
@@ -190,8 +230,8 @@ char * moose_store_cmpl_lookup(MooseStoreCompletion * self, MooseTagType tag, co
     MooseStoreCompletionIterTag data = {.self = self, .tag = tag, .result = NULL};
     art_iter_prefix(
         tree, (unsigned char *)normalized_key, strlen(key),
-        moose_store_cmpl_art_callback, &data
-        );
+        moose_store_completion_art_callback, &data
+    );
 
     g_free(normalized_key);
     return data.result;

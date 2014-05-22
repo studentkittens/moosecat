@@ -356,9 +356,9 @@ cdef extern from "../../lib/store/moose-store-query-parser.h":
     ctypedef struct MooseStoreCompletion:
         pass
 
-    MooseStoreCompletion * moose_store_cmpl_new(MooseStore *)
-    void moose_store_cmpl_free(MooseStoreCompletion *)
-    char * moose_store_cmpl_lookup(MooseStoreCompletion *, MooseTagType, char *)
+    MooseStoreCompletion * moose_store_completion_new(MooseStore *)
+    void moose_store_completion_free(MooseStoreCompletion *)
+    char * moose_store_completion_lookup(MooseStoreCompletion *, MooseTagType, char *)
 
 cdef extern from "../../lib/store/moose-store-query-parser.h":
     char *moose_store_qp_parse(char *, char **, int *)

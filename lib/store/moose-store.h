@@ -8,10 +8,6 @@
 #include "moose-store-completion.h"
 
 
-/* Prototype MooseStoreCompletion to prevent circle-include. */
-struct MooseStoreCompletion;
-
-
 typedef struct MooseStore {
     /* directory db lies in */
     char * db_directory;
@@ -70,7 +66,7 @@ typedef struct MooseStore {
     char * mirrored_host;
     GMutex mirrored_mtx;
 
-    struct MooseStoreCompletion * completion;
+    MooseStoreCompletion * completion;
 
     struct {
         /* Open the database entireyl in memory.
@@ -344,7 +340,7 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  * The struct will be created on the first call, afterwards the same struct is
  * returned.  * It will be freed on moose_store_close.
  *
- * You can use moose_store_cmpl_lookup() to get a suggestion for a certain tag and
+ * You can use moose_store_completion_lookup() to get a suggestion for a certain tag and
  * prefix.
  *
  * @param self the store to create the struct on.

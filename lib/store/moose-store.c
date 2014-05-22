@@ -330,7 +330,7 @@ static void moose_store_shutdown(MooseStore * self)
     }
 
     if (self->completion != NULL) {
-        moose_store_cmpl_free(self->completion);
+        moose_store_completion_unref(self->completion);
     }
 
     g_free(db_path);
@@ -913,7 +913,7 @@ MooseStoreCompletion * moose_store_get_completion(MooseStore * self)
     g_assert(self);
 
     if (self->completion == NULL) {
-        self->completion = moose_store_cmpl_new(self);
+        self->completion = moose_store_completion_new(self);
     }
 
     return self->completion;

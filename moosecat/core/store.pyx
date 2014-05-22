@@ -113,9 +113,9 @@ cdef class Store:
         if tag_id is not c.MOOSE_TAG_UNKNOWN:
             if prefix:
                 b_prefix = bytify(prefix)
-                b_suggestion = c.moose_store_cmpl_lookup(completion, tag_id, b_prefix)
+                b_suggestion = c.moose_store_completion_lookup(completion, tag_id, b_prefix)
             else:
-                c.moose_store_cmpl_lookup(completion, tag_id, NULL)
+                c.moose_store_completion_lookup(completion, tag_id, NULL)
                 return None
 
             if b_suggestion:

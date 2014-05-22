@@ -55,8 +55,8 @@ static gboolean timeout_client_change(gpointer user_data)
     MooseStore * store = user_data;
     MooseStoreCompletion * cmpl = moose_store_get_completion(store);
     g_printerr("C %p\n", cmpl);
-    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MOOSE_TAG_ARTIST, "Akrea"));
-    g_printerr("P %s\n", moose_store_cmpl_lookup(cmpl, MOOSE_TAG_ARTIST, "Knork"));
+    g_printerr("P %s\n", moose_store_completion_lookup(cmpl, MOOSE_TAG_ARTIST, "Akrea"));
+    g_printerr("P %s\n", moose_store_completion_lookup(cmpl, MOOSE_TAG_ARTIST, "Knork"));
     return false;
 }
 
