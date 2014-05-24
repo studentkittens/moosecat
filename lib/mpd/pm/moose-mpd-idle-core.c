@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "moose-mpd-common.h"
-#include "../moose-mpd-signal-helper.h"
-
 #include <mpd/parser.h>
 
 /*
@@ -181,7 +178,7 @@ static bool idler_leave(MooseIdleClient * self)
         /* Since we're sending actively, we do not want
          * to be informed about it. */
         idler_remove_watch_kitten(self);
-        enum mpd_idle event = 0;
+        MooseIdle event = 0;
 
         if ((event = mpd_run_noidle(self->con)) == 0) {
             rc = !idler_check_and_report_async_error(self);
@@ -216,7 +213,7 @@ static void idler_enter(MooseIdleClient * self)
 
 ///////////////////////////////////////////
 
-static void idler_dispatch_events(MooseIdleClient * self, enum mpd_idle events)
+static void idler_dispatch_events(MooseIdleClient * self, MooseIdle events)
 {
     g_assert(self);
     /* Clients can now use the connection.
@@ -243,7 +240,7 @@ static bool idler_process_received(MooseIdleClient * self)
 {
     g_assert(self);
     char * line = NULL;
-    enum mpd_idle event_mask = 0;
+    MooseIdle event_mask = 0;
 
     while ((line = mpd_async_recv_line(self->async_mpd_conn)) != NULL) {
         enum mpd_parser_result result = mpd_parser_feed(self->parser, line);
@@ -364,7 +361,7 @@ static char * idler_do_connect(MooseClient * parent, GMainContext * context, con
     g_mutex_lock(&self->one_thread_only_mtx);
 
     char * error = NULL;
-    self->con = mpd_connect(parent, host, port, timeout, &error);
+    self->con = moose_base_connect(parent, host, port, timeout, &error);
 
     if (error != NULL)
         goto failure;
@@ -498,5 +495,4 @@ MooseClient * moose_create_idler(void)
     self->logic.do_is_connected = idler_do_is_connected;
 
     g_mutex_init(&self->one_thread_only_mtx);
-    return (MooseClient *)self;
 }

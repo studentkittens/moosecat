@@ -1,138 +1,131 @@
+#ifndef MOOSE_CLIENT_H
+#define MOOSE_CLIENT_H
+
+G_BEGIN_DECLS
+
 #include <stdbool.h>
 #include <glib.h>
-#include "moose-song.h"
-#include "moose-status.h"
 #include <mpd/client.h>
 
-/* Signal System */
-#include "moose-mpd-signal.h"
+#include "moose-song.h"
+#include "moose-status.h"
 
 /* Job Dispatcher */
 #include "../misc/moose-misc-job-manager.h"
 
-#ifndef PROTOCOL_H
-#define PROTOCOL_H
+typedef enum MooseIdle {
+    /** song database has been updated*/
+    MOOSE_IDLE_DATABASE = MPD_IDLE_DATABASE,
 
-typedef enum {
+    /** a stored playlist has been modified, created, deleted or
+        renamed */
+    MOOSE_IDLE_STORED_PLAYLIST = MPD_IDLE_STORED_PLAYLIST,
+
+    /** the queue has been modified */
+    MOOSE_IDLE_QUEUE = MPD_IDLE_QUEUE,
+
+    /** the player state has changed: play, stop, pause, seek, ... */
+    MOOSE_IDLE_PLAYER = MPD_IDLE_PLAYER,
+
+    /** the volume has been modified */
+    MOOSE_IDLE_MIXER = MPD_IDLE_MIXER,
+
+    /** an audio output device has been enabled or disabled */
+    MOOSE_IDLE_OUTPUT = MPD_IDLE_OUTPUT,
+
+    /** options have changed: crossfade, random, repeat, ... */
+    MOOSE_IDLE_OPTIONS = MPD_IDLE_OPTIONS,
+
+    /** a database update has started or finished. */
+    MOOSE_IDLE_UPDATE = MPD_IDLE_UPDATE,
+
+    /** a sticker has been modified. */
+    MOOSE_IDLE_STICKER = MPD_IDLE_STICKER,
+
+    /** a client has subscribed to or unsubscribed from a channel */
+    MOOSE_IDLE_SUBSCRIPTION = MPD_IDLE_SUBSCRIPTION,
+
+    /** a message on a subscribed channel was received */
+    MOOSE_IDLE_MESSAGE = MPD_IDLE_MESSAGE,
+
+    /** a seek event */
+    MOOSE_IDLE_SEEK = MPD_IDLE_MESSAGE << 1,
+
+        MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2
+} MooseIdle;
+
+
+typedef enum MoosePmType {
     MOOSE_PM_IDLE = 1,
     MOOSE_PM_COMMAND
 } MoosePmType;
 
-
-/* Hack to distinguish between seek and player (pause, play) events.
- * Use (currently...) highest value * 2
+/*
+ * Type macros.
  */
-#define MPD_IDLE_SEEK MPD_IDLE_MESSAGE << 1
+#define MOOSE_TYPE_CLIENT \
+    (moose_client_get_type())
+#define MOOSE_CLIENT(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_CLIENT, MooseClient))
+#define MOOSE_IS_CLIENT(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_CLIENT))
+#define MOOSE_CLIENT_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_CLIENT, MooseClientClass))
+#define MOOSE_IS_CLIENT_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_CLIENT))
+#define MOOSE_CLIENT_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_CLIENT, MooseClientClass))
 
-/**
- * @brief Structure representing a connection handle,
- * and an interface to send commands and recv. events.
- *
- * It's able to:
- *    - change hosts (connecting/disconnecting) (without loosing registered callbacks)
- *    - Notifying you on events / errors / connection-changes
- *    - Send commands to the server.
- */
-typedef struct MooseClient {
+GType moose_client_get_type(void);
+
+struct _MooseClientPrivate;
+
+typedef struct _MooseClient {
+    GObject parent;
+    struct _MooseClientPrivate * priv;
+
     /*
      * Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char *(*do_connect)(struct MooseClient *, GMainContext * context, const char *, int, float);
+    char *(*do_connect)(struct _MooseClient *, GMainContext * context, const char *, int, float);
 
     /*
      * Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    struct mpd_connection *(*do_get)(struct MooseClient *);
+    struct mpd_connection *(*do_get)(struct _MooseClient *);
 
     /*
      * Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put)(struct MooseClient *);
+    void (* do_put)(struct _MooseClient *);
 
     /*
      * Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    bool (* do_disconnect)(struct MooseClient *);
+    bool (* do_disconnect)(struct _MooseClient *);
 
     /**
      * Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    bool (* do_is_connected)(struct MooseClient *);
+    bool (* do_is_connected)(struct _MooseClient *);
 
     /*
      * Free the connector. disconnect() won't free it!
      * May be NULL
      */
-    void (* do_free)(struct MooseClient *);
-
-    /////////////////////////////
-    //    Actual Variables     //
-    /////////////////////////////
-
-    /* This is locked on do_get(),
-     * and unlocked on do_put()
-     */
-    GRecMutex _getput_mutex;
-
-    GRecMutex _client_attr_mutex;
-
-    /* Save last connected host / port */
-    char * _host;
-    int _port;
-
-    /* Indicates if store was not connected yet.
-     * */
-    bool is_virgin;
-
-    /* Only used for bug_report.c */
-    float _timeout;
-    MoosePmType _pm;
-
-    /* Signal functions are stored in here */
-    MooseSignalList _signals;
-
-    /* Job Dispatcher */
-    struct MooseJobManager * jm;
-
-    struct {
-        /* Id of command list job */
-        int is_active;
-        GMutex is_active_mtx;
-        GList * commands;
-    } command_list;
-
-    /* The thread moose_client_create() was called from */
-    GThread * initial_thread;
-
-    GAsyncQueue * event_queue;
-    GThread * update_thread;
-    MooseStatus * status;
-
-    struct {
-        int timeout_id;
-        int interval;
-        bool trigger_event;
-        GTimer * last_update;
-        GMutex mutex;
-    } status_timer;
-
-    /* ID of the last played song or -1
-     * Needed to distinguish between
-     * MPD_IDLE_SEEK and MPD_IDLE_PLAYER.
-     * */
-    struct {
-        long id;
-        MooseState state;
-    } last_song_data;
+    void (* do_free)(struct _MooseClient *);
 } MooseClient;
 
-///////////////////
+typedef struct _MooseClientClass {
+    GObjectClass parent_class;
+} MooseClientClass;
+
 ///////////////////
 
 /**
@@ -265,7 +258,7 @@ void moose_client_signal_add_masked(
     const char * signal_name,
     void * callback_func,
     void * user_data,
-    enum mpd_idle mask);
+    MooseIdle mask);
 
 /**
  * @brief Remove a previously added signal callback.
@@ -316,7 +309,7 @@ int moose_client_signal_length(
  */
 void moose_client_force_sync(
     MooseClient * self,
-    enum mpd_idle events);
+    MooseIdle events);
 
 /**
  * @brief Get the hostname being currently connected to.
@@ -325,9 +318,9 @@ void moose_client_force_sync(
  *
  * @param self the client to operate on.
  *
- * @return the hostname, do not free or change it!
+ * @return the hostname, free when done
  */
-const char * moose_client_get_host(MooseClient * self);
+char * moose_client_get_host(MooseClient * self);
 
 /**
  * @brief Get the Port being currently connected to.
@@ -477,5 +470,12 @@ void moose_client_begin(MooseClient * self);
  */
 long moose_client_commit(MooseClient * self);
 
+bool moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection * cconn);
 
-#endif /* end of include guard: PROTOCOL_H */
+
+bool moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection * cconn);
+struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char * * err);
+
+G_END_DECLS
+
+#endif /* end of include guard: MOOSE_CLIENT_H */

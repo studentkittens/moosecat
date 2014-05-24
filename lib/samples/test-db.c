@@ -17,7 +17,7 @@ static void print_logging(
 
 ///////////////////////////////
 
-static void print_event(MooseClient * self, enum mpd_idle event, void * user_data)
+static void print_event(MooseClient * self, MooseIdle event, void * user_data)
 {
     g_print("event-signal: %p %d %p\n", self, event, user_data);
 }

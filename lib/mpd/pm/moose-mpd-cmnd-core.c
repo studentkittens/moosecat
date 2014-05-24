@@ -1,7 +1,6 @@
 #include "moose-mpd-cmnd-core.h"
-#include "moose-mpd-common.h"
 #include "../moose-mpd-client.h"
-#include "../moose-mpd-signal-helper.h"
+#include "../../moose-config.h"
 
 #include <glib.h>
 #include <string.h>
@@ -132,15 +131,15 @@ static void cmnder_set_run_listener(MooseCmndClient * self, GThread * thread, vo
 static gpointer cmnder_listener_thread(gpointer data)
 {
     MooseCmndClient * self = child(data);
-    enum mpd_idle events = 0;
+    MooseIdle events = 0;
 
     char * error_message = NULL;
-    struct mpd_connection * idle_con = mpd_connect((MooseClient *)self,
-                                                   moose_client_get_host((MooseClient *)self),
-                                                   moose_client_get_port((MooseClient *)self),
-                                                   moose_client_get_timeout((MooseClient *)self),
-                                                   &error_message
-                                                   );
+    struct mpd_connection * idle_con = moose_base_connect((MooseClient *)self,
+                                                          moose_client_get_host((MooseClient *)self),
+                                                          moose_client_get_port((MooseClient *)self),
+                                                          moose_client_get_timeout((MooseClient *)self),
+                                                          &error_message
+                                                          );
 
     cmnder_set_run_listener(self, g_thread_self(), TRUE);
 
@@ -152,7 +151,7 @@ static gpointer cmnder_listener_thread(gpointer data)
                 } else {}
 
                 if ((events = mpd_recv_idle(idle_con, false)) == 0) {
-                    moose_shelper_report_error((MooseClient *)self, idle_con);
+                    moose_client_check_error((MooseClient *)self, idle_con);
                     break;
                 }
 
@@ -166,10 +165,7 @@ static gpointer cmnder_listener_thread(gpointer data)
         idle_con = NULL;
 
     } else {
-        moose_shelper_report_error_printf((MooseClient *)self,
-                                          "listener_thread: cannot connect: %s",
-                                          error_message
-                                          );
+        moose_critical("listener_thread: cannot connect: %s", error_message);
     }
 
     g_thread_unref(g_thread_self());
@@ -280,10 +276,10 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
 
             if (con != NULL) {
                 if (mpd_send_command(con, "ping", NULL) == false)
-                    moose_shelper_report_error((MooseClient *)self, con);
+                    moose_client_check_error((MooseClient *)self, con);
 
                 if (mpd_response_finish(con) == false)
-                    moose_shelper_report_error((MooseClient *)self, con);
+                    moose_client_check_error((MooseClient *)self, con);
             }
 
             moose_client_put((MooseClient *)self);

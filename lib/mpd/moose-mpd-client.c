@@ -1,8 +1,9 @@
+#include "../moose-config.h"
+
 #include "moose-mpd-client.h"
 #include "pm/moose-mpd-cmnd-core.h"
 #include "pm/moose-mpd-idle-core.h"
 
-#include "moose-mpd-signal-helper.h"
 #include "moose-mpd-client.h"
 #include "moose-status-private.h"
 
@@ -10,68 +11,426 @@
 #include <string.h>
 
 #define ASSERT_IS_MAINTHREAD(client) \
-    g_assert(g_thread_self() == (client)->initial_thread)
+    g_assert(g_thread_self() == (client)->priv->initial_thread)
 
 /* This will be sended (as Integer)
  * to the Queue to break out of the poll loop
  */
-#define THREAD_TERMINATOR (MPD_IDLE_STICKER)
+#define THREAD_TERMINATOR (MOOSE_IDLE_STICKER)
+
+
+enum {
+    SIGNAL_CLIENT_EVENT,
+    SIGNAL_CONNECTIVITY,
+    SIGNAL_LOGGING,
+    SIGNAL_FATAL_ERROR,
+    NUM_SIGNALS
+};
+
+enum {
+    PROP_HOST,
+    PROP_PORT,
+    PROP_TIMEOUT,
+    PROP_NUMBER
+};
+
+
+static guint SIGNALS[NUM_SIGNALS];
+
 
 static void * moose_client_command_dispatcher(
-    G_GNUC_UNUSED struct MooseJobManager * jm,
-    G_GNUC_UNUSED volatile bool * cancel,
+    struct MooseJobManager * jm,
+    volatile bool * cancel,
     void * user_data,
-    void * job_data);
+    void * job_data
+    );
 
 static gpointer moose_update_thread(gpointer user_data);
-static void moose_update_data_push(MooseClient * self, enum mpd_idle event);
+static void moose_update_data_push(MooseClient * self, MooseIdle event);
 static gboolean moose_update_status_timer_cb(gpointer user_data);
+
+typedef struct _MooseClientPrivate {
+    /* This is locked on do_get(),
+     * and unlocked on do_put()
+     */
+    GRecMutex getput_mutex;
+    GRecMutex client_attr_mutex;
+
+    /* The thread moose_client_create() was called from */
+    GThread * initial_thread;
+
+    /* Save last connected host / port */
+    char * host;
+    int port;
+    float timeout;
+
+    /* Indicates if store was not connected yet.
+     * */
+    bool is_virgin;
+
+    /* Job Dispatcher */
+    struct MooseJobManager * jm;
+
+    struct {
+        /* Id of command list job */
+        int is_active;
+        GMutex is_active_mtx;
+        GList * commands;
+    } command_list;
+
+    GAsyncQueue * event_queue;
+    GThread * update_thread;
+    MooseStatus * status;
+
+    struct {
+        int timeout_id;
+        int interval;
+        bool trigger_event;
+        GTimer * last_update;
+        GMutex mutex;
+    } status_timer;
+
+    /* ID of the last played song or -1
+     * Needed to distinguish between
+     * MOOSE_IDLE_SEEK and MOOSE_IDLE_PLAYER.
+     * */
+    struct {
+        long id;
+        MooseState state;
+    } last_song_data;
+
+} MooseClientPrivate;
+
+
+G_DEFINE_TYPE_WITH_PRIVATE(
+    MooseClient, moose_client, G_TYPE_OBJECT
+    );
+
 
 ///////////////////
 ////  PUBLIC //////
 ///////////////////
 
-MooseClient * moose_client_create(MoosePmType pm)
+static void moose_client_init(MooseClient * self)
 {
-    MooseClient * client = NULL;
+    self->priv = moose_client_get_instance_private(self);
 
-    switch (pm) {
-    case MOOSE_PM_IDLE:
-        client = moose_create_idler();
-        break;
-
-    case MOOSE_PM_COMMAND:
-        client = moose_create_cmnder(-1);
-        break;
-    }
-
-    if (client != NULL) {
-        client->_pm = pm;
-        client->is_virgin = true;
+    if (self != NULL) {
+        self->priv->is_virgin = true;
 
         /* init the getput mutex */
-        g_rec_mutex_init(&client->_getput_mutex);
-        g_rec_mutex_init(&client->_client_attr_mutex);
+        g_rec_mutex_init(&self->priv->getput_mutex);
+        g_rec_mutex_init(&self->priv->client_attr_mutex);
 
-        moose_priv_signal_list_init(&client->_signals);
+        self->priv->event_queue = g_async_queue_new();
 
-        client->event_queue = g_async_queue_new();
+        g_mutex_init(&self->priv->status_timer.mutex);
 
-        g_mutex_init(&client->status_timer.mutex);
+        self->priv->last_song_data.id = -1;
+        self->priv->last_song_data.state = MOOSE_STATE_UNKNOWN;
 
-        client->last_song_data.id = -1;
-        client->last_song_data.state = MOOSE_STATE_UNKNOWN;
-
-        client->update_thread = g_thread_new(
+        self->priv->update_thread = g_thread_new(
             "data-update-thread",
             moose_update_thread,
-            client
+            self
             );
-        client->initial_thread = g_thread_self();
+        self->priv->initial_thread = g_thread_self();
+    }
+}
+
+static void moose_client_finalize(GObject * gobject)
+{
+    MooseClient * self = MOOSE_CLIENT(gobject);
+    if (self == NULL) {
+        return;
     }
 
-    return client;
+    ASSERT_IS_MAINTHREAD(self);
+
+    MooseClientPrivate * priv = self->priv;
+
+    /* Disconnect if not done yet */
+    moose_client_disconnect(self);
+
+    if (moose_client_status_timer_is_active(self)) {
+        moose_client_status_timer_unregister(self);
+    }
+
+    /* Push the termination sign to the Queue */
+    g_async_queue_push(priv->event_queue, GINT_TO_POINTER(THREAD_TERMINATOR));
+
+    /* Wait for the thread to finish */
+    g_thread_join(priv->update_thread);
+
+    if (priv->status != NULL) {
+        moose_status_unref(priv->status);
+        priv->status = NULL;
+    }
+
+    /* Destroy the Queue */
+    g_async_queue_unref(priv->event_queue);
+
+    priv->event_queue = NULL;
+    priv->update_thread = NULL;
+
+    g_mutex_clear(&priv->status_timer.mutex);
+
+    /* Kill any previously connected host info */
+    g_rec_mutex_lock(&priv->client_attr_mutex);
+    if (priv->host != NULL) {
+        g_free(priv->host);
+        priv->host = NULL;
+    }
+
+    g_rec_mutex_unlock(&priv->client_attr_mutex);
+    g_rec_mutex_clear(&priv->getput_mutex);
+    g_rec_mutex_clear(&priv->client_attr_mutex);
+
+    /* Allow special connector to cleanup */
+    if (self->do_free != NULL) {
+        self->do_free(self);
+    }
 }
+
+static void moose_client_get_property(
+    GObject * object,
+    guint property_id,
+    GValue * value,
+    GParamSpec * pspec)
+{
+    MooseClient * self = MOOSE_CLIENT(object);
+
+    g_rec_mutex_lock(&self->priv->client_attr_mutex);
+    switch (property_id) {
+    case PROP_HOST:
+        g_value_set_string(value, self->priv->host);
+        break;
+    case PROP_PORT:
+        g_value_set_int(value, self->priv->port);
+        break;
+    case PROP_TIMEOUT:
+        g_value_set_float(value, self->priv->timeout);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
+    }
+    g_rec_mutex_unlock(&self->priv->client_attr_mutex);
+}
+
+////////////////////////////////
+
+static void moose_client_set_property(
+    GObject * object,
+    guint property_id,
+    const GValue * value,
+    GParamSpec * pspec)
+{
+    MooseClient * self = MOOSE_CLIENT(object);
+
+    g_rec_mutex_lock(&self->priv->client_attr_mutex);
+    switch (property_id) {
+    case PROP_HOST:
+        if (self->priv->host) {
+            g_free(self->priv->host);
+        }
+        self->priv->host = g_value_dup_string(value);
+        break;
+    case PROP_PORT:
+        self->priv->port = g_value_get_int(value);
+        break;
+    case PROP_TIMEOUT:
+        self->priv->timeout = g_value_get_float(value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
+    }
+    g_rec_mutex_unlock(&self->priv->client_attr_mutex);
+}
+
+static void moose_client_class_init(MooseClientClass * klass)
+{
+    GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
+    gobject_class->finalize = moose_client_finalize;
+    gobject_class->get_property = moose_client_get_property;
+    gobject_class->set_property = moose_client_set_property;
+
+    SIGNALS[SIGNAL_CLIENT_EVENT] = g_signal_new(
+        "client-event",
+        G_OBJECT_CLASS_TYPE(klass),
+        G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
+        g_cclosure_marshal_VOID__ENUM,
+        G_TYPE_NONE, 2, G_TYPE_ENUM, G_TYPE_POINTER
+        );
+    SIGNALS[SIGNAL_CONNECTIVITY] = g_signal_new(
+        "connectivity",
+        G_OBJECT_CLASS_TYPE(klass),
+        G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
+        g_cclosure_marshal_VOID__BOOLEAN,
+        G_TYPE_NONE, 2, G_TYPE_BOOLEAN, G_TYPE_POINTER
+        );
+
+    GParamSpec * pspec = NULL;
+    pspec = g_param_spec_string(
+        "host",
+        "Hostname",
+        "Current host we're connected to",
+        NULL, /* default value */
+        G_PARAM_READWRITE
+        );
+
+    /**
+     * MooseClient:host: (type utf8)
+     *
+     * Hostname of the MPD Server we're connected to or NULL.
+     */
+    g_object_class_install_property(gobject_class, PROP_HOST, pspec);
+
+    pspec = g_param_spec_int(
+        "port",
+        "Port",
+        "Port we're connected to",
+        0,        /* Minimum value */
+        G_MAXINT, /* Maximum value */
+        6600,     /* default value */
+        G_PARAM_READWRITE
+        );
+
+    /**
+     * MooseClient:port: (type int)
+     *
+     * Port of the MPD Server being connected to. Default: 6600
+     */
+    g_object_class_install_property(gobject_class, PROP_PORT, pspec);
+
+    pspec = g_param_spec_float(
+        "timeout",
+        "Timeout",
+        "Max. amount of time to wait (in seconds) before cancelling the operation",
+        0,    /* Minimum value */
+        100,  /* Maximum value */
+        10,   /* Default value */
+        G_PARAM_READWRITE
+        );
+
+    /**
+     * MooseClient:timeout: (type float)
+     *
+     * Timeout, after which an operation is cancelled.
+     */
+    g_object_class_install_property(gobject_class, PROP_TIMEOUT, pspec);
+}
+
+static void moose_report_connectivity(MooseClient * self, const char * new_host, int new_port, float new_timeout)
+{
+
+    g_rec_mutex_lock(&self->priv->client_attr_mutex);
+    bool server_changed =
+        self->priv->is_virgin == false &&
+        ((g_strcmp0(new_host, self->priv->host) != 0) || (new_port != self->priv->port));
+
+    /* Defloreate the Client (Wheeeh!) */
+    self->priv->is_virgin = false;
+
+    if (self->priv->host != NULL)
+        g_free(self->priv->host);
+
+    self->priv->host = g_strdup(new_host);
+    self->priv->port = new_port;
+    self->priv->timeout = new_timeout;
+    g_rec_mutex_unlock(&self->priv->client_attr_mutex);
+
+
+    /* Dispatch *after* host being set */
+    moose_client_signal_dispatch(self, "connectivity",
+                                 self, server_changed,
+                                 moose_client_is_connected(self)
+                                 );
+}
+
+static char * moose_compose_error_msg(const char * topic, const char * src)
+{
+    if (src && topic) {
+        return g_strdup_printf("%s: ,,%s''", topic, src);
+    } else {
+        return NULL;
+    }
+}
+
+///////////////////////////////
+
+static bool moose_client_check_error_impl(MooseClient * self, struct mpd_connection * cconn, bool handle_fatal)
+{
+    if (self == NULL || cconn == NULL) {
+        if (self != NULL) {
+            moose_warning("Connection to MPD was closed (IsFatal=maybe?)");
+        }
+
+        return true;
+    }
+
+    char * error_message = NULL;
+    enum mpd_error error = mpd_connection_get_error(cconn);
+
+    if (error != MPD_ERROR_SUCCESS) {
+        switch (error) {
+        case MPD_ERROR_SYSTEM:
+            error_message = moose_compose_error_msg(
+                "System-Error",
+                g_strerror(mpd_connection_get_system_error(cconn))
+                );
+            break;
+        case MPD_ERROR_SERVER:
+            error_message = moose_compose_error_msg(
+                "Server-Error",
+                mpd_connection_get_error_message(cconn)
+                );
+            break;
+        default:
+            error_message = moose_compose_error_msg(
+                "Client-Error",
+                mpd_connection_get_error_message(cconn)
+                );
+            break;
+        }
+
+        /* Try to clear the error */
+        bool is_fatal = !(mpd_connection_clear_error(cconn));
+
+        /* On really fatal error we better disconnect,
+         * than using an invalid connection */
+        if (handle_fatal && is_fatal) {
+            moose_warning("That was fatal. Disconnecting on mainthread.");
+            g_idle_add((GSourceFunc)moose_client_disconnect, self);
+        }
+
+        /* Dispatch the error to the users */
+        moose_critical(
+            "ErrID=%d: %s (IsFatal=%s)",
+            error, error_message, is_fatal ? "True" : "False"
+            );
+        g_free(error_message);
+        return true;
+    }
+
+    return false;
+}
+
+///////////////////////////////
+
+bool moose_client_check_error(MooseClient * self, struct mpd_connection * cconn)
+{
+    return moose_client_check_error_impl(self, cconn, true);
+}
+
+///////////////////////////////
+
+bool moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection * cconn)
+{
+    return moose_client_check_error_impl(self, cconn, false);
+}
+
 
 ///////////////////
 
@@ -94,11 +453,10 @@ char * moose_client_connect(
 
     ASSERT_IS_MAINTHREAD(self);
 
-    /* Some progress! */
-    moose_shelper_report_progress(self, true, "Attempting to connect…");
+    g_mutex_init(&self->priv->command_list.is_active_mtx);
+    self->priv->jm = moose_jm_create(moose_client_command_dispatcher, self);
 
-    g_mutex_init(&self->command_list.is_active_mtx);
-    self->jm = moose_jm_create(moose_client_command_dispatcher, self);
+    moose_message("Attempting to connect…");
 
     /* Actual implementation of the connection in respective protcolmachine */
     err = g_strdup(self->do_connect(self, context, host, port, ABS(timeout)));
@@ -108,12 +466,10 @@ char * moose_client_connect(
         moose_client_force_sync(self, INT_MAX);
 
         /* Check if server changed */
-        moose_shelper_report_connectivity(self, host, port, timeout);
+        moose_report_connectivity(self, host, port, timeout);
 
-        /* Report some progress */
-        moose_shelper_report_progress(self, true, "...Fully connected!");
+        moose_message("...Fully connected!");
     }
-
     return err;
 }
 
@@ -140,7 +496,7 @@ void moose_client_put(MooseClient * self)
     }
 
     /* Make the connection accesible to other threads */
-    g_rec_mutex_unlock(&self->_getput_mutex);
+    g_rec_mutex_unlock(&self->priv->getput_mutex);
 }
 
 ///////////////////
@@ -154,11 +510,11 @@ struct mpd_connection * moose_client_get(MooseClient * self) {
     /* lock the connection to make sure, only one thread
      * can use it. This prevents us from relying on
      * the user to lock himself. */
-    g_rec_mutex_lock(&self->_getput_mutex);
+    g_rec_mutex_lock(&self->priv->getput_mutex);
 
     if (moose_client_is_connected(self)) {
         cconn = self->do_get(self);
-        moose_shelper_report_error(self, cconn);
+        // moose_client_check_error(self, cconn);
     }
 
     return cconn;
@@ -174,23 +530,24 @@ char * moose_client_disconnect(
         ASSERT_IS_MAINTHREAD(self);
 
         bool error_happenend = false;
+        MooseClientPrivate * priv = self->priv;
 
         /* Lock the connection while destroying it */
-        g_rec_mutex_lock(&self->_getput_mutex); {
+        g_rec_mutex_lock(&priv->getput_mutex); {
             /* Finish current running command */
-            moose_jm_close(self->jm);
-            self->jm = NULL;
+            moose_jm_close(priv->jm);
+            priv->jm = NULL;
 
-            g_mutex_clear(&self->command_list.is_active_mtx);
+            g_mutex_clear(&priv->command_list.is_active_mtx);
 
             /* let the connector clean up itself */
             error_happenend = !self->do_disconnect(self);
 
             /* Reset status/song/stats to NULL */
-            if (self->status != NULL) {
-                moose_status_unref(self->status);
+            if (priv->status != NULL) {
+                moose_status_unref(priv->status);
             }
-            self->status = NULL;
+            priv->status = NULL;
 
             /* Notify user of the disconnect */
             moose_client_signal_dispatch(self, "connectivity", self, false, false);
@@ -200,7 +557,7 @@ char * moose_client_disconnect(
              *        and notice they are not connected anymore
              */
         }
-        g_rec_mutex_unlock(&self->_getput_mutex);
+        g_rec_mutex_unlock(&priv->getput_mutex);
 
         // TODO
         if (error_happenend)
@@ -216,132 +573,16 @@ char * moose_client_disconnect(
 
 void moose_client_unref(MooseClient * self)
 {
-    if (self == NULL)
-        return;
-
-    ASSERT_IS_MAINTHREAD(self);
-
-    /* Disconnect if not done yet */
-    moose_client_disconnect(self);
-
-    /* Forget any signals */
-    moose_priv_signal_list_destroy(&self->_signals);
-
-    if (moose_client_status_timer_is_active(self)) {
-        moose_client_status_timer_unregister(self);
+    if (self != NULL) {
+        g_object_unref(self);
     }
-
-    /* Push the termination sign to the Queue */
-    g_async_queue_push(self->event_queue, GINT_TO_POINTER(THREAD_TERMINATOR));
-
-    /* Wait for the thread to finish */
-    g_thread_join(self->update_thread);
-
-    if (self->status != NULL) {
-        moose_status_unref(self->status);
-    }
-    self->status = NULL;
-
-    /* Destroy the Queue */
-    g_async_queue_unref(self->event_queue);
-
-    self->event_queue = NULL;
-    self->update_thread = NULL;
-
-    g_mutex_clear(&self->status_timer.mutex);
-
-    /* Kill any previously connected host info */
-    g_rec_mutex_lock(&self->_client_attr_mutex);
-    if (self->_host != NULL) {
-        g_free(self->_host);
-    }
-
-    g_rec_mutex_unlock(&self->_client_attr_mutex);
-    g_rec_mutex_clear(&self->_getput_mutex);
-    g_rec_mutex_clear(&self->_client_attr_mutex);
-
-    /* Allow special connector to cleanup */
-    if (self->do_free != NULL)
-        self->do_free(self);
-}
-
-///////////////////
-//// SIGNALS //////
-///////////////////
-
-void moose_client_signal_add(
-    MooseClient * self,
-    const char * signal_name,
-    void * callback_func,
-    void * user_data)
-{
-    if (self == NULL)
-        return;
-
-    moose_priv_signal_add(&self->_signals, signal_name, false, callback_func, user_data);
-}
-
-///////////////////
-
-void moose_client_signal_add_masked(
-    MooseClient * self,
-    const char * signal_name,
-    void * callback_func,
-    void * user_data,
-    enum mpd_idle mask)
-{
-    if (self == NULL)
-        return;
-
-    moose_priv_signal_add_masked(&self->_signals, signal_name, false, callback_func, user_data, mask);
-}
-
-///////////////////
-
-void moose_client_signal_rm(
-    MooseClient * self,
-    const char * signal_name,
-    void * callback_addr)
-{
-    if (self == NULL)
-        return;
-
-    moose_priv_signal_rm(&self->_signals, signal_name, callback_addr);
-}
-
-///////////////////
-
-void moose_client_signal_dispatch(
-    MooseClient * self,
-    const char * signal_name,
-    ...)
-{
-    if (self == NULL)
-        return;
-
-    va_list args;
-    va_start(args, signal_name);
-    moose_priv_signal_report_event_v(&self->_signals, signal_name, args);
-    va_end(args);
-}
-
-///////////////////
-
-int moose_client_signal_length(
-    MooseClient * self,
-    const char * signal_name)
-{
-    if (self != NULL)
-        return moose_priv_signal_length(&self->_signals, signal_name);
-    else
-        return -1;
 }
 
 ///////////////////
 
 void moose_client_force_sync(
     MooseClient * self,
-    enum mpd_idle events)
+    MooseIdle events)
 {
     g_assert(self);
     moose_update_data_push(self, events);
@@ -349,14 +590,12 @@ void moose_client_force_sync(
 
 ///////////////////
 
-const char * moose_client_get_host(MooseClient * self)
+char * moose_client_get_host(MooseClient * self)
 {
     g_assert(self);
 
-    g_rec_mutex_lock(&self->_client_attr_mutex);
-    const char * host = self->_host;
-    g_rec_mutex_unlock(&self->_client_attr_mutex);
-
+    char * host = NULL;
+    g_object_get(G_OBJECT(self), "host", &host, NULL);
     return host;
 }
 
@@ -364,10 +603,18 @@ const char * moose_client_get_host(MooseClient * self)
 
 unsigned moose_client_get_port(MooseClient * self)
 {
-    g_rec_mutex_lock(&self->_client_attr_mutex);
-    unsigned port = self->_port;
-    g_rec_mutex_unlock(&self->_client_attr_mutex);
+    unsigned port;
+    g_object_get(G_OBJECT(self), "port", &port, NULL);
     return port;
+}
+
+///////////////////
+
+float moose_client_get_timeout(MooseClient * self)
+{
+    float timeout;
+    g_object_get(G_OBJECT(self), "timeout", &timeout, NULL);
+    return timeout;
 }
 
 ///////////////////
@@ -376,9 +623,9 @@ bool moose_client_status_timer_is_active(MooseClient * self)
 {
     g_assert(self);
 
-    g_mutex_lock(&self->status_timer.mutex);
-    bool result = (self->status_timer.timeout_id != -1);
-    g_mutex_unlock(&self->status_timer.mutex);
+    g_mutex_lock(&self->priv->status_timer.mutex);
+    bool result = (self->priv->status_timer.timeout_id != -1);
+    g_mutex_unlock(&self->priv->status_timer.mutex);
 
     return result;
 }
@@ -390,30 +637,21 @@ void moose_client_status_timer_unregister(MooseClient * self)
     g_assert(self);
 
     if (moose_client_status_timer_is_active(self)) {
-        g_mutex_lock(&self->status_timer.mutex);
+        MooseClientPrivate * priv = self->priv;
+        g_mutex_lock(&priv->status_timer.mutex);
 
-        if (self->status_timer.timeout_id > 0) {
-            g_source_remove(self->status_timer.timeout_id);
+        if (priv->status_timer.timeout_id > 0) {
+            g_source_remove(priv->status_timer.timeout_id);
         }
 
-        self->status_timer.timeout_id = -1;
-        self->status_timer.interval = 0;
+        priv->status_timer.timeout_id = -1;
+        priv->status_timer.interval = 0;
 
-        if (self->status_timer.last_update != NULL) {
-            g_timer_destroy(self->status_timer.last_update);
+        if (priv->status_timer.last_update != NULL) {
+            g_timer_destroy(priv->status_timer.last_update);
         }
-        g_mutex_unlock(&self->status_timer.mutex);
+        g_mutex_unlock(&priv->status_timer.mutex);
     }
-}
-
-///////////////////
-
-float moose_client_get_timeout(MooseClient * self)
-{
-    g_rec_mutex_lock(&self->_client_attr_mutex);
-    float timeout = self->_timeout;
-    g_rec_mutex_unlock(&self->_client_attr_mutex);
-    return timeout;
 }
 
 ///////////////////
@@ -426,17 +664,19 @@ void moose_client_status_timer_register(
 {
     g_assert(self);
 
-    g_mutex_lock(&self->status_timer.mutex);
-    self->status_timer.trigger_event = trigger_event;
-    self->status_timer.last_update = g_timer_new();
-    self->status_timer.interval = repeat_ms;
-    self->status_timer.timeout_id =
+    g_mutex_lock(&self->priv->status_timer.mutex);
+    MooseClientPrivate * priv = self->priv;
+    priv->status_timer.trigger_event = trigger_event;
+    priv->status_timer.last_update = g_timer_new();
+    priv->status_timer.interval = repeat_ms;
+    priv->status_timer.timeout_id =
         g_timeout_add(repeat_ms, moose_update_status_timer_cb, self);
-    g_mutex_unlock(&self->status_timer.mutex);
+    g_mutex_unlock(&self->priv->status_timer.mutex);
 }
 
-MooseStatus * moose_client_ref_status(MooseClient * self) {
-    MooseStatus * status = self->status;
+MooseStatus * moose_client_ref_status(MooseClient * self)
+{
+    MooseStatus * status = self->priv->status;
     if (status != NULL) {
         g_object_ref(status);
     }
@@ -490,16 +730,16 @@ static bool moose_client_command_list_commit(MooseClient * self);
     intarg(argument, name);          \
 
 
-#define floatarg(argument, result)                                 \
-    {                                                                  \
-        char * endptr = NULL;                                           \
-        result = g_ascii_strtod(argument, &endptr);                    \
-                                                                   \
-        if (endptr != NULL && *endptr != '\0') {                        \
-            g_printerr("Could not convert to float: ''%s''", argument); \
-            return false;                                              \
-        }                                                              \
-    }                                                                  \
+#define floatarg(argument, result)                                       \
+    {                                                                    \
+        char * endptr = NULL;                                            \
+        result = g_ascii_strtod(argument, &endptr);                      \
+                                                                         \
+        if (endptr != NULL && *endptr != '\0') {                         \
+            g_printerr("Could not convert to float: ''%s''", argument);  \
+            return false;                                                \
+        }                                                                \
+    }                                                                    \
 
 #define floatarg_named(argument, name) \
     double name = 0;                   \
@@ -602,7 +842,7 @@ static bool handle_queue_delete_range(MooseClient * self, struct mpd_connection 
 static bool handle_output_switch(MooseClient * self, struct mpd_connection * conn, const char * * argv)
 {
     // const char * output_name = argv[0];
-    // int output_id = moose_priv_outputs_name_to_id(self->_outputs, output_name);
+    // int output_id = moose_priv_outputs_name_to_id(self->outputs, output_name);
     //
     // TODO
     int output_id = 0;
@@ -1289,10 +1529,10 @@ static bool moose_client_execute(
                 result = handler->handler(self, conn, (const char * *)&parts[1]);
             }
         } else {
-            moose_shelper_report_error_printf(self,
-                                              "API-Misuse: Too many arguments to %s: Expected %d, Got %d\n",
-                                              parts[0], handler->num_args, arguments - 2
-                                              );
+            moose_critical(
+                "API-Misuse: Too many arguments to %s: Expected %d, Got %d\n",
+                parts[0], handler->num_args, arguments - 2
+                );
         }
     }
 
@@ -1355,7 +1595,7 @@ static void * moose_client_command_dispatcher(
             if (conn != NULL && moose_client_is_connected(self)) {
                 result = moose_client_execute(self, input, conn);
                 if (mpd_response_finish(conn) == false) {
-                    moose_shelper_report_error(self, conn);
+                    // moose_client_check_error(self, conn);
                 }
             }
             moose_client_put(self);
@@ -1403,9 +1643,9 @@ static bool moose_client_command_list_begin(MooseClient * self)
 {
     g_assert(self);
 
-    g_mutex_lock(&self->command_list.is_active_mtx);
-    self->command_list.is_active = 1;
-    g_mutex_unlock(&self->command_list.is_active_mtx);
+    g_mutex_lock(&self->priv->command_list.is_active_mtx);
+    self->priv->command_list.is_active = 1;
+    g_mutex_unlock(&self->priv->command_list.is_active_mtx);
 
     return moose_client_command_list_is_active(self);
 }
@@ -1417,8 +1657,8 @@ static void moose_client_command_list_append(MooseClient * self, const char * co
     g_assert(self);
 
     /* prepend now, reverse later on commit */
-    self->command_list.commands = g_list_prepend(
-        self->command_list.commands,
+    self->priv->command_list.commands = g_list_prepend(
+        self->priv->command_list.commands,
         (gpointer)command
         );
 }
@@ -1429,39 +1669,43 @@ static bool moose_client_command_list_commit(MooseClient * self)
 {
     g_assert(self);
 
+    MooseClientPrivate * priv = self->priv;
+
     /* Elements were prepended, so we'll just reverse the list */
-    self->command_list.commands = g_list_reverse(self->command_list.commands);
+    priv->command_list.commands = g_list_reverse(
+        self->priv->command_list.commands
+        );
 
     struct mpd_connection * conn = moose_client_get(self);
     if (conn != NULL) {
         if (mpd_command_list_begin(conn, false) != false) {
-            for (GList * iter = self->command_list.commands; iter != NULL; iter = iter->next) {
+            for (GList * iter = priv->command_list.commands; iter != NULL; iter = iter->next) {
                 const char * command = iter->data;
                 moose_client_execute(self, command, conn);
                 g_free((char *)command);
             }
 
             if (mpd_command_list_end(conn) == false) {
-                moose_shelper_report_error(self, conn);
+                // moose_client_check_error(self, conn);
             }
         } else {
-            moose_shelper_report_error(self, conn);
+            // moose_client_check_error(self, conn);
         }
 
         if (mpd_response_finish(conn) == false) {
-            moose_shelper_report_error(self, conn);
+            // moose_client_check_error(self, conn);
         }
     }
 
-    g_list_free(self->command_list.commands);
-    self->command_list.commands = NULL;
+    g_list_free(priv->command_list.commands);
+    priv->command_list.commands = NULL;
 
     /* Put mutex back */
     moose_client_put(self);
 
-    g_mutex_lock(&self->command_list.is_active_mtx);
-    self->command_list.is_active = 0;
-    g_mutex_unlock(&self->command_list.is_active_mtx);
+    g_mutex_lock(&priv->command_list.is_active_mtx);
+    priv->command_list.is_active = 0;
+    g_mutex_unlock(&priv->command_list.is_active_mtx);
 
     return !moose_client_command_list_is_active(self);
 }
@@ -1476,7 +1720,7 @@ long moose_client_send(MooseClient * self, const char * command)
 {
     g_assert(self);
 
-    return moose_jm_send(self->jm, 0, (void *)g_strdup(command));
+    return moose_jm_send(self->priv->jm, 0, (void *)g_strdup(command));
 }
 
 ///////////////////
@@ -1485,8 +1729,8 @@ bool moose_client_recv(MooseClient * self, long job_id)
 {
     g_assert(self);
 
-    moose_jm_wait_for_id(self->jm, job_id);
-    return GPOINTER_TO_INT(moose_jm_get_result(self->jm, job_id));
+    moose_jm_wait_for_id(self->priv->jm, job_id);
+    return GPOINTER_TO_INT(moose_jm_get_result(self->priv->jm, job_id));
 }
 
 ///////////////////
@@ -1496,7 +1740,7 @@ void moose_client_wait(MooseClient * self)
 {
     g_assert(self);
 
-    moose_jm_wait(self->jm);
+    moose_jm_wait(self->priv->jm);
 }
 
 ///////////////////
@@ -1514,9 +1758,9 @@ bool moose_client_command_list_is_active(MooseClient * self)
 
     bool rc = false;
 
-    g_mutex_lock(&self->command_list.is_active_mtx);
-    rc = self->command_list.is_active;
-    g_mutex_unlock(&self->command_list.is_active_mtx);
+    g_mutex_lock(&self->priv->command_list.is_active_mtx);
+    rc = self->priv->command_list.is_active;
+    g_mutex_unlock(&self->priv->command_list.is_active_mtx);
 
     return rc;
 }
@@ -1545,22 +1789,22 @@ long moose_client_commit(MooseClient * self)
 //                                //
 ////////////////////////////////////
 
-const enum mpd_idle on_status_update = 0
-                                       | MPD_IDLE_PLAYER
-                                       | MPD_IDLE_OPTIONS
-                                       | MPD_IDLE_MIXER
-                                       | MPD_IDLE_OUTPUT
-                                       | MPD_IDLE_QUEUE
+const MooseIdle on_status_update = 0
+                                   | MOOSE_IDLE_PLAYER
+                                   | MOOSE_IDLE_OPTIONS
+                                   | MOOSE_IDLE_MIXER
+                                   | MOOSE_IDLE_OUTPUT
+                                   | MOOSE_IDLE_QUEUE
 ;
-const enum mpd_idle on_stats_update = 0
-                                      | MPD_IDLE_UPDATE
-                                      | MPD_IDLE_DATABASE
+const MooseIdle on_stats_update = 0
+                                  | MOOSE_IDLE_UPDATE
+                                  | MOOSE_IDLE_DATABASE
 ;
-const enum mpd_idle on_song_update = 0
-                                     | MPD_IDLE_PLAYER
+const MooseIdle on_song_update = 0
+                                 | MOOSE_IDLE_PLAYER
 ;
-const enum mpd_idle on_rg_status_update = 0
-                                          | MPD_IDLE_OPTIONS
+const MooseIdle on_rg_status_update = 0
+                                      | MOOSE_IDLE_OPTIONS
 ;
 
 ////////////////////////
@@ -1573,30 +1817,30 @@ const enum mpd_idle on_rg_status_update = 0
  *
  * If so, we may decide to not call the client-event callback.
  */
-#define IS_STATUS_TIMER_FLAG (MPD_IDLE_SUBSCRIPTION)
+#define MOOSE_IDLE_STATUS_TIMER_FLAG (MOOSE_IDLE_SUBSCRIPTION)
 
 
 ////////////////////////
 
-static void moose_update_data_push_full(MooseClient * self, enum mpd_idle event, bool is_status_timer)
+static void moose_update_data_push_full(MooseClient * self, MooseIdle event, bool is_status_timer)
 {
     g_assert(self);
 
     /* We may not push 0 - that would cause the event_queue to shutdown */
     if (event != 0) {
-        enum mpd_idle send_event = event;
+        MooseIdle send_event = event;
         if (is_status_timer) {
-            event |= IS_STATUS_TIMER_FLAG;
+            event |= MOOSE_IDLE_STATUS_TIMER_FLAG;
         }
 
         g_printerr("SENDING EVENT: %d\n", send_event);
-        g_async_queue_push(self->event_queue, GINT_TO_POINTER(send_event));
+        g_async_queue_push(self->priv->event_queue, GINT_TO_POINTER(send_event));
     }
 }
 
 ////////////////////////
 
-static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle events)
+static void moose_update_context_info_cb(MooseClient * self, MooseIdle events)
 {
     if (self == NULL || events == 0 || moose_client_is_connected(self) == false) {
         return;
@@ -1618,6 +1862,8 @@ static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle event
         return;
     }
 
+    MooseClientPrivate * priv = self->priv;
+
     /* Send a block of commands, speeds the thing up by 2x */
     mpd_command_list_begin(conn, true);
     {
@@ -1635,37 +1881,37 @@ static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle event
             mpd_send_current_song(conn);
     }
     mpd_command_list_end(conn);
-    moose_shelper_report_error(self, conn);
+    // moose_client_check_error(self, conn);
 
     /* Try to receive status */
     if (update_status) {
         struct mpd_status * tmp_status_struct;
         tmp_status_struct = mpd_recv_status(conn);
 
-        if (self->status_timer.last_update != NULL) {
+        if (priv->status_timer.last_update != NULL) {
             /* Reset the status timer to 0 */
-            g_timer_start(self->status_timer.last_update);
+            g_timer_start(priv->status_timer.last_update);
         }
 
         if (tmp_status_struct) {
             MooseStatus * status = moose_client_ref_status(self);
 
-            if (self->status != NULL) {
-                self->last_song_data.id = moose_status_get_song_id(self->status);
-                self->last_song_data.state = moose_status_get_state(self->status);
+            if (priv->status != NULL) {
+                priv->last_song_data.id = moose_status_get_song_id(priv->status);
+                priv->last_song_data.state = moose_status_get_state(priv->status);
             } else {
-                self->last_song_data.id = -1;
-                self->last_song_data.state = MOOSE_STATE_UNKNOWN;
+                priv->last_song_data.id = -1;
+                priv->last_song_data.state = MOOSE_STATE_UNKNOWN;
             }
 
-            moose_status_unref(self->status);
-            self->status = moose_status_new_from_struct(tmp_status_struct);
+            moose_status_unref(priv->status);
+            priv->status = moose_status_new_from_struct(tmp_status_struct);
             mpd_status_free(tmp_status_struct);
             moose_status_unref(status);
         }
 
         mpd_response_next(conn);
-        moose_shelper_report_error(self, conn);
+        // moose_client_check_error(self, conn);
     }
 
     /* Try to receive statistics as last */
@@ -1681,7 +1927,7 @@ static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle event
         }
 
         mpd_response_next(conn);
-        moose_shelper_report_error(self, conn);
+        // moose_client_check_error(self, conn);
     }
 
     /* Read the current replay gain status */
@@ -1698,7 +1944,7 @@ static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle event
         }
 
         mpd_response_next(conn);
-        moose_shelper_report_error(self, conn);
+        // moose_client_check_error(self, conn);
     }
 
     /* Try to receive the current song */
@@ -1722,13 +1968,13 @@ static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle event
         moose_status_set_current_song(status, new_song);
         moose_status_unref(status);
 
-        moose_shelper_report_error(self, conn);
+        // moose_client_check_error(self, conn);
     }
 
     /* Finish repsonse */
     if (update_song || update_stats || update_status || update_rg) {
         mpd_response_finish(conn);
-        moose_shelper_report_error(self, conn);
+        // moose_client_check_error(self, conn);
     }
 
     moose_client_put(self);
@@ -1736,18 +1982,18 @@ static void moose_update_context_info_cb(MooseClient * self, enum mpd_idle event
 
 ////////////////////////
 
-void moose_priv_outputs_update(MooseClient * self, enum mpd_idle event)
+void moose_priv_outputs_update(MooseClient * self, MooseIdle event)
 {
     g_assert(self);
 
-    if ((event & MPD_IDLE_OUTPUT) == 0)
+    if ((event & MOOSE_IDLE_OUTPUT) == 0)
         return /* because of no relevant event */;
 
     struct mpd_connection * conn = moose_client_get(self);
 
     if (conn != NULL) {
         if (mpd_send_outputs(conn) == false) {
-            moose_shelper_report_error(self, conn);
+            // moose_client_check_error(self, conn);
         } else {
             struct mpd_output * output = NULL;
             MooseStatus * status = moose_client_ref_status(self);
@@ -1760,7 +2006,7 @@ void moose_priv_outputs_update(MooseClient * self, enum mpd_idle event)
         }
 
         if (mpd_response_finish(conn) == false) {
-            moose_shelper_report_error(self, conn);
+            // moose_client_check_error(self, conn);
         }
     }
     moose_client_put(self);
@@ -1768,9 +2014,9 @@ void moose_priv_outputs_update(MooseClient * self, enum mpd_idle event)
 
 ////////////////////////
 
-static bool moose_update_is_a_seek_event(MooseClient * self, enum mpd_idle event_mask)
+static bool moose_update_is_a_seek_event(MooseClient * self, MooseIdle event_mask)
 {
-    if (event_mask & MPD_IDLE_PLAYER) {
+    if (event_mask & MOOSE_IDLE_PLAYER) {
         long curr_song_id = -1;
         MooseState curr_song_state = MOOSE_STATE_UNKNOWN;
 
@@ -1780,8 +2026,8 @@ static bool moose_update_is_a_seek_event(MooseClient * self, enum mpd_idle event
         curr_song_state = moose_status_get_state(status);
         moose_status_unref(status);
 
-        if (curr_song_id != -1 && self->last_song_data.id == curr_song_id) {
-            if (self->last_song_data.state == curr_song_state) {
+        if (curr_song_id != -1 && self->priv->last_song_data.id == curr_song_id) {
+            if (self->priv->last_song_data.state == curr_song_state) {
                 return true;
             }
         }
@@ -1797,26 +2043,26 @@ static gpointer moose_update_thread(gpointer user_data)
 
     MooseClient * self = user_data;
 
-    enum mpd_idle event_mask = 0;
+    MooseIdle event_mask = 0;
 
-    while ((event_mask = GPOINTER_TO_INT(g_async_queue_pop(self->event_queue))) != THREAD_TERMINATOR) {
+    while ((event_mask = GPOINTER_TO_INT(g_async_queue_pop(self->priv->event_queue))) != THREAD_TERMINATOR) {
         moose_update_context_info_cb(self, event_mask);
         moose_priv_outputs_update(self, event_mask);
         g_printerr("EVENT %d\n", event_mask);
 
         /* Lookup if we need to trigger a client-event (maybe not if * auto-update)*/
         bool trigger_it = true;
-        if (event_mask & IS_STATUS_TIMER_FLAG && self->status_timer.trigger_event) {
+        if (event_mask & MOOSE_IDLE_STATUS_TIMER_FLAG && self->priv->status_timer.trigger_event) {
             trigger_it = false;
         }
 
         /* Maybe we should make this configurable? */
         if (moose_update_is_a_seek_event(self, event_mask)) {
             /* Set the PLAYER bit to 0 */
-            event_mask &= ~MPD_IDLE_PLAYER;
+            event_mask &= ~MOOSE_IDLE_PLAYER;
 
             /* and add the SEEK bit intead */
-            event_mask |= MPD_IDLE_SEEK;
+            event_mask |= MOOSE_IDLE_SEEK;
         }
 
         if (trigger_it) {
@@ -1854,12 +2100,13 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
             /* Substract a small amount to include the network latency - a bit of a hack
              * but worst thing that could happen: you miss one status update.
              * */
-            float compare = MAX(self->status_timer.interval - self->status_timer.interval / 10, 0);
-            float elapsed = g_timer_elapsed(self->status_timer.last_update, NULL) * 1000;
+            gint interval = self->priv->status_timer.interval;
+            float compare = MAX(interval - interval / 10, 0);
+            float elapsed = g_timer_elapsed(self->priv->status_timer.last_update, NULL) * 1000;
 
             if (elapsed >= compare) {
                 /* MIXER is a harmless event, but it causes status to update */
-                moose_update_data_push_full(self, MPD_IDLE_MIXER, true);
+                moose_update_data_push_full(self, MOOSE_IDLE_MIXER, true);
             }
         }
     }
@@ -1869,7 +2116,30 @@ static gboolean moose_update_status_timer_cb(gpointer user_data)
 
 ////////////////////////
 
-static void moose_update_data_push(MooseClient * self, enum mpd_idle event)
+static void moose_update_data_push(MooseClient * self, MooseIdle event)
 {
     moose_update_data_push_full(self, event, false);
+}
+
+struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char * * err) {
+    struct mpd_connection * con = mpd_connection_new(host, port, timeout * 1000);
+
+    if (con && mpd_connection_get_error(con) != MPD_ERROR_SUCCESS) {
+        char * error_message = g_strdup(mpd_connection_get_error_message(con));
+        /* Report the error, but don't try to handle it in that early stage */
+        moose_client_check_error_without_handling(self, con);
+
+        if (err != NULL) {
+            *err = error_message;
+        } else {
+            g_free(error_message);
+        }
+
+        mpd_connection_free(con);
+        con = NULL;
+    } else if (err != NULL) {
+        *err = NULL;
+    }
+
+    return con;
 }

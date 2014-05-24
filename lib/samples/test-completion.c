@@ -20,7 +20,7 @@ static void print_logging(
 
 static void print_event(
     MooseClient * self,
-    enum mpd_idle event,
+    MooseIdle event,
     void * user_data)
 {
     g_print("event-signal: %p %d %p\n", self, event, user_data);
@@ -72,8 +72,8 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
     moose_client_signal_add(self, "connectivity", print_connectivity, NULL);
 
     MooseStore * db = moose_store_create_full(
-        self, NULL, NULL, TRUE, FALSE 
-    );
+        self, NULL, NULL, TRUE, FALSE
+        );
 
     GMainLoop * loop = g_main_loop_new(NULL, true);
     g_timeout_add(3000, timeout_client_change, db);

@@ -1,16 +1,15 @@
 #include <glib.h>
 
 #include "moose-misc-external-logs.h"
-#include "../mpd/moose-mpd-signal-helper.h"
+#include "../moose-config.h"
 
 //////////////////////
 
 static void forward_log(const gchar * log_domain,
                         GLogLevelFlags log_level,
                         const gchar * message,
-                        gpointer user_data)
+                        G_GNUC_UNUSED gpointer user_data)
 {
-    MooseClient * self = user_data;
     const char * log_level_string = NULL;
 
     switch (log_level) {
@@ -42,7 +41,8 @@ static void forward_log(const gchar * log_domain,
         log_level_string = "Unknown";
     }
 
-    moose_shelper_report_error_printf(self, "%s-%s: %s\n", log_domain, log_level_string, message);
+    // TODO
+    g_printerr("%s-%s: %s\n", log_domain, log_level_string, message);
 }
 
 //////////////////////
@@ -50,7 +50,7 @@ static void forward_log(const gchar * log_domain,
 static void moose_register_log_domains(const char * domain, MooseClient * self)
 {
     GLogLevelFlags flags = (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION);
-    g_log_set_handler(domain, flags, forward_log, self);
+    g_log_set_handler(domain, flags, forward_log, NULL);
 }
 
 //////////////////////

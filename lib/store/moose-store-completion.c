@@ -24,7 +24,7 @@ typedef struct _MooseStoreCompletionIterTag {
 
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseStoreCompletion, moose_store_completion, G_TYPE_OBJECT
-);
+    );
 
 static void moose_store_completion_clear(MooseStoreCompletion * self)
 {
@@ -45,7 +45,7 @@ static void moose_store_completion_clear(MooseStoreCompletion * self)
 
 static void moose_store_completion_client_event(
     G_GNUC_UNUSED MooseClient * client,
-    G_GNUC_UNUSED enum mpd_idle event,
+    G_GNUC_UNUSED MooseIdle event,
     void * user_data
     )
 {
@@ -78,7 +78,7 @@ static void moose_store_completion_class_init(MooseStoreCompletionClass * klass)
 
 static void moose_store_completion_init(MooseStoreCompletion * self)
 {
-    MooseStoreCompletionPrivate *priv;
+    MooseStoreCompletionPrivate * priv;
     self->priv = moose_store_completion_get_instance_private(self);
     priv = self->priv;
 
@@ -93,8 +93,8 @@ static void moose_store_completion_init(MooseStoreCompletion * self)
         "client-event",
         moose_store_completion_client_event,
         self,
-        MPD_IDLE_DATABASE
-    );
+        MOOSE_IDLE_DATABASE
+        );
 }
 
 ////////////////////////////////////////////
@@ -124,10 +124,10 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
 
     MoosePlaylist * copy = moose_playlist_new();
     moose_store_gw(self->priv->store,
-        moose_store_search_to_stack(
-            self->priv->store, "*", FALSE, copy, -1
-        )
-    );
+                   moose_store_search_to_stack(
+                       self->priv->store, "*", FALSE, copy, -1
+                       )
+                   );
 
     art_tree * tree = g_slice_new0(art_tree);
     init_art_tree(tree);
@@ -198,7 +198,7 @@ void moose_store_completion_unref(MooseStoreCompletion * self)
 {
     g_assert(self);
 
-    if(self != NULL) {
+    if (self != NULL) {
         g_object_unref(self);
     }
 }
@@ -231,7 +231,7 @@ char * moose_store_completion_lookup(MooseStoreCompletion * self, MooseTagType t
     art_iter_prefix(
         tree, (unsigned char *)normalized_key, strlen(key),
         moose_store_completion_art_callback, &data
-    );
+        );
 
     g_free(normalized_key);
     return data.result;

@@ -23,7 +23,7 @@ static void * execute(
 
 static void event_cb(
     G_GNUC_UNUSED MooseClient * client,
-    enum mpd_idle events,
+    MooseIdle events,
     G_GNUC_UNUSED gpointer user_data)
 {
     g_printerr("Client Event = %u\n", events);

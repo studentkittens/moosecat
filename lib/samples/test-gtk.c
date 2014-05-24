@@ -108,7 +108,7 @@ static gboolean window_closed(GtkWidget * widget, GdkEvent * event, gpointer use
     return FALSE;
 }
 
-static void on_client_update(MooseClient * self, enum mpd_idle event, void * user_data)
+static void on_client_update(MooseClient * self, MooseIdle event, void * user_data)
 {
     (void)self;
     (void)event;
@@ -130,7 +130,7 @@ static EntryTag * setup_client(void)
         g_timer_start(setup_timer);
         MooseStore * store = moose_store_create_full(
             client, NULL, NULL, false, false
-        );
+            );
         db_setup = g_timer_elapsed(setup_timer, NULL);
 
         if (store != NULL) {
@@ -142,7 +142,7 @@ static EntryTag * setup_client(void)
         }
 
         moose_client_signal_add_masked(client, "client-event",
-                                       on_client_update, rc, MPD_IDLE_DATABASE | MPD_IDLE_QUEUE);
+                                       on_client_update, rc, MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE);
     }
 
     g_print("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",

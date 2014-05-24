@@ -128,20 +128,20 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
     #  Enums  #
     ###########
 
-    cdef enum mpd_idle:
-        MPD_IDLE_DATABASE
-        MPD_IDLE_STORED_PLAYLIST
-        MPD_IDLE_QUEUE
-        MPD_IDLE_PLAYLIST
-        MPD_IDLE_PLAYER
-        MPD_IDLE_MIXER
-        MPD_IDLE_OUTPUT
-        MPD_IDLE_OPTIONS
-        MPD_IDLE_UPDATE
-        MPD_IDLE_STICKER
-        MPD_IDLE_SUBSCRIPTION
-        MPD_IDLE_MESSAGE
-        MPD_IDLE_SEEK = MPD_IDLE_MESSAGE << 1
+    cdef MooseIdle:
+        MOOSE_IDLE_DATABASE
+        MOOSE_IDLE_STORED_PLAYLIST
+        MOOSE_IDLE_QUEUE
+        MOOSE_IDLE_PLAYLIST
+        MOOSE_IDLE_PLAYER
+        MOOSE_IDLE_MIXER
+        MOOSE_IDLE_OUTPUT
+        MOOSE_IDLE_OPTIONS
+        MOOSE_IDLE_UPDATE
+        MOOSE_IDLE_STICKER
+        MOOSE_IDLE_SUBSCRIPTION
+        MOOSE_IDLE_MESSAGE
+        MOOSE_IDLE_SEEK = MOOSE_IDLE_MESSAGE << 1
 
     cdef enum mpd_error:
         MPD_ERROR_SUCCESS
@@ -155,19 +155,19 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
         MPD_ERROR_CLOSED
         MPD_ERROR_SERVER
 
-    cdef enum mpd_idle:
-        MPD_IDLE_DATABASE
-        MPD_IDLE_STORED_PLAYLIST
-        MPD_IDLE_QUEUE
-        MPD_IDLE_PLAYLIST
-        MPD_IDLE_PLAYER
-        MPD_IDLE_MIXER
-        MPD_IDLE_OUTPUT
-        MPD_IDLE_OPTIONS
-        MPD_IDLE_UPDATE
-        MPD_IDLE_STICKER
-        MPD_IDLE_SUBSCRIPTION
-        MPD_IDLE_MESSAGE
+    cdef MooseIdle:
+        MOOSE_IDLE_DATABASE
+        MOOSE_IDLE_STORED_PLAYLIST
+        MOOSE_IDLE_QUEUE
+        MOOSE_IDLE_PLAYLIST
+        MOOSE_IDLE_PLAYER
+        MOOSE_IDLE_MIXER
+        MOOSE_IDLE_OUTPUT
+        MOOSE_IDLE_OPTIONS
+        MOOSE_IDLE_UPDATE
+        MOOSE_IDLE_STICKER
+        MOOSE_IDLE_SUBSCRIPTION
+        MOOSE_IDLE_MESSAGE
 
 
     ##########################

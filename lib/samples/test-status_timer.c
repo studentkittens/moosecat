@@ -2,7 +2,7 @@
 
 static void signal_event(
     MooseClient * client,
-    enum mpd_idle event,
+    MooseIdle event,
     void * user_data)
 {
     g_printerr("event = %d\n", event);

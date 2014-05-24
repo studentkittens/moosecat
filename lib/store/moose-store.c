@@ -1,5 +1,4 @@
-#include "../mpd/moose-mpd-signal-helper.h"
-#include "../mpd/moose-mpd-signal.h"
+#include "../moose-config.h"
 #include "../misc/moose-misc-gzip.h"
 
 #include "moose-store-private.h"
@@ -221,14 +220,9 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
         GTimer * zip_timer = g_timer_new();
 
         if ((exist_check = moose_gunzip(zip_path)) == false)
-            moose_shelper_report_progress(
-                self->client, true,
-                "database: Unzipping %s failed.",
-                zip_path
-                );
+            moose_warning("database: Unzipping %s failed.", zip_path);
         else
-            moose_shelper_report_progress(
-                self->client, true,
+            moose_message(
                 "database: Unzipping %s done (took %2.3fs).",
                 zip_path, g_timer_elapsed(zip_timer, NULL)
                 );
@@ -238,17 +232,15 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     }
 
     if (exist_check == false) {
-        moose_shelper_report_progress(self->client, true,
-                                      "database: %s does not exist, creating new.", db_path
-                                      );
+        moose_message("database: %s does not exist, creating new.", db_path);
         return -1;
     }
 
     /* check #2 */
     if (sqlite3_open(db_path, &self->handle) != SQLITE_OK) {
-        moose_shelper_report_progress(self->client, true,
-                                      "database: %s cannot be opened (corrupted?), creating new.", db_path
-                                      );
+        moose_warning(
+            "database: %s cannot be opened (corrupted?), creating new.", db_path
+            );
         goto close_handle;
     }
 
@@ -259,19 +251,19 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     /* check #3 */
     unsigned cached_port = moose_stprv_get_mpd_port(self);
     if (cached_port != moose_client_get_port(self->client)) {
-        moose_shelper_report_progress(self->client, true,
-                                      "database: %s's port changed (old=%d, new=%d), creating new.",
-                                      db_path, cached_port, moose_client_get_port(self->client)
-                                      );
+        moose_warning(
+            "database: %s's port changed (old=%d, new=%d), creating new.",
+            db_path, cached_port, moose_client_get_port(self->client)
+            );
         goto close_handle;
     }
 
     cached_hostname = moose_stprv_get_mpd_host(self);
     if (g_strcmp0(cached_hostname, moose_client_get_host(self->client)) != 0) {
-        moose_shelper_report_progress(self->client, true,
-                                      "database: %s's host changed (old=%s, new=%s), creating new.",
-                                      db_path, cached_hostname, moose_client_get_host(self->client)
-                                      );
+        moose_warning(
+            "database: %s's host changed (old=%s, new=%s), creating new.",
+            db_path, cached_hostname, moose_client_get_host(self->client)
+            );
         goto close_handle;
     }
 
@@ -293,14 +285,11 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     /* All okay! we can use the old database */
     song_count = moose_stprv_get_song_count(self);
 
-    moose_shelper_report_progress(self->client, true, "database: %s exists already and is valid.", db_path);
+    moose_message("database: %s exists already and is valid.", db_path);
 
 close_handle:
-
-    /* clean up */
     moose_stprv_close_handle(self, true);
     g_free(cached_hostname);
-
     return song_count;
 }
 
@@ -320,7 +309,7 @@ static void moose_store_shutdown(MooseStore * self)
         moose_stprv_load_or_save(self, true, db_path);
 
     if (self->settings.use_compression && moose_gzip(db_path) == false)
-        moose_shelper_report_progress(self->client, true, "Note: Nothing to zip.\n");
+        moose_warning("Weird, zipping failed.");
 
     moose_stprv_close_handle(self, true);
     self->handle = NULL;
@@ -346,7 +335,7 @@ static void moose_store_buildup(MooseStore * self)
     char * db_path = moose_store_construct_full_dbpath(self, self->db_directory);
 
     if ((song_count = moose_store_check_if_db_is_still_valid(self, db_path)) < 0) {
-        moose_shelper_report_progress(self->client, true, "database: will fetch stuff from mpd.");
+        moose_message("database: will fetch stuff from mpd.");
 
         /* open a sqlite handle, pointing to a database, either a new one will be created,
          * or an backup will be loaded into memory */
@@ -395,7 +384,7 @@ static void moose_store_buildup(MooseStore * self)
  * On DB update we have no chance, but updating the whole tables.
  * (we do not need to update, if db version did not changed though.)
  *
- * #1 If events contains MPD_IDLE_DATABASE
+ * #1 If events contains MOOSE_IDLE_DATABASE
  *    #2 If db_version changed
  *       #3 Insert new database metadata
  *       #4 DELETE * FROM songs;
@@ -409,16 +398,16 @@ static void moose_store_buildup(MooseStore * self)
  */
 static void moose_store_update_callback(
     MooseClient * client,
-    enum mpd_idle events,
+    MooseIdle events,
     MooseStore * self)
 {
     g_assert(self && client && self->client == client);
 
-    if (events & MPD_IDLE_DATABASE) {
+    if (events & MOOSE_IDLE_DATABASE) {
         moose_store_send_job_no_args(self, MOOSE_OPER_LISTALLINFO);
-    } else if (events & MPD_IDLE_QUEUE) {
+    } else if (events & MOOSE_IDLE_QUEUE) {
         moose_store_send_job_no_args(self, MOOSE_OPER_PLCHANGES);
-    } else if (events & MPD_IDLE_STORED_PLAYLIST) {
+    } else if (events & MOOSE_IDLE_STORED_PLAYLIST) {
         moose_store_send_job_no_args(self, MOOSE_OPER_SPL_UPDATE);
     }
 }
@@ -498,7 +487,7 @@ void * moose_store_job_execute_callback(
      * */
     moose_stprv_lock_attributes(self);
     {
-        moose_shelper_report_progress(self->client, true, "Processing: %s", MooseJobNames[data->op]);
+        moose_debug("Processing: %s", MooseJobNames[data->op]);
 
         /* NOTE:
          *
@@ -616,7 +605,7 @@ void * moose_store_job_execute_callback(
     }
 
     char * processed_ops = moose_store_op_to_string(data->op);
-    moose_shelper_report_progress(self->client, true, "Processing done: %s", processed_ops);
+    moose_debug("Processing done: %s", processed_ops);
     g_free(processed_ops);
 
 cleanup:
@@ -635,18 +624,18 @@ cleanup:
 //                          //
 //////////////////////////////
 
-MooseStore * moose_store_create(MooseClient *client)
+MooseStore * moose_store_create(MooseClient * client)
 {
     return moose_store_create_full(client, NULL, NULL, true, true);
 }
 
 MooseStore * moose_store_create_full(
-    MooseClient * client, 
-    const char *db_directory,
-    const char *tokenizer,
+    MooseClient * client,
+    const char * db_directory,
+    const char * tokenizer,
     bool use_memory_db,
     bool use_compression
-)
+    )
 {
     g_assert(client);
 
@@ -683,7 +672,7 @@ MooseStore * moose_store_create_full(
         &store->client->_signals,
         "client-event", true, /* call first */
         (MooseClientEventCallback)moose_store_update_callback, store,
-        MPD_IDLE_DATABASE | MPD_IDLE_QUEUE | MPD_IDLE_STORED_PLAYLIST
+        MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE | MOOSE_IDLE_STORED_PLAYLIST
         );
 
     /* Register to be notifed when the connection status changes */
