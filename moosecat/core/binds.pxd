@@ -236,7 +236,7 @@ cdef extern from "../../lib/mpd/moose-mpd-client.h":
     #############
 
     # Network:
-    MooseClient *moose_client_create(MoosePmType)
+    MooseClient *moose_client_new()
     char *moose_client_connect( MooseClient *, void *, const char *, int, float)
     bool moose_client_is_connected(MooseClient *)
     char *moose_client_disconnect(MooseClient *)

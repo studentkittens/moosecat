@@ -48,10 +48,10 @@ static gboolean idle_callback(void * user_data)
 
 /////////////////////////////
 
-static void reconnect_manytimes(MoosePmType type)
+static void reconnect_manytimes()
 {
-    MooseClient * client = moose_client_create(type);
-    moose_client_signal_add(client, "connectivity", signal_connectivity, NULL);
+    MooseClient * client = moose_client_new();
+    // moose_client_signal_add(client, "connectivity", signal_connectivity, NULL);
 
     g_idle_add(idle_callback, client);
 
@@ -66,8 +66,8 @@ static void reconnect_manytimes(MoosePmType type)
 int main(void)
 {
     g_printerr("-- MOOSE_PM_IDLE\n");
-    reconnect_manytimes(MOOSE_PM_IDLE);
+    reconnect_manytimes();
     g_printerr("-- MOOSE_PM_COMMAND\n");
-    reconnect_manytimes(MOOSE_PM_COMMAND);
+    reconnect_manytimes();
     return EXIT_SUCCESS;
 }

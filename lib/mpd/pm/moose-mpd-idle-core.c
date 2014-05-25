@@ -1,3 +1,4 @@
+#include "../../moose-config.h"
 #include "moose-mpd-idle-core.h"
 
 #include <glib.h>
@@ -5,10 +6,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <mpd/async.h>
 #include <mpd/parser.h>
 
 /*
- * This code is based/inspired but not copied from ncmpc, See this for reference:
+ * This code is based/inspired, but not copied from ncmpc, See this for reference:
  *
  *   http://git.musicpd.org/cgit/master/ncmpc.git/tree/src/gidle.c
  */
@@ -29,7 +31,7 @@ typedef struct {
     MooseClient logic;
 
     /* Normal connection to mpd, on top of async_mpd_conn */
-    mpd_connection * con;
+    struct mpd_connection * con;
 
     /* the async connection being watched */
     struct mpd_async * async_mpd_conn;
@@ -55,6 +57,9 @@ typedef struct {
     /* Mutex with descriptive name */
     GMutex one_thread_only_mtx;
 
+    /* Handle the incoming get/put? */
+    bool handle_getput;
+
 } MooseIdleClient;
 
 //////// UTILS ////////
@@ -74,7 +79,7 @@ static const unsigned map_io_enums_size = sizeof(map_io_enums) /
 
 ///////////////////////////
 
-mpd_async_event gio_to_mpd_async(GIOCondition condition)
+enum mpd_async_event gio_to_mpd_async(GIOCondition condition)
 {
     int events = 0;
 
@@ -82,12 +87,12 @@ mpd_async_event gio_to_mpd_async(GIOCondition condition)
         if (condition & map_io_enums[i][0])
             events |= map_io_enums[i][1];
 
-    return (mpd_async_event)events;
+    return (enum mpd_async_event)events;
 }
 
 ///////////////////////////
 
-GIOCondition mpd_async_to_gio(mpd_async_event events)
+GIOCondition mpd_async_to_gio(enum mpd_async_event events)
 {
     int condition = 0;
 
@@ -114,7 +119,7 @@ static void idler_report_error(
     self->is_in_idle_mode = FALSE;
     self->is_running_extern = TRUE;
     {
-        moose_client_signal_dispatch((MooseClient *)self, "logging", self, error_msg, MOOSE_LOG_ERROR, FALSE);
+        moose_critical("idle-error: %s", error_msg);
     }
     self->is_running_extern = FALSE;
 }
@@ -292,7 +297,8 @@ static gboolean idler_socket_event(GIOChannel * source, GIOCondition condition, 
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
-    g_rec_mutex_lock(&self->logic._getput_mutex);
+    self->is_running_extern = TRUE;
+    moose_client_get(MOOSE_CLIENT(self));
 
     if (mpd_async_io(self->async_mpd_conn, events) == FALSE) {
         /* Failure during IO */
@@ -328,7 +334,8 @@ static gboolean idler_socket_event(GIOChannel * source, GIOCondition condition, 
     /* Unlock again - We're now ready to take other
      * get/puts again
      */
-    g_rec_mutex_unlock(&self->logic._getput_mutex);
+    moose_client_put(MOOSE_CLIENT(self));
+    self->is_running_extern = FALSE;
     return keep_notify;
 }
 
@@ -405,7 +412,7 @@ static bool idler_do_is_connected(MooseClient * client)
 
 ///////////////////////
 
-static mpd_connection * idler_do_get(MooseClient * self)
+static struct mpd_connection * idler_do_get(MooseClient * self)
 {
     g_assert(self);
 
@@ -495,4 +502,5 @@ MooseClient * moose_create_idler(void)
     self->logic.do_is_connected = idler_do_is_connected;
 
     g_mutex_init(&self->one_thread_only_mtx);
+    return MOOSE_CLIENT(self);
 }

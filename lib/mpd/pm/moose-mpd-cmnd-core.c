@@ -40,7 +40,7 @@ typedef struct {
     MooseClient logic;
 
     /* Connection to send commands */
-    mpd_connection * cmnd_con;
+    struct mpd_connection * cmnd_con;
 
     /* Protexct get/set of self->cmnd_con */
     GMutex cmnd_con_mtx;
@@ -272,7 +272,7 @@ static gpointer cmnder_ping_server(MooseCmndClient * self)
         }
 
         if (moose_client_is_connected((MooseClient *)self)) {
-            mpd_connection * con = moose_client_get((MooseClient *)self);
+            struct mpd_connection * con = moose_client_get((MooseClient *)self);
 
             if (con != NULL) {
                 if (mpd_send_command(con, "ping", NULL) == false)
@@ -309,7 +309,7 @@ static char * cmnder_do_connect(
     char * error_message = NULL;
     MooseCmndClient * self = child(parent);
     g_mutex_lock(&self->cmnd_con_mtx);
-    self->cmnd_con = mpd_connect((MooseClient *)self, host, port, timeout, &error_message);
+    self->cmnd_con = moose_base_connect((MooseClient *)self, host, port, timeout, &error_message);
     g_mutex_unlock(&self->cmnd_con_mtx);
 
     if (error_message != NULL) {
@@ -372,7 +372,7 @@ static bool cmnder_do_disconnect(MooseClient * parent)
 
 ///////////////////////
 
-static mpd_connection * cmnder_do_get(MooseClient * client)
+static struct mpd_connection * cmnder_do_get(MooseClient * client)
 {
     return child(client)->cmnd_con;
 }

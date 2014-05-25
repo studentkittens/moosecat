@@ -6,14 +6,14 @@
 
 ///////////////////////////////
 
-static void print_logging(
-    G_GNUC_UNUSED MooseClient * self,
-    const char * message,
-    MooseLogLevel level,
-    G_GNUC_UNUSED gpointer user_data)
-{
-    g_printerr("Logging(%d): %s\n", level, message);
-}
+// static void print_logging(
+//     G_GNUC_UNUSED MooseClient * self,
+//     const char * message,
+//     MooseLogLevel level,
+//     G_GNUC_UNUSED gpointer user_data)
+// {
+//     g_printerr("Logging(%d): %s\n", level, message);
+// }
 
 ///////////////////////////////
 
@@ -44,7 +44,7 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    MooseClient * client = moose_client_create(MOOSE_PM_IDLE);
+    MooseClient * client = moose_client_new();
 
     /* Trigger some bugs */
     for (int i = 0; i < 1; i++) {
@@ -53,9 +53,9 @@ int main(int argc, char * argv[])
     }
 
     moose_client_connect(client, NULL, "localhost", 6601, 10.0);
-    moose_client_signal_add(client, "logging", print_logging, NULL);
-    moose_client_signal_add(client, "client-event", print_event, NULL);
-    moose_client_signal_add(client, "connectivity", print_connectivity, NULL);
+    // moose_client_signal_add(client, "logging", print_logging, NULL);
+    // moose_client_signal_add(client, "client-event", print_event, NULL);
+    // moose_client_signal_add(client, "connectivity", print_connectivity, NULL);
 
     MooseStore * db = moose_store_create_full(client, NULL, NULL, false, false);
 

@@ -122,7 +122,7 @@ static EntryTag * setup_client(void)
     EntryTag * rc = NULL;
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer * setup_timer = g_timer_new();
-    MooseClient * client = moose_client_create(MOOSE_PM_COMMAND);
+    MooseClient * client = moose_client_new();
     moose_client_connect(client, NULL, "localhost", 6600, 2.0);
 
     if (client && moose_client_is_connected(client)) {
@@ -141,8 +141,8 @@ static EntryTag * setup_client(void)
             rc->song_buf = moose_playlist_new_full(1000, NULL);
         }
 
-        moose_client_signal_add_masked(client, "client-event",
-                                       on_client_update, rc, MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE);
+        // moose_client_signal_add_masked(client, "client-event",
+        //                               on_client_update, rc, MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE);
     }
 
     g_print("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",

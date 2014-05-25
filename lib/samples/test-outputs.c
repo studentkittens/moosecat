@@ -4,7 +4,7 @@
 
 int main(void)
 {
-    MooseClient * client = moose_client_create(MOOSE_PM_IDLE);
+    MooseClient * client = moose_client_new();
     moose_client_connect(client, NULL, "localhost", 6600, 2);
 
     if (moose_client_is_connected(client)) {

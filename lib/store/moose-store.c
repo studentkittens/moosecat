@@ -5,6 +5,7 @@
 #include "moose-store.h"
 
 /* g_unlink() */
+#include <glib-object.h>
 #include <glib/gstdio.h>
 
 /* log2() */
@@ -401,6 +402,10 @@ static void moose_store_update_callback(
     MooseIdle events,
     MooseStore * self)
 {
+    if((events & (MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE | MOOSE_IDLE_STORED_PLAYLIST)) == 0) {
+        return;  /* No interesting events */
+    }
+
     g_assert(self && client && self->client == client);
 
     if (events & MOOSE_IDLE_DATABASE) {
@@ -668,19 +673,20 @@ MooseStore * moose_store_create_full(
     moose_store_buildup(store);
 
     /* Register for client events */
-    moose_priv_signal_add_masked(
-        &store->client->_signals,
-        "client-event", true, /* call first */
-        (MooseClientEventCallback)moose_store_update_callback, store,
-        MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE | MOOSE_IDLE_STORED_PLAYLIST
-        );
+    g_signal_connect(
+        store->client,
+        "client-event",
+        G_CALLBACK(moose_store_update_callback),
+        store
+    );
 
     /* Register to be notifed when the connection status changes */
-    moose_priv_signal_add(
-        &store->client->_signals,
-        "connectivity", true, /* call first */
-        (MooseConnectivityCallback)moose_store_connectivity_callback, store
-        );
+    g_signal_connect(
+        store->client,
+        "connectivity",
+        G_CALLBACK(moose_store_connectivity_callback),
+        store
+    );
 
     return store;
 }
@@ -700,8 +706,9 @@ void moose_store_close(MooseStore * self)
     if (self == NULL)
         return;
 
-    moose_client_signal_rm(self->client, "client-event", moose_store_update_callback);
-    moose_client_signal_rm(self->client, "connectivity", moose_store_connectivity_callback);
+    // TODO
+    // moose_client_signal_rm(self->client, "client-event", moose_store_update_callback);
+    // moose_client_signal_rm(self->client, "connectivity", moose_store_connectivity_callback);
 
     moose_stprv_lock_attributes(self);
 

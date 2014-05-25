@@ -7,14 +7,14 @@
 
 ///////////////////////////////
 
-static void print_logging(
-    G_GNUC_UNUSED MooseClient * self,
-    const char * message,
-    MooseLogLevel level,
-    G_GNUC_UNUSED gpointer user_data)
-{
-    g_printerr("Logging(%d): %s\n", level, message);
-}
+// static void print_logging(
+//     G_GNUC_UNUSED MooseClient * self,
+//     const char * message,
+//     MooseLogLevel level,
+//     G_GNUC_UNUSED gpointer user_data)
+// {
+//     g_printerr("Logging(%d): %s\n", level, message);
+// }
 
 ///////////////////////////////
 
@@ -64,12 +64,12 @@ static gboolean timeout_client_change(gpointer user_data)
 
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
 {
-    MooseClient * self = moose_client_create(MOOSE_PM_IDLE);
+    MooseClient * self = moose_client_new();
 
     moose_client_connect(self, NULL, "localhost", 6600, 10.0);
-    moose_client_signal_add(self, "logging", print_logging, NULL);
-    moose_client_signal_add(self, "client-event", print_event, NULL);
-    moose_client_signal_add(self, "connectivity", print_connectivity, NULL);
+    // moose_client_signal_add(self, "logging", print_logging, NULL);
+    // moose_client_signal_add(self, "client-event", print_event, NULL);
+    // moose_client_signal_add(self, "connectivity", print_connectivity, NULL);
 
     MooseStore * db = moose_store_create_full(
         self, NULL, NULL, TRUE, FALSE

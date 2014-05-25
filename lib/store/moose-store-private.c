@@ -1,3 +1,4 @@
+#include "../moose-config.h"
 #include "moose-store-private.h"
 #include "moose-store-query-parser.h"
 
@@ -1297,7 +1298,6 @@ void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
     g_assert(store);
     g_assert(store->client);
 
-    MooseClient * self = store->client;
     int progress_counter = 0;
     size_t db_version = 0;
     MooseStatus * status = moose_client_ref_status(store->client);
@@ -1313,13 +1313,13 @@ void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
             moose_message("database: Will not update database, timestamp didn't change.");
             return;
         } else {
-            moose_info(
+            moose_message(
                 "database: Will update database (%u != %u)",
                 (unsigned)db_update_time, (unsigned)db_version
                 );
         }
     } else {
-        moose_info("database: Doing forced listallinfo");
+        moose_message("database: Doing forced listallinfo");
     }
 
     moose_status_unref(status);
@@ -1474,8 +1474,6 @@ static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data)
 void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
 {
     g_assert(store);
-
-    MooseClient * self = store->client;
 
     int progress_counter = 0;
     size_t last_pl_version = 0;

@@ -1,7 +1,6 @@
 #ifndef MOOSE_CLIENT_H
 #define MOOSE_CLIENT_H
 
-G_BEGIN_DECLS
 
 #include <stdbool.h>
 #include <glib.h>
@@ -12,6 +11,8 @@ G_BEGIN_DECLS
 
 /* Job Dispatcher */
 #include "../misc/moose-misc-job-manager.h"
+
+G_BEGIN_DECLS
 
 typedef enum MooseIdle {
     /** song database has been updated*/
@@ -53,12 +54,6 @@ typedef enum MooseIdle {
 
         MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2
 } MooseIdle;
-
-
-typedef enum MoosePmType {
-    MOOSE_PM_IDLE = 1,
-    MOOSE_PM_COMMAND
-} MoosePmType;
 
 /*
  * Type macros.
@@ -144,7 +139,7 @@ typedef struct _MooseClientClass {
  *
  * @return a newly allocated MooseClient, free with moose_client_unref()
  */
-MooseClient * moose_client_create(MoosePmType pm);
+MooseClient * moose_client_new(void);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.
@@ -215,88 +210,6 @@ char * moose_client_disconnect(MooseClient * self);
 void moose_client_unref(MooseClient * self);
 
 ///////////////////////////////
-
-/**
- * @brief Add a function that shall be called on a certain event.
- *
- * There are currently 3 valid signal names:
- * - "client-event", See MooseClientEventCallback
- * - "connectivity", See MooseConnectivityCallback
- * - "logging",      See MooseLoggingCallback
- *
- * Callback Order
- * --------------
- *
- *  Callbacks have a defined order in which they may be called.
- *  - "connectivity" is called when the client is fully ready already,
- *    or if the client is still valid (short for disconnect)
- *
- * @param self the client that may trigger events.
- * @param signal_name the name of the signal, see above.
- * @param callback_func the function to call. Prototype depends on signal_name.
- * @param user_data optional user_data to pass to the function.
- */
-void moose_client_signal_add(
-    MooseClient * self,
-    const char * signal_name,
-    void * callback_func,
-    void * user_data);
-
-/**
- * @brief Same as moose_client_signal_add, but only
- *
- * The mask param has only effect on the client-event.
- *
- * @param self
- * @param signal_name
- * @param callback_func
- * @param user_data
- * @param mask
- */
-void moose_client_signal_add_masked(
-    MooseClient * self,
-    const char * signal_name,
-    void * callback_func,
-    void * user_data,
-    MooseIdle mask);
-
-/**
- * @brief Remove a previously added signal callback.
- *
- * @param self the client to operate on.
- * @param signal_name the signal name this function was registered on.
- * @param callback_addr the addr. of the registered function.
- */
-void moose_client_signal_rm(
-    MooseClient * self,
-    const char * signal_name,
-    void * callback_addr);
-
-/**
- * @brief This function is mostly used internally to call all registered callbacks.
- *
- * @param self the client to operate on.
- * @param signal_name the name of the signal to dispatch.
- * @param ... variable args. See above.
- */
-void moose_client_signal_dispatch(
-    MooseClient * self,
-    const char * signal_name,
-    ...);
-
-/**
- * @brief Simply returns the number of registered signals for this signal_name
- *
- * Mainly useful for testing.
- *
- * @param self the client to operate on
- * @param signal_name the name of the signal to count.
- *
- * @return 0 - inf
- */
-int moose_client_signal_length(
-    MooseClient * self,
-    const char * signal_name);
 
 /**
  * @brief Forces the client to update all status/song/stats information.
@@ -385,15 +298,6 @@ bool moose_client_status_timer_is_active(MooseClient * self);
 MooseStatus * moose_client_ref_status(MooseClient * self);
 
 /**
- * @brief Destroy client internal structures.
- *
- * This is called for you by moose_client_unref()
- *
- * @param self the client to operate on
- */
-void moose_client_destroy(MooseClient * self);
-
-/**
  * @brief Send a command to the server
  *
  * See HandlerTable
@@ -470,10 +374,9 @@ void moose_client_begin(MooseClient * self);
  */
 long moose_client_commit(MooseClient * self);
 
+bool moose_client_check_error(MooseClient * self, struct mpd_connection * cconn);
 bool moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection * cconn);
 
-
-bool moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection * cconn);
 struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char * * err);
 
 G_END_DECLS

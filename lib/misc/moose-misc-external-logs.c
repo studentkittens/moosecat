@@ -47,7 +47,7 @@ static void forward_log(const gchar * log_domain,
 
 //////////////////////
 
-static void moose_register_log_domains(const char * domain, MooseClient * self)
+static void moose_register_log_domains(const char * domain)
 {
     GLogLevelFlags flags = (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION);
     g_log_set_handler(domain, flags, forward_log, NULL);
@@ -55,8 +55,8 @@ static void moose_register_log_domains(const char * domain, MooseClient * self)
 
 //////////////////////
 
-void moose_misc_catch_external_logs(MooseClient * self)
+void moose_misc_catch_external_logs(void)
 {
-    moose_register_log_domains("GLib", self);
-    moose_register_log_domains("GLib-GObject", self);
+    moose_register_log_domains("GLib");
+    moose_register_log_domains("GLib-GObject");
 }

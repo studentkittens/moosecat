@@ -178,9 +178,9 @@ cdef class Client:
         This is not connected yet.
         '''
         if protocol_machine == 'idle':
-            self._cl = c.moose_client_create(c.PM_IDLE)
+            self._cl = c.moose_client_new()
         else:
-            self._cl = c.moose_client_create(c.PM_COMMAND)
+            self._cl = c.moose_client_new()
 
         self._store = NULL
         self._store_wrapper = None

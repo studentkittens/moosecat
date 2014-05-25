@@ -3,6 +3,6 @@
 
 #include "../mpd/moose-mpd-client.h"
 
-void moose_misc_catch_external_logs(MooseClient * self);
+void moose_misc_catch_external_logs(void);
 
 #endif /* end of include guard: MOOSE_EXTERNAL_LOGS */
