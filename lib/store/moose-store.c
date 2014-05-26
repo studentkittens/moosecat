@@ -402,7 +402,7 @@ static void moose_store_update_callback(
     MooseIdle events,
     MooseStore * self)
 {
-    if((events & (MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE | MOOSE_IDLE_STORED_PLAYLIST)) == 0) {
+    if ((events & (MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE | MOOSE_IDLE_STORED_PLAYLIST)) == 0) {
         return;  /* No interesting events */
     }
 
@@ -678,7 +678,7 @@ MooseStore * moose_store_create_full(
         "client-event",
         G_CALLBACK(moose_store_update_callback),
         store
-    );
+        );
 
     /* Register to be notifed when the connection status changes */
     g_signal_connect(
@@ -686,7 +686,7 @@ MooseStore * moose_store_create_full(
         "connectivity",
         G_CALLBACK(moose_store_connectivity_callback),
         store
-    );
+        );
 
     return store;
 }
@@ -696,19 +696,24 @@ MooseStore * moose_store_create_full(
 /*
  * close everything down.
  *
- * #1 remove the update watcher (might be called still otherwise, if client lives longer than the store)
+ * #1 remove the update watcher
+ *    (might be called still otherwise, if client lives longer than the store)
  * #2 free the stack and all associated memory.
  * #3 Save database dump to disk if it hadn't been read from there.
  * #4 Close the handle.
  */
 void moose_store_close(MooseStore * self)
 {
-    if (self == NULL)
+    if (self == NULL) {
         return;
+    }
 
-    // TODO
-    // moose_client_signal_rm(self->client, "client-event", moose_store_update_callback);
-    // moose_client_signal_rm(self->client, "connectivity", moose_store_connectivity_callback);
+    g_signal_handlers_disconnect_by_func(
+        self->client, moose_store_update_callback, self
+        );
+    g_signal_handlers_disconnect_by_func(
+        self->client, moose_store_connectivity_callback, self
+        );
 
     moose_stprv_lock_attributes(self);
 

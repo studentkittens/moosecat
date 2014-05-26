@@ -55,6 +55,13 @@ typedef enum MooseIdle {
         MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2
 } MooseIdle;
 
+typedef enum MooseProtocolType {
+    MOOSE_PROTOCOL_IDLE,
+    MOOSE_PROTOCOL_COMMAND,
+    MOOSE_PROTOCOL_N,
+    MOOSE_PROTOCOL_DEFAULT = MOOSE_PROTOCOL_IDLE
+} MooseProtocolType;
+
 /*
  * Type macros.
  */
@@ -109,12 +116,6 @@ typedef struct _MooseClient {
      * May not be NULL.
      */
     bool (* do_is_connected)(struct _MooseClient *);
-
-    /*
-     * Free the connector. disconnect() won't free it!
-     * May be NULL
-     */
-    void (* do_free)(struct _MooseClient *);
 } MooseClient;
 
 typedef struct _MooseClientClass {
@@ -124,7 +125,7 @@ typedef struct _MooseClientClass {
 ///////////////////
 
 /**
- * @brief Create a new client.
+ * @brief Create a new client with default properties.
  *
  * This allocates some memory, but does no network at all.
  * There are different protocol machines implemented in the background,
@@ -139,7 +140,7 @@ typedef struct _MooseClientClass {
  *
  * @return a newly allocated MooseClient, free with moose_client_unref()
  */
-MooseClient * moose_client_new(void);
+MooseClient * moose_client_new(MooseProtocolType protocol);
 
 /**
  * @brief Connect to a MPD Server specified by host and port.

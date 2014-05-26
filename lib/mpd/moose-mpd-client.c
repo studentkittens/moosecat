@@ -56,7 +56,7 @@ typedef struct _MooseClientPrivate {
     GRecMutex getput_mutex;
     GRecMutex client_attr_mutex;
 
-    /* The thread moose_client_new() was called from */
+    /* The thread moose_client_new(MOOSE_PROTOCOL_IDLE) was called from */
     GThread * initial_thread;
 
     /* Save last connected host / port */
@@ -99,10 +99,11 @@ typedef struct _MooseClientPrivate {
         MooseState state;
     } last_song_data;
 
+    MooseProtocolType protocol;
 } MooseClientPrivate;
 
 
-G_DEFINE_TYPE_WITH_PRIVATE(
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(
     MooseClient, moose_client, G_TYPE_OBJECT
     );
 
@@ -138,9 +139,15 @@ static void moose_client_init(MooseClient * self)
     }
 }
 
-MooseClient * moose_client_new(void)
+MooseClient * moose_client_new(MooseProtocolType protocol)
 {
-    return g_object_new(MOOSE_TYPE_CLIENT, NULL);
+    switch (protocol) {
+    case MOOSE_PROTOCOL_COMMAND:
+        return g_object_new(MOOSE_TYPE_CMD_CLIENT, NULL);
+    case MOOSE_PROTOCOL_IDLE:
+    default:
+        return g_object_new(MOOSE_TYPE_CMD_CLIENT, NULL);
+    }
 }
 
 static void moose_client_finalize(GObject * gobject)
@@ -191,10 +198,10 @@ static void moose_client_finalize(GObject * gobject)
     g_rec_mutex_clear(&priv->getput_mutex);
     g_rec_mutex_clear(&priv->client_attr_mutex);
 
-    /* Allow special connector to cleanup */
-    if (self->do_free != NULL) {
-        self->do_free(self);
-    }
+    /* Always chain up to the parent class; as with dispose(), finalize()
+     * is guaranteed to exist on the parent's class virtual function table
+     */
+    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
 static void moose_client_get_property(

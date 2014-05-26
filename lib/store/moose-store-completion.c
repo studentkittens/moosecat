@@ -1,5 +1,6 @@
 /* External */
 #include <glib.h>
+#include <glib-object.h>
 #include <string.h>
 
 /* Internal */
@@ -49,6 +50,9 @@ static void moose_store_completion_client_event(
     void * user_data
     )
 {
+    if ((event & MOOSE_IDLE_DATABASE) == 0) {
+        return;  /* Not interesting */
+    }
     MooseStoreCompletion * self = user_data;
     moose_store_completion_clear(self);
 }
@@ -88,12 +92,11 @@ static void moose_store_completion_init(MooseStoreCompletion * self)
 
     g_assert(priv->store);
 
-    moose_client_signal_add_masked(
-        NULL, // TODO: Store.
+    g_signal_connect(
+        NULL, // TODO: Store
         "client-event",
-        moose_store_completion_client_event,
-        self,
-        MOOSE_IDLE_DATABASE
+        G_CALLBACK(moose_store_completion_client_event),
+        self
         );
 }
 

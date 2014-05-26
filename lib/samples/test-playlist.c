@@ -11,7 +11,7 @@ int main(int argc, char * * argv)
         return -1;
     }
 
-    MooseClient * client = moose_client_new();
+    MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     char * err = moose_client_connect(client, NULL, "localhost", 6600, 2);
 
     if (err != NULL) {

@@ -1,22 +1,47 @@
+#ifndef MOOSE_IDLE_CORE_H
+#define MOOSE_IDLE_CORE_H
+
 #include "../moose-mpd-client.h"
 
-#ifndef IDLE_CORE_H
-#define IDLE_CORE_H
+G_BEGIN_DECLS
 
 /**
- * @brief Create an MooseClient
- *
- * @brief Connector using only one connection and the idle command.
+ * @brief Connector using two connections, one for sending, one for events.
  *
  * Sending a command:
- * - leave idle state, by sending 'noidle' async.
- * - send command and read response
- * - while idle_respone != NULL: issue 'idle'.
- *
- * Used by ncmpc and friends.
- *
- * @return a newly allocated connector
+ * - send it in the cmnd_con, read the response
+ * - wait for incoming events asynchronously on idle_con
  */
-MooseClient * moose_create_idler(void);
 
-#endif /* end of include guard: IDLE_CORE_H */
+/*
+ * Type macros.
+ */
+#define MOOSE_TYPE_IDLE_CLIENT \
+    (moose_idle_client_get_type())
+#define MOOSE_IDLE_CLIENT(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_IDLE_CLIENT, MooseIdleClient))
+#define MOOSE_IS_IDLE_CLIENT(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_IDLE_CLIENT))
+#define MOOSE_IDLE_cmd_client_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_IDLE_CLIENT, MooseIdleClientClass))
+#define MOOSE_IS_IDLE_cmd_client_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_IDLE_CLIENT))
+#define MOOSE_IDLE_cmd_client_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_IDLE_CLIENT, MooseIdleClientClass))
+
+GType moose_idle_client_get_type(void);
+
+struct _MooseCmndClientPrivate;
+
+typedef struct _MooseIdleClient {
+    MooseClient parent;
+    struct _MooseIdleClientPrivate * priv;
+} MooseIdleClient;
+
+typedef struct _MooseIdleClientClass {
+    MooseClientClass parent_class;
+} MooseIdleClientClass;
+
+G_END_DECLS
+
+#endif /* end of include guard: MOOSE_IDLE_CORE_H */

@@ -44,7 +44,7 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    MooseClient * client = moose_client_new();
+    MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
 
     /* Trigger some bugs */
     for (int i = 0; i < 1; i++) {

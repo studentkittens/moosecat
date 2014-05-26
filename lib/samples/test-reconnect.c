@@ -50,7 +50,7 @@ static gboolean idle_callback(void * user_data)
 
 static void reconnect_manytimes()
 {
-    MooseClient * client = moose_client_new();
+    MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     // moose_client_signal_add(client, "connectivity", signal_connectivity, NULL);
 
     g_idle_add(idle_callback, client);

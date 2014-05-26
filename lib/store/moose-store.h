@@ -97,7 +97,6 @@ typedef struct MooseStore {
          */
         const char * tokenizer;
     } settings;
-
 } MooseStore;
 
 

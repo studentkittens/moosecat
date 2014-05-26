@@ -52,10 +52,10 @@ int main(int argc, char const * argv[])
     MooseClient * client = NULL;
     if (argc > 1 && g_strcmp0(argv[1], "-c") == 0) {
         g_printerr("Using CMND ProtocolMachine.\n");
-        client = moose_client_new();
+        client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     } else {
         g_printerr("Using IDLE ProtocolMachine.\n");
-        client = moose_client_new();
+        client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     }
 
     struct MooseJobManager * jm = moose_jm_create(execute, client);
