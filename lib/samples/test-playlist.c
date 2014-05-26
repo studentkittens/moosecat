@@ -5,8 +5,7 @@
 
 #include <mpd/client.h>
 
-int main(int argc, char * * argv)
-{
+int main(int argc, char ** argv) {
     if (argc < 3) {
         return -1;
     }
@@ -45,7 +44,7 @@ int main(int argc, char * * argv)
                 moose_song_get_tag(song, MOOSE_TAG_ALBUM),
                 moose_song_get_tag(song, MOOSE_TAG_TITLE),
                 moose_song_get_uri(song)
-                );
+               );
     }
 
 

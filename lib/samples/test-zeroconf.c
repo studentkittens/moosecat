@@ -1,8 +1,7 @@
 #include "../moose-api.h"
 
 
-static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data)
-{
+static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data) {
     switch (moose_zeroconf_browser_get_state(self)) {
     case MOOSE_ZEROCONF_STATE_CHANGED: {
         g_printerr("SERVER_LIST:\n");
@@ -10,13 +9,13 @@ static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data)
         for (GList * i = server_list; i; i = i->next) {
             MooseZeroconfServer * server = i->data;
 
-                #define PRINT(THING) \
-    { \
-        char * string = moose_zeroconf_server_get_ ## THING(server); \
-        g_printerr("%15s: %s\n", # THING, string); \
-        g_free(string); \
-    } \
-
+#define PRINT(THING) \
+{ \
+char * string = moose_zeroconf_server_get_ ## THING(server); \
+g_printerr("%15s: %s\n", # THING, string); \
+g_free(string); \
+} \
+ 
             PRINT(name);
             PRINT(protocol);
             PRINT(domain);
@@ -31,7 +30,7 @@ static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data)
     case MOOSE_ZEROCONF_STATE_ERROR: {
         g_printerr("-> Uh oh, some error happended: %s\n",
                    moose_zeroconf_browser_get_error(self)
-                   );
+                  );
         break;
     }
     case MOOSE_ZEROCONF_STATE_ALL_FOR_NOW: {
@@ -47,8 +46,7 @@ static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data)
 }
 
 
-int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
-{
+int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[]) {
     MooseZeroconfBrowser * browser = moose_zeroconf_browser_new();
     if (browser != NULL) {
         if (moose_zeroconf_browser_get_state(browser) != MOOSE_ZEROCONF_STATE_UNCONNECTED) {

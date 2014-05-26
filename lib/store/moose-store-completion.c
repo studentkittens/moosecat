@@ -25,10 +25,9 @@ typedef struct _MooseStoreCompletionIterTag {
 
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseStoreCompletion, moose_store_completion, G_TYPE_OBJECT
-    );
+);
 
-static void moose_store_completion_clear(MooseStoreCompletion * self)
-{
+static void moose_store_completion_clear(MooseStoreCompletion * self) {
     g_assert(self);
 
     for (size_t i = 0; i < MPD_TAG_COUNT; ++i) {
@@ -48,8 +47,7 @@ static void moose_store_completion_client_event(
     G_GNUC_UNUSED MooseClient * client,
     G_GNUC_UNUSED MooseIdle event,
     void * user_data
-    )
-{
+) {
     if ((event & MOOSE_IDLE_DATABASE) == 0) {
         return;  /* Not interesting */
     }
@@ -59,8 +57,7 @@ static void moose_store_completion_client_event(
 
 ////////////////////////////////////////////
 
-static void moose_store_completion_finalize(GObject * gobject)
-{
+static void moose_store_completion_finalize(GObject * gobject) {
     MooseStoreCompletion * self = MOOSE_STORE_COMPLETION(gobject);
     if (self == NULL) {
         return;
@@ -74,14 +71,12 @@ static void moose_store_completion_finalize(GObject * gobject)
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
-static void moose_store_completion_class_init(MooseStoreCompletionClass * klass)
-{
+static void moose_store_completion_class_init(MooseStoreCompletionClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_store_completion_finalize;
 }
 
-static void moose_store_completion_init(MooseStoreCompletion * self)
-{
+static void moose_store_completion_init(MooseStoreCompletion * self) {
     MooseStoreCompletionPrivate * priv;
     self->priv = moose_store_completion_get_instance_private(self);
     priv = self->priv;
@@ -97,20 +92,19 @@ static void moose_store_completion_init(MooseStoreCompletion * self)
         "client-event",
         G_CALLBACK(moose_store_completion_client_event),
         self
-        );
+    );
 }
 
 ////////////////////////////////////////////
 //            IMPLEMENTATION              //
 ////////////////////////////////////////////
 
-static char * moose_store_completion_normalize_string(const char * input)
-{
+static char * moose_store_completion_normalize_string(const char * input) {
     char * utf8_lower = g_utf8_strdown(input, -1);
     if (utf8_lower != NULL) {
         char * normalized = g_strstrip(
-            g_utf8_normalize(utf8_lower, -1, G_NORMALIZE_DEFAULT)
-            );
+                                g_utf8_normalize(utf8_lower, -1, G_NORMALIZE_DEFAULT)
+                            );
 
         g_free(utf8_lower);
         return normalized;
@@ -120,8 +114,7 @@ static char * moose_store_completion_normalize_string(const char * input)
 
 ////////////////////////////////////////////
 
-static art_tree * moose_store_completion_create_index(MooseStoreCompletion * self, MooseTagType tag)
-{
+static art_tree * moose_store_completion_create_index(MooseStoreCompletion * self, MooseTagType tag) {
     g_assert(self);
     g_assert(tag < MOOSE_TAG_COUNT);
 
@@ -129,8 +122,8 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
     moose_store_gw(self->priv->store,
                    moose_store_search_to_stack(
                        self->priv->store, "*", FALSE, copy, -1
-                       )
-                   );
+                   )
+                  );
 
     art_tree * tree = g_slice_new0(art_tree);
     init_art_tree(tree);
@@ -145,7 +138,7 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
                 art_insert(
                     tree, (unsigned char *)normalized, strlen(normalized),
                     GINT_TO_POINTER(i)
-                    );
+                );
                 g_free(normalized);
             }
         }
@@ -159,13 +152,13 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
 
 ////////////////////////////////////////////
 
-static int moose_store_completion_art_callback(void * user_data, const unsigned char * key, uint32_t key_len, void * value)
-{
+static int moose_store_completion_art_callback(void * user_data, const unsigned char * key, uint32_t key_len, void * value) {
     /* copy the first suggestion, key is not nul-terminated. */
     MooseStoreCompletionIterTag * data = user_data;
     int song_idx = GPOINTER_TO_INT(value);
 
-    moose_stprv_lock_attributes(data->self->priv->store); {
+    moose_stprv_lock_attributes(data->self->priv->store);
+    {
         MooseSong * song = moose_playlist_at(data->self->priv->store->stack, song_idx);
         if (song != NULL) {
             /* Try to retrieve the original song */
@@ -187,8 +180,7 @@ static int moose_store_completion_art_callback(void * user_data, const unsigned 
 //               PUBLIC API               //
 ////////////////////////////////////////////
 
-MooseStoreCompletion * moose_store_completion_new(struct MooseStore * store)
-{
+MooseStoreCompletion * moose_store_completion_new(struct MooseStore * store) {
     g_assert(store);
 
     // TODO: Pass store as construction property.
@@ -197,8 +189,7 @@ MooseStoreCompletion * moose_store_completion_new(struct MooseStore * store)
 
 ////////////////////////////////////////////
 
-void moose_store_completion_unref(MooseStoreCompletion * self)
-{
+void moose_store_completion_unref(MooseStoreCompletion * self) {
     g_assert(self);
 
     if (self != NULL) {
@@ -208,8 +199,7 @@ void moose_store_completion_unref(MooseStoreCompletion * self)
 
 ////////////////////////////////////////////
 
-char * moose_store_completion_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key)
-{
+char * moose_store_completion_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key) {
     g_assert(self);
     g_assert(tag < MOOSE_TAG_COUNT);
 
@@ -234,7 +224,7 @@ char * moose_store_completion_lookup(MooseStoreCompletion * self, MooseTagType t
     art_iter_prefix(
         tree, (unsigned char *)normalized_key, strlen(key),
         moose_store_completion_art_callback, &data
-        );
+    );
 
     g_free(normalized_key);
     return data.result;

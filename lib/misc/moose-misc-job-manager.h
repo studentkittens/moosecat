@@ -21,7 +21,7 @@ typedef void * (* MooseJobManagerCallback)(
     volatile bool * cancel,       /* Pointer to check periodically if the operation was cancelled */
     void * user_data,             /* user data passed to the executor                             */
     void * job_data               /* user data passed to the executor                             */
-    );
+);
 
 /**
  * @brief Create a new JobManger instance.

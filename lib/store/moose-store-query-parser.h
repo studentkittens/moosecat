@@ -52,7 +52,7 @@
  * @warning_pos: (OUT) If warning is filled, the position inside the string is written in here.
  * @returns: A newly allocated string containing a valid FTS Query.
  */
-char * moose_store_qp_parse(const char * query, const char * * warning, int * warning_pos);
+char * moose_store_qp_parse(const char * query, const char ** warning, int * warning_pos);
 
 /**
  * @brief Convert a abbrev-tag to a full-tag.

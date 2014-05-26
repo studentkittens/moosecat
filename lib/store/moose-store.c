@@ -86,8 +86,7 @@ const char * MooseJobNames[] = {
  */
 static long moose_store_send_job_no_args(
     MooseStore * self,
-    MooseStoreOperation op)
-{
+    MooseStoreOperation op) {
     g_assert(0 <= op && op <= MOOSE_OPER_ENUM_MAX);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
@@ -111,8 +110,7 @@ static long moose_store_send_job_no_args(
  *
  * @return a newly allocated string. Free it when done with g_free
  */
-static char * moose_store_op_to_string(MooseStoreOperation op)
-{
+static char * moose_store_op_to_string(MooseStoreOperation op) {
     g_assert(0 <= op && op <= MOOSE_OPER_ENUM_MAX);
 
     if (op == 0) {
@@ -130,7 +128,7 @@ static char * moose_store_op_to_string(MooseStoreOperation op)
         }
     }
 
-    return g_strjoinv(", ", (char * *)names);
+    return g_strjoinv(", ", (char **)names);
 }
 
 //////////////////////////////
@@ -143,16 +141,15 @@ static char * moose_store_op_to_string(MooseStoreOperation op)
  *
  * @return a newly allocated path, use free once done.
  */
-static char * moose_store_construct_full_dbpath(MooseStore * self, const char * directory)
-{
+static char * moose_store_construct_full_dbpath(MooseStore * self, const char * directory) {
     g_mutex_lock(&self->mirrored_mtx);
     char * path = g_strdup_printf(
-        "%s%cmoosecat_%s:%d.sqlite",
-        (directory) ? directory : ".",
-        G_DIR_SEPARATOR,
-        self->mirrored_host,
-        self->mirrored_port
-        );
+                      "%s%cmoosecat_%s:%d.sqlite",
+                      (directory) ? directory : ".",
+                      G_DIR_SEPARATOR,
+                      self->mirrored_host,
+                      self->mirrored_port
+                  );
     g_mutex_unlock(&self->mirrored_mtx);
     return path;
 }
@@ -202,8 +199,7 @@ MoosePlaylist * moose_store_find_song_by_id_impl(MooseStore * self, unsigned nee
  *
  * @return the number of songs in the songs table, or -1 on failure.
  */
-static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char * db_path)
-{
+static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char * db_path) {
     /* result */
     int song_count = -1;
 
@@ -220,13 +216,13 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
         exist_check = g_file_test(zip_path, G_FILE_TEST_IS_REGULAR);
         GTimer * zip_timer = g_timer_new();
 
-        if ((exist_check = moose_gunzip(zip_path)) == false)
+        if ((exist_check = moose_gunzip(zip_path)) == false) {
             moose_warning("database: Unzipping %s failed.", zip_path);
-        else
+        } else
             moose_message(
                 "database: Unzipping %s done (took %2.3fs).",
                 zip_path, g_timer_elapsed(zip_timer, NULL)
-                );
+            );
 
         g_timer_destroy(zip_timer);
         g_free(zip_path);
@@ -241,7 +237,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     if (sqlite3_open(db_path, &self->handle) != SQLITE_OK) {
         moose_warning(
             "database: %s cannot be opened (corrupted?), creating new.", db_path
-            );
+        );
         goto close_handle;
     }
 
@@ -255,7 +251,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
         moose_warning(
             "database: %s's port changed (old=%d, new=%d), creating new.",
             db_path, cached_port, moose_client_get_port(self->client)
-            );
+        );
         goto close_handle;
     }
 
@@ -264,7 +260,7 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
         moose_warning(
             "database: %s's host changed (old=%s, new=%s), creating new.",
             db_path, cached_hostname, moose_client_get_host(self->client)
-            );
+        );
         goto close_handle;
     }
 
@@ -276,12 +272,14 @@ static int moose_store_check_if_db_is_still_valid(MooseStore * self, const char 
     current_db_version = moose_status_stats_get_db_update_time(status);
     moose_status_unref(status);
 
-    if (cached_db_version != current_db_version)
+    if (cached_db_version != current_db_version) {
         goto close_handle;
+    }
 
     size_t cached_sc_version = moose_stprv_get_sc_version(self);
-    if (cached_sc_version != MOOSE_DB_SCHEMA_VERSION)
+    if (cached_sc_version != MOOSE_DB_SCHEMA_VERSION) {
         goto close_handle;
+    }
 
     /* All okay! we can use the old database */
     song_count = moose_stprv_get_song_count(self);
@@ -296,8 +294,7 @@ close_handle:
 
 //////////////////////////////
 
-static void moose_store_shutdown(MooseStore * self)
-{
+static void moose_store_shutdown(MooseStore * self) {
     g_assert(self);
 
     /* Free the song stack */
@@ -306,11 +303,13 @@ static void moose_store_shutdown(MooseStore * self)
 
     char * db_path = moose_store_construct_full_dbpath(self, self->db_directory);
 
-    if (self->write_to_disk)
+    if (self->write_to_disk) {
         moose_stprv_load_or_save(self, true, db_path);
+    }
 
-    if (self->settings.use_compression && moose_gzip(db_path) == false)
+    if (self->settings.use_compression && moose_gzip(db_path) == false) {
         moose_warning("Weird, zipping failed.");
+    }
 
     moose_stprv_close_handle(self, true);
     self->handle = NULL;
@@ -328,8 +327,7 @@ static void moose_store_shutdown(MooseStore * self)
 
 //////////////////////////////
 
-static void moose_store_buildup(MooseStore * self)
-{
+static void moose_store_buildup(MooseStore * self) {
     /* either number of songs in 'songs' table or -1 on error */
     int song_count = -1;
 
@@ -400,8 +398,7 @@ static void moose_store_buildup(MooseStore * self)
 static void moose_store_update_callback(
     MooseClient * client,
     MooseIdle events,
-    MooseStore * self)
-{
+    MooseStore * self) {
     if ((events & (MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE | MOOSE_IDLE_STORED_PLAYLIST)) == 0) {
         return;  /* No interesting events */
     }
@@ -430,8 +427,7 @@ static void moose_store_connectivity_callback(
     MooseClient * client,
     bool server_changed,
     G_GNUC_UNUSED bool was_connected,
-    MooseStore * self)
-{
+    MooseStore * self) {
     g_assert(self && client && self->client == client);
 
     if (moose_client_is_connected(client)) {
@@ -467,8 +463,7 @@ void * moose_store_job_execute_callback(
     volatile bool * cancel_op,                   /* Check if the operation should be cancelled */
     void * user_data,                            /* store */
     void * job_data                              /* operation data */
-    )
-{
+) {
     void * result = NULL;
     MooseStore * self = user_data;
     MooseJobData * data = job_data;
@@ -550,7 +545,7 @@ void * moose_store_job_execute_callback(
             moose_stprv_select_to_stack(
                 self, data->match_clause, data->queue_only,
                 data->out_stack, data->length_limit
-                );
+            );
             result = data->out_stack;
         }
 
@@ -558,7 +553,7 @@ void * moose_store_job_execute_callback(
             moose_stprv_dir_select_to_stack(
                 self, data->out_stack,
                 data->dir_directory, data->dir_depth
-                );
+            );
             result = data->out_stack;
         }
 
@@ -566,7 +561,7 @@ void * moose_store_job_execute_callback(
             moose_stprv_spl_select_playlist(
                 self, data->out_stack,
                 data->playlist_name, data->match_clause
-                );
+            );
             result = data->out_stack;
         }
 
@@ -629,8 +624,7 @@ cleanup:
 //                          //
 //////////////////////////////
 
-MooseStore * moose_store_create(MooseClient * client)
-{
+MooseStore * moose_store_create(MooseClient * client) {
     return moose_store_create_full(client, NULL, NULL, true, true);
 }
 
@@ -640,8 +634,7 @@ MooseStore * moose_store_create_full(
     const char * tokenizer,
     bool use_memory_db,
     bool use_compression
-    )
-{
+) {
     g_assert(client);
 
     /* allocated memory for the MooseStore struct */
@@ -678,7 +671,7 @@ MooseStore * moose_store_create_full(
         "client-event",
         G_CALLBACK(moose_store_update_callback),
         store
-        );
+    );
 
     /* Register to be notifed when the connection status changes */
     g_signal_connect(
@@ -686,7 +679,7 @@ MooseStore * moose_store_create_full(
         "connectivity",
         G_CALLBACK(moose_store_connectivity_callback),
         store
-        );
+    );
 
     return store;
 }
@@ -702,18 +695,17 @@ MooseStore * moose_store_create_full(
  * #3 Save database dump to disk if it hadn't been read from there.
  * #4 Close the handle.
  */
-void moose_store_close(MooseStore * self)
-{
+void moose_store_close(MooseStore * self) {
     if (self == NULL) {
         return;
     }
 
     g_signal_handlers_disconnect_by_func(
         self->client, moose_store_update_callback, self
-        );
+    );
     g_signal_handlers_disconnect_by_func(
         self->client, moose_store_connectivity_callback, self
-        );
+    );
 
     moose_stprv_lock_attributes(self);
 
@@ -746,8 +738,7 @@ MooseSong * moose_store_song_at(MooseStore * self, int idx) {
 
 //////////////////////////////
 
-int moose_store_total_songs(MooseStore * self)
-{
+int moose_store_total_songs(MooseStore * self) {
     g_assert(self);
 
     return moose_playlist_length(self->stack);
@@ -759,8 +750,7 @@ int moose_store_total_songs(MooseStore * self)
 //                          //
 //////////////////////////////
 
-long moose_store_playlist_load(MooseStore * self, const char * playlist_name)
-{
+long moose_store_playlist_load(MooseStore * self, const char * playlist_name) {
     g_assert(self);
 
     MooseJobData * data = g_new0(MooseJobData, 1);
@@ -772,8 +762,7 @@ long moose_store_playlist_load(MooseStore * self, const char * playlist_name)
 
 //////////////////////////////
 
-long moose_store_playlist_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * playlist_name, const char * match_clause)
-{
+long moose_store_playlist_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * playlist_name, const char * match_clause) {
     g_assert(self);
     g_assert(stack);
     g_assert(playlist_name);
@@ -790,8 +779,7 @@ long moose_store_playlist_select_to_stack(MooseStore * self, MoosePlaylist * sta
 
 //////////////////////////////
 
-long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth)
-{
+long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth) {
     g_assert(self);
     g_assert(stack);
 
@@ -806,8 +794,7 @@ long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, c
 
 //////////////////////////////
 
-long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stack)
-{
+long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stack) {
     g_assert(self);
     g_assert(stack);
 
@@ -820,8 +807,7 @@ long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stac
 
 //////////////////////////////
 
-long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack)
-{
+long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack) {
     g_assert(self);
     g_assert(stack);
 
@@ -837,8 +823,7 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
 long moose_store_search_to_stack(
     MooseStore * self, const char * match_clause,
     bool queue_only, MoosePlaylist * stack, int limit_len
-    )
-{
+) {
     MooseJobData * data = g_new0(MooseJobData, 1);
     data->op = MOOSE_OPER_DB_SEARCH;
 
@@ -852,37 +837,32 @@ long moose_store_search_to_stack(
 
 //////////////////////////////
 
-void moose_store_wait(MooseStore * self)
-{
+void moose_store_wait(MooseStore * self) {
     moose_jm_wait(self->jm);
 }
 
 //////////////////////////////
 
-void moose_store_wait_for_job(MooseStore * self, int job_id)
-{
+void moose_store_wait_for_job(MooseStore * self, int job_id) {
     moose_jm_wait_for_id(self->jm, job_id);
 }
 
 //////////////////////////////
 
-MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id)
-{
+MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id) {
     return moose_jm_get_result(self->jm, job_id);
 }
 
 //////////////////////////////
 
-MoosePlaylist * moose_store_gw(MooseStore * self, int job_id)
-{
+MoosePlaylist * moose_store_gw(MooseStore * self, int job_id) {
     moose_store_wait_for_job(self, job_id);
     return moose_store_get_result(self, job_id);
 }
 
 //////////////////////////////
 
-void moose_store_release(MooseStore * self)
-{
+void moose_store_release(MooseStore * self) {
     g_assert(self);
 
     moose_stprv_unlock_attributes(self);
@@ -909,8 +889,7 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
 
 //////////////////////////////
 
-MooseStoreCompletion * moose_store_get_completion(MooseStore * self)
-{
+MooseStoreCompletion * moose_store_get_completion(MooseStore * self) {
     g_assert(self);
 
     if (self->completion == NULL) {

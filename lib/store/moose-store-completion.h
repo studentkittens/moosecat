@@ -63,7 +63,7 @@ char * moose_store_completion_lookup(
     MooseStoreCompletion * self,
     MooseTagType tag,
     const char * key
-    );
+);
 
 /**
  * moose_store_completion_unref:

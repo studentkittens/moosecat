@@ -179,7 +179,7 @@ int moose_zeroconf_server_get_port(MooseZeroconfServer * self);
 
 /* DEPRECATED */
 
-MooseZeroconfServer * * moose_zeroconf_browser_get_server(MooseZeroconfBrowser * self);
+MooseZeroconfServer ** moose_zeroconf_browser_get_server(MooseZeroconfBrowser * self);
 
 G_END_DECLS
 

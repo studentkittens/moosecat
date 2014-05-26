@@ -4,8 +4,7 @@
 // INTERNAL CALLBACKS //
 ////////////////////////
 
-static void moose_mdthreads_dispatch(gpointer data, gpointer user_data)
-{
+static void moose_mdthreads_dispatch(gpointer data, gpointer user_data) {
     g_assert(user_data);
 
     MooseMetadataThreads * self = user_data;
@@ -17,8 +16,7 @@ static void moose_mdthreads_dispatch(gpointer data, gpointer user_data)
 
 ///////////////////////
 
-static gboolean moose_mdthreads_mainloop_callback(gpointer user_data)
-{
+static gboolean moose_mdthreads_mainloop_callback(gpointer user_data) {
     g_assert(user_data);
 
     gpointer result = NULL;
@@ -41,8 +39,7 @@ MooseMetadataThreads * moose_mdthreads_new(
     MooseMetadataCallback deliver_callback,
     void * user_data,
     int max_threads
-    )
-{
+) {
     /* New Instance */
     MooseMetadataThreads * self = g_new0(MooseMetadataThreads, 1);
 
@@ -55,18 +52,18 @@ MooseMetadataThreads * moose_mdthreads_new(
     GError * error = NULL;
     self->queue = g_async_queue_new();
     self->pool = g_thread_pool_new(
-        moose_mdthreads_dispatch,
-        self,
-        max_threads,
-        FALSE,
-        &error
-        );
+                     moose_mdthreads_dispatch,
+                     self,
+                     max_threads,
+                     FALSE,
+                     &error
+                 );
 
     /* Be nice and check for the error */
     if (error != NULL) {
         g_printerr("Moosecat-Internal: Failed to instance GThreadPool: %s\n",
                    error->message
-                   );
+                  );
 
         g_error_free(error);
     }
@@ -76,8 +73,7 @@ MooseMetadataThreads * moose_mdthreads_new(
 
 ///////////////////////
 
-void moose_mdthreads_push(MooseMetadataThreads * self, void * data)
-{
+void moose_mdthreads_push(MooseMetadataThreads * self, void * data) {
     g_assert(self);
 
     /* Check if not destroyed yet */
@@ -89,8 +85,7 @@ void moose_mdthreads_push(MooseMetadataThreads * self, void * data)
 
 ///////////////////////
 
-void moose_mdthreads_forward(MooseMetadataThreads * self, void * result)
-{
+void moose_mdthreads_forward(MooseMetadataThreads * self, void * result) {
     if (result != NULL) {
         g_async_queue_push(self->queue, result);
         g_idle_add(moose_mdthreads_mainloop_callback, self);
@@ -100,8 +95,7 @@ void moose_mdthreads_forward(MooseMetadataThreads * self, void * result)
 
 ///////////////////////
 
-void moose_mdthreads_free(MooseMetadataThreads * self)
-{
+void moose_mdthreads_free(MooseMetadataThreads * self) {
     g_assert(self);
 
     /* Stop the ThreadPool */
@@ -122,8 +116,7 @@ void moose_mdthreads_free(MooseMetadataThreads * self)
 // TEST MAIN FUNCTION //
 ////////////////////////
 
-static void * thread(struct _MooseMetadataThreads * self, void * data, void * user_data)
-{
+static void * thread(struct _MooseMetadataThreads * self, void * data, void * user_data) {
     /* 1 second */
     g_printerr("THREAD %p\n", data);
     g_usleep(1 * 1000 * 1000);
@@ -132,22 +125,19 @@ static void * thread(struct _MooseMetadataThreads * self, void * data, void * us
 }
 
 
-static void * deliver(struct _MooseMetadataThreads * self, void * data, void * user_data)
-{
+static void * deliver(struct _MooseMetadataThreads * self, void * data, void * user_data) {
     g_printerr("Delivered: %p\n", data);
     return NULL;
 }
 
-static gboolean timeout_cb(gpointer user_data)
-{
+static gboolean timeout_cb(gpointer user_data) {
     GMainLoop * loop = user_data;
     g_printerr("LOOP STOP\n");
     g_main_loop_quit(loop);
     return FALSE;
 }
 
-int main(int argc, char const * argv[])
-{
+int main(int argc, char const * argv[]) {
     MooseMetadataThreads * self = moose_mdthreads_new(thread, deliver, NULL, 10);
 
     for (int i = 0; i < 10; ++i) {

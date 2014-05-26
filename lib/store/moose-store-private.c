@@ -27,11 +27,11 @@
         __FILE__, __LINE__, message,                                  \
         sqlite3_errmsg(store->handle), sqlite3_errcode(store->handle) \
         );                                                                \
-
+ 
 #define CLEAR_BINDS(stmt)         \
     sqlite3_reset(stmt);          \
     sqlite3_clear_bindings(stmt); \
-
+ 
 #define CLEAR_BINDS_BY_NAME(store, type) \
     CLEAR_BINDS(SQL_STMT(store, type))
 
@@ -134,123 +134,122 @@ enum {
 
 static const char * _sql_stmts[] = {
     [STMT_SQL_CREATE] =
-        "PRAGMA foreign_keys = ON;                                                                          \n"
-        "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.        \n"
-        "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                               \n"
-        "    uri            TEXT UNIQUE NOT NULL,     -- Path to file, or URL to webradio etc.              \n"
-        "    start          INTEGER NOT NULL,         -- Start of the virtual song within the physical file \n"
-        "    end            INTEGER NOT NULL,         -- End of the virtual song within the physical file   \n"
-        "    duration       INTEGER NOT NULL,         -- Songudration in Seconds. (0 means unknown)         \n"
-        "    last_modified  INTEGER NOT NULL,         -- Last modified as Posix UTC Timestamp               \n"
-        "    -- Tags (all tags are saved, regardless if used or not):                                       \n"
-        "    artist         TEXT,                                                                           \n"
-        "    album          TEXT,                                                                           \n"
-        "    title          TEXT,                                                                           \n"
-        "    album_artist   TEXT,                                                                           \n"
-        "    track          TEXT,                                                                           \n"
-        "    name           TEXT,                                                                           \n"
-        "    genre          TEXT,                                                                           \n"
-        "    date           TEXT,                                                                           \n"
-        "    composer       TEXT,                                                                           \n"
-        "    performer      TEXT,                                                                           \n"
-        "    comment        TEXT,                                                                           \n"
-        "    disc           TEXT,                                                                           \n"
-        "    -- MB-Tags:                                                                                    \n"
-        "    musicbrainz_artist_id       TEXT,                                                              \n"
-        "    musicbrainz_album_id        TEXT,                                                              \n"
-        "    musicbrainz_albumartist_id  TEXT,                                                              \n"
-        "    musicbrainz_track           TEXT,                                                              \n"
-        "    -- Constant Value. Useful for a MATCH clause that selects everything.                          \n"
-        "    always_dummy INTEGER,                                                                          \n"
-        "    -- Depth of uri:                                                                               \n"
-        "    uri_depth INTEGER NOT NULL,                                                                    \n"
-        "    -- FTS options:                                                                                \n"
-        "    matchinfo=fts3, tokenize=%s                                                                    \n"
-        ");                                                                                                 \n"
-        "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                         \n"
-        "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                         \n"
-        "                                                                                                   \n"
-        "-- A list of Queue contents (similar to a stored playlist, but not dynamic)                        \n"
-        "CREATE TABLE IF NOT EXISTS queue(song_idx INTEGER, pos INTEGER UNIQUE, idx INTEGER UNIQUE);        \n"
-        "CREATE INDEX IF NOT EXISTS queue_pos_index ON queue(pos);                                          \n"
-        "                                                                                                   \n"
-        "CREATE VIRTUAL TABLE IF NOT EXISTS dirs USING fts4(path TEXT NOT NULL, depth INTEGER NOT NULL);    \n",
+    "PRAGMA foreign_keys = ON;                                                                          \n"
+    "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.        \n"
+    "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                               \n"
+    "    uri            TEXT UNIQUE NOT NULL,     -- Path to file, or URL to webradio etc.              \n"
+    "    start          INTEGER NOT NULL,         -- Start of the virtual song within the physical file \n"
+    "    end            INTEGER NOT NULL,         -- End of the virtual song within the physical file   \n"
+    "    duration       INTEGER NOT NULL,         -- Songudration in Seconds. (0 means unknown)         \n"
+    "    last_modified  INTEGER NOT NULL,         -- Last modified as Posix UTC Timestamp               \n"
+    "    -- Tags (all tags are saved, regardless if used or not):                                       \n"
+    "    artist         TEXT,                                                                           \n"
+    "    album          TEXT,                                                                           \n"
+    "    title          TEXT,                                                                           \n"
+    "    album_artist   TEXT,                                                                           \n"
+    "    track          TEXT,                                                                           \n"
+    "    name           TEXT,                                                                           \n"
+    "    genre          TEXT,                                                                           \n"
+    "    date           TEXT,                                                                           \n"
+    "    composer       TEXT,                                                                           \n"
+    "    performer      TEXT,                                                                           \n"
+    "    comment        TEXT,                                                                           \n"
+    "    disc           TEXT,                                                                           \n"
+    "    -- MB-Tags:                                                                                    \n"
+    "    musicbrainz_artist_id       TEXT,                                                              \n"
+    "    musicbrainz_album_id        TEXT,                                                              \n"
+    "    musicbrainz_albumartist_id  TEXT,                                                              \n"
+    "    musicbrainz_track           TEXT,                                                              \n"
+    "    -- Constant Value. Useful for a MATCH clause that selects everything.                          \n"
+    "    always_dummy INTEGER,                                                                          \n"
+    "    -- Depth of uri:                                                                               \n"
+    "    uri_depth INTEGER NOT NULL,                                                                    \n"
+    "    -- FTS options:                                                                                \n"
+    "    matchinfo=fts3, tokenize=%s                                                                    \n"
+    ");                                                                                                 \n"
+    "-- This is a bit of a hack, but necessary, without UPDATE is awfully slow.                         \n"
+    "CREATE UNIQUE INDEX IF NOT EXISTS queue_uri_index ON songs_content(c0uri);                         \n"
+    "                                                                                                   \n"
+    "-- A list of Queue contents (similar to a stored playlist, but not dynamic)                        \n"
+    "CREATE TABLE IF NOT EXISTS queue(song_idx INTEGER, pos INTEGER UNIQUE, idx INTEGER UNIQUE);        \n"
+    "CREATE INDEX IF NOT EXISTS queue_pos_index ON queue(pos);                                          \n"
+    "                                                                                                   \n"
+    "CREATE VIRTUAL TABLE IF NOT EXISTS dirs USING fts4(path TEXT NOT NULL, depth INTEGER NOT NULL);    \n",
     [STMT_SQL_META_DUMMY] =
-        "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
+    "CREATE TABLE IF NOT EXISTS meta(db_version, pl_version, sc_version, mpd_port, mpd_host); \n",
     [STMT_SQL_META] =
-        "-- Meta Table, containing information about the metadata itself.                \n"
-        "BEGIN IMMEDIATE;                                                                \n"
-        "DROP TABLE IF EXISTS meta;                                                      \n"
-        "CREATE TABLE meta(                                                              \n"
-        "      db_version    INTEGER,  -- last db update from statistics                 \n"
-        "      pl_version    INTEGER,  -- queue version from status                      \n"
-        "      sc_version    INTEGER,  -- schema version                                 \n"
-        "      mpd_port      INTEGER,  -- analogous, the port.                           \n"
-        "      mpd_host      TEXT      -- the hostname that this table was created from. \n"
-        ");                                                                              \n"
-        "INSERT INTO meta VALUES(%d, %d, %d, %d, '%q');                                  \n"
-        "COMMIT;                                                                         \n",
+    "-- Meta Table, containing information about the metadata itself.                \n"
+    "BEGIN IMMEDIATE;                                                                \n"
+    "DROP TABLE IF EXISTS meta;                                                      \n"
+    "CREATE TABLE meta(                                                              \n"
+    "      db_version    INTEGER,  -- last db update from statistics                 \n"
+    "      pl_version    INTEGER,  -- queue version from status                      \n"
+    "      sc_version    INTEGER,  -- schema version                                 \n"
+    "      mpd_port      INTEGER,  -- analogous, the port.                           \n"
+    "      mpd_host      TEXT      -- the hostname that this table was created from. \n"
+    ");                                                                              \n"
+    "INSERT INTO meta VALUES(%d, %d, %d, %d, '%q');                                  \n"
+    "COMMIT;                                                                         \n",
     /* binding column names does not seem to work well.. */
     [STMT_SQL_SELECT_META_DB_VERSION] =
-        "SELECT db_version FROM meta;",
+    "SELECT db_version FROM meta;",
     [STMT_SQL_SELECT_META_PL_VERSION] =
-        "SELECT pl_version FROM meta;",
+    "SELECT pl_version FROM meta;",
     [STMT_SQL_SELECT_META_SC_VERSION] =
-        "SELECT sc_version FROM meta;",
+    "SELECT sc_version FROM meta;",
     [STMT_SQL_SELECT_META_MPD_PORT] =
-        "SELECT mpd_port FROM meta;",
+    "SELECT mpd_port FROM meta;",
     [STMT_SQL_SELECT_META_MPD_HOST] =
-        "SELECT mpd_host FROM meta;",
+    "SELECT mpd_host FROM meta;",
     [STMT_SQL_COUNT] =
-        "SELECT count(*) FROM songs;",
+    "SELECT count(*) FROM songs;",
     [STMT_SQL_INSERT] =
-        "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [STMT_SQL_QUEUE_INSERT_ROW] =
-        "INSERT INTO queue(song_idx, pos, idx) VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?), ?, ?);",
+    "INSERT INTO queue(song_idx, pos, idx) VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?), ?, ?);",
     [STMT_SQL_QUEUE_CLEAR] =
-        "DELETE FROM queue WHERE pos > ?;",
+    "DELETE FROM queue WHERE pos > ?;",
     [STMT_SQL_SELECT_MATCHED] =
-        "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
+    "SELECT rowid FROM songs WHERE artist MATCH ? LIMIT ?;",
     [STMT_SQL_SELECT_MATCHED_ALL] =
-        "SELECT rowid FROM songs;",
+    "SELECT rowid FROM songs;",
     [STMT_SQL_SELECT_ALL] =
-        "SELECT * FROM songs;",
+    "SELECT * FROM songs;",
     [STMT_SQL_SELECT_ALL_QUEUE] =
-        "SELECT song_idx, pos, idx FROM queue;",
+    "SELECT song_idx, pos, idx FROM queue;",
     [STMT_SQL_DELETE_ALL] =
-        "DELETE FROM songs;",
+    "DELETE FROM songs;",
     [STMT_SQL_BEGIN] =
-        "BEGIN IMMEDIATE;",
+    "BEGIN IMMEDIATE;",
     [STMT_SQL_COMMIT] =
-        "COMMIT;",
+    "COMMIT;",
     [STMT_SQL_DIR_INSERT] =
-        "INSERT INTO dirs VALUES(?, ?);",
+    "INSERT INTO dirs VALUES(?, ?);",
     [STMT_SQL_DIR_DELETE_ALL] =
-        "DELETE FROM dirs;",
+    "DELETE FROM dirs;",
     [STMT_SQL_DIR_SEARCH_PATH] =
-        "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    "SELECT -1, path FROM dirs WHERE path MATCH ? UNION "
+    "SELECT rowid, uri FROM songs WHERE uri MATCH ? "
+    "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [STMT_SQL_DIR_SEARCH_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    "SELECT -1, path FROM dirs WHERE depth = ? UNION "
+    "SELECT rowid, uri FROM songs WHERE uri_depth = ? "
+    "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [STMT_SQL_DIR_SEARCH_PATH_AND_DEPTH] =
-        "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
-        "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
-        "ORDER BY songs.rowid, songs.uri, dirs.path;",
+    "SELECT -1, path FROM dirs WHERE depth = ? AND path MATCH ? UNION "
+    "SELECT rowid, uri FROM songs WHERE uri_depth = ? AND uri MATCH ? "
+    "ORDER BY songs.rowid, songs.uri, dirs.path;",
     [STMT_SQL_SPL_SELECT_TABLES] =
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;",
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'spl_%' ORDER BY name;",
     [STMT_SQL_SOURCE_COUNT] =
-        ""
+    ""
 };
 
 ////////////////////////////////
 //     ATTRIBUTE LOCKING      //
 ////////////////////////////////
 
-void moose_stprv_lock_attributes(MooseStore * self)
-{
+void moose_stprv_lock_attributes(MooseStore * self) {
     g_assert(self);
 
     g_mutex_lock(&self->attr_set_mtx);
@@ -258,8 +257,7 @@ void moose_stprv_lock_attributes(MooseStore * self)
 
 ////////////////////////////////
 
-void moose_stprv_unlock_attributes(MooseStore * self)
-{
+void moose_stprv_unlock_attributes(MooseStore * self) {
     g_assert(self);
 
     g_mutex_unlock(&self->attr_set_mtx);
@@ -278,8 +276,7 @@ void moose_stprv_unlock_attributes(MooseStore * self)
  * since they rely on already created tables. That's why we
  * have to insert the values manually.
  */
-void moose_stprv_insert_meta_attributes(MooseStore * self)
-{
+void moose_stprv_insert_meta_attributes(MooseStore * self) {
 
     char * insert_meta_sql = NULL;
     int queue_version = -1;
@@ -288,19 +285,20 @@ void moose_stprv_insert_meta_attributes(MooseStore * self)
     if (status != NULL) {
         queue_version = moose_status_get_queue_version(status);
         insert_meta_sql = sqlite3_mprintf(
-            SQL_CODE(META),
-            moose_status_stats_get_db_update_time(status),
-            queue_version,
-            MOOSE_DB_SCHEMA_VERSION,
-            moose_client_get_port(self->client),
-            moose_client_get_host(self->client)
-            );
+                              SQL_CODE(META),
+                              moose_status_stats_get_db_update_time(status),
+                              queue_version,
+                              MOOSE_DB_SCHEMA_VERSION,
+                              moose_client_get_port(self->client),
+                              moose_client_get_host(self->client)
+                          );
     }
     moose_status_unref(status);
 
     if (insert_meta_sql != NULL) {
-        if (sqlite3_exec(self->handle, insert_meta_sql, NULL, NULL, NULL) != SQLITE_OK)
+        if (sqlite3_exec(self->handle, insert_meta_sql, NULL, NULL, NULL) != SQLITE_OK) {
             REPORT_SQL_ERROR(self, "Cannot INSERT META Atrributes.");
+        }
 
         sqlite3_free(insert_meta_sql);
     }
@@ -308,8 +306,7 @@ void moose_stprv_insert_meta_attributes(MooseStore * self)
 
 ////////////////////////////////
 
-bool moose_stprv_create_song_table(MooseStore * self)
-{
+bool moose_stprv_create_song_table(MooseStore * self) {
     g_assert(self);
 
     if (self->settings.tokenizer == NULL) {
@@ -329,16 +326,16 @@ bool moose_stprv_create_song_table(MooseStore * self)
             moose_critical(
                 "Tokenizer ,,%s'' is unknown. Defaulting to 'porter'.",
                 self->settings.tokenizer
-                );
+            );
 
             self->settings.tokenizer = "porter";
         }
     }
 
     char * sql_create = g_strdup_printf(
-        SQL_CODE(CREATE),
-        self->settings.tokenizer
-        );
+                            SQL_CODE(CREATE),
+                            self->settings.tokenizer
+                        );
 
     if (sqlite3_exec(self->handle, sql_create, NULL, NULL, NULL) != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot CREATE TABLE Structure. This is pretty deadly to moosecat's core, you know?\n");
@@ -352,8 +349,7 @@ bool moose_stprv_create_song_table(MooseStore * self)
 
 ////////////////////////////////
 
-void moose_stprv_prepare_all_statements(MooseStore * self)
-{
+void moose_stprv_prepare_all_statements(MooseStore * self) {
     g_assert(self);
 
     /*
@@ -367,19 +363,18 @@ void moose_stprv_prepare_all_statements(MooseStore * self)
     }
 
     self->sql_prep_stmts = moose_stprv_prepare_all_statements_listed(
-        self,
-        _sql_stmts,
-        STMT_SQL_NEED_TO_PREPARE_COUNT + 1,
-        STMT_SQL_SOURCE_COUNT
-        );
+                               self,
+                               _sql_stmts,
+                               STMT_SQL_NEED_TO_PREPARE_COUNT + 1,
+                               STMT_SQL_SOURCE_COUNT
+                           );
 }
 
 ////////////////////////////////
 
-sqlite3_stmt * * moose_stprv_prepare_all_statements_listed(MooseStore * self, const char * * sql_stmts, int offset, int n_stmts)
-{
+sqlite3_stmt ** moose_stprv_prepare_all_statements_listed(MooseStore * self, const char ** sql_stmts, int offset, int n_stmts) {
     g_assert(self);
-    sqlite3_stmt * * stmt_list = NULL;
+    sqlite3_stmt ** stmt_list = NULL;
     stmt_list = g_malloc0(sizeof(sqlite3_stmt *) * (n_stmts + 1));
     int prep_error = 0;
 
@@ -388,13 +383,14 @@ sqlite3_stmt * * moose_stprv_prepare_all_statements_listed(MooseStore * self, co
 
         if (sql != NULL) {
             prep_error = sqlite3_prepare_v2(
-                self->handle, sql,
-                strlen(sql) + 1, &stmt_list[i], NULL
-                );
+                             self->handle, sql,
+                             strlen(sql) + 1, &stmt_list[i], NULL
+                         );
 
             /* Uh-Oh. Typo in the SQL statements perhaps? */
-            if (prep_error != SQLITE_OK)
+            if (prep_error != SQLITE_OK) {
                 REPORT_SQL_ERROR(self, "WARNING: cannot prepare statement");
+            }
 
             /* Left for Debugging */
             /* g_print("Faulty statement: %s\n", sql); */
@@ -411,8 +407,7 @@ sqlite3_stmt * * moose_stprv_prepare_all_statements_listed(MooseStore * self, co
  *
  * Returns: true on success.
  */
-bool moose_strprv_open_memdb(MooseStore * self)
-{
+bool moose_strprv_open_memdb(MooseStore * self) {
     g_assert(self);
     const char * db_name = (self->settings.use_memory_db) ? ":memory:" : MOOSE_STORE_TMP_DB_PATH;
 
@@ -427,8 +422,7 @@ bool moose_strprv_open_memdb(MooseStore * self)
 
 ////////////////////////////////
 
-void moose_stprv_finalize_statements(MooseStore * self, sqlite3_stmt * * stmts, int offset, int n_stmts)
-{
+void moose_stprv_finalize_statements(MooseStore * self, sqlite3_stmt ** stmts, int offset, int n_stmts) {
     g_assert(self);
     g_assert(stmts);
 
@@ -447,8 +441,7 @@ void moose_stprv_finalize_statements(MooseStore * self, sqlite3_stmt * * stmts, 
 
 ////////////////////////////////
 
-void moose_stprv_close_handle(MooseStore * self, bool free_statements)
-{
+void moose_stprv_close_handle(MooseStore * self, bool free_statements) {
     if (free_statements) {
         moose_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
         self->sql_prep_stmts = NULL;
@@ -466,28 +459,28 @@ void moose_stprv_close_handle(MooseStore * self, bool free_statements)
 
 ////////////////////////////////
 
-void moose_stprv_begin(MooseStore * self)
-{
-    if (sqlite3_step(SQL_STMT(self, BEGIN)) != SQLITE_DONE)
+void moose_stprv_begin(MooseStore * self) {
+    if (sqlite3_step(SQL_STMT(self, BEGIN)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute BEGIN");
+    }
     sqlite3_reset(SQL_STMT(self, BEGIN));
 }
 
 ////////////////////////////////
 
-void moose_stprv_commit(MooseStore * self)
-{
-    if (sqlite3_step(SQL_STMT(self, COMMIT)) != SQLITE_DONE)
+void moose_stprv_commit(MooseStore * self) {
+    if (sqlite3_step(SQL_STMT(self, COMMIT)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute COMMIT");
+    }
     sqlite3_reset(SQL_STMT(self, COMMIT));
 }
 
 ////////////////////////////////
 
-void moose_stprv_delete_songs_table(MooseStore * self)
-{
-    if (sqlite3_step(SQL_STMT(self, DELETE_ALL)) != SQLITE_DONE)
+void moose_stprv_delete_songs_table(MooseStore * self) {
+    if (sqlite3_step(SQL_STMT(self, DELETE_ALL)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "WARNING: Cannot delete table contentes of 'songs'");
+    }
     sqlite3_reset(SQL_STMT(self, DELETE_ALL));
 }
 
@@ -503,8 +496,7 @@ void moose_stprv_delete_songs_table(MooseStore * self)
  *
  * A prepared statement is used for simplicity & speed reasons.
  */
-bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
-{
+bool moose_stprv_insert_song(MooseStore * db, MooseSong * song) {
     int error_id = SQLITE_OK;
     int pos_idx = 1;
     bool rc = true;
@@ -545,8 +537,9 @@ bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
     BIND_INT(db, INSERT, pos_idx, moose_stprv_path_get_depth(moose_song_get_uri(song)), error_id);
 
     /* this is one error check for all the blocks above */
-    if (error_id != SQLITE_OK)
+    if (error_id != SQLITE_OK) {
         REPORT_SQL_ERROR(db, "WARNING: Error while binding");
+    }
 
     /* evaluate prepared statement, only check for errors */
     while ((error_id = sqlite3_step(SQL_STMT(db, INSERT))) == SQLITE_BUSY)
@@ -556,8 +549,9 @@ bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
     CLEAR_BINDS_BY_NAME(db, INSERT);
     sqlite3_reset(SQL_STMT(db, INSERT));
 
-    if ((rc = (error_id != SQLITE_DONE)) == true)
+    if ((rc = (error_id != SQLITE_DONE)) == true) {
         REPORT_SQL_ERROR(db, "WARNING: cannot insert into :memory: - that's pretty serious.");
+    }
 
     return rc;
 }
@@ -565,33 +559,43 @@ bool moose_stprv_insert_song(MooseStore * db, MooseSong * song)
 
 ////////////////////////////////
 
-static gint moose_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b)
-{
+static gint moose_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b) {
     if (a && b) {
-        int pos_a = moose_song_get_pos(*((MooseSong * *)a));
-        int pos_b = moose_song_get_pos(*((MooseSong * *)b));
+        int pos_a = moose_song_get_pos(*((MooseSong **)a));
+        int pos_b = moose_song_get_pos(*((MooseSong **)b));
 
-        if (pos_a == pos_b) return +0;
+        if (pos_a == pos_b) {
+            return +0;
+        }
 
-        if (pos_a <  pos_b) return -1;
+        if (pos_a <  pos_b) {
+            return -1;
+        }
 
         /* pos_a > pos_b */
         return +1;
-    } else return +1; /* to sort NULL at the end */
+    } else {
+        return +1;    /* to sort NULL at the end */
+    }
 }
 
-static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstpointer b)
-{
+static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gconstpointer b) {
     if (a && b) {
-        MooseSong * sa = (*((MooseSong * *)a));
-        MooseSong * sb = (*((MooseSong * *)b));
+        MooseSong * sa = (*((MooseSong **)a));
+        MooseSong * sb = (*((MooseSong **)b));
 
-        if (sa == sb) return +0;
+        if (sa == sb) {
+            return +0;
+        }
 
-        if (sa <  sb) return -1;
+        if (sa <  sb) {
+            return -1;
+        }
 
         return +1;
-    } else return +1; /* to sort NULL at the end */
+    } else {
+        return +1;    /* to sort NULL at the end */
+    }
 }
 
 ////////////////////////////////
@@ -643,8 +647,7 @@ static MooseSong * moose_stprv_find_idx(MoosePlaylist * stack, MooseSong * key) 
 
 ////////////////////////////////
 
-static MoosePlaylist * moose_stprv_build_queue_content(MooseStore * self, MoosePlaylist * to_filter)
-{
+static MoosePlaylist * moose_stprv_build_queue_content(MooseStore * self, MoosePlaylist * to_filter) {
     g_assert(self);
 
     int error_id = SQLITE_OK;
@@ -658,8 +661,8 @@ static MoosePlaylist * moose_stprv_build_queue_content(MooseStore * self, MooseP
         }
 
         MooseSong * queue_song = moose_stprv_find_idx(
-            to_filter, moose_playlist_at(self->stack, stack_idx - 1)
-            );
+                                     to_filter, moose_playlist_at(self->stack, stack_idx - 1)
+                                 );
         if (queue_song != NULL) {
             moose_playlist_append(queue_songs, queue_song);
         }
@@ -689,8 +692,7 @@ static MoosePlaylist * moose_stprv_build_queue_content(MooseStore * self, MooseP
  *
  * Returns: number of actually found songs, or -1 on error.
  */
-int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bool queue_only, MoosePlaylist * stack, int limit_len)
-{
+int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bool queue_only, MoosePlaylist * stack, int limit_len) {
     int error_id = SQLITE_OK, pos_id = 1;
     limit_len = (limit_len < 0) ? INT_MAX : limit_len;
 
@@ -703,8 +705,9 @@ int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bo
     }
 
     /* emits a warning if NULL is passed *sigh* */
-    if (match_clause_dup != NULL)
+    if (match_clause_dup != NULL) {
         match_clause_dup = g_strstrip(match_clause_dup);
+    }
 
     sqlite3_stmt * select_stmt = NULL;
 
@@ -737,8 +740,9 @@ int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bo
         }
     }
 
-    if (error_id != SQLITE_DONE && error_id != SQLITE_ROW)
+    if (error_id != SQLITE_DONE && error_id != SQLITE_ROW) {
         REPORT_SQL_ERROR(self, "WARNING: Cannot SELECT");
+    }
 
     CLEAR_BINDS(select_stmt);
     sqlite3_reset(select_stmt);
@@ -782,8 +786,7 @@ int moose_stprv_select_to_stack(MooseStore * self, const char * match_clause, bo
  ** If the operation is successful, SQLITE_OK is returned. Otherwise, if
  ** an error occurs, an SQLite error code is returned.
  */
-void moose_stprv_load_or_save(MooseStore * self, bool is_save, const char * db_path)
-{
+void moose_stprv_load_or_save(MooseStore * self, bool is_save, const char * db_path) {
     sqlite3 * pFile;           /* Database connection opened on zFilename */
     sqlite3_backup * pBackup;  /* Backup object used to copy data */
     sqlite3 * pTo;             /* Database to copy to (pFile or pInMemory) */
@@ -818,16 +821,18 @@ void moose_stprv_load_or_save(MooseStore * self, bool is_save, const char * db_p
             sqlite3_backup_finish(pBackup);
         }
 
-        if (sqlite3_errcode(pTo) != SQLITE_OK)
+        if (sqlite3_errcode(pTo) != SQLITE_OK) {
             REPORT_SQL_ERROR(self, "Something went wrong during backup");
+        }
     } else {
         REPORT_SQL_ERROR(self, "Cannot open disk-db");
     }
 
     /* Close the database connection opened on database file zFilename
     ** and return the result of this function. */
-    if (sqlite3_close(pFile) != SQLITE_OK)
+    if (sqlite3_close(pFile) != SQLITE_OK) {
         REPORT_SQL_ERROR(self, "Cannot close db in load-or-save");
+    }
 }
 
 ////////////////////////////////
@@ -838,9 +843,8 @@ void moose_stprv_load_or_save(MooseStore * self, bool is_save, const char * db_p
             moose_song_set_tag(song, tag_enum, value);                 \
         }                                                              \
 }                                                               \
-
-void moose_stprv_deserialize_songs(MooseStore * self)
-{
+ 
+void moose_stprv_deserialize_songs(MooseStore * self) {
     /* just assume we're not failing */
     int error_id = SQLITE_OK;
 
@@ -866,17 +870,17 @@ void moose_stprv_deserialize_songs(MooseStore * self)
         MooseSong * song = moose_song_new();
         moose_song_set_uri(
             song, (char *)sqlite3_column_text(stmt, SQL_COL_URI)
-            );
+        );
 
         /* Since SQLite is completely typeless we can just retrieve the column as string */
         moose_song_set_duration(
             song, sqlite3_column_int(stmt, SQL_COL_DURATION)
-            );
+        );
 
         /* We parse the date ourself, since we can use a nice static buffer here */
         moose_song_set_last_modified(
             song, sqlite3_column_int(stmt, SQL_COL_LAST_MODIFIED)
-            );
+        );
 
         /* Now feed the tags */
         feed_tag(MOOSE_TAG_ARTIST, SQL_COL_ARTIST, stmt, song);
@@ -906,7 +910,7 @@ void moose_stprv_deserialize_songs(MooseStore * self)
     moose_debug(
         "database: deserialized %d songs from local db. (took %2.3f)",
         progress_counter, g_timer_elapsed(timer, NULL)
-        );
+    );
     moose_debug("Finished: Database Update.");
     moose_debug("Finished: Queue Update.");
 
@@ -930,12 +934,11 @@ void moose_stprv_deserialize_songs(MooseStore * self)
         out_var = (cast_type)copy_func((cast_type)out_var);                                 \
         sqlite3_reset(SQL_STMT(self, meta_enum));                                           \
     }                                                                                       \
-
+ 
 
 ////////////////////////////////
 
-int moose_stprv_get_song_count(MooseStore * self)
-{
+int moose_stprv_get_song_count(MooseStore * self) {
     int song_count = -1;
     SELECT_META_ATTRIBUTES(self, COUNT, sqlite3_column_int, song_count, ABS, int);
     return song_count;
@@ -943,8 +946,7 @@ int moose_stprv_get_song_count(MooseStore * self)
 
 ////////////////////////////////
 
-int moose_stprv_get_db_version(MooseStore * self)
-{
+int moose_stprv_get_db_version(MooseStore * self) {
     int db_version = 0;
     SELECT_META_ATTRIBUTES(self, SELECT_META_DB_VERSION, sqlite3_column_int, db_version, ABS, int);
     return db_version;
@@ -952,8 +954,7 @@ int moose_stprv_get_db_version(MooseStore * self)
 
 ////////////////////////////////
 
-int moose_stprv_get_pl_version(MooseStore * self)
-{
+int moose_stprv_get_pl_version(MooseStore * self) {
     int pl_version = 0;
     SELECT_META_ATTRIBUTES(self, SELECT_META_PL_VERSION, sqlite3_column_int, pl_version, ABS, int);
     return pl_version;
@@ -961,8 +962,7 @@ int moose_stprv_get_pl_version(MooseStore * self)
 
 ////////////////////////////////
 
-int moose_stprv_get_sc_version(MooseStore * self)
-{
+int moose_stprv_get_sc_version(MooseStore * self) {
     int sc_version = 0;
     SELECT_META_ATTRIBUTES(self, SELECT_META_SC_VERSION, sqlite3_column_int, sc_version, ABS, int);
     return sc_version;
@@ -970,8 +970,7 @@ int moose_stprv_get_sc_version(MooseStore * self)
 
 ////////////////////////////////
 
-int moose_stprv_get_mpd_port(MooseStore * self)
-{
+int moose_stprv_get_mpd_port(MooseStore * self) {
     int mpd_port = 0;
     SELECT_META_ATTRIBUTES(self, SELECT_META_MPD_PORT, sqlite3_column_int, mpd_port, ABS, int);
     return mpd_port;
@@ -979,8 +978,7 @@ int moose_stprv_get_mpd_port(MooseStore * self)
 
 ////////////////////////////////
 
-char * moose_stprv_get_mpd_host(MooseStore * self)
-{
+char * moose_stprv_get_mpd_host(MooseStore * self) {
     char * mpd_host = NULL;
     SELECT_META_ATTRIBUTES(self, SELECT_META_MPD_HOST, sqlite3_column_text, mpd_host, g_strdup, char *);
     return mpd_host;
@@ -988,8 +986,7 @@ char * moose_stprv_get_mpd_host(MooseStore * self)
 
 /////////////////// QUEUE STUFF ////////////////////
 
-int moose_stprv_queue_clip(MooseStore * self, int since_pos)
-{
+int moose_stprv_queue_clip(MooseStore * self, int since_pos) {
     g_assert(self);
 
     int pos_idx = 1;
@@ -1015,8 +1012,7 @@ int moose_stprv_queue_clip(MooseStore * self, int since_pos)
 
 ///////////////////
 
-void moose_stprv_queue_update_stack_posid(MooseStore * self)
-{
+void moose_stprv_queue_update_stack_posid(MooseStore * self) {
     g_assert(self);
     int error_id = SQLITE_OK;
     sqlite3_stmt * select_stmt = SQL_STMT(self, SELECT_ALL_QUEUE);
@@ -1036,7 +1032,7 @@ void moose_stprv_queue_update_stack_posid(MooseStore * self)
                     already_seen_ids,
                     song,
                     GINT_TO_POINTER(TRUE)
-                    );
+                );
 
                 /* Luckily we have a setter here, otherwise I would feel a bit strange. */
                 moose_song_set_pos(song, queue_pos);
@@ -1063,8 +1059,7 @@ void moose_stprv_queue_update_stack_posid(MooseStore * self)
 
 ///////////////////
 
-void moose_stprv_queue_insert_posid(MooseStore * self, int pos, int idx, const char * file)
-{
+void moose_stprv_queue_insert_posid(MooseStore * self, int pos, int idx, const char * file) {
     int pos_idx = 1, error_id = SQLITE_OK;
     BIND_TXT(self, QUEUE_INSERT_ROW, pos_idx, file, error_id);
     BIND_INT(self, QUEUE_INSERT_ROW, pos_idx, pos, error_id);
@@ -1076,8 +1071,9 @@ void moose_stprv_queue_insert_posid(MooseStore * self, int pos, int idx, const c
         return;
     }
 
-    if (sqlite3_step(SQL_STMT(self, QUEUE_INSERT_ROW)) != SQLITE_DONE)
+    if (sqlite3_step(SQL_STMT(self, QUEUE_INSERT_ROW)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "Unable to INSERT song into queue.");
+    }
 
     CLEAR_BINDS_BY_NAME(self, QUEUE_INSERT_ROW);
     sqlite3_reset(SQL_STMT(self, QUEUE_INSERT_ROW));
@@ -1085,21 +1081,22 @@ void moose_stprv_queue_insert_posid(MooseStore * self, int pos, int idx, const c
 
 ///////////////////
 
-int moose_stprv_path_get_depth(const char * dir_path)
-{
+int moose_stprv_path_get_depth(const char * dir_path) {
     int dir_depth = 0;
     char * cursor = (char *)dir_path;
 
-    if (dir_path == NULL)
+    if (dir_path == NULL) {
         return -1;
+    }
 
     for (;;) {
         gunichar curr = g_utf8_get_char_validated(cursor, -1);
         cursor = g_utf8_next_char(cursor);
 
         if (*cursor != (char)0) {
-            if (curr == (gunichar)'/')
+            if (curr == (gunichar)'/') {
                 ++dir_depth;
+            }
         } else {
             break;
         }
@@ -1113,8 +1110,7 @@ int moose_stprv_path_get_depth(const char * dir_path)
 ///////////////////
 ///////////////////
 
-void moose_stprv_dir_insert(MooseStore * self, const char * path)
-{
+void moose_stprv_dir_insert(MooseStore * self, const char * path) {
     g_assert(self);
     g_assert(path);
 
@@ -1139,8 +1135,7 @@ void moose_stprv_dir_insert(MooseStore * self, const char * path)
 
 //////////////////
 
-void moose_stprv_dir_delete(MooseStore * self)
-{
+void moose_stprv_dir_delete(MooseStore * self) {
     g_assert(self);
 
     if (sqlite3_step(SQL_STMT(self, DIR_DELETE_ALL)) != SQLITE_DONE) {
@@ -1151,16 +1146,16 @@ void moose_stprv_dir_delete(MooseStore * self)
 
 //////////////////
 
-int moose_stprv_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth)
-{
+int moose_stprv_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth) {
     g_assert(self);
     g_assert(stack);
     int returned = 0;
     int pos_idx = 1;
     int error_id = SQLITE_OK;
 
-    if (directory && *directory == '/')
+    if (directory && *directory == '/') {
         directory = NULL;
+    }
 
     sqlite3_stmt * select_stmt = NULL;
 
@@ -1224,8 +1219,7 @@ typedef struct {
 
 ///////////////////////////////////
 
-static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data)
-{
+static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data) {
     MooseStoreQueueTag * tag = user_data;
     MooseStore * self = tag->store;
     GAsyncQueue * queue = tag->queue;
@@ -1240,8 +1234,8 @@ static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data)
         case MPD_ENTITY_TYPE_SONG: {
 
             MooseSong * song = moose_song_new_from_struct(
-                (struct mpd_song *)mpd_entity_get_song(ent)
-                );
+                                   (struct mpd_song *)mpd_entity_get_song(ent)
+                               );
 
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);
@@ -1293,8 +1287,7 @@ static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data)
  *       Also, this value is adjustable in mpd.conf
  *       e.g. max_command_list_size "16192"
  */
-void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
-{
+void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel) {
     g_assert(store);
     g_assert(store->client);
 
@@ -1316,7 +1309,7 @@ void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
             moose_message(
                 "database: Will update database (%u != %u)",
                 (unsigned)db_update_time, (unsigned)db_version
-                );
+            );
         }
     } else {
         moose_message("database: Doing forced listallinfo");
@@ -1347,18 +1340,18 @@ void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
     }
 
     store->stack = moose_playlist_new_full(
-        number_of_songs + 1,
-        (GDestroyNotify)moose_song_unref
-        );
+                       number_of_songs + 1,
+                       (GDestroyNotify)moose_song_unref
+                   );
 
     /* Profiling */
     timer = g_timer_new();
 
     sql_thread = g_thread_new(
-        "sql-thread",
-        moose_stprv_do_list_all_info_sql_thread,
-        &tag
-        );
+                     "sql-thread",
+                     moose_stprv_do_list_all_info_sql_thread,
+                     &tag
+                 );
 
     struct mpd_connection * conn = moose_client_get(store->client);
     if (conn != NULL) {
@@ -1394,7 +1387,7 @@ void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
     moose_message(
         "database: retrieved %d songs from mpd (took %2.3fs)",
         number_of_songs, g_timer_elapsed(timer, NULL)
-        );
+    );
 
     moose_debug("Finished: Database update.");
 
@@ -1405,8 +1398,7 @@ void moose_stprv_oper_listallinfo(MooseStore * store, volatile bool * cancel)
 
 ///////////////////////////////////
 
-static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data)
-{
+static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data) {
     MooseStoreQueueTag * tag = user_data;
     MooseStore * self = tag->store;
     GAsyncQueue * queue = tag->queue;
@@ -1441,7 +1433,7 @@ static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data)
                 moose_song_get_pos(song),
                 moose_song_get_id(song),
                 moose_song_get_uri(song)
-                );
+            );
             moose_song_unref(song);
         }
     }
@@ -1464,15 +1456,14 @@ static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data)
     moose_debug(
         "database: QueueSQL Timing: %2.3fs Clip | %2.3fs Posid | %2.3fs Stack",
         clip_time, posid_time, stack_time
-        );
+    );
 
     return NULL;
 }
 
 ///////////////////////////////////
 
-void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
-{
+void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel) {
     g_assert(store);
 
     int progress_counter = 0;
@@ -1498,7 +1489,7 @@ void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
             moose_message(
                 "database: Will not update queue, version didn't change (%d == %d)",
                 (int)last_pl_version, (int)current_pl_version
-                );
+            );
             return;
         }
     }
@@ -1526,7 +1517,7 @@ void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
         moose_message(
             "database: Queue was updated. Will do ,,plchanges %d''",
             (int)last_pl_version
-            );
+        );
 
         if (mpd_send_queue_changes_meta(conn, last_pl_version)) {
             struct mpd_song * song_struct = NULL;
@@ -1566,7 +1557,7 @@ void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
     moose_debug(
         "database: updated %d song's pos/id (took %2.3fs)",
         progress_counter, g_timer_elapsed(timer, NULL)
-        );
+    );
 
     moose_debug("Finished: Queue updated.");
 
@@ -1617,8 +1608,7 @@ void moose_stprv_oper_plchanges(MooseStore * store, volatile bool * cancel)
 
 ///////////////////
 
-static char * moose_stprv_spl_construct_table_name(struct mpd_playlist * playlist)
-{
+static char * moose_stprv_spl_construct_table_name(struct mpd_playlist * playlist) {
     g_assert(playlist);
     return g_strdup_printf("spl_%x_%s",
                            (unsigned)mpd_playlist_get_last_modified(playlist),
@@ -1627,8 +1617,7 @@ static char * moose_stprv_spl_construct_table_name(struct mpd_playlist * playlis
 
 ///////////////////
 
-static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT */ time_t * last_modified)
-{
+static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT */ time_t * last_modified) {
     g_assert(table_name);
 
     for (size_t i = 0; table_name[i] != 0; ++i) {
@@ -1639,10 +1628,11 @@ static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT *
 
             char * name_begin = strchr(&table_name[i + 1], '_');
 
-            if (name_begin != NULL)
+            if (name_begin != NULL) {
                 return g_strdup(name_begin + 1);
-            else
+            } else {
                 return NULL;
+            }
         }
     }
 
@@ -1651,8 +1641,7 @@ static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT *
 
 ///////////////////
 
-static void moose_stprv_spl_drop_table(MooseStore   * self, const char * table_name)
-{
+static void moose_stprv_spl_drop_table(MooseStore   * self, const char * table_name) {
     g_assert(table_name);
     g_assert(self);
     char * sql = sqlite3_mprintf("DROP TABLE IF EXISTS %q;", table_name);
@@ -1667,13 +1656,12 @@ static void moose_stprv_spl_drop_table(MooseStore   * self, const char * table_n
 
 ///////////////////
 
-static void moose_stprv_spl_create_table(MooseStore * self, const char * table_name)
-{
+static void moose_stprv_spl_create_table(MooseStore * self, const char * table_name) {
     g_assert(self);
     g_assert(table_name);
     char * sql = sqlite3_mprintf(
-        "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);", table_name
-        );
+                     "CREATE TABLE IF NOT EXISTS %q (song_idx INTEGER);", table_name
+                 );
 
     if (sql != NULL) {
         if (sqlite3_exec(self->handle, sql, 0, 0, 0) != SQLITE_OK) {
@@ -1686,8 +1674,7 @@ static void moose_stprv_spl_create_table(MooseStore * self, const char * table_n
 
 ///////////////////
 
-static void moose_stprv_spl_delete_content(MooseStore * self, const char * table_name)
-{
+static void moose_stprv_spl_delete_content(MooseStore * self, const char * table_name) {
     g_assert(self);
     g_assert(table_name);
     moose_stprv_spl_drop_table(self, table_name);
@@ -1715,8 +1702,7 @@ static struct mpd_playlist * moose_stprv_spl_name_to_playlist(MooseStore * store
 
 ///////////////////
 
-static void moose_stprv_spl_listplaylists(MooseStore * store)
-{
+static void moose_stprv_spl_listplaylists(MooseStore * store) {
     g_assert(store);
     g_assert(store->client);
     MooseClient * self = store->client;
@@ -1747,18 +1733,17 @@ static void moose_stprv_spl_listplaylists(MooseStore * store)
 }
 ///////////////////
 
-static GList * moose_stprv_spl_get_loaded_list(MooseStore * self)
-{
+static GList * moose_stprv_spl_get_loaded_list(MooseStore * self) {
     GList * table_name_list = NULL;
 
     /* Select all table names from db that start with spl_ */
     while (sqlite3_step(SQL_STMT(self, SPL_SELECT_TABLES)) == SQLITE_ROW) {
         table_name_list = g_list_prepend(
-            table_name_list,
-            g_strdup(
-                (char *)sqlite3_column_text(SQL_STMT(self, SPL_SELECT_TABLES), 0)
-                )
-            );
+                              table_name_list,
+                              g_strdup(
+                                  (char *)sqlite3_column_text(SQL_STMT(self, SPL_SELECT_TABLES), 0)
+                              )
+                          );
     }
 
     /* Be nice, and always check for errors */
@@ -1775,8 +1760,7 @@ static GList * moose_stprv_spl_get_loaded_list(MooseStore * self)
 
 ///////////////////
 
-static int moose_stprv_spl_get_song_count(MooseStore * self, struct mpd_playlist * playlist)
-{
+static int moose_stprv_spl_get_song_count(MooseStore * self, struct mpd_playlist * playlist) {
     g_assert(self);
 
     int count = -1;
@@ -1810,8 +1794,7 @@ static int moose_stprv_spl_get_song_count(MooseStore * self, struct mpd_playlist
 
 /////////////////// PUBLIC AREA ///////////////////
 
-void moose_stprv_spl_update(MooseStore * self)
-{
+void moose_stprv_spl_update(MooseStore * self) {
     g_assert(self);
 
     /* Get a new list of playlists from mpd */
@@ -1845,7 +1828,7 @@ void moose_stprv_spl_update(MooseStore * self)
                 moose_message(
                     "database: Dropping orphaned playlist-table ,,%s''",
                     drop_table_name
-                    );
+                );
                 moose_stprv_spl_drop_table(self, drop_table_name);
                 iter = iter->next;
                 table_name_list = g_list_delete_link(table_name_list, iter);
@@ -1904,8 +1887,7 @@ void moose_stprv_spl_update(MooseStore * self)
 
 ///////////////////
 
-bool moose_stprv_spl_is_loaded(MooseStore * store, struct mpd_playlist * playlist)
-{
+bool moose_stprv_spl_is_loaded(MooseStore * store, struct mpd_playlist * playlist) {
     bool result = false;
 
     /* Construct the table name for comparasion */
@@ -1920,7 +1902,7 @@ bool moose_stprv_spl_is_loaded(MooseStore * store, struct mpd_playlist * playlis
             time_t comp_last_mod = 0;
             g_free(moose_stprv_spl_parse_table_name(
                        comp_table_name, &comp_last_mod
-                       ));
+                   ));
 
             if (comp_last_mod == mpd_playlist_get_last_modified(playlist)) {
                 result = true;
@@ -1937,8 +1919,7 @@ bool moose_stprv_spl_is_loaded(MooseStore * store, struct mpd_playlist * playlis
 
 ///////////////////
 
-bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
-{
+bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist) {
     g_assert(store);
     g_assert(store->client);
     g_assert(playlist);
@@ -1950,13 +1931,13 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
         moose_message(
             "database: Stored playlist '%s' already loaded - skipping.",
             mpd_playlist_get_path(playlist)
-            );
+        );
         return true;
     } else {
         moose_message(
             "database: Loading stored playlist '%s'...",
             mpd_playlist_get_path(playlist)
-            );
+        );
     }
 
     sqlite3_stmt * insert_stmt = NULL;
@@ -1966,9 +1947,9 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
         moose_stprv_begin(store);
         moose_stprv_spl_delete_content(store, table_name);
         char * sql = sqlite3_mprintf(
-            "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri  = ?));",
-            table_name
-            );
+                         "INSERT INTO %q VALUES((SELECT rowid FROM songs_content WHERE c0uri  = ?));",
+                         table_name
+                     );
 
         if (sql != NULL) {
             if (sqlite3_prepare_v2(store->handle, sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
@@ -1987,8 +1968,9 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
                     struct mpd_pair * file_pair = NULL;
 
                     while ((file_pair = mpd_recv_pair_named(conn, "file")) != NULL) {
-                        if (sqlite3_bind_text(insert_stmt, 1, file_pair->value, -1, NULL) != SQLITE_OK)
+                        if (sqlite3_bind_text(insert_stmt, 1, file_pair->value, -1, NULL) != SQLITE_OK) {
                             REPORT_SQL_ERROR(store, "Cannot bind filename to SPL-Insert");
+                        }
 
                         if (sqlite3_step(insert_stmt) != SQLITE_DONE) {
                             REPORT_SQL_ERROR(store, "Cannot insert song index to stored playlist.");
@@ -2010,8 +1992,9 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
             /* Release the connection mutex */
             moose_client_put(self);
 
-            if (sqlite3_finalize(insert_stmt) != SQLITE_OK)
+            if (sqlite3_finalize(insert_stmt) != SQLITE_OK) {
                 REPORT_SQL_ERROR(store, "Cannot finalize INSERT stmt");
+            }
         }
 
         moose_stprv_commit(store);
@@ -2023,8 +2006,7 @@ bool moose_stprv_spl_load(MooseStore * store, struct mpd_playlist * playlist)
 
 ///////////////////
 
-bool moose_stprv_spl_load_by_playlist_name(MooseStore * store, const char * playlist_name)
-{
+bool moose_stprv_spl_load_by_playlist_name(MooseStore * store, const char * playlist_name) {
     g_assert(store);
     g_assert(playlist_name);
     struct mpd_playlist * playlist = moose_stprv_spl_name_to_playlist(store, playlist_name);
@@ -2040,22 +2022,19 @@ bool moose_stprv_spl_load_by_playlist_name(MooseStore * store, const char * play
 
 ///////////////////
 
-static inline int moose_stprv_spl_hash_compare(gconstpointer a, gconstpointer b)
-{
-    return *((gconstpointer * *)a) - *((gconstpointer * *)b);
+static inline int moose_stprv_spl_hash_compare(gconstpointer a, gconstpointer b) {
+    return *((gconstpointer **)a) - *((gconstpointer **)b);
 }
 
 ///////////////////
 
-static int moose_stprv_spl_bsearch_cmp(const void * key, const void * array)
-{
-    return key - *(void * *)array;
+static int moose_stprv_spl_bsearch_cmp(const void * key, const void * array) {
+    return key - *(void **)array;
 }
 
 ///////////////////
 
-static int moose_stprv_spl_filter_id_list(MooseStore * store, GPtrArray * song_ptr_array, const char * match_clause, MoosePlaylist * out_stack)
-{
+static int moose_stprv_spl_filter_id_list(MooseStore * store, GPtrArray * song_ptr_array, const char * match_clause, MoosePlaylist * out_stack) {
     /* Roughly estimate the number of song pointer to expect */
     int preallocations = moose_playlist_length(store->stack) /
                          (((match_clause) ? MAX(strlen(match_clause), 1) : 1) * 2);
@@ -2067,13 +2046,13 @@ static int moose_stprv_spl_filter_id_list(MooseStore * store, GPtrArray * song_p
         for (size_t i = 0; i < moose_playlist_length(db_songs); ++i) {
             MooseSong * song = moose_playlist_at(db_songs, i);
             if (bsearch(
-                    song,
-                    song_ptr_array->pdata,
-                    song_ptr_array->len,
-                    sizeof(gpointer),
-                    moose_stprv_spl_bsearch_cmp
+                        song,
+                        song_ptr_array->pdata,
+                        song_ptr_array->len,
+                        sizeof(gpointer),
+                        moose_stprv_spl_bsearch_cmp
                     )
-                ) {
+               ) {
                 moose_playlist_append(out_stack, song);
             }
         }
@@ -2087,8 +2066,7 @@ static int moose_stprv_spl_filter_id_list(MooseStore * store, GPtrArray * song_p
 
 ///////////////////
 
-int moose_stprv_spl_select_playlist(MooseStore * store, MoosePlaylist * out_stack, const char * playlist_name, const char * match_clause)
-{
+int moose_stprv_spl_select_playlist(MooseStore * store, MoosePlaylist * out_stack, const char * playlist_name, const char * match_clause) {
     g_assert(store);
     g_assert(playlist_name);
     g_assert(out_stack);
@@ -2174,8 +2152,7 @@ int moose_stprv_spl_select_playlist(MooseStore * store, MoosePlaylist * out_stac
 
 ///////////////////
 
-int moose_stprv_spl_get_loaded_playlists(MooseStore * store, MoosePlaylist * stack)
-{
+int moose_stprv_spl_get_loaded_playlists(MooseStore * store, MoosePlaylist * stack) {
     g_assert(store);
     g_assert(stack);
 
@@ -2212,12 +2189,11 @@ int moose_stprv_spl_get_loaded_playlists(MooseStore * store, MoosePlaylist * sta
 
 ///////////////////
 
-int moose_stprv_spl_get_known_playlists(MooseStore * store, GPtrArray * stack)
-{
+int moose_stprv_spl_get_known_playlists(MooseStore * store, GPtrArray * stack) {
     for (unsigned i = 0; i < store->spl_stack->len; ++i) {
         g_ptr_array_add(
             stack, g_ptr_array_index(store->spl_stack, i)
-            );
+        );
     }
     return store->spl_stack->len;
 }

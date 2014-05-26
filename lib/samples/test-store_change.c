@@ -17,8 +17,7 @@
 
 ///////////////////////////////
 
-static void print_event(MooseClient * self, MooseIdle event, void * user_data)
-{
+static void print_event(MooseClient * self, MooseIdle event, void * user_data) {
     g_print("event-signal: %p %d %p\n", self, event, user_data);
 }
 
@@ -28,17 +27,15 @@ static void print_connectivity(
     MooseClient * self,
     bool server_changed,
     bool was_connected,
-    G_GNUC_UNUSED void * user_data)
-{
+    G_GNUC_UNUSED void * user_data) {
     g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
             server_changed, was_connected, moose_client_is_connected(self)
-            );
+           );
 }
 
 ///////////////////////////////
 
-static gboolean timeout_quit(gpointer user_data)
-{
+static gboolean timeout_quit(gpointer user_data) {
     g_main_loop_quit((GMainLoop *)user_data);
 
     return false;
@@ -46,8 +43,7 @@ static gboolean timeout_quit(gpointer user_data)
 
 ///////////////////////////////
 
-static gboolean timeout_client_change(gpointer user_data)
-{
+static gboolean timeout_client_change(gpointer user_data) {
     MooseClient * self = user_data;
 
     moose_client_disconnect(self);
@@ -58,8 +54,7 @@ static gboolean timeout_client_change(gpointer user_data)
 
 ///////////////////////////////
 
-int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[])
-{
+int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[]) {
     MooseClient * self = moose_client_new(MOOSE_PROTOCOL_IDLE);
 
     moose_client_connect(self, NULL, "localhost", 6601, 10.0);

@@ -19,7 +19,7 @@ typedef struct MooseStore {
     sqlite3 * handle;
 
     /* prepared statements for normal operations */
-    sqlite3_stmt * * sql_prep_stmts;
+    sqlite3_stmt ** sql_prep_stmts;
 
     /* client associated with this store */
     MooseClient * client;
@@ -132,7 +132,7 @@ MooseStore * moose_store_create_full(
     const char * tokenizer,
     bool use_memory_db,
     bool use_compression
-    );
+);
 
 /**
  * @brief Close the MooseStore.

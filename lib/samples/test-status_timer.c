@@ -3,8 +3,7 @@
 static void signal_event(
     MooseClient * client,
     MooseIdle event,
-    void * user_data)
-{
+    void * user_data) {
     g_printerr("event = %d\n", event);
     MooseStatus * status = moose_client_ref_status(client);
     g_printerr("State: %d\n", moose_status_get_state(status));
@@ -19,8 +18,7 @@ static void signal_event(
 
 /////////////////////////////
 
-int main(void)
-{
+int main(void) {
     GMainLoop * loop = g_main_loop_new(NULL, FALSE);
 
     MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);

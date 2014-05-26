@@ -18,8 +18,7 @@ typedef enum MooseIdle {
     /** song database has been updated*/
     MOOSE_IDLE_DATABASE = MPD_IDLE_DATABASE,
 
-    /** a stored playlist has been modified, created, deleted or
-        renamed */
+    /** a stored playlist has been modified, created, deleted or renamed */
     MOOSE_IDLE_STORED_PLAYLIST = MPD_IDLE_STORED_PLAYLIST,
 
     /** the queue has been modified */
@@ -52,7 +51,7 @@ typedef enum MooseIdle {
     /** a seek event */
     MOOSE_IDLE_SEEK = MPD_IDLE_MESSAGE << 1,
 
-        MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2
+    MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2
 } MooseIdle;
 
 typedef enum MooseProtocolType {
@@ -165,7 +164,7 @@ char * moose_client_connect(
     const char * host,
     int port,
     float timeout
-    );
+);
 
 /**
  * @brief Return the "send connection" of the Connector.
@@ -378,7 +377,7 @@ long moose_client_commit(MooseClient * self);
 bool moose_client_check_error(MooseClient * self, struct mpd_connection * cconn);
 bool moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection * cconn);
 
-struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char * * err);
+struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char ** err);
 
 G_END_DECLS
 

@@ -24,18 +24,16 @@ typedef struct {
     GTimer * profile_timer;
 } EntryTag;
 
-static GtkTreeModel * create_model(void)
-{
+static GtkTreeModel * create_model(void) {
     /* create list store */
     return GTK_TREE_MODEL(gtk_list_store_new(NUM_COLUMNS,
-                                             G_TYPE_STRING,
-                                             G_TYPE_STRING,
-                                             G_TYPE_STRING)
-                          );
+                          G_TYPE_STRING,
+                          G_TYPE_STRING,
+                          G_TYPE_STRING)
+                         );
 }
 
-static void update_view(EntryTag * tag, const char * search_text)
-{
+static void update_view(EntryTag * tag, const char * search_text) {
     GtkListStore * list_store = GTK_LIST_STORE(tag->model);
     gdouble select_time, gui_time, parse_time;
     GtkTreeIter iter;
@@ -88,8 +86,7 @@ static void update_view(EntryTag * tag, const char * search_text)
     g_free(query);
 }
 
-static void on_entry_text_changed(GtkEditable * editable, gpointer user_data)
-{
+static void on_entry_text_changed(GtkEditable * editable, gpointer user_data) {
     gchar * entry_text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
 
     if (entry_text != NULL) {
@@ -99,8 +96,7 @@ static void on_entry_text_changed(GtkEditable * editable, gpointer user_data)
     }
 }
 
-static gboolean window_closed(GtkWidget * widget, GdkEvent * event, gpointer user_data)
-{
+static gboolean window_closed(GtkWidget * widget, GdkEvent * event, gpointer user_data) {
     (void)widget;
     (void)event;
     (void)user_data;
@@ -108,8 +104,7 @@ static gboolean window_closed(GtkWidget * widget, GdkEvent * event, gpointer use
     return FALSE;
 }
 
-static void on_client_update(MooseClient * self, MooseIdle event, void * user_data)
-{
+static void on_client_update(MooseClient * self, MooseIdle event, void * user_data) {
     (void)self;
     (void)event;
     g_print("Updating due to Queue/DB Update\n");
@@ -117,8 +112,7 @@ static void on_client_update(MooseClient * self, MooseIdle event, void * user_da
     update_view(tag, "");
 }
 
-static EntryTag * setup_client(void)
-{
+static EntryTag * setup_client(void) {
     EntryTag * rc = NULL;
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer * setup_timer = g_timer_new();
@@ -129,8 +123,8 @@ static EntryTag * setup_client(void)
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
         MooseStore * store = moose_store_create_full(
-            client, NULL, NULL, false, false
-            );
+                                 client, NULL, NULL, false, false
+                             );
         db_setup = g_timer_elapsed(setup_timer, NULL);
 
         if (store != NULL) {
@@ -150,14 +144,12 @@ static EntryTag * setup_client(void)
     return rc;
 }
 
-static void bringdown_client(EntryTag * tag)
-{
+static void bringdown_client(EntryTag * tag) {
     g_object_unref(tag->song_buf);
     moose_store_close(tag->store);
 }
 
-static void build_gui(EntryTag * tag)
-{
+static void build_gui(EntryTag * tag) {
     /* instance */
     tag->model = create_model();
     GtkWidget * wnd = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -201,8 +193,7 @@ static void build_gui(EntryTag * tag)
     gtk_widget_show_all(wnd);
 }
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     EntryTag * tag = setup_client();
     gtk_init(&argc, &argv);
     build_gui(tag);

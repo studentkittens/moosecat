@@ -15,8 +15,7 @@
  * Else:
  *    Take src as input, and write unzipped version at dst.
  */
-static bool transform(const char * src, const char * dst, bool compress)
-{
+static bool transform(const char * src, const char * dst, bool compress) {
     GError * error = NULL;
     gsize bytes_read = 0;
     bool result = true;
@@ -40,7 +39,7 @@ static bool transform(const char * src, const char * dst, bool compress)
                                      dst_file,
                                      G_FILE_CREATE_REPLACE_DESTINATION | G_FILE_CREATE_PRIVATE,
                                      NULL, &error
-                                     ));
+                                 ));
 
     if (dst_stream == NULL) {
         g_printerr("Cannot create output stream: %s\n", error->message);
@@ -55,19 +54,19 @@ static bool transform(const char * src, const char * dst, bool compress)
     if (compress) {
         /* Use Fast compression */
         converter = G_CONVERTER(
-            g_zlib_compressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP, 1)
-            );
+                        g_zlib_compressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP, 1)
+                    );
         conv_stream = G_OBJECT(
-            g_converter_output_stream_new(G_OUTPUT_STREAM(dst_stream), converter)
-            );
+                          g_converter_output_stream_new(G_OUTPUT_STREAM(dst_stream), converter)
+                      );
         sink = G_OUTPUT_STREAM(conv_stream);
     } else {
         converter = G_CONVERTER(
-            g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP)
-            );
+                        g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP)
+                    );
         conv_stream = G_OBJECT(
-            g_converter_input_stream_new(G_INPUT_STREAM(src_stream), converter)
-            );
+                          g_converter_input_stream_new(G_INPUT_STREAM(src_stream), converter)
+                      );
         source = G_INPUT_STREAM(conv_stream);
     }
 
@@ -84,25 +83,30 @@ static bool transform(const char * src, const char * dst, bool compress)
     }
 
 free_all:
-    if (src_stream)
+    if (src_stream) {
         g_object_unref(src_stream);
-    if (dst_stream)
+    }
+    if (dst_stream) {
         g_object_unref(dst_stream);
-    if (src_file)
+    }
+    if (src_file) {
         g_object_unref(src_file);
-    if (dst_file)
+    }
+    if (dst_file) {
         g_object_unref(dst_file);
-    if (converter)
+    }
+    if (converter) {
         g_object_unref(converter);
-    if (conv_stream)
+    }
+    if (conv_stream) {
         g_object_unref(conv_stream);
+    }
     return result;
 }
 
 ///////////////////////////////
 
-bool moose_gzip(const char * file_path)
-{
+bool moose_gzip(const char * file_path) {
     g_assert(file_path != NULL);
     bool result = false;
 
@@ -117,8 +121,7 @@ bool moose_gzip(const char * file_path)
 
 ///////////////////////////////
 
-bool moose_gunzip(const char * file_path)
-{
+bool moose_gunzip(const char * file_path) {
     g_assert(file_path != NULL);
     bool result = false;
 
@@ -134,8 +137,7 @@ bool moose_gunzip(const char * file_path)
 
 #if 0
 
-int main(int argc, char const * argv[])
-{
+int main(int argc, char const * argv[]) {
     if (argc < 3) {
         g_printerr("Usage:\n");
         g_printerr("  %s compress <file>\n", argv[0]);

@@ -17,7 +17,7 @@ typedef void * (* MooseMetadataCallback)(
     struct _MooseMetadataThreads *, /* self      */
     void *,                       /* data      */
     void *                        /* user_data */
-    );
+);
 
 ///////////////////////
 
@@ -62,7 +62,7 @@ MooseMetadataThreads * moose_mdthreads_new(
     MooseMetadataCallback deliver_callback,
     void * user_data,
     int max_threads
-    );
+);
 
 
 /**

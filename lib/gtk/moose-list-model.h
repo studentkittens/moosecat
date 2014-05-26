@@ -77,7 +77,7 @@ void moose_list_model_append_record(
     MooseListModel * custom_list,
     const gchar * name,
     guint year_born
-    );
+);
 
 G_END_DECLS
 

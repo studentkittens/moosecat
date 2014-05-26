@@ -17,8 +17,7 @@
 
 ///////////////////////////////
 
-static void print_event(MooseClient * self, MooseIdle event, void * user_data)
-{
+static void print_event(MooseClient * self, MooseIdle event, void * user_data) {
     g_print("event-signal: %p %d %p\n", self, event, user_data);
 }
 
@@ -28,17 +27,15 @@ static void print_connectivity(
     MooseClient * self,
     bool server_changed,
     bool was_connected,
-    G_GNUC_UNUSED void * user_data)
-{
+    G_GNUC_UNUSED void * user_data) {
     g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
             server_changed, was_connected, moose_client_is_connected(self)
-            );
+           );
 }
 
 ///////////////////////////////
 
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     if (argc < 2) {
         puts("usage: db_test [search|mainloop]");
         return -1;
@@ -73,14 +70,16 @@ int main(int argc, char * argv[])
             for (;;) {
                 g_print("> ");
 
-                if (fgets(line_buf, line_buf_size, stdin) == NULL)
+                if (fgets(line_buf, line_buf_size, stdin) == NULL) {
                     break;
+                }
 
                 /* remove trailing newline */
                 g_strstrip(line_buf);
 
-                if (g_strcmp0(line_buf, ":q") == 0)
+                if (g_strcmp0(line_buf, ":q") == 0) {
                     break;
+                }
 
                 if (g_strcmp0(line_buf, ":u") == 0) {
                     moose_client_force_sync(client, INT_MAX);
@@ -110,7 +109,7 @@ int main(int argc, char * argv[])
                 }
 
                 if (strncmp(line_buf, ":spl ", 5) == 0) {
-                    char * * args = g_strsplit(line_buf, " ", -1);
+                    char ** args = g_strsplit(line_buf, " ", -1);
 
                     if (args != NULL) {
                         MoosePlaylist * stack = moose_playlist_new();
@@ -176,7 +175,7 @@ int main(int argc, char * argv[])
 
 
                 if (strncmp(line_buf, ":ls ", 4) == 0) {
-                    char * * args = g_strsplit(line_buf, " ", -1);
+                    char ** args = g_strsplit(line_buf, " ", -1);
 
                     if (args != NULL) {
                         char * query = (*args[1] == '_') ? NULL : args[1];

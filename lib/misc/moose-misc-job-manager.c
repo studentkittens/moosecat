@@ -73,8 +73,7 @@ struct MooseJobManager {
 //                       //
 ///////////////////////////
 
-static MooseJob * moose_job_create(struct MooseJobManager * jm)
-{
+static MooseJob * moose_job_create(struct MooseJobManager * jm) {
     MooseJob * job = g_new0(MooseJob, 1);
     g_mutex_lock(&jm->job_id_counter_mutex);
     job->id = (jm->job_id_counter)++;
@@ -84,8 +83,7 @@ static MooseJob * moose_job_create(struct MooseJobManager * jm)
 
 ////////////////////////////////
 
-static void moose_job_free(MooseJob * job)
-{
+static void moose_job_free(MooseJob * job) {
     g_free(job);
 }
 
@@ -95,30 +93,32 @@ static void moose_job_free(MooseJob * job)
 //                       //
 ///////////////////////////
 
-static int moose_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer job_data)
-{
+static int moose_jm_prio_sort_func(gconstpointer a, gconstpointer b, gpointer job_data) {
     (void)job_data;
 
     const MooseJob * ja = a, * jb = b;
-    if (ja->priority > jb->priority)
+    if (ja->priority > jb->priority) {
         return +1;
+    }
 
-    if (ja->priority < jb->priority)
+    if (ja->priority < jb->priority) {
         return -1;
+    }
 
-    if (ja->id > jb->id)
+    if (ja->id > jb->id) {
         return +1;
+    }
 
-    if (ja->id < jb->id)
+    if (ja->id < jb->id) {
         return -1;
+    }
 
     return 0;
 }
 
 ////////////////////////////////
 
-static gpointer moose_jm_executor(gpointer data)
-{
+static gpointer moose_jm_executor(gpointer data) {
     MooseJob * job;
     struct MooseJobManager * jm = data;
 
@@ -193,8 +193,7 @@ struct MooseJobManager * moose_jm_create(MooseJobManagerCallback on_execute, gpo
 
 /////////////////////////////////
 
-bool moose_jm_check_cancel(struct MooseJobManager * jm, volatile bool * cancel)
-{
+bool moose_jm_check_cancel(struct MooseJobManager * jm, volatile bool * cancel) {
     bool rc = false;
 
     if (jm && cancel) {
@@ -210,8 +209,7 @@ bool moose_jm_check_cancel(struct MooseJobManager * jm, volatile bool * cancel)
 
 /////////////////////////////////
 
-long moose_jm_send(struct MooseJobManager * jm, int priority, gpointer job_data)
-{
+long moose_jm_send(struct MooseJobManager * jm, int priority, gpointer job_data) {
     if (jm == NULL) {
         return -1;
     }
@@ -244,8 +242,7 @@ long moose_jm_send(struct MooseJobManager * jm, int priority, gpointer job_data)
 
 /////////////////////////////////
 
-void moose_jm_wait(struct MooseJobManager * jm)
-{
+void moose_jm_wait(struct MooseJobManager * jm) {
     if (jm == NULL) {
         return;
     }
@@ -267,8 +264,7 @@ void moose_jm_wait(struct MooseJobManager * jm)
 
 /////////////////////////////////
 
-void moose_jm_wait_for_id(struct MooseJobManager * jm, int job_id)
-{
+void moose_jm_wait_for_id(struct MooseJobManager * jm, int job_id) {
     if (jm == NULL || job_id < 0) {
         /* Well, this is just down right invalid. */
         return;
@@ -309,8 +305,7 @@ void moose_jm_wait_for_id(struct MooseJobManager * jm, int job_id)
 
 /////////////////////////////////
 
-void * moose_jm_get_result(struct MooseJobManager * jm, int job_id)
-{
+void * moose_jm_get_result(struct MooseJobManager * jm, int job_id) {
     void * result = NULL;
 
     if (jm != NULL) {
@@ -327,8 +322,7 @@ void * moose_jm_get_result(struct MooseJobManager * jm, int job_id)
 
 /////////////////////////////////
 
-void moose_jm_close(struct MooseJobManager * jm)
-{
+void moose_jm_close(struct MooseJobManager * jm) {
     if (jm == NULL) {
         return;
     }
