@@ -65,7 +65,7 @@ typedef struct _MooseStatusClass {
 
 GType moose_status_get_type(void);
 
-///////////////////////////////
+
 
 /**
  * moose_status_new:

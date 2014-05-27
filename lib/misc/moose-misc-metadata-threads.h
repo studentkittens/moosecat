@@ -19,7 +19,7 @@ typedef void * (* MooseMetadataCallback)(
     void *                        /* user_data */
 );
 
-///////////////////////
+
 
 typedef struct _MooseMetadataThreads {
     /* Thread Pool to distribute the jobs */
@@ -43,7 +43,7 @@ typedef struct _MooseMetadataThreads {
     gpointer user_data;
 } MooseMetadataThreads;
 
-///////////////////////
+
 
 /**
  * @brief Create a new MetadataThreads Pool.

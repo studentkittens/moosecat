@@ -106,7 +106,10 @@ static gboolean window_closed(GtkWidget * widget, GdkEvent * event, gpointer use
 
 static void on_client_update(MooseClient * self, MooseIdle event, void * user_data) {
     (void)self;
-    (void)event;
+    if((event & (MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE)) == 0) {
+        return ;
+    }
+
     g_print("Updating due to Queue/DB Update\n");
     EntryTag * tag = user_data;
     update_view(tag, "");
@@ -122,7 +125,7 @@ static EntryTag * setup_client(void) {
     if (client && moose_client_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
         g_timer_start(setup_timer);
-        MooseStore * store = moose_store_create_full(
+        MooseStore * store = moose_store_new_full(
                                  client, NULL, NULL, false, false
                              );
         db_setup = g_timer_elapsed(setup_timer, NULL);
@@ -135,8 +138,7 @@ static EntryTag * setup_client(void) {
             rc->song_buf = moose_playlist_new_full(1000, NULL);
         }
 
-        // moose_client_signal_add_masked(client, "client-event",
-        //                               on_client_update, rc, MOOSE_IDLE_DATABASE | MOOSE_IDLE_QUEUE);
+        g_signal_connect(client, "client-event", G_CALLBACK(on_client_update), rc);
     }
 
     g_print("Setup Profiling: client-connect=%2.5fs + db-setup=%2.5fs = %2.6fs\n",
@@ -146,7 +148,7 @@ static EntryTag * setup_client(void) {
 
 static void bringdown_client(EntryTag * tag) {
     g_object_unref(tag->song_buf);
-    moose_store_close(tag->store);
+    moose_store_unref(tag->store);
 }
 
 static void build_gui(EntryTag * tag) {

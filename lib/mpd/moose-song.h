@@ -81,7 +81,7 @@ typedef struct _MooseSongClass {
 
 GType moose_song_get_type(void);
 
-///////////////////////////////
+
 
 /**
  * moose_song_new:

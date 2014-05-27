@@ -35,7 +35,7 @@ typedef struct _MooseSongPrivate {
 
 G_DEFINE_TYPE_WITH_PRIVATE(MooseSong, moose_song, G_TYPE_OBJECT);
 
-///////////////////////////////
+
 
 static void moose_song_finalize(GObject * gobject) {
     MooseSong * self = MOOSE_SONG(gobject);
@@ -55,22 +55,22 @@ static void moose_song_finalize(GObject * gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
-///////////////////////////////
+
 
 static void moose_song_class_init(MooseSongClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_song_finalize;
 }
 
-///////////////////////////////
+
 
 static void moose_song_init(MooseSong * self) {
     self->priv = moose_song_get_instance_private(self);
 }
 
-///////////////////////////////
+
 //          PUBLIC           //
-///////////////////////////////
+
 
 MooseSong * moose_song_new(void) {
     return g_object_new(MOOSE_TYPE_SONG, NULL);
@@ -82,7 +82,7 @@ void moose_song_unref(MooseSong * self) {
     }
 }
 
-///////////////////////////////
+
 
 char * moose_song_get_tag(MooseSong * self, MooseTagType tag) {
     g_return_val_if_fail(tag >= 0 && tag < MOOSE_TAG_COUNT, NULL);
@@ -98,7 +98,7 @@ void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value) 
     self->priv->tags[tag] = g_strdup(value);
 }
 
-///////////////////////////////
+
 
 const char * moose_song_get_uri(MooseSong * self) {
     g_assert(self);
@@ -113,7 +113,7 @@ void moose_song_set_uri(MooseSong * self, const char * uri) {
     self->priv->uri = g_strdup(uri);
 }
 
-///////////////////////////////
+
 
 unsigned moose_song_get_duration(MooseSong * self) {
     g_assert(self);
@@ -125,7 +125,7 @@ void moose_song_set_duration(MooseSong * self, unsigned duration) {
     self->priv->duration = duration;
 }
 
-///////////////////////////////
+
 
 time_t moose_song_get_last_modified(MooseSong * self) {
     g_assert(self);
@@ -137,7 +137,7 @@ void moose_song_set_last_modified(MooseSong * self, time_t last_modified) {
     self->priv->last_modified = last_modified;
 }
 
-///////////////////////////////
+
 
 unsigned moose_song_get_pos(MooseSong * self) {
     g_assert(self);
@@ -149,7 +149,7 @@ void moose_song_set_pos(MooseSong * self, unsigned pos) {
     self->priv->pos = pos;
 }
 
-///////////////////////////////
+
 
 unsigned moose_song_get_id(MooseSong * self) {
     g_assert(self);
@@ -161,7 +161,7 @@ void moose_song_set_id(MooseSong * self, unsigned id) {
     self->priv->id = id;
 }
 
-///////////////////////////////
+
 
 unsigned moose_song_get_prio(MooseSong * self) {
     g_assert(self);
@@ -173,7 +173,7 @@ void moose_song_set_prio(MooseSong * self, unsigned prio) {
     self->priv->prio = prio;
 }
 
-///////////////////////////////
+
 
 void moose_song_convert(MooseSong * self, struct mpd_song * song) {
     g_assert(self);

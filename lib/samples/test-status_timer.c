@@ -16,14 +16,14 @@ static void signal_event(
     }
 }
 
-/////////////////////////////
+
 
 int main(void) {
     GMainLoop * loop = g_main_loop_new(NULL, FALSE);
 
     MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
-    // moose_client_signal_add(client, "client-event", signal_event, loop);
-    moose_client_status_timer_register(client, 50, true);
+    g_signal_connect(client, "client-event", G_CALLBACK(signal_event), loop);
+    moose_client_timer_set_active(client, TRUE);
     moose_client_connect(client, NULL, "localhost", 6601, 2.0);
 
     g_printerr("Is %d\n", moose_client_is_connected(client));

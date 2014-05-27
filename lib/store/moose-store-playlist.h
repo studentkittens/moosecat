@@ -43,7 +43,7 @@ typedef struct _MoosePlaylistClass {
 
 GType moose_playlist_get_type(void);
 
-///////////////////////////////
+
 
 /**
  * moose_playlist_new:

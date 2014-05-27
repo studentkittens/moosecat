@@ -267,7 +267,21 @@ conf.env.Append(CCFLAGS=[
 
 # Optional flags:
 conf.env.Append(CFLAGS=[
-    '-Wall', '-W', '-Wextra'
+    '-Wall', '-W', '-Wextra',
+    '-Wwrite-strings',
+    '-Winit-self',
+    # '-Wcast-align',
+    '-Wcast-qual',
+    '-Wpointer-arith',
+    '-Wstrict-aliasing',
+    '-Wformat=2',
+    '-Wmissing-declarations',
+    '-Wmissing-include-dirs',
+    '-Wno-unused-parameter',
+    '-Wuninitialized',
+    '-Wold-style-definition',
+    '-Wstrict-prototypes',
+    #'-Wmissing-prototypes',
 ])
 
 if conf.env['CC'] == 'gcc':

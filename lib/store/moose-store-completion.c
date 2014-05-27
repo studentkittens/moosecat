@@ -4,9 +4,8 @@
 #include <string.h>
 
 /* Internal */
-#include "moose-store.h"
-#include "moose-store-private.h"
 #include "moose-store-completion.h"
+#include "moose-store.h"
 
 /* Internal, but not mine */
 #include "libart/art.h"
@@ -22,6 +21,10 @@ typedef struct _MooseStoreCompletionIterTag {
     MooseTagType tag;
 } MooseStoreCompletionIterTag;
 
+enum {
+    PROP_STORE,
+    PROP_N
+};
 
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseStoreCompletion, moose_store_completion, G_TYPE_OBJECT
@@ -41,8 +44,6 @@ static void moose_store_completion_clear(MooseStoreCompletion * self) {
     }
 }
 
-////////////////////////////////////////////
-
 static void moose_store_completion_client_event(
     G_GNUC_UNUSED MooseClient * client,
     G_GNUC_UNUSED MooseIdle event,
@@ -55,7 +56,7 @@ static void moose_store_completion_client_event(
     moose_store_completion_clear(self);
 }
 
-////////////////////////////////////////////
+
 
 static void moose_store_completion_finalize(GObject * gobject) {
     MooseStoreCompletion * self = MOOSE_STORE_COMPLETION(gobject);
@@ -71,33 +72,84 @@ static void moose_store_completion_finalize(GObject * gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
+static void moose_store_completion_get_property(
+    GObject * object,
+    guint property_id,
+    GValue * value,
+    GParamSpec * pspec) {
+    MooseStoreCompletionPrivate * priv = MOOSE_STORE_COMPLETION(object)->priv;
+
+    switch(property_id) {
+    case PROP_STORE:
+        g_value_set_object(value, priv->store);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
+    }
+}
+
+static void moose_store_completion_set_property(
+    GObject * object,
+    guint property_id,
+    const GValue * value,
+    GParamSpec * pspec) {
+    MooseStoreCompletionPrivate* priv = MOOSE_STORE_COMPLETION(object)->priv;
+
+    switch(property_id) {
+    case PROP_STORE:
+        priv->store = g_value_get_object(value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
+    }
+}
+
 static void moose_store_completion_class_init(MooseStoreCompletionClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_store_completion_finalize;
+    gobject_class->get_property = moose_store_completion_get_property;
+    gobject_class->set_property = moose_store_completion_set_property;
+
+    GParamSpec * pspec = NULL;
+    pspec = g_param_spec_object(
+                "store",
+                "Store",
+                "Store, used to read the completion from",
+                MOOSE_TYPE_STORE,
+                G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+            );
+
+    /**
+     * MooseStoreCompletion:store: (type MOOSE_TYPE_STORE)
+     *
+     * The store to read the completion from.
+     */
+    g_object_class_install_property(gobject_class, PROP_STORE, pspec);
 }
 
 static void moose_store_completion_init(MooseStoreCompletion * self) {
-    MooseStoreCompletionPrivate * priv;
     self->priv = moose_store_completion_get_instance_private(self);
-    priv = self->priv;
 
-    // TODO... store.
+    MooseStore *store = NULL;
+    MooseClient *client = NULL;
 
-    priv->store = NULL;
+    g_object_get(self, "store", &store, NULL);
+    g_object_get(store, "client", &client, NULL);
 
-    g_assert(priv->store);
+    g_assert(store);
+    g_assert(client);
 
     g_signal_connect(
-        NULL, // TODO: Store
+        client,
         "client-event",
         G_CALLBACK(moose_store_completion_client_event),
         self
     );
+    g_object_unref(store);
+    g_object_unref(client);
 }
-
-////////////////////////////////////////////
-//            IMPLEMENTATION              //
-////////////////////////////////////////////
 
 static char * moose_store_completion_normalize_string(const char * input) {
     char * utf8_lower = g_utf8_strdown(input, -1);
@@ -111,8 +163,6 @@ static char * moose_store_completion_normalize_string(const char * input) {
     }
     return NULL;
 }
-
-////////////////////////////////////////////
 
 static art_tree * moose_store_completion_create_index(MooseStoreCompletion * self, MooseTagType tag) {
     g_assert(self);
@@ -150,44 +200,41 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
     return tree;
 }
 
-////////////////////////////////////////////
+
 
 static int moose_store_completion_art_callback(void * user_data, const unsigned char * key, uint32_t key_len, void * value) {
     /* copy the first suggestion, key is not nul-terminated. */
     MooseStoreCompletionIterTag * data = user_data;
     int song_idx = GPOINTER_TO_INT(value);
 
-    moose_stprv_lock_attributes(data->self->priv->store);
+    MoosePlaylist *full_playlist = NULL;
+
+    g_object_get(data->self->priv->store, "full-playlist", &full_playlist, NULL);
+    if(full_playlist != NULL) {
+        return 1;
+    }
+
+    // TODO: What about locking?
+    // moose_stprv_lock_attributes(data->self->priv->store);
     {
-        MooseSong * song = moose_playlist_at(data->self->priv->store->stack, song_idx);
+        MooseSong * song = moose_playlist_at(full_playlist, song_idx);
         if (song != NULL) {
             /* Try to retrieve the original song */
             data->result = g_strdup(moose_song_get_tag(song, data->tag));
         }
     }
-    moose_stprv_unlock_attributes(data->self->priv->store);
+    // moose_stprv_unlock_attributes(data->self->priv->store);
 
     if (data->result == NULL) {
         /* Fallback */
         data->result = g_strndup((const char *)key, key_len);
     }
 
+    g_object_unref(full_playlist);
+
     /* stop right after the first suggestion */
     return 1;
 }
-
-////////////////////////////////////////////
-//               PUBLIC API               //
-////////////////////////////////////////////
-
-MooseStoreCompletion * moose_store_completion_new(struct MooseStore * store) {
-    g_assert(store);
-
-    // TODO: Pass store as construction property.
-    return g_object_new(MOOSE_TYPE_STORE_COMPLETION, NULL);
-}
-
-////////////////////////////////////////////
 
 void moose_store_completion_unref(MooseStoreCompletion * self) {
     g_assert(self);
@@ -196,8 +243,6 @@ void moose_store_completion_unref(MooseStoreCompletion * self) {
         g_object_unref(self);
     }
 }
-
-////////////////////////////////////////////
 
 char * moose_store_completion_lookup(MooseStoreCompletion * self, MooseTagType tag, const char * key) {
     g_assert(self);

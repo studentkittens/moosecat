@@ -121,7 +121,7 @@ typedef struct _MooseClientClass {
     GObjectClass parent_class;
 } MooseClientClass;
 
-///////////////////
+
 
 /**
  * @brief Create a new client with default properties.
@@ -209,7 +209,7 @@ char * moose_client_disconnect(MooseClient * self);
  */
 void moose_client_unref(MooseClient * self);
 
-///////////////////////////////
+
 
 /**
  * @brief Forces the client to update all status/song/stats information.
@@ -254,30 +254,11 @@ unsigned moose_client_get_port(MooseClient * self);
 float moose_client_get_timeout(MooseClient * self);
 
 /**
- * @brief Activate a status timer
- *
- * This will cause moosecat to schedule status update every repeat_ms ms.
- * Call moose_client_status_timer_unregister to deactivate it.
- *
- * This is useful for kbit rate changes which will only be update when
- * an idle event requires it.
- *
- * @param self the client to operate on.
- * @param repeat_ms repeat interval
- * @param trigger_event
- */
-void moose_client_status_timer_register(
-    MooseClient * self,
-    int repeat_ms,
-    bool trigger_event);
-
-/**
  * @brief Deactivate the status_timer
  *
  * @param self the client to operate on.
  */
-void moose_client_status_timer_unregister(
-    MooseClient * self);
+void moose_client_timer_set_active(MooseClient * self, bool state);
 
 /**
  * @brief Returns ttue if the status timer is ative
@@ -286,7 +267,7 @@ void moose_client_status_timer_unregister(
  *
  * @return false on inactive status timer
  */
-bool moose_client_status_timer_is_active(MooseClient * self);
+bool moose_client_timer_get_active(MooseClient * self);
 
 /**
  * @brief

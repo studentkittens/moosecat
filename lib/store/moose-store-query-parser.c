@@ -43,7 +43,7 @@ typedef struct {
 
 } MooseStoreParseData;
 
-///////////////////
+
 
 GRegex * REGEX_QUOTES = NULL,
          * REGEX_RANGES = NULL;
@@ -67,7 +67,7 @@ static void moose_mtx_free_quotes(void) {
     G_UNLOCK(REGEX_QUOTES);
 }
 
-///////////////////
+
 
 /* Only keep the first warning, since it's mostly the most relevant */
 #define WARNING(data, pmsg)                                       \
@@ -77,7 +77,7 @@ static void moose_mtx_free_quotes(void) {
             *data->warning.pos = (data->iter - data->query);      \
         }                                                         \
     }                                                             \
-///////////////////
+ 
 
 enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char * tag) {
     if (tag == NULL) {
@@ -122,7 +122,7 @@ enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char * tag) {
 }
 
 
-///////////////////
+
 
 bool moose_store_qp_is_valid_tag(const char * tag, size_t len) {
     static const char * tags[] = {
@@ -149,7 +149,7 @@ bool moose_store_qp_is_valid_tag(const char * tag, size_t len) {
     return false;
 }
 
-///////////////////
+
 
 static const char * moose_store_qp_is_tag_text(const char * text, size_t len) {
     if (len == 0) {
@@ -171,7 +171,7 @@ static const char * moose_store_qp_is_tag_text(const char * text, size_t len) {
     return NULL;
 }
 
-///////////////////
+
 
 const char * moose_store_qp_tag_abbrev_to_full(const char * token, size_t len) {
     static const char * abbrev_list[] = {
@@ -199,7 +199,7 @@ const char * moose_store_qp_tag_abbrev_to_full(const char * token, size_t len) {
     return NULL;
 }
 
-///////////////////
+
 
 static void moose_store_qp_write_string(MooseStoreParseData * data, const char * string, size_t len) {
     const char * iter = string;
@@ -216,7 +216,7 @@ static void moose_store_qp_write_string(MooseStoreParseData * data, const char *
     }
 }
 
-///////////////////
+
 
 void moose_store_qp_process_single_word(MooseStoreParseData * data, const char * text, size_t len) {
     if (len < 1) {
@@ -243,7 +243,7 @@ void moose_store_qp_process_single_word(MooseStoreParseData * data, const char *
     g_string_append_c(data->output, ')');
 }
 
-///////////////////
+
 
 void moose_store_qp_process_text(MooseStoreParseData * data, const char * text, size_t len) {
     bool is_tag = false;
@@ -286,7 +286,7 @@ void moose_store_qp_process_text(MooseStoreParseData * data, const char * text, 
     data->check.was_tag = is_tag;
 }
 
-///////////////////
+
 
 
 
@@ -304,7 +304,7 @@ static const char * moose_store_qp_special_char_to_full(char c) {
     }
 }
 
-///////////////////
+
 
 bool moose_store_qp_check_is_soft_token(const char * iter) {
     gunichar c = g_utf8_get_char(iter);
@@ -318,7 +318,7 @@ bool moose_store_qp_check_is_soft_token(const char * iter) {
     }
 }
 
-///////////////////
+
 
 bool moose_store_qp_check_is_near_token(char * iter) {
     gunichar c = g_utf8_get_char(iter);
@@ -335,7 +335,7 @@ bool moose_store_qp_check_is_near_token(char * iter) {
     }
 }
 
-///////////////////
+
 
 gunichar moose_store_qp_get_prev_char(MooseStoreParseData * data, const char * current_pos) {
     char * pprev = g_utf8_find_prev_char(data->query, current_pos);
@@ -347,7 +347,7 @@ gunichar moose_store_qp_get_prev_char(MooseStoreParseData * data, const char * c
     return 0;
 }
 
-///////////////////
+
 
 bool moose_store_qp_check_if_single_token(MooseStoreParseData * data) {
     char * pprev = g_utf8_find_prev_char(data->query, data->iter);
@@ -359,7 +359,7 @@ bool moose_store_qp_check_if_single_token(MooseStoreParseData * data) {
     return left && right;
 }
 
-///////////////////
+
 
 void moose_store_qp_process_star(MooseStoreParseData * data) {
     /* If a star is a single word it matches everything */
@@ -374,7 +374,7 @@ void moose_store_qp_process_star(MooseStoreParseData * data) {
     data->check.bad_conjunction = false;
 }
 
-///////////////////
+
 
 void moose_store_qp_process_operand(MooseStoreParseData * data) {
     /* You cannot do something like "a: AND b",
@@ -400,7 +400,7 @@ void moose_store_qp_process_operand(MooseStoreParseData * data) {
     }
 }
 
-///////////////////
+
 
 void moose_store_qp_process_token(MooseStoreParseData * data) {
     int token_len = 0;
@@ -451,7 +451,7 @@ void moose_store_qp_process_token(MooseStoreParseData * data) {
     data->iter += MAX(0, token_len - 1);
 }
 
-///////////////////
+
 
 void moose_store_qp_process_empty(MooseStoreParseData * data) {
     switch (data->current_char) {
@@ -488,7 +488,7 @@ void moose_store_qp_process_empty(MooseStoreParseData * data) {
     }
 }
 
-///////////////////
+
 
 bool moose_store_qp_str_is_empty(const char * str) {
     if (str != NULL) {
@@ -503,7 +503,7 @@ bool moose_store_qp_str_is_empty(const char * str) {
     return true;
 }
 
-///////////////////
+
 
 static gboolean moose_store_qp_quote_eval_cb(const GMatchInfo * info, GString  * res, gpointer data) {
     MooseStoreParseData * parse_data = data;
@@ -570,7 +570,7 @@ static char * moose_store_qp_preprocess_quotationmarks(const char * query, Moose
     return result;
 }
 
-///////////////////
+
 
 static gboolean moose_store_qp_range_eval_cb(const GMatchInfo * info, GString  * res, gpointer data) {
     MooseStoreParseData * parse_data = data;
@@ -664,7 +664,7 @@ static char * moose_store_qp_preprocess_ranges(const char * query, MooseStorePar
     return result;
 }
 
-///////////////////
+
 
 static char * moose_store_qp_preprocess(const char * query, MooseStoreParseData * data) {
     char * step_one = moose_store_qp_preprocess_quotationmarks(query, data);
@@ -673,7 +673,7 @@ static char * moose_store_qp_preprocess(const char * query, MooseStoreParseData 
     return step_two;
 }
 
-///////////////////
+
 
 char * moose_store_qp_parse(const char * query, const char ** warning, int * warning_pos) {
     MooseStoreParseData sdata;

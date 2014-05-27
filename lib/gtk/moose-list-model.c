@@ -1,9 +1,9 @@
 #include "moose-list-model.h"
 #include <gtk/gtk.h>
 
-/////////////////////////////////////////////////
+
 //                  STRUCTS                    //
-/////////////////////////////////////////////////
+
 
 typedef struct _MooseListModelClass {
     GObjectClass parent_class;
@@ -31,9 +31,9 @@ typedef struct _MooseListModelPrivate {
     gint stamp;
 } MooseListModelPrivate;
 
-/////////////////////////////////////////////////
+
 //                  PROTOTYPES                 //
-/////////////////////////////////////////////////
+
 
 /* Object related functions */
 static void moose_list_model_init(
@@ -104,9 +104,9 @@ static gboolean moose_list_model_iter_parent(
     GtkTreeIter * child
 );
 
-/////////////////////////////////////////////////
+
 //              TYPES / GOBJECT                //
-/////////////////////////////////////////////////
+
 
 /* GObject stuff - nothing to worry about */
 static GObjectClass * PARENT_CLASS = NULL;

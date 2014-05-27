@@ -4,36 +4,23 @@
 #include <string.h>
 #include <stdio.h>
 
-///////////////////////////////
-
-// static void print_logging(
-//     G_GNUC_UNUSED MooseClient * self,
-//     const char * message,
-//     MooseLogLevel level,
-//     G_GNUC_UNUSED gpointer user_data)
-// {
-//     g_printerr("Logging(%d): %s\n", level, message);
-// }
-
-///////////////////////////////
-
-static void print_event(MooseClient * self, MooseIdle event, void * user_data) {
+static void print_event(
+    MooseClient * self,
+    MooseIdle event,
+    void * user_data) {
     g_print("event-signal: %p %d %p\n", self, event, user_data);
 }
-
-///////////////////////////////
 
 static void print_connectivity(
     MooseClient * self,
     bool server_changed,
-    bool was_connected,
     G_GNUC_UNUSED void * user_data) {
-    g_print("connectivity-signal: changed=%d was_connected=%d is_connected=%d\n",
-            server_changed, was_connected, moose_client_is_connected(self)
+    g_print("connectivity-signal: changed=%d is_connected=%d\n",
+            server_changed, moose_client_is_connected(self)
            );
 }
 
-///////////////////////////////
+
 
 int main(int argc, char * argv[]) {
     if (argc < 2) {
@@ -50,11 +37,10 @@ int main(int argc, char * argv[]) {
     }
 
     moose_client_connect(client, NULL, "localhost", 6601, 10.0);
-    // moose_client_signal_add(client, "logging", print_logging, NULL);
-    // moose_client_signal_add(client, "client-event", print_event, NULL);
-    // moose_client_signal_add(client, "connectivity", print_connectivity, NULL);
+    g_signal_connect(client, "client-event", G_CALLBACK(print_event), NULL);
+    g_signal_connect(client, "connectivity", G_CALLBACK(print_connectivity), NULL);
 
-    MooseStore * db = moose_store_create_full(client, NULL, NULL, false, false);
+    MooseStore * db = moose_store_new_full(client, NULL, NULL, false, false);
 
     moose_store_playlist_load(db, "test1");
 
@@ -233,6 +219,6 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    moose_store_close(db);
+    moose_store_unref(db);
     moose_client_unref(client);
 }

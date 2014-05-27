@@ -1,110 +1,41 @@
 #ifndef DB_GUARD_H
 #define DB_GUARD_H
 
-#include "moose-store-playlist.h"
 #include "../mpd/moose-mpd-client.h"
-#include "sqlite3.h"
-
+#include "moose-store-playlist.h"
 #include "moose-store-completion.h"
 
-
-typedef struct MooseStore {
-    /* directory db lies in */
-    char * db_directory;
-
-    /* songstack - a place for mpd_songs to live in */
-    MoosePlaylist * stack;
-
-    /* handle to sqlite */
-    sqlite3 * handle;
-
-    /* prepared statements for normal operations */
-    sqlite3_stmt ** sql_prep_stmts;
-
-    /* client associated with this store */
-    MooseClient * client;
-
-    /* Write database to disk?
-     * on changes this gets set to True
-     * */
-    bool write_to_disk;
-
-    /* Support for stored playlists */
-    GPtrArray * spl_stack;
-
-    /* If this flag is set listallinfo will retrieve all songs,
-     * and skipping the check if is actually necessary.
-     * */
-    bool force_update_listallinfo;
-
-    /* If this flag is set plchanges will take last_version as 0,
-     * even if, judging from the queue version, no full update is necessary.
-     * */
-    bool force_update_plchanges;
-
-    /* Job manager used to process database tasks in the background */
-    struct MooseJobManager * jm;
-
-    /* Locked when setting an attribute, or reading from one
-     * Attributes are:
-     *    - stack
-     *    - spl.stack
-     *
-     * db-dirs.c append copied data onto the stack.
-     *
-     * */
-    GMutex attr_set_mtx;
-
-    /*
-     * The Port of the Server this Store mirrors
-     */
-    int mirrored_port;
-
-    /*
-     * The Host this Store mirrors
-     */
-    char * mirrored_host;
-    GMutex mirrored_mtx;
-
-    MooseStoreCompletion * completion;
-
-    struct {
-        /* Open the database entireyl in memory.
-         * (i.e. use ":memory" as db name).
-         *
-         * Adv: Little bit faster on few systems.
-         * Dis: Higher memory usage. (~5-10 MB)
-         *
-         * Default: True.
-         */
-        bool use_memory_db;
-
-        /* Compress / Uncompress database
-         * on close/startup.
-         *
-         * Adv: Less HD usage (12 MB vs. 3 MB)
-         * Dis: Little bit slower startup.
-         *
-         * Default: True.
-         */
-        bool use_compression;
-
-        /* Tokenizer algorithm to use to split words. NULL == default == "porter"
-         * See: http://www.sqlite.org/fts3.html#tokenizer
-         * Supported: see MOOSE_STORE_SUPPORTED_TOKENIZERS in db_private.h
-         *
-         * Default: "porter", which is able to match "Smile" with "Smiling"
-         */
-        const char * tokenizer;
-    } settings;
-} MooseStore;
-
-
+G_BEGIN_DECLS
 
 /*
- * API to serialize songs into
- * a persistent DB MooseStore
+ * Type macros.
  */
+#define MOOSE_TYPE_STORE \
+    (moose_store_get_type())
+#define MOOSE_STORE(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_STORE, MooseStore))
+#define MOOSE_IS_STORE(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_STORE))
+#define MOOSE_STORE_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_STORE, MooseStoreClass))
+#define MOOSE_IS_STORE_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_STORE))
+#define MOOSE_STORE_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_STORE, MooseStoreClass))
+
+
+GType moose_store_get_type(void);
+
+struct _MooseStorePrivate;
+
+typedef struct _MooseStore {
+    GObject parent;
+    struct _MooseStorePrivate *priv;
+} MooseStore;
+
+typedef struct _MooseStoreClass {
+    GObjectClass parent_class;
+} MooseStoreClass;
 
 /**
  * @brief Create a new MooseStore.
@@ -122,27 +53,19 @@ typedef struct MooseStore {
  *
  * The name of the db will me moosecat_$host:$port
  *
- * @return a new MooseStore , free with moose_store_close()
+ * @return a new MooseStore , free with moose_store_unref()
  */
-MooseStore * moose_store_create(MooseClient * client);
-
-MooseStore * moose_store_create_full(
-    MooseClient * client,
-    const char * db_directory,
-    const char * tokenizer,
+MooseStore *moose_store_new(MooseClient *client);
+MooseStore *moose_store_new_full(
+    MooseClient *client,
+    const char *db_directory,
+    const char *tokenizer,
     bool use_memory_db,
     bool use_compression
 );
 
-/**
- * @brief Close the MooseStore.
- *
- * This will write the data on disk, and close all connections,
- * held by libgda.
- *
- * @param self the store to close.
- */
-void moose_store_close(MooseStore * self);
+
+void moose_store_unref(MooseStore *self);
 
 /**
  * @brief Returns a mpd_song at some index
@@ -194,7 +117,9 @@ long moose_store_playlist_load(MooseStore * self, const char * playlist_name);
  *
  * @return a job id
  */
-long moose_store_playlist_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * playlist_name, const char * match_clause);
+long moose_store_playlist_select_to_stack(
+    MooseStore * self, MoosePlaylist * stack,
+    const char * playlist_name, const char * match_clause);
 
 /**
  * @brief List a directory in MPD's database.
@@ -206,7 +131,9 @@ long moose_store_playlist_select_to_stack(MooseStore * self, MoosePlaylist * sta
  *
  * @return a job id
  */
-long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth);
+long moose_store_dir_select_to_stack(
+    MooseStore * self, MoosePlaylist * stack,
+    const char * directory, int depth);
 
 /**
  * @brief return a stack of the loaded playlists. Not the actually ones there.
@@ -258,7 +185,9 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
  *
  * @return a Job id
  */
-long moose_store_search_to_stack(MooseStore * self, const char * match_clause, bool queue_only, MoosePlaylist * stack, int limit_len);
+long moose_store_search_to_stack(
+    MooseStore * self, const char * match_clause,
+    bool queue_only, MoosePlaylist * stack, int limit_len);
 
 /**
  * @brief Wait for the store to finish it's current operation.
@@ -337,7 +266,7 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  * @brief Convinience Function to createa MooseStoreCompletion struct.
  *
  * The struct will be created on the first call, afterwards the same struct is
- * returned.  * It will be freed on moose_store_close.
+ * returned.  * It will be freed on moose_store_unref.
  *
  * You can use moose_store_completion_lookup() to get a suggestion for a certain tag and
  * prefix.
@@ -348,5 +277,6 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  */
 MooseStoreCompletion * moose_store_get_completion(MooseStore * self);
 
+G_END_DECLS
 
 #endif /* end of include guard: DB_GUARD_H */

@@ -24,7 +24,7 @@ int main(int argc, char ** argv) {
         return EXIT_FAILURE;
     }
 
-    MooseStore * store = moose_store_create(client);
+    MooseStore * store = moose_store_new(client);
     moose_store_wait(store);
 
     MoosePlaylist * songs = moose_playlist_new();

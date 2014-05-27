@@ -5,9 +5,9 @@
 
 GMainLoop * loop = NULL;
 
-static void signal_connectivity(MooseClient * client, bool server_changed, bool was_connected) {
-    g_printerr("was_connected=%d is_connected=%d server_changed=%d host=%s, port=%d timeout=%2.2f\n",
-               was_connected,
+static void signal_connectivity(MooseClient * client, bool server_changed, void *user_data) {
+    (void) user_data;
+    g_printerr("is_connected=%d server_changed=%d host=%s, port=%d timeout=%2.2f\n",
                server_changed,
                moose_client_is_connected(client),
                moose_client_get_host(client),
@@ -16,7 +16,7 @@ static void signal_connectivity(MooseClient * client, bool server_changed, bool 
               );
 }
 
-/////////////////////////////
+
 
 static gboolean quit_loop(void * user_data) {
     g_main_loop_quit(loop);
@@ -27,7 +27,7 @@ static gboolean quit_loop(void * user_data) {
     return FALSE;
 }
 
-/////////////////////////////
+
 
 static gboolean idle_callback(void * user_data) {
     MooseClient * self = user_data;
@@ -43,11 +43,11 @@ static gboolean idle_callback(void * user_data) {
     return FALSE;
 }
 
-/////////////////////////////
+
 
 static void reconnect_manytimes() {
     MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
-    // moose_client_signal_add(client, "connectivity", signal_connectivity, NULL);
+    g_signal_connect(client, "connectivity", G_CALLBACK(signal_connectivity), NULL);
 
     g_idle_add(idle_callback, client);
 
@@ -57,7 +57,7 @@ static void reconnect_manytimes() {
     g_printerr("blockitdone\n");
 }
 
-/////////////////////////////
+
 
 int main(void) {
     g_printerr("-- MOOSE_PM_IDLE\n");

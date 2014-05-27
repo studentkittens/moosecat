@@ -29,7 +29,7 @@ typedef void * (* MooseJobManagerCallback)(
  * @param on_execute: Callback to call on execution of a job (may not be NULL.)
  * @param user_data: Userdata that is passed to the callback once per job manager.
  *
- * @return a newly allocated MooseJobManager, pass to moose_store_close() when done.
+ * @return a newly allocated MooseJobManager, pass to moose_store_unref() when done.
  */
 struct MooseJobManager * moose_jm_create(MooseJobManagerCallback on_execute, void * user_data);
 

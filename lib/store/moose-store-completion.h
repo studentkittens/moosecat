@@ -14,6 +14,7 @@ G_BEGIN_DECLS
  * of deleting it while the user still uses it.
  */
 
+#include "../mpd/moose-mpd-client.h"
 #include <glib-object.h>
 
 /*
@@ -46,18 +47,6 @@ typedef struct _MooseStoreCompletionClass {
 
 
 GType moose_store_completion_get_type(void);
-
-///////////////////////////////
-
-struct MooseStore; // TODO.
-
-/**
- * moose_store_completion_new:
- * @self: a #MooseStoreCompletion
- *
- * Unrefs a #MooseStoreCompletion
- */
-MooseStoreCompletion * moose_store_completion_new(struct MooseStore * store);
 
 char * moose_store_completion_lookup(
     MooseStoreCompletion * self,
