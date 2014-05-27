@@ -114,16 +114,13 @@ typedef struct _MooseStatusPrivate {
         unsigned long db_play_time;
     } stats;
 
-
     char replay_gain_mode[64];
 
     GHashTable * outputs;
 
 } MooseStatusPrivate;
 
-
 G_DEFINE_TYPE_WITH_PRIVATE(MooseStatus, moose_status, G_TYPE_OBJECT);
-
 
 #define READ(self, return_name, return_type, default_val) { \
         g_return_val_if_fail(self, default_val);                \
@@ -135,8 +132,6 @@ G_DEFINE_TYPE_WITH_PRIVATE(MooseStatus, moose_status, G_TYPE_OBJECT);
         return rval;                                            \
 }                                                           \
  
-
-
 
 static void moose_status_finalize(GObject * gobject) {
     MooseStatus * self = MOOSE_STATUS(gobject);
@@ -159,14 +154,10 @@ static void moose_status_finalize(GObject * gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
-
-
 static void moose_status_class_init(MooseStatusClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_status_finalize;
 }
-
-
 
 static void moose_status_init(MooseStatus * self) {
     self->priv = moose_status_get_instance_private(self);
@@ -188,9 +179,7 @@ static void moose_status_init(MooseStatus * self) {
                           );
 }
 
-
 //          PUBLIC           //
-
 
 MooseStatus * moose_status_new(void) {
     return g_object_new(MOOSE_TYPE_STATUS, NULL);
@@ -201,8 +190,6 @@ void moose_status_unref(MooseStatus * self) {
         g_object_unref(self);
     }
 }
-
-
 
 int moose_status_get_volume(const MooseStatus * self) {
     READ(self, volume, int, -1)
@@ -288,8 +275,6 @@ const char * moose_status_get_last_error(const MooseStatus * self) {
     READ(self, last_error, const char *, NULL)
 }
 
-
-
 uint32_t moose_status_get_audio_sample_rate(const MooseStatus * self) {
     READ(self, audio.sample_rate, uint32_t, 0)
 }
@@ -301,8 +286,6 @@ uint8_t moose_status_get_audio_bits(const MooseStatus * self) {
 uint8_t moose_status_get_audio_channels(const MooseStatus * self) {
     READ(self, audio.channels, uint8_t, 0)
 }
-
-
 
 void moose_status_convert(MooseStatus * self, const struct mpd_status * status) {
     g_assert(self);
@@ -342,8 +325,6 @@ void moose_status_convert(MooseStatus * self, const struct mpd_status * status) 
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-
-
 MooseStatus * moose_status_new_from_struct(const struct mpd_status * status) {
     g_return_val_if_fail(status, NULL);
 
@@ -352,8 +333,6 @@ MooseStatus * moose_status_new_from_struct(const struct mpd_status * status) {
     return self;
 }
 
-
-
 MooseSong * moose_status_get_current_song(const MooseStatus * self) {
     g_return_val_if_fail(self, NULL);
     if (self->priv->current_song) {
@@ -361,8 +340,6 @@ MooseSong * moose_status_get_current_song(const MooseStatus * self) {
     }
     return (MooseSong *)self->priv->current_song;
 }
-
-
 
 void moose_status_set_current_song(MooseStatus * self, const MooseSong * song) {
     g_rw_lock_writer_lock(&self->priv->ref_lock);
@@ -411,8 +388,6 @@ unsigned long moose_status_stats_get_play_time(const MooseStatus * self) {
 unsigned long moose_status_stats_get_db_play_time(const MooseStatus * self) {
     READ(self, stats.db_play_time, unsigned long, 0)
 }
-
-
 
 void moose_status_update_stats(const MooseStatus * self, const struct mpd_stats * stats) {
     g_assert(self);

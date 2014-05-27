@@ -35,7 +35,6 @@ G_BEGIN_DECLS
 
 GType moose_zeroconf_browser_get_type(void);
 
-
 #define MOOSE_TYPE_ZEROCONF_SERVER \
     (moose_zeroconf_server_get_type())
 #define MOOSE_ZEROCONF_SERVER(obj) \
@@ -68,7 +67,6 @@ typedef enum MooseZeroconfState {
     /* Informative event: Probably no new servers will be added in new future  */
     MOOSE_ZEROCONF_STATE_ALL_FOR_NOW
 } MooseZeroconfState;
-
 
 struct _MooseZeroconfBrowserPrivate;
 struct _MooseZeroconfServerPrivate;
@@ -175,7 +173,6 @@ char * moose_zeroconf_server_get_domain(MooseZeroconfServer * self);
  * Returns: Port of the Service
  */
 int moose_zeroconf_server_get_port(MooseZeroconfServer * self);
-
 
 /* DEPRECATED */
 

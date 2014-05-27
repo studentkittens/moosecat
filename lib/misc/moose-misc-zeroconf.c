@@ -9,7 +9,6 @@
 #include <avahi-glib/glib-watch.h>
 #include <avahi-glib/glib-malloc.h>
 
-
 /* What type of services to browse */
 #define MPD_AVAHI_SERVICE_PROTOCOL "_mpd._tcp"
 
@@ -45,16 +44,12 @@ enum {
 
 static guint BROWSER_SIGNALS[BROWSER_NUM_SIGNALS];
 
-
-
 static void moose_zeroconf_call_user_callback(MooseZeroconfBrowser * self, MooseZeroconfState state) {
     g_assert(self);
 
     self->priv->state = state;
     g_signal_emit(self, BROWSER_SIGNALS[BROWSER_SIGNAL_STATE_CHANGED], 0);
 }
-
-
 
 static void moose_zeroconf_drop_server(
     MooseZeroconfBrowser * self,
@@ -78,8 +73,6 @@ static void moose_zeroconf_drop_server(
     }
 }
 
-
-
 static void moose_zeroconf_check_client_error(MooseZeroconfBrowser * self, const gchar * prefix_message) {
     /* Print just a message for now */
     if (avahi_client_errno(self->priv->client) != AVAHI_OK) {
@@ -90,8 +83,6 @@ static void moose_zeroconf_check_client_error(MooseZeroconfBrowser * self, const
         moose_zeroconf_call_user_callback(self, MOOSE_ZEROCONF_STATE_ERROR);
     }
 }
-
-
 
 /* Called whenever a service has been resolved successfully or timed out */
 static void moose_zeroconf_resolve_callback(
@@ -147,8 +138,6 @@ static void moose_zeroconf_resolve_callback(
     }
     avahi_service_resolver_free(resolver);
 }
-
-
 
 /* SERVICE BROWSER CALLBACK */
 static void moose_zeroconf_service_browser_callback(
@@ -208,8 +197,6 @@ static void moose_zeroconf_service_browser_callback(
     }
 }
 
-
-
 static void moose_zeroconf_register_browser(MooseZeroconfBrowser * self) {
     g_assert(self);
     self->priv->state = MOOSE_ZEROCONF_STATE_CONNECTED;
@@ -224,7 +211,6 @@ static void moose_zeroconf_register_browser(MooseZeroconfBrowser * self) {
         self
     );
 }
-
 
 static void moose_zeroconf_client_callback(
     AVAHI_GCC_UNUSED AvahiClient * client,
@@ -250,8 +236,6 @@ static void moose_zeroconf_create_server(MooseZeroconfBrowser * self) {
         }
     }
 }
-
-
 
 static void moose_zeroconf_client_callback(
     AVAHI_GCC_UNUSED AvahiClient * client,
@@ -281,9 +265,7 @@ static void moose_zeroconf_client_callback(
     }
 }
 
-
 //         PUBLIC API         //
-
 
 static void moose_zeroconf_browser_finalize(GObject * gobject) {
     MooseZeroconfBrowser * self = MOOSE_ZEROCONF_BROWSER(gobject);
@@ -308,8 +290,6 @@ static void moose_zeroconf_browser_finalize(GObject * gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
-
-
 static void moose_zeroconf_browser_class_init(MooseZeroconfBrowserClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_zeroconf_browser_finalize;
@@ -333,19 +313,13 @@ static void moose_zeroconf_browser_class_init(MooseZeroconfBrowserClass * klass)
                                                                  );
 }
 
-
-
 MooseZeroconfBrowser * moose_zeroconf_browser_new(void) {
     return g_object_new(MOOSE_TYPE_ZEROCONF_BROWSER, NULL);
 }
 
-
-
 void moose_zeroconf_browser_destroy(MooseZeroconfBrowser * self) {
     g_object_unref(G_OBJECT(self));
 }
-
-
 
 static void moose_zeroconf_browser_init(MooseZeroconfBrowser * self) {
     self->priv = moose_zeroconf_browser_get_instance_private(self);
@@ -361,15 +335,11 @@ static void moose_zeroconf_browser_init(MooseZeroconfBrowser * self) {
     moose_zeroconf_create_server(self);
 }
 
-
-
 MooseZeroconfState moose_zeroconf_browser_get_state(MooseZeroconfBrowser * self) {
     g_assert(self);
 
     return self->priv->state;
 }
-
-
 
 const char * moose_zeroconf_browser_get_error(MooseZeroconfBrowser * self) {
     g_assert(self);
@@ -377,17 +347,13 @@ const char * moose_zeroconf_browser_get_error(MooseZeroconfBrowser * self) {
     return self->priv->last_error;
 }
 
-
-
 GList * moose_zeroconf_browser_get_server_list(MooseZeroconfBrowser * self) {
     g_assert(self);
 
     return g_list_copy_deep(self->priv->server_list, (GCopyFunc)g_object_ref, NULL);
 }
 
-
 /// MooseZeroconfServer Implementation ///
-
 
 static void moose_zeroconf_server_finalize(GObject * gobject) {
     MooseZeroconfServer * self = MOOSE_ZEROCONF_SERVER(gobject);
@@ -408,8 +374,6 @@ static void moose_zeroconf_server_finalize(GObject * gobject) {
     )->finalize(gobject);
 }
 
-
-
 enum {
     SERVER_PROP_0,
     SERVER_PROP_NAME,
@@ -420,8 +384,6 @@ enum {
     SERVER_PROP_PORT,
     SERVER_N_PROPS
 };
-
-
 
 static void moose_zeroconf_server_get_property(
     GObject * object,
@@ -455,8 +417,6 @@ static void moose_zeroconf_server_get_property(
     }
 }
 
-
-
 static void moose_zeroconf_server_set_property(
     GObject * object,
     guint property_id,
@@ -488,8 +448,6 @@ static void moose_zeroconf_server_set_property(
         break;
     }
 }
-
-
 
 static void moose_zeroconf_server_class_init(MooseZeroconfServerClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
@@ -591,15 +549,11 @@ static void moose_zeroconf_server_class_init(MooseZeroconfServerClass * klass) {
     g_object_class_install_property(gobject_class, SERVER_PROP_PORT, pspec);
 }
 
-
-
 static void moose_zeroconf_server_init(MooseZeroconfServer * self) {
     self->priv = moose_zeroconf_server_get_instance_private(self);
 }
 
-
 //         PUBLIC API         //
-
 
 char * moose_zeroconf_server_get_host(MooseZeroconfServer * server) {
     g_return_val_if_fail(server, NULL);
@@ -609,8 +563,6 @@ char * moose_zeroconf_server_get_host(MooseZeroconfServer * server) {
     return string;
 }
 
-
-
 char * moose_zeroconf_server_get_addr(MooseZeroconfServer * server) {
     g_return_val_if_fail(server, NULL);
 
@@ -618,8 +570,6 @@ char * moose_zeroconf_server_get_addr(MooseZeroconfServer * server) {
     g_object_get(server, "addr", &string, NULL);
     return string;
 }
-
-
 
 char * moose_zeroconf_server_get_name(MooseZeroconfServer * server) {
     g_return_val_if_fail(server, NULL);
@@ -629,8 +579,6 @@ char * moose_zeroconf_server_get_name(MooseZeroconfServer * server) {
     return string;
 }
 
-
-
 char * moose_zeroconf_server_get_protocol(MooseZeroconfServer * server) {
     g_return_val_if_fail(server, NULL);
 
@@ -638,8 +586,6 @@ char * moose_zeroconf_server_get_protocol(MooseZeroconfServer * server) {
     g_object_get(server, "protocol", &string, NULL);
     return string;
 }
-
-
 
 char * moose_zeroconf_server_get_domain(MooseZeroconfServer * server) {
     g_return_val_if_fail(server, NULL);
@@ -649,8 +595,6 @@ char * moose_zeroconf_server_get_domain(MooseZeroconfServer * server) {
     return string;
 }
 
-
-
 int moose_zeroconf_server_get_port(MooseZeroconfServer * server) {
     g_return_val_if_fail(server, -1);
 
@@ -658,8 +602,6 @@ int moose_zeroconf_server_get_port(MooseZeroconfServer * server) {
     g_object_get(server, "port", &port, NULL);
     return port;
 }
-
-
 
 /* Deprecated! Only for Cython compat. */
 

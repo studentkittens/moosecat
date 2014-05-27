@@ -1,7 +1,6 @@
 #ifndef MOOSE_CLIENT_H
 #define MOOSE_CLIENT_H
 
-
 #include <stdbool.h>
 #include <glib.h>
 #include <mpd/client.h>
@@ -121,8 +120,6 @@ typedef struct _MooseClientClass {
     GObjectClass parent_class;
 } MooseClientClass;
 
-
-
 /**
  * @brief Create a new client with default properties.
  *
@@ -208,8 +205,6 @@ char * moose_client_disconnect(MooseClient * self);
  * @param self the connector to operate on
  */
 void moose_client_unref(MooseClient * self);
-
-
 
 /**
  * @brief Forces the client to update all status/song/stats information.
@@ -322,7 +317,6 @@ bool moose_client_run(MooseClient * self, const char * command);
  */
 bool moose_client_command_list_is_active(MooseClient * self);
 
-
 /**
  * @brief Wait for all operations on this client to finish.
  *
@@ -331,7 +325,6 @@ bool moose_client_command_list_is_active(MooseClient * self);
  * @param self the Client to operate on
  */
 void moose_client_wait(MooseClient * self);
-
 
 /**
  * @brief Begin a new Command List.

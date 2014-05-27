@@ -20,8 +20,6 @@ static void print_connectivity(
            );
 }
 
-
-
 int main(int argc, char * argv[]) {
     if (argc < 2) {
         puts("usage: db_test [search|mainloop]");
@@ -158,7 +156,6 @@ int main(int argc, char * argv[]) {
 
                     continue;
                 }
-
 
                 if (strncmp(line_buf, ":ls ", 4) == 0) {
                     char ** args = g_strsplit(line_buf, " ", -1);

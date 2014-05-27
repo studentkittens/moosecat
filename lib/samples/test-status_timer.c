@@ -16,8 +16,6 @@ static void signal_event(
     }
 }
 
-
-
 int main(void) {
     GMainLoop * loop = g_main_loop_new(NULL, FALSE);
 

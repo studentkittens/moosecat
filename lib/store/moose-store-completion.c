@@ -56,8 +56,6 @@ static void moose_store_completion_client_event(
     moose_store_completion_clear(self);
 }
 
-
-
 static void moose_store_completion_finalize(GObject * gobject) {
     MooseStoreCompletion * self = MOOSE_STORE_COMPLETION(gobject);
     if (self == NULL) {
@@ -199,8 +197,6 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
 
     return tree;
 }
-
-
 
 static int moose_store_completion_art_callback(void * user_data, const unsigned char * key, uint32_t key_len, void * value) {
     /* copy the first suggestion, key is not nul-terminated. */

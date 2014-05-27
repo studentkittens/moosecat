@@ -29,7 +29,6 @@ int main(void) {
             g_print("AFTER: RECV\n");
         }
 
-
         moose_client_wait(client);
 
     } else {

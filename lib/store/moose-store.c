@@ -14,7 +14,6 @@
 /* strncpy */
 #include <string.h>
 
-
 typedef struct _MooseStorePrivate {
     /* directory db lies in */
     char * db_directory;
@@ -82,7 +81,6 @@ typedef struct _MooseStorePrivate {
     } settings;
 } MooseStorePrivate;
 
-
 enum {
     PROP_CLIENT,
     PROP_FULL_PLAYLIST,
@@ -92,7 +90,6 @@ enum {
     PROP_TOKENIZER,
     PROP_N
 };
-
 
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseStore, moose_store, G_TYPE_OBJECT
@@ -116,7 +113,6 @@ typedef struct {
     MoosePlaylist * out_stack;
     unsigned needle_song_id;
 } MooseJobData;
-
 
 /* List of Priorities for all Operations.
  *
@@ -158,10 +154,6 @@ const char * MooseJobNames[] = {
     [MOOSE_OPER_UNDEFINED]       = "[Unknown]"
 };
 
-
-
-
-
 /**
  * @brief Send a job to the JobProcessor, with only necessary fields filled.
  *
@@ -180,8 +172,6 @@ static long moose_store_send_job_no_args(
 
     return moose_jm_send(self->priv->jm, MooseJobPrios[data->op], data);
 }
-
-
 
 /**
  * @brief Convert a MooseStoreOperation mask to a string.
@@ -217,8 +207,6 @@ static char * moose_store_op_to_string(MooseStoreOperation op) {
     return g_strjoinv(", ", (char **)names);
 }
 
-
-
 /**
  * @brief Construct a full path from a host, port and root directory
  *
@@ -242,8 +230,6 @@ static char * moose_store_construct_full_dbpath(MooseStore * self, const char * 
     return path;
 }
 
-
-
 /**
  * @brief See moose_store_find_song_by_id for what this does.
  *
@@ -266,8 +252,6 @@ MoosePlaylist * moose_store_find_song_by_id_impl(MooseStore * self, unsigned nee
     }
     return NULL;
 }
-
-
 
 /**
  * @brief Will return true, if the database located on disk is still valid.
@@ -380,8 +364,6 @@ close_handle:
     return song_count;
 }
 
-
-
 static void moose_store_shutdown(MooseStore * self) {
     g_assert(self);
 
@@ -414,8 +396,6 @@ static void moose_store_shutdown(MooseStore * self) {
 
     g_free(db_path);
 }
-
-
 
 static void moose_store_buildup(MooseStore * self) {
     /* either number of songs in 'songs' table or -1 on error */
@@ -500,8 +480,6 @@ static void moose_store_update_callback(
         moose_store_send_job_no_args(self, MOOSE_OPER_SPL_UPDATE);
     }
 }
-
-
 
 /**
  * @brief Called when the connection status changes.

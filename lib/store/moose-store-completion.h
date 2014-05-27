@@ -40,11 +40,9 @@ typedef struct _MooseStoreCompletion {
     struct _MooseStoreCompletionPrivate * priv;
 } MooseStoreCompletion;
 
-
 typedef struct _MooseStoreCompletionClass {
     GObjectClass parent_class;
 } MooseStoreCompletionClass;
-
 
 GType moose_store_completion_get_type(void);
 

@@ -47,7 +47,6 @@ int main(int argc, char ** argv) {
                );
     }
 
-
     g_timer_destroy(pl_timer);
     moose_playlist_clear(songs);
 

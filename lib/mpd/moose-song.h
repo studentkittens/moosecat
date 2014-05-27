@@ -49,7 +49,6 @@ typedef enum _MooseTagType {
     MOOSE_TAG_COUNT = MPD_TAG_COUNT
 } MooseTagType;
 
-
 /*
  * Type macros.
  */
@@ -73,15 +72,11 @@ typedef struct _MooseSong {
     struct _MooseSongPrivate * priv;
 } MooseSong;
 
-
 typedef struct _MooseSongClass {
     GObjectClass parent_class;
 } MooseSongClass;
 
-
 GType moose_song_get_type(void);
-
-
 
 /**
  * moose_song_new:
@@ -126,7 +121,6 @@ char * moose_song_get_tag(MooseSong * self, MooseTagType tag);
  * Returns: (transfer none): The uri as string.
  */
 const char * moose_song_get_uri(MooseSong * self);
-
 
 /**
  * moose_song_get_duration:

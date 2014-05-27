@@ -35,15 +35,11 @@ typedef struct _MoosePlaylist {
     struct _MoosePlaylistPrivate * priv;
 } MoosePlaylist;
 
-
 typedef struct _MoosePlaylistClass {
     GObjectClass parent_class;
 } MoosePlaylistClass;
 
-
 GType moose_playlist_get_type(void);
-
-
 
 /**
  * moose_playlist_new:

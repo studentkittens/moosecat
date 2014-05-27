@@ -1,8 +1,6 @@
 #include "moose-misc-metadata-threads.h"
 
-
 // INTERNAL CALLBACKS //
-
 
 static void moose_mdthreads_dispatch(gpointer data, gpointer user_data) {
     g_assert(user_data);
@@ -13,8 +11,6 @@ static void moose_mdthreads_dispatch(gpointer data, gpointer user_data) {
     gpointer result = self->thread_callback(self, data, self->user_data);
     moose_mdthreads_forward(self, result);
 }
-
-
 
 static gboolean moose_mdthreads_mainloop_callback(gpointer user_data) {
     g_assert(user_data);
@@ -30,9 +26,7 @@ static gboolean moose_mdthreads_mainloop_callback(gpointer user_data) {
     return FALSE;
 }
 
-
 // PUBLIC INTERFACE  //
-
 
 MooseMetadataThreads * moose_mdthreads_new(
     MooseMetadataCallback thread_callback,
@@ -71,8 +65,6 @@ MooseMetadataThreads * moose_mdthreads_new(
     return self;
 }
 
-
-
 void moose_mdthreads_push(MooseMetadataThreads * self, void * data) {
     g_assert(self);
 
@@ -83,8 +75,6 @@ void moose_mdthreads_push(MooseMetadataThreads * self, void * data) {
 
 }
 
-
-
 void moose_mdthreads_forward(MooseMetadataThreads * self, void * result) {
     if (result != NULL) {
         g_async_queue_push(self->queue, result);
@@ -92,8 +82,6 @@ void moose_mdthreads_forward(MooseMetadataThreads * self, void * result) {
     }
 
 }
-
-
 
 void moose_mdthreads_free(MooseMetadataThreads * self) {
     g_assert(self);
@@ -109,12 +97,9 @@ void moose_mdthreads_free(MooseMetadataThreads * self) {
     g_free(self);
 }
 
-
 #if 0
 
-
 // TEST MAIN FUNCTION //
-
 
 static void * thread(struct _MooseMetadataThreads * self, void * data, void * user_data) {
     /* 1 second */
@@ -123,7 +108,6 @@ static void * thread(struct _MooseMetadataThreads * self, void * data, void * us
     g_printerr("THREAD END %p\n", data);
     return data;
 }
-
 
 static void * deliver(struct _MooseMetadataThreads * self, void * data, void * user_data) {
     g_printerr("Delivered: %p\n", data);

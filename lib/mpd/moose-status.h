@@ -17,7 +17,6 @@
 
 #include "moose-song.h"
 
-
 G_BEGIN_DECLS
 
 typedef enum _MooseState {
@@ -57,15 +56,11 @@ typedef struct _MooseStatus {
     struct _MooseStatusPrivate * priv;
 } MooseStatus;
 
-
 typedef struct _MooseStatusClass {
     GObjectClass parent_class;
 } MooseStatusClass;
 
-
 GType moose_status_get_type(void);
-
-
 
 /**
  * moose_status_new:

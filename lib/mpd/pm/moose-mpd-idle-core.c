@@ -15,11 +15,7 @@
  *   http://git.musicpd.org/cgit/master/ncmpc.git/tree/src/gidle.c
  */
 
-
-
 // Private Interface //
-
-
 
 typedef struct _MooseIdleClientPrivate {
     /* Parent "class" */
@@ -57,7 +53,6 @@ typedef struct _MooseIdleClientPrivate {
 
 } MooseIdleClientPrivate;
 
-
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseIdleClient, moose_idle_client, MOOSE_TYPE_CLIENT
 );
@@ -71,13 +66,9 @@ static const int map_io_enums[][2] = {
     {G_IO_ERR, MPD_ASYNC_EVENT_ERROR }
 };
 
-
-
 static const unsigned map_io_enums_size = sizeof(map_io_enums) /
         sizeof(const int) /
         2;
-
-
 
 enum mpd_async_event gio_to_mpd_async(GIOCondition condition) {
     int events = 0;
@@ -90,8 +81,6 @@ enum mpd_async_event gio_to_mpd_async(GIOCondition condition) {
     return (enum mpd_async_event)events;
 }
 
-
-
 GIOCondition mpd_async_to_gio(enum mpd_async_event events) {
     int condition = 0;
 
@@ -103,12 +92,8 @@ GIOCondition mpd_async_to_gio(enum mpd_async_event events) {
     return (GIOCondition)condition;
 }
 
-
-
 /* Prototype */
 static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition condition, gpointer data);
-
-
 
 static void moose_idle_client_report_error(
     MooseIdleClient * self,
@@ -118,8 +103,6 @@ static void moose_idle_client_report_error(
     self->priv->is_in_idle_mode = FALSE;
     moose_critical("idle-error: %s", error_msg);
 }
-
-
 
 static bool moose_idle_client_check_and_report_async_error(MooseIdleClient * self) {
     g_assert(self);
@@ -133,8 +116,6 @@ static bool moose_idle_client_check_and_report_async_error(MooseIdleClient * sel
 
     return FALSE;
 }
-
-
 
 static void moose_idle_client_add_watch_kitten(MooseIdleClient * self) {
     g_assert(self);
@@ -154,9 +135,6 @@ static void moose_idle_client_add_watch_kitten(MooseIdleClient * self) {
     }
 }
 
-
-
-
 static void moose_idle_client_remove_watch_kitten(MooseIdleClient * self) {
     MooseIdleClientPrivate * priv = self->priv;
     if (priv->watch_source_id != 0) {
@@ -165,8 +143,6 @@ static void moose_idle_client_remove_watch_kitten(MooseIdleClient * self) {
         priv->last_io_events = 0;
     }
 }
-
-
 
 static bool moose_idle_client_leave(MooseIdleClient * self) {
     bool rc = true;
@@ -191,8 +167,6 @@ static bool moose_idle_client_leave(MooseIdleClient * self) {
     return rc;
 }
 
-
-
 static void moose_idle_client_enter(MooseIdleClient * self) {
     if (self->priv->is_in_idle_mode == false && self->priv->is_running_extern == false) {
         /* Do not wait for a reply */
@@ -206,8 +180,6 @@ static void moose_idle_client_enter(MooseIdleClient * self) {
         }
     }
 }
-
-
 
 static void moose_idle_client_dispatch_events(MooseIdleClient * self, MooseIdle events) {
     g_assert(self);
@@ -228,8 +200,6 @@ static void moose_idle_client_dispatch_events(MooseIdleClient * self, MooseIdle 
     /* reenter idle-mode (we did not leave by calling moose_idle_client_leave though!) */
     moose_idle_client_enter(self);
 }
-
-
 
 static bool moose_idle_client_process_received(MooseIdleClient * self) {
     g_assert(self);
@@ -268,8 +238,6 @@ static bool moose_idle_client_process_received(MooseIdleClient * self) {
 
     return true;
 }
-
-
 
 static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition condition, gpointer data)
 /* Called once something happens to the socket.
@@ -330,8 +298,6 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
     return keep_notify;
 }
 
-
-
 /* code that is shared for connect/disconnect */
 static void moose_idle_client_reset_struct(MooseIdleClient * self) {
     /* Initially there is no watchkitteh, 0 tells us that */
@@ -344,9 +310,7 @@ static void moose_idle_client_reset_struct(MooseIdleClient * self) {
     self->priv->is_running_extern = FALSE;
 }
 
-
 /////////////////// API ///////////////////
-
 
 static char * moose_idle_client_do_connect(MooseClient * parent, GMainContext * context, const char * host, int port, float timeout) {
     (void)context;
@@ -387,8 +351,6 @@ failure:
     return g_strdup(error);
 }
 
-
-
 static bool moose_idle_client_do_is_connected(MooseClient * client) {
     MooseIdleClient * self = MOOSE_IDLE_CLIENT(client);
 
@@ -397,8 +359,6 @@ static bool moose_idle_client_do_is_connected(MooseClient * client) {
     g_mutex_unlock(&self->priv->one_thread_only_mtx);
     return result;
 }
-
-
 
 static struct mpd_connection * moose_idle_client_do_get(MooseClient * self) {
     g_assert(self);
@@ -410,8 +370,6 @@ static struct mpd_connection * moose_idle_client_do_get(MooseClient * self) {
     }
 }
 
-
-
 static void moose_idle_client_do_put(MooseClient * self) {
     g_assert(self);
 
@@ -419,8 +377,6 @@ static void moose_idle_client_do_put(MooseClient * self) {
         moose_idle_client_enter(MOOSE_IDLE_CLIENT(self));
     }
 }
-
-
 
 static bool moose_idle_client_do_disconnect(MooseClient * parent) {
     if (moose_idle_client_do_is_connected(parent)) {
@@ -457,9 +413,7 @@ static bool moose_idle_client_do_disconnect(MooseClient * parent) {
     }
 }
 
-
 // Public Interface //
-
 
 static void moose_idle_client_init(MooseIdleClient * object) {
     MooseClient * parent = MOOSE_CLIENT(object);
@@ -474,7 +428,6 @@ static void moose_idle_client_init(MooseIdleClient * object) {
     self->priv = moose_idle_client_get_instance_private(self);
     g_mutex_init(&self->priv->one_thread_only_mtx);
 }
-
 
 static void moose_idle_client_finalize(GObject * gobject) {
     MooseIdleClient * self = MOOSE_IDLE_CLIENT(gobject);

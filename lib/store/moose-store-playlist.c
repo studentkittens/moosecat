@@ -8,10 +8,7 @@ typedef struct _MoosePlaylistPrivate {
     GDestroyNotify free_func;
 } MoosePlaylistPrivate;
 
-
 G_DEFINE_TYPE_WITH_PRIVATE(MoosePlaylist, moose_playlist, G_TYPE_OBJECT);
-
-
 
 static void moose_playlist_finalize(GObject * gobject) {
     MoosePlaylist * self = MOOSE_PLAYLIST(gobject);
@@ -28,14 +25,10 @@ static void moose_playlist_finalize(GObject * gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
-
-
 static void moose_playlist_class_init(MoosePlaylistClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_playlist_finalize;
 }
-
-
 
 static void moose_playlist_init(MoosePlaylist * self) {
     self->priv = moose_playlist_get_instance_private(self);
@@ -44,15 +37,11 @@ static void moose_playlist_init(MoosePlaylist * self) {
     memset(self->priv->stack->pdata, 0, self->priv->stack->len);
 }
 
-
 //          PUBLIC           //
-
 
 MoosePlaylist * moose_playlist_new(void) {
     return g_object_new(MOOSE_TYPE_PLAYLIST, NULL);
 }
-
-
 
 MoosePlaylist * moose_playlist_new_full(long size_hint, GDestroyNotify free_func) {
     MoosePlaylist * self = g_object_new(MOOSE_TYPE_PLAYLIST, NULL);
@@ -67,26 +56,18 @@ MoosePlaylist * moose_playlist_new_full(long size_hint, GDestroyNotify free_func
     return self;
 }
 
-
-
 void moose_playlist_append(MoosePlaylist * self, void * ptr) {
     g_ptr_array_add(self->priv->stack, ptr);
 }
-
-
 
 void moose_playlist_clear(MoosePlaylist * self) {
     g_ptr_array_set_size(self->priv->stack, 0);
 }
 
-
-
 unsigned moose_playlist_length(MoosePlaylist * self) {
     g_return_val_if_fail(self, 1);
     return self->priv->stack->len;
 }
-
-
 
 void moose_playlist_sort(MoosePlaylist * self, GCompareFunc func) {
     if (self == NULL || func == NULL) {
@@ -96,8 +77,6 @@ void moose_playlist_sort(MoosePlaylist * self, GCompareFunc func) {
     g_ptr_array_sort(self->priv->stack, func);
 }
 
-
-
 void * moose_playlist_at(MoosePlaylist * self, unsigned at) {
     if (at < moose_playlist_length(self)) {
         return g_ptr_array_index(self->priv->stack, at);
@@ -106,8 +85,6 @@ void * moose_playlist_at(MoosePlaylist * self, unsigned at) {
         return NULL;
     }
 }
-
-
 
 MoosePlaylist * moose_playlist_copy(MoosePlaylist * self) {
     size_t size = moose_playlist_length(self);

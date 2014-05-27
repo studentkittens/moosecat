@@ -1,6 +1,5 @@
 #include "../moose-api.h"
 
-
 static void zeroconf_callback(MooseZeroconfBrowser * self, void * user_data) {
     switch (moose_zeroconf_browser_get_state(self)) {
     case MOOSE_ZEROCONF_STATE_CHANGED: {
@@ -44,7 +43,6 @@ g_free(string); \
         break;
     }
 }
-
 
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[]) {
     MooseZeroconfBrowser * browser = moose_zeroconf_browser_new();

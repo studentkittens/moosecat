@@ -16,8 +16,6 @@ static void signal_connectivity(MooseClient * client, bool server_changed, void 
               );
 }
 
-
-
 static gboolean quit_loop(void * user_data) {
     g_main_loop_quit(loop);
     g_main_loop_unref(loop);
@@ -26,8 +24,6 @@ static gboolean quit_loop(void * user_data) {
     moose_client_unref((MooseClient *)user_data);
     return FALSE;
 }
-
-
 
 static gboolean idle_callback(void * user_data) {
     MooseClient * self = user_data;
@@ -43,8 +39,6 @@ static gboolean idle_callback(void * user_data) {
     return FALSE;
 }
 
-
-
 static void reconnect_manytimes() {
     MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     g_signal_connect(client, "connectivity", G_CALLBACK(signal_connectivity), NULL);
@@ -56,8 +50,6 @@ static void reconnect_manytimes() {
     g_main_loop_run(loop);
     g_printerr("blockitdone\n");
 }
-
-
 
 int main(void) {
     g_printerr("-- MOOSE_PM_IDLE\n");

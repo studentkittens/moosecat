@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 
-
 static void print_event(MooseClient * self, MooseIdle event, void * user_data) {
     g_print("event-signal: %p %d %p\n", self, event, user_data);
 }

@@ -11,5 +11,4 @@
 #include "store/moose-store.h"
 #include "store/moose-store-query-parser.h"
 
-
 #endif /* end of include guard: MOOSECAT_API_HH */

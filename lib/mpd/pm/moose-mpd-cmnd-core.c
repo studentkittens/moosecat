@@ -13,10 +13,7 @@
  */
 #define PING_SLEEP_TIMEOUT 500 // ms
 
-
 // Private Interface //
-
-
 
 /* WARNING AND TODO:
  *
@@ -70,13 +67,9 @@ typedef struct _MooseCmdClientPrivate {
 
 } MooseCmdClientPrivate;
 
-
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseCmdClient, moose_cmd_client, MOOSE_TYPE_CLIENT
 );
-
-
-
 
 /* We want to make helgrind happy. */
 static bool moose_cmd_client_get_run_pinger(MooseCmdClient * self) {
@@ -110,8 +103,6 @@ static void moose_cmd_client_set_run_listener(MooseCmdClient * self, GThread * t
     g_hash_table_insert(self->priv->run_listener_table, thread, GINT_TO_POINTER(state));
     g_mutex_unlock(&self->priv->flagmtx_run_listener);
 }
-
-
 
 static gpointer moose_cmd_client_listener_thread(gpointer data) {
     MooseCmdClient * self = MOOSE_CMD_CLIENT(data);
@@ -158,8 +149,6 @@ static gpointer moose_cmd_client_listener_thread(gpointer data) {
     return NULL;
 }
 
-
-
 static void moose_cmd_client_create_glib_adapter(
     MooseCmdClient * self,
     G_GNUC_UNUSED GMainContext * context) {
@@ -167,8 +156,6 @@ static void moose_cmd_client_create_glib_adapter(
         self->priv->listener_thread = g_thread_new("listener", moose_cmd_client_listener_thread, self);
     }
 }
-
-
 
 static void moose_cmd_client_shutdown_pinger(MooseCmdClient * self) {
     g_assert(self);
@@ -179,8 +166,6 @@ static void moose_cmd_client_shutdown_pinger(MooseCmdClient * self) {
         self->priv->pinger_thread = NULL;
     }
 }
-
-
 
 static void moose_cmd_client_shutdown_listener(MooseCmdClient * self) {
     /* Interrupt the idling, and tell the idle thread to die. */
@@ -194,8 +179,6 @@ static void moose_cmd_client_shutdown_listener(MooseCmdClient * self) {
     self->priv->listener_thread = NULL;
 }
 
-
-
 static void moose_cmd_client_reset(MooseCmdClient * self) {
     if (self != NULL) {
         moose_cmd_client_shutdown_listener(self);
@@ -208,7 +191,6 @@ static void moose_cmd_client_reset(MooseCmdClient * self) {
         g_mutex_unlock(&self->priv->cmnd_con_mtx);
     }
 }
-
 
 void moose_cmd_client_sleep_grained(unsigned ms, unsigned interval_ms, volatile gboolean * check) {
     g_assert(check);
@@ -292,9 +274,7 @@ static gpointer moose_cmd_client_ping_server(MooseCmdClient * self) {
     return NULL;
 }
 
-
 //// Public Callbacks ////
-
 
 static char * moose_cmd_client_do_connect(
     MooseClient * parent,
@@ -344,8 +324,6 @@ failure:
     return error_message;
 }
 
-
-
 static bool moose_cmd_client_do_is_connected(MooseClient * parent) {
     MooseCmdClient * self = MOOSE_CMD_CLIENT(parent);
 
@@ -355,8 +333,6 @@ static bool moose_cmd_client_do_is_connected(MooseClient * parent) {
 
     return (conn);
 }
-
-
 
 static bool moose_cmd_client_do_disconnect(MooseClient * parent) {
     if (moose_cmd_client_do_is_connected(parent)) {
@@ -368,22 +344,16 @@ static bool moose_cmd_client_do_disconnect(MooseClient * parent) {
     }
 }
 
-
-
 static struct mpd_connection * moose_cmd_client_do_get(MooseClient * client) {
     return MOOSE_CMD_CLIENT(client)->priv->cmnd_con;
 }
-
-
 
 static void moose_cmd_client_do_put(MooseClient * self) {
     /* NOOP */
     (void)self;
 }
 
-
 // Public Interface //
-
 
 static void moose_cmd_client_init(MooseCmdClient * object) {
     MooseClient * parent = MOOSE_CLIENT(object);
@@ -403,7 +373,6 @@ static void moose_cmd_client_init(MooseCmdClient * object) {
     g_mutex_init(&self->priv->flagmtx_run_pinger);
     g_mutex_init(&self->priv->flagmtx_run_listener);
 }
-
 
 static void moose_cmd_client_finalize(GObject * gobject) {
     MooseCmdClient * self = MOOSE_CMD_CLIENT(gobject);

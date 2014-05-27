@@ -23,7 +23,6 @@ G_BEGIN_DECLS
 #define MOOSE_STORE_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_STORE, MooseStoreClass))
 
-
 GType moose_store_get_type(void);
 
 struct _MooseStorePrivate;
@@ -63,7 +62,6 @@ MooseStore *moose_store_new_full(
     bool use_memory_db,
     bool use_compression
 );
-
 
 void moose_store_unref(MooseStore *self);
 
@@ -224,7 +222,6 @@ void moose_store_wait_for_job(MooseStore * self, int job_id);
  */
 MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
 
-
 /**
  * @brief Shortcur for moose_store_wait_for_job and moose_store_get_result
  *
@@ -234,7 +231,6 @@ MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
  * @return same as moose_store_get_result
  */
 MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
-
 
 /**
  * @brief Tells store that you done using a ressource.

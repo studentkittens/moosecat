@@ -104,8 +104,6 @@ free_all:
     return result;
 }
 
-
-
 bool moose_gzip(const char * file_path) {
     g_assert(file_path != NULL);
     bool result = false;
@@ -119,8 +117,6 @@ bool moose_gzip(const char * file_path) {
     return result;
 }
 
-
-
 bool moose_gunzip(const char * file_path) {
     g_assert(file_path != NULL);
     bool result = false;
@@ -133,7 +129,6 @@ bool moose_gunzip(const char * file_path) {
     }
     return result;
 }
-
 
 #if 0
 
