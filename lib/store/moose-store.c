@@ -95,7 +95,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(
     MooseStore, moose_store, G_TYPE_OBJECT
 );
 
-#include "moose-store-private.inc"
+#include "moose-store-private.c"
 
 /**
  * Data passed along a Job.

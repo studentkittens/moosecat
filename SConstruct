@@ -131,10 +131,14 @@ def FindLibmoosecatSource():
     c_files += Glob('lib/mpd/*.c')
     c_files += Glob('lib/mpd/pm/*.c')
     c_files += Glob('lib/misc/*.c')
-    c_files += Glob('lib/store/*.c')
+    c_files += Glob('lib/store/moose-store.c')
+    c_files += Glob('lib/store/moose-store-playlist.c')
+    c_files += Glob('lib/store/moose-store-completion.c')
+    c_files += Glob('lib/store/moose-store-query-parser.c')
     c_files += Glob('lib/gtk/*.c')
     c_files += Glob('lib/store/libart/*.c')
     c_files += ['ext/sqlite/sqlite3.c']
+
     return c_files
 
 ###########################################################################
@@ -268,20 +272,11 @@ conf.env.Append(CCFLAGS=[
 # Optional flags:
 conf.env.Append(CFLAGS=[
     '-Wall', '-W', '-Wextra',
-    '-Wwrite-strings',
     '-Winit-self',
-    # '-Wcast-align',
-    '-Wcast-qual',
-    '-Wpointer-arith',
     '-Wstrict-aliasing',
-    '-Wformat=2',
-    '-Wmissing-declarations',
     '-Wmissing-include-dirs',
-    '-Wno-unused-parameter',
     '-Wuninitialized',
-    '-Wold-style-definition',
     '-Wstrict-prototypes',
-    #'-Wmissing-prototypes',
 ])
 
 if conf.env['CC'] == 'gcc':

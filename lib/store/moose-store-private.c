@@ -210,7 +210,6 @@ void moose_stprv_dir_prepare_statemtents(MooseStorePrivate * self);
  */
 void moose_stprv_dir_finalize_statements(MooseStorePrivate * self);
 
-
 /**
  * @brief List all Songs from the Database and write them to the Database.
  *
@@ -306,7 +305,6 @@ int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, MoosePlaylis
  */
 int moose_stprv_spl_get_known_playlists(MooseStorePrivate * store, GPtrArray * stack);
 
-
 /* strlen() */
 #include <string.h>
 
@@ -330,7 +328,6 @@ int moose_stprv_spl_get_known_playlists(MooseStorePrivate * store, GPtrArray * s
 
 #define MOOSE_STORE_TMP_DB_PATH "/tmp/.moosecat.tmp.db"
 
-
 #define REPORT_SQL_ERROR(store, message)                              \
     moose_critical(                                                   \
         "[%s:%d] %s -> %s (#%d)",                                     \
@@ -345,13 +342,11 @@ int moose_stprv_spl_get_known_playlists(MooseStorePrivate * store, GPtrArray * s
 #define CLEAR_BINDS_BY_NAME(store, type) \
     CLEAR_BINDS(SQL_STMT(store, type))
 
-
 #define SQL_CODE(NAME) \
     _sql_stmts[STMT_SQL_ ## NAME]
 
 #define SQL_STMT(STORE, NAME) \
     STORE->sql_prep_stmts[STMT_SQL_ ## NAME]
-
 
 /**
  * Enumeration of all operations understood by moose_store_job_execute_callback()
@@ -376,7 +371,6 @@ typedef enum {
     MOOSE_OPER_FIND_SONG_BY_ID = 1 << 12, /* Find a song by it's SongID                          */
     MOOSE_OPER_ENUM_MAX        = 1 << 13, /* Highest Value in this Enum                          */
 } MooseStoreOperation;
-
 
 /*
  * Note:
@@ -438,8 +432,6 @@ enum {
     /* ======================================= */
 };
 
-
-
 /* this enum mirros the order in the CREATE statement */
 enum {
     SQL_COL_URI = 0,
@@ -465,8 +457,6 @@ enum {
     SQL_COL_MUSICBRAINZ_TRACK_ID,
     SQL_COL_ALWAYS_DUMMY
 };
-
-
 
 static const char * _sql_stmts[] = {
     [STMT_SQL_CREATE] =
@@ -581,9 +571,7 @@ static const char * _sql_stmts[] = {
     ""
 };
 
-
 //     ATTRIBUTE LOCKING      //
-
 
 void moose_stprv_lock_attributes(MooseStorePrivate * self) {
     g_assert(self);
@@ -591,15 +579,11 @@ void moose_stprv_lock_attributes(MooseStorePrivate * self) {
     g_mutex_lock(&self->attr_set_mtx);
 }
 
-
-
 void moose_stprv_unlock_attributes(MooseStorePrivate * self) {
     g_assert(self);
 
     g_mutex_unlock(&self->attr_set_mtx);
 }
-
-
 
 /*
  * Fill information into the meta-table.
@@ -639,8 +623,6 @@ void moose_stprv_insert_meta_attributes(MooseStorePrivate * self) {
         sqlite3_free(insert_meta_sql);
     }
 }
-
-
 
 bool moose_stprv_create_song_table(MooseStorePrivate * self) {
     g_assert(self);
@@ -682,9 +664,6 @@ bool moose_stprv_create_song_table(MooseStorePrivate * self) {
     return true;
 }
 
-
-
-
 void moose_stprv_prepare_all_statements(MooseStorePrivate * self) {
     g_assert(self);
 
@@ -705,8 +684,6 @@ void moose_stprv_prepare_all_statements(MooseStorePrivate * self) {
                                STMT_SQL_SOURCE_COUNT
                            );
 }
-
-
 
 sqlite3_stmt ** moose_stprv_prepare_all_statements_listed(MooseStorePrivate * self, const char ** sql_stmts, int offset, int n_stmts) {
     g_assert(self);
@@ -736,8 +713,6 @@ sqlite3_stmt ** moose_stprv_prepare_all_statements_listed(MooseStorePrivate * se
     return stmt_list;
 }
 
-
-
 /*
  * Open a sqlite3 handle to the memory.
  *
@@ -756,8 +731,6 @@ bool moose_strprv_open_memdb(MooseStorePrivate * self) {
     return moose_stprv_create_song_table(self);
 }
 
-
-
 void moose_stprv_finalize_statements(MooseStorePrivate * self, sqlite3_stmt ** stmts, int offset, int n_stmts) {
     g_assert(self);
     g_assert(stmts);
@@ -775,8 +748,6 @@ void moose_stprv_finalize_statements(MooseStorePrivate * self, sqlite3_stmt ** s
     g_free(stmts);
 }
 
-
-
 void moose_stprv_close_handle(MooseStorePrivate * self, bool free_statements) {
     if (free_statements) {
         moose_stprv_finalize_statements(self, self->sql_prep_stmts, STMT_SQL_NEED_TO_PREPARE_COUNT + 1, STMT_SQL_SOURCE_COUNT);
@@ -793,16 +764,12 @@ void moose_stprv_close_handle(MooseStorePrivate * self, bool free_statements) {
     }
 }
 
-
-
 void moose_stprv_begin(MooseStorePrivate * self) {
     if (sqlite3_step(SQL_STMT(self, BEGIN)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "WARNING: Unable to execute BEGIN");
     }
     sqlite3_reset(SQL_STMT(self, BEGIN));
 }
-
-
 
 void moose_stprv_commit(MooseStorePrivate * self) {
     if (sqlite3_step(SQL_STMT(self, COMMIT)) != SQLITE_DONE) {
@@ -811,16 +778,12 @@ void moose_stprv_commit(MooseStorePrivate * self) {
     sqlite3_reset(SQL_STMT(self, COMMIT));
 }
 
-
-
 void moose_stprv_delete_songs_table(MooseStorePrivate * self) {
     if (sqlite3_step(SQL_STMT(self, DELETE_ALL)) != SQLITE_DONE) {
         REPORT_SQL_ERROR(self, "WARNING: Cannot delete table contentes of 'songs'");
     }
     sqlite3_reset(SQL_STMT(self, DELETE_ALL));
 }
-
-
 
 /*
  * Insert a single song into the 'songs' table.
@@ -892,9 +855,6 @@ bool moose_stprv_insert_song(MooseStorePrivate * db, MooseSong * song) {
     return rc;
 }
 
-
-
-
 static gint moose_stprv_select_impl_sort_func_by_pos(gconstpointer a, gconstpointer b) {
     if (a && b) {
         int pos_a = moose_song_get_pos(*((MooseSong **)a));
@@ -933,8 +893,6 @@ static gint moose_stprv_select_impl_sort_func_by_stack_ptr(gconstpointer a, gcon
         return +1;    /* to sort NULL at the end */
     }
 }
-
-
 
 /* Quadratic binary search algorithm adapted from:
  *
@@ -980,8 +938,6 @@ static MooseSong * moose_stprv_find_idx(MoosePlaylist * stack, MooseSong * key) 
     }
     return NULL;
 }
-
-
 
 static MoosePlaylist * moose_stprv_build_queue_content(MooseStorePrivate * self, MoosePlaylist * to_filter) {
     g_assert(self);
@@ -1100,8 +1056,6 @@ int moose_stprv_select_to_stack(MooseStorePrivate * self, const char * match_cla
     return moose_playlist_length(stack);
 }
 
-
-
 /*
  * Code taken from:
  * http://www.sqlite.org/backup.html
@@ -1170,8 +1124,6 @@ void moose_stprv_load_or_save(MooseStorePrivate * self, bool is_save, const char
         REPORT_SQL_ERROR(self, "Cannot close db in load-or-save");
     }
 }
-
-
 
 #define feed_tag(tag_enum, sql_col_pos, stmt, song) {              \
         char * value = (char *)sqlite3_column_text(stmt, sql_col_pos);  \
@@ -1272,15 +1224,11 @@ void moose_stprv_deserialize_songs(MooseStorePrivate * self) {
     }                                                                                       \
  
 
-
-
 int moose_stprv_get_song_count(MooseStorePrivate * self) {
     int song_count = -1;
     SELECT_META_ATTRIBUTES(self, COUNT, sqlite3_column_int, song_count, ABS, int);
     return song_count;
 }
-
-
 
 int moose_stprv_get_db_version(MooseStorePrivate * self) {
     int db_version = 0;
@@ -1288,15 +1236,11 @@ int moose_stprv_get_db_version(MooseStorePrivate * self) {
     return db_version;
 }
 
-
-
 int moose_stprv_get_pl_version(MooseStorePrivate * self) {
     int pl_version = 0;
     SELECT_META_ATTRIBUTES(self, SELECT_META_PL_VERSION, sqlite3_column_int, pl_version, ABS, int);
     return pl_version;
 }
-
-
 
 int moose_stprv_get_sc_version(MooseStorePrivate * self) {
     int sc_version = 0;
@@ -1304,15 +1248,11 @@ int moose_stprv_get_sc_version(MooseStorePrivate * self) {
     return sc_version;
 }
 
-
-
 int moose_stprv_get_mpd_port(MooseStorePrivate * self) {
     int mpd_port = 0;
     SELECT_META_ATTRIBUTES(self, SELECT_META_MPD_PORT, sqlite3_column_int, mpd_port, ABS, int);
     return mpd_port;
 }
-
-
 
 char * moose_stprv_get_mpd_host(MooseStorePrivate * self) {
     char * mpd_host = NULL;
@@ -1345,8 +1285,6 @@ int moose_stprv_queue_clip(MooseStorePrivate * self, int since_pos) {
     sqlite3_reset(clear_stmt);
     return sqlite3_changes(self->handle);
 }
-
-
 
 void moose_stprv_queue_update_stack_posid(MooseStorePrivate * self) {
     g_assert(self);
@@ -1393,8 +1331,6 @@ void moose_stprv_queue_update_stack_posid(MooseStorePrivate * self) {
     g_hash_table_destroy(already_seen_ids);
 }
 
-
-
 void moose_stprv_queue_insert_posid(MooseStorePrivate * self, int pos, int idx, const char * file) {
     int pos_idx = 1, error_id = SQLITE_OK;
     BIND_TXT(self, QUEUE_INSERT_ROW, pos_idx, file, error_id);
@@ -1414,8 +1350,6 @@ void moose_stprv_queue_insert_posid(MooseStorePrivate * self, int pos, int idx, 
     CLEAR_BINDS_BY_NAME(self, QUEUE_INSERT_ROW);
     sqlite3_reset(SQL_STMT(self, QUEUE_INSERT_ROW));
 }
-
-
 
 int moose_stprv_path_get_depth(const char * dir_path) {
     int dir_depth = 0;
@@ -1441,11 +1375,6 @@ int moose_stprv_path_get_depth(const char * dir_path) {
     return dir_depth;
 }
 
-
-
-
-
-
 void moose_stprv_dir_insert(MooseStorePrivate * self, const char * path) {
     g_assert(self);
     g_assert(path);
@@ -1469,8 +1398,6 @@ void moose_stprv_dir_insert(MooseStorePrivate * self, const char * path) {
     sqlite3_reset(SQL_STMT(self, DIR_INSERT));
 }
 
-
-
 void moose_stprv_dir_delete(MooseStorePrivate * self) {
     g_assert(self);
 
@@ -1479,8 +1406,6 @@ void moose_stprv_dir_delete(MooseStorePrivate * self) {
     }
     sqlite3_reset(SQL_STMT(self, DIR_DELETE_ALL));
 }
-
-
 
 int moose_stprv_dir_select_to_stack(MooseStorePrivate * self, MoosePlaylist * stack, const char * directory, int depth) {
     g_assert(self);
@@ -1536,24 +1461,15 @@ int moose_stprv_dir_select_to_stack(MooseStorePrivate * self, MoosePlaylist * st
     return returned;
 }
 
-
-
-
-
-
-
 typedef struct {
     MooseStorePrivate * store;
     GAsyncQueue * queue;
 } MooseStoreQueueTag;
 
-
 /* Popping this from a GAsyncQueue means
  * the queue is empty and we night to do some actions
  */
 #define EMPTY_QUEUE_INDICATOR 0x1
-
-
 
 static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data) {
     MooseStoreQueueTag * tag = user_data;
@@ -1604,8 +1520,6 @@ static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data) {
 
     return NULL;
 }
-
-
 
 /*
  * Query a 'listallinfo' from the MPD Server, and insert all returned
@@ -1731,9 +1645,6 @@ void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile bool * can
     g_timer_destroy(timer);
 }
 
-
-
-
 static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data) {
     MooseStoreQueueTag * tag = user_data;
     MooseStorePrivate * self = tag->store;
@@ -1796,8 +1707,6 @@ static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data) {
 
     return NULL;
 }
-
-
 
 void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile bool * cancel) {
     g_assert(store);
@@ -1942,16 +1851,12 @@ void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile bool * cance
  *    and fill in all the song-ids
  */
 
-
-
 static char * moose_stprv_spl_construct_table_name(struct mpd_playlist * playlist) {
     g_assert(playlist);
     return g_strdup_printf("spl_%x_%s",
                            (unsigned)mpd_playlist_get_last_modified(playlist),
                            mpd_playlist_get_path(playlist));
 }
-
-
 
 static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT */ time_t * last_modified) {
     g_assert(table_name);
@@ -1975,8 +1880,6 @@ static char * moose_stprv_spl_parse_table_name(const char * table_name, /* OUT *
     return NULL;
 }
 
-
-
 static void moose_stprv_spl_drop_table(MooseStorePrivate   * self, const char * table_name) {
     g_assert(table_name);
     g_assert(self);
@@ -1989,8 +1892,6 @@ static void moose_stprv_spl_drop_table(MooseStorePrivate   * self, const char * 
         sqlite3_free(sql);
     }
 }
-
-
 
 static void moose_stprv_spl_create_table(MooseStorePrivate * self, const char * table_name) {
     g_assert(self);
@@ -2008,16 +1909,12 @@ static void moose_stprv_spl_create_table(MooseStorePrivate * self, const char * 
     }
 }
 
-
-
 static void moose_stprv_spl_delete_content(MooseStorePrivate * self, const char * table_name) {
     g_assert(self);
     g_assert(table_name);
     moose_stprv_spl_drop_table(self, table_name);
     moose_stprv_spl_create_table(self, table_name);
 }
-
-
 
 static struct mpd_playlist * moose_stprv_spl_name_to_playlist(MooseStorePrivate * store, const char * playlist_name) {
     g_assert(store);
@@ -2035,8 +1932,6 @@ static struct mpd_playlist * moose_stprv_spl_name_to_playlist(MooseStorePrivate 
 
     return playlist_result;
 }
-
-
 
 static void moose_stprv_spl_listplaylists(MooseStorePrivate * store) {
     g_assert(store);
@@ -2068,7 +1963,6 @@ static void moose_stprv_spl_listplaylists(MooseStorePrivate * store) {
     moose_client_put(self);
 }
 
-
 static GList * moose_stprv_spl_get_loaded_list(MooseStorePrivate * self) {
     GList * table_name_list = NULL;
 
@@ -2093,8 +1987,6 @@ static GList * moose_stprv_spl_get_loaded_list(MooseStorePrivate * self) {
 
     return table_name_list;
 }
-
-
 
 static int moose_stprv_spl_get_song_count(MooseStorePrivate * self, struct mpd_playlist * playlist) {
     g_assert(self);
@@ -2221,8 +2113,6 @@ void moose_stprv_spl_update(MooseStorePrivate * self) {
     moose_debug("Finished: Stored Playlist update.");
 }
 
-
-
 bool moose_stprv_spl_is_loaded(MooseStorePrivate * store, struct mpd_playlist * playlist) {
     bool result = false;
 
@@ -2252,8 +2142,6 @@ bool moose_stprv_spl_is_loaded(MooseStorePrivate * store, struct mpd_playlist * 
 
     return result;
 }
-
-
 
 bool moose_stprv_spl_load(MooseStorePrivate * store, struct mpd_playlist * playlist) {
     g_assert(store);
@@ -2340,8 +2228,6 @@ bool moose_stprv_spl_load(MooseStorePrivate * store, struct mpd_playlist * playl
     return successfully_loaded;
 }
 
-
-
 bool moose_stprv_spl_load_by_playlist_name(MooseStorePrivate * store, const char * playlist_name) {
     g_assert(store);
     g_assert(playlist_name);
@@ -2356,20 +2242,14 @@ bool moose_stprv_spl_load_by_playlist_name(MooseStorePrivate * store, const char
     }
 }
 
-
-
 static inline int moose_stprv_spl_hash_compare(gconstpointer a, gconstpointer b) {
     return *((gconstpointer **)a) - *((gconstpointer **)b);
 }
-
-
 
 static int moose_stprv_spl_bsearch_cmp(const void * key, const void * array) {
     /* We only compare the pointers. The type is not important here. */
     return (MooseSong *)key - *(MooseSong **)array;
 }
-
-
 
 static int moose_stprv_spl_filter_id_list(MooseStorePrivate * store, GPtrArray * song_ptr_array, const char * match_clause, MoosePlaylist * out_stack) {
     /* Roughly estimate the number of song pointer to expect */
@@ -2400,8 +2280,6 @@ static int moose_stprv_spl_filter_id_list(MooseStorePrivate * store, GPtrArray *
 
     return moose_playlist_length(out_stack);
 }
-
-
 
 int moose_stprv_spl_select_playlist(MooseStorePrivate * store, MoosePlaylist * out_stack, const char * playlist_name, const char * match_clause) {
     g_assert(store);
@@ -2483,11 +2361,8 @@ int moose_stprv_spl_select_playlist(MooseStorePrivate * store, MoosePlaylist * o
     g_free(table_name);
     sqlite3_free(dyn_sql);
 
-
     return rc;
 }
-
-
 
 int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, MoosePlaylist * stack) {
     g_assert(store);
@@ -2523,8 +2398,6 @@ int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, MoosePlaylis
 
     return rc;
 }
-
-
 
 int moose_stprv_spl_get_known_playlists(MooseStorePrivate * store, GPtrArray * stack) {
     for (unsigned i = 0; i < store->spl_stack->len; ++i) {
