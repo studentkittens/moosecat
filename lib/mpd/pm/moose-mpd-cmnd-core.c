@@ -13,8 +13,6 @@
  */
 #define PING_SLEEP_TIMEOUT 500 // ms
 
-// Private Interface //
-
 /* WARNING AND TODO:
  *
  * Currently this code does not work for obscure reasons.
@@ -274,8 +272,6 @@ static gpointer moose_cmd_client_ping_server(MooseCmdClient * self) {
     return NULL;
 }
 
-//// Public Callbacks ////
-
 static char * moose_cmd_client_do_connect(
     MooseClient * parent,
     GMainContext * context,
@@ -352,8 +348,6 @@ static void moose_cmd_client_do_put(MooseClient * self) {
     /* NOOP */
     (void)self;
 }
-
-// Public Interface //
 
 static void moose_cmd_client_init(MooseCmdClient * object) {
     MooseClient * parent = MOOSE_CLIENT(object);

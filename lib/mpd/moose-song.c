@@ -61,8 +61,6 @@ static void moose_song_init(MooseSong * self) {
     self->priv = moose_song_get_instance_private(self);
 }
 
-//          PUBLIC           //
-
 MooseSong * moose_song_new(void) {
     return g_object_new(MOOSE_TYPE_SONG, NULL);
 }

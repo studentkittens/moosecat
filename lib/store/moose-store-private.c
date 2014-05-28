@@ -571,8 +571,6 @@ static const char * _sql_stmts[] = {
     ""
 };
 
-//     ATTRIBUTE LOCKING      //
-
 void moose_stprv_lock_attributes(MooseStorePrivate * self) {
     g_assert(self);
 
@@ -1210,8 +1208,6 @@ void moose_stprv_deserialize_songs(MooseStorePrivate * self) {
     g_timer_destroy(timer);
 }
 
-/////////////////// META TABLE STUFF ////////////////////
-
 #define SELECT_META_ATTRIBUTES(self, meta_enum, column_func, out_var, copy_func, cast_type) \
     {                                                                                       \
         int error_id = SQLITE_OK;                                                           \
@@ -1259,8 +1255,6 @@ char * moose_stprv_get_mpd_host(MooseStorePrivate * self) {
     SELECT_META_ATTRIBUTES(self, SELECT_META_MPD_HOST, sqlite3_column_text, mpd_host, g_strdup, char *);
     return mpd_host;
 }
-
-/////////////////// QUEUE STUFF ////////////////////
 
 int moose_stprv_queue_clip(MooseStorePrivate * self, int since_pos) {
     g_assert(self);
@@ -2019,8 +2013,6 @@ static int moose_stprv_spl_get_song_count(MooseStorePrivate * self, struct mpd_p
     }
     return count;
 }
-
-/////////////////// PUBLIC AREA ///////////////////
 
 void moose_stprv_spl_update(MooseStorePrivate * self) {
     g_assert(self);

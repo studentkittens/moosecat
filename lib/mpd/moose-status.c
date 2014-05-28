@@ -179,8 +179,6 @@ static void moose_status_init(MooseStatus * self) {
                           );
 }
 
-//          PUBLIC           //
-
 MooseStatus * moose_status_new(void) {
     return g_object_new(MOOSE_TYPE_STATUS, NULL);
 }
@@ -359,8 +357,6 @@ void moose_status_set_current_song(MooseStatus * self, const MooseSong * song) {
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-////////////// STATS /////////////////
-
 unsigned moose_status_stats_get_number_of_artists(const MooseStatus * self) {
     READ(self, stats.number_of_artists, unsigned, 0)
 }
@@ -406,8 +402,6 @@ void moose_status_update_stats(const MooseStatus * self, const struct mpd_stats 
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-///////////////// REPLAY GAIN /////////////////////
-
 const char * moose_status_get_replay_gain_mode(const MooseStatus * self) {
     READ(self, replay_gain_mode, const char *, "off")
 }
@@ -427,8 +421,6 @@ void moose_status_set_replay_gain_mode(const MooseStatus * self, const char * mo
         g_rw_lock_writer_unlock(&self->priv->ref_lock);
     }
 }
-
-//////////////////// OUTPUTS //////////////////////
 
 void moose_status_outputs_clear(const MooseStatus * self) {
     g_assert(self);

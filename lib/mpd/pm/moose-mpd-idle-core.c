@@ -15,8 +15,6 @@
  *   http://git.musicpd.org/cgit/master/ncmpc.git/tree/src/gidle.c
  */
 
-// Private Interface //
-
 typedef struct _MooseIdleClientPrivate {
     /* Parent "class" */
     MooseClient logic;
@@ -56,8 +54,6 @@ typedef struct _MooseIdleClientPrivate {
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseIdleClient, moose_idle_client, MOOSE_TYPE_CLIENT
 );
-
-//////// UTILS ////////
 
 static const int map_io_enums[][2] = {
     {G_IO_IN,  MPD_ASYNC_EVENT_READ  },
@@ -310,8 +306,6 @@ static void moose_idle_client_reset_struct(MooseIdleClient * self) {
     self->priv->is_running_extern = FALSE;
 }
 
-/////////////////// API ///////////////////
-
 static char * moose_idle_client_do_connect(MooseClient * parent, GMainContext * context, const char * host, int port, float timeout) {
     (void)context;
     g_assert(parent);
@@ -412,8 +406,6 @@ static bool moose_idle_client_do_disconnect(MooseClient * parent) {
         return FALSE;
     }
 }
-
-// Public Interface //
 
 static void moose_idle_client_init(MooseIdleClient * object) {
     MooseClient * parent = MOOSE_CLIENT(object);

@@ -37,8 +37,6 @@ static void moose_playlist_init(MoosePlaylist * self) {
     memset(self->priv->stack->pdata, 0, self->priv->stack->len);
 }
 
-//          PUBLIC           //
-
 MoosePlaylist * moose_playlist_new(void) {
     return g_object_new(MOOSE_TYPE_PLAYLIST, NULL);
 }

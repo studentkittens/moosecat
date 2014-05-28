@@ -1,6 +1,8 @@
 #ifndef MOOSECAT_API_HH
 #define MOOSECAT_API_HH
 
+#include "moose-config.h"
+
 /* All relevant headers are included here */
 #include "misc/moose-misc-external-logs.h"
 #include "misc/moose-misc-zeroconf.h"

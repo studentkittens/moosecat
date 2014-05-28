@@ -517,8 +517,8 @@ static void moose_store_connectivity_callback(
 void * moose_store_job_execute_callback(
     G_GNUC_UNUSED MooseJobManager * jm,   /* store->jm */
     volatile gboolean * cancel_op,                   /* Check if the operation should be cancelled */
-    void * user_data,                            /* store */
-    void * job_data                              /* operation data */
+    void * job_data,                             /* operation data */
+    void * user_data                            /* store */
 ) {
     void * result = NULL;
     MooseStore * self = user_data;

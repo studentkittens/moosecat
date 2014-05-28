@@ -50,8 +50,6 @@ typedef struct _MooseListModel {
 
 GType moose_list_model_get_type(void);
 
-//              PUBLIC API                     //
-
 /**
  * moose_list_model_new:
  *

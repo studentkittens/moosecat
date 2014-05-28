@@ -64,7 +64,6 @@ enum {
 
 static guint SIGNALS[NUM_SIGNALS];
 
-
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseJobManager, moose_job_manager, G_TYPE_OBJECT
 );
@@ -338,7 +337,6 @@ static void moose_job_manager_class_init(MooseJobManagerClass * klass) {
                                             G_TYPE_POINTER
                                            );
 }
-
 
 static void moose_job_manager_init(MooseJobManager * self) {
     MooseJobManagerPrivate *priv = self->priv = moose_job_manager_get_instance_private(self);

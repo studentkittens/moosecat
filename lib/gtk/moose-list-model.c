@@ -1,8 +1,6 @@
 #include "moose-list-model.h"
 #include <gtk/gtk.h>
 
-//                  STRUCTS                    //
-
 typedef struct _MooseListModelClass {
     GObjectClass parent_class;
 } MooseListModelClass;
@@ -28,8 +26,6 @@ typedef struct _MooseListModelPrivate {
      * Used by Gtk+ to invalidate old Iterators. */
     gint stamp;
 } MooseListModelPrivate;
-
-//                  PROTOTYPES                 //
 
 /* Object related functions */
 static void moose_list_model_init(
@@ -99,8 +95,6 @@ static gboolean moose_list_model_iter_parent(
     GtkTreeIter * iter,
     GtkTreeIter * child
 );
-
-//              TYPES / GOBJECT                //
 
 /* GObject stuff - nothing to worry about */
 static GObjectClass * PARENT_CLASS = NULL;

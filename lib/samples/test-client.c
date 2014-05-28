@@ -12,10 +12,10 @@ static void send_some_commands(MooseClient * client) {
 static void * execute(
     G_GNUC_UNUSED MooseJobManager * jm,
     G_GNUC_UNUSED volatile gboolean * cancel,
-    void * user_data,
-    G_GNUC_UNUSED void * job_data) {
+    G_GNUC_UNUSED void * job_data,
+    void * user_data) {
     MooseClient * client = user_data;
-    // moose_client_signal_dispatch(client, "logging", client, "test123", MOOSE_LOG_ERROR, FALSE);
+    moose_warning("test.");
     send_some_commands(client);
     return NULL;
 }

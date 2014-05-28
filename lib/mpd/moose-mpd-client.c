@@ -40,8 +40,8 @@ static guint SIGNALS[NUM_SIGNALS];
 static void * moose_client_command_dispatcher(
     MooseJobManager * jm,
     volatile gboolean * cancel,
-    void * user_data,
-    void * job_data
+    void * job_data,
+    void * user_data
 );
 
 static gpointer moose_update_thread(gpointer user_data);
@@ -103,8 +103,6 @@ typedef struct _MooseClientPrivate {
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(
     MooseClient, moose_client, G_TYPE_OBJECT
 );
-
-////  PUBLIC //////
 
 static void moose_client_init(MooseClient * self) {
     self->priv = moose_client_get_instance_private(self);
@@ -667,17 +665,9 @@ MooseStatus * moose_client_ref_status(MooseClient * self) {
     return status;
 }
 
-//                                 //
-//         CLIENT COMMANDS         //
-//                                 //
-
 static bool moose_client_command_list_begin(MooseClient * self);
 static void moose_client_command_list_append(MooseClient * self, const char * command);
 static bool moose_client_command_list_commit(MooseClient * self);
-
-//                                  //
-//     Client Command Handlers      //
-//                                  //
 
 /**
  * Missing commands:
@@ -1215,10 +1205,6 @@ static bool handle_database_update(MooseClient * self, struct mpd_connection * c
     return true;
 }
 
-//                                  //
-//       Private Command Logic      //
-//                                  //
-
 typedef bool (* MooseClientHandler)(
     MooseClient * self,                /* Client to operate on */
     struct mpd_connection * conn,    /* Readily prepared connection */
@@ -1444,10 +1430,6 @@ static void * moose_client_command_dispatcher(
     return GINT_TO_POINTER(result);
 }
 
-//                                      //
-//  Code Pretending to do Command List  //
-//                                      //
-
 /**
  * A note about the implementation of command_list_{begin, end}:
  *
@@ -1536,10 +1518,6 @@ static bool moose_client_command_list_commit(MooseClient * self) {
     return !moose_client_command_list_is_active(self);
 }
 
-//                                  //
-//    Public Function Interface     //
-//                                  //
-
 long moose_client_send(MooseClient * self, const char * command) {
     g_assert(self);
 
@@ -1586,10 +1564,6 @@ long moose_client_commit(MooseClient * self) {
 
     return moose_client_send(self, "command_list_end");
 }
-
-//                                //
-//    Update Data Retrieval       //
-//                                //
 
 const MooseIdle on_status_update = 0
                                    | MOOSE_IDLE_PLAYER
@@ -1858,8 +1832,6 @@ static gpointer moose_update_thread(gpointer user_data) {
 
     return NULL;
 }
-
-// STATUS TIMER STUFF //
 
 static gboolean moose_update_status_timer_cb(gpointer user_data) {
     g_assert(user_data);

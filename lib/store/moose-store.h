@@ -89,8 +89,6 @@ MooseSong * moose_store_song_at(MooseStore * self, int idx);
  */
 int moose_store_total_songs(MooseStore * self);
 
-///// PLAYLIST HANDLING ////
-
 /**
  * @brief Load the playlist from the MPD server and store it in the database.
  *

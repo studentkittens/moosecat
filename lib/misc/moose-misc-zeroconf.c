@@ -302,7 +302,7 @@ static void moose_zeroconf_browser_class_init(MooseZeroconfBrowserClass * klass)
      */
     BROWSER_SIGNALS[BROWSER_SIGNAL_STATE_CHANGED] = g_signal_newv("state-changed",
             G_TYPE_FROM_CLASS(klass),
-            G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+            G_SIGNAL_RUN_LAST,
             NULL /* closure */,
             NULL /* accumulator */,
             NULL /* accumulator data */,
