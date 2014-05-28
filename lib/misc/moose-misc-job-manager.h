@@ -1,27 +1,43 @@
 #ifndef MOOSE_JOB_MANAGER_H
 #define MOOSE_JOB_MANAGER_H
 
-#include <stdbool.h>
-
 /**
  * @brief A class to implement a Job Queue with cancellation and Priority in a
  * dead simple way.
  */
-struct MooseJobManager;
 
-/**
- * @brief Callback that is called when one job is executed.
- *
- * @param jm: The jobmanager structure.
- * @param cancel: a pointer to a bollean that can be checked with moose_jm_check_cancel()
- * @param user_data: Data that can be passed to moose_jm_send()
+#include <glib-object.h>
+
+G_BEGIN_DECLS
+
+/*
+ * Type macros.
  */
-typedef void * (* MooseJobManagerCallback)(
-    struct MooseJobManager * jm,    /* JobManger executing the Job                                  */
-    volatile bool * cancel,       /* Pointer to check periodically if the operation was cancelled */
-    void * user_data,             /* user data passed to the executor                             */
-    void * job_data               /* user data passed to the executor                             */
-);
+#define MOOSE_TYPE_JOB_MANAGER \
+    (moose_job_manager_get_type())
+#define MOOSE_JOB_MANAGER(obj) \
+    (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_JOB_MANAGER, MooseJobManager))
+#define MOOSE_IS_JOB_MANAGER(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_JOB_MANAGER))
+#define MOOSE_JOB_MANAGER_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_JOB_MANAGER, MooseJobManagerClass))
+#define MOOSE_IS_JOB_MANAGER_CLASS(klass) \
+    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_JOB_MANAGER))
+#define MOOSE_JOB_MANAGER_GET_CLASS(obj) \
+    (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_JOB_MANAGER, MooseJobManagerClass))
+
+GType moose_job_manager_get_type(void);
+
+struct _MooseJobManagerPrivate;
+
+typedef struct _MooseJobManager {
+    GObject parent;
+    struct _MooseJobManagerPrivate *priv;
+} MooseJobManager;
+
+typedef struct _MooseJobManagerClass {
+    GObjectClass parent;
+} MooseJobManagerClass;
 
 /**
  * @brief Create a new JobManger instance.
@@ -31,7 +47,7 @@ typedef void * (* MooseJobManagerCallback)(
  *
  * @return a newly allocated MooseJobManager, pass to moose_store_unref() when done.
  */
-struct MooseJobManager * moose_jm_create(MooseJobManagerCallback on_execute, void * user_data);
+MooseJobManager * moose_job_manager_new(void);
 
 /**
  * @brief Check in a callback is this job should be cancelled.
@@ -43,9 +59,9 @@ struct MooseJobManager * moose_jm_create(MooseJobManagerCallback on_execute, voi
  * @param jm: the jobmanger the job is running on.
  * @param cancel the cancel pointer you received from the callback.
  *
- * @return bool if you should cancel your operation.
+ * @return gboolean if you should cancel your operation.
  */
-bool moose_jm_check_cancel(struct MooseJobManager * jm, volatile bool * cancel);
+gboolean moose_job_manager_check_cancel(MooseJobManager * jm, volatile gboolean * cancel);
 
 /**
  * @brief Send a new Job to the Manger.
@@ -56,22 +72,22 @@ bool moose_jm_check_cancel(struct MooseJobManager * jm, volatile bool * cancel);
  *
  * @return a unique integer, being the id of the job.
  */
-long moose_jm_send(struct MooseJobManager * jm, int priority, void * user_data);
+long moose_job_manager_send(MooseJobManager * jm, int priority, void * user_data);
 
 /**
  * @brief Blocks until the internal Queue is empty. (No jobs currently processed)
  *
  * @param jm: Jobmanager to wait on.
  */
-void moose_jm_wait(struct MooseJobManager * jm);
+void moose_job_manager_wait(MooseJobManager * jm);
 
 /**
  * @brief Wait for the Job specified by ID to finish.
  *
  * @param jm The job manager you started the job on.
- * @param job_id the ID obtained by moose_jm_send()
+ * @param job_id the ID obtained by moose_job_manager_send()
  */
-void moose_jm_wait_for_id(struct MooseJobManager * jm, int job_id);
+void moose_job_manager_wait_for_id(MooseJobManager * jm, int job_id);
 
 /**
  * @brief Get the result of a job.
@@ -80,20 +96,22 @@ void moose_jm_wait_for_id(struct MooseJobManager * jm, int job_id);
  *       or if the result is not computed yet!
  *
  * @param jm The job manager to operate on.
- * @param job_id Id of the job, obtained from moose_jm_send()
+ * @param job_id Id of the job, obtained from moose_job_manager_send()
  *
  * @return the void * pointer returned by your callback.
  */
-void * moose_jm_get_result(struct MooseJobManager * jm, int job_id);
+void * moose_job_manager_get_result(MooseJobManager * jm, int job_id);
 
 /**
  * @brief Free all data associated with this Job Manager.
  *
  * Note: This will send a termination job, with highest priority.
- *       Call moose_jm_wait() before if you want to wait for the jobs to finish.
+ *       Call moose_job_manager_wait() before if you want to wait for the jobs to finish.
  *
  * @param jm Job Manager to close.
  */
-void moose_jm_close(struct MooseJobManager * jm);
+void moose_job_manager_unref(MooseJobManager * jm);
+
+G_END_DECLS
 
 #endif /* end of include guard: MOOSE_JOB_MANAGER_H */

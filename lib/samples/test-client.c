@@ -10,8 +10,8 @@ static void send_some_commands(MooseClient * client) {
 }
 
 static void * execute(
-    G_GNUC_UNUSED struct MooseJobManager * jm,
-    G_GNUC_UNUSED volatile bool * cancel,
+    G_GNUC_UNUSED MooseJobManager * jm,
+    G_GNUC_UNUSED volatile gboolean * cancel,
     void * user_data,
     G_GNUC_UNUSED void * job_data) {
     MooseClient * client = user_data;
@@ -26,15 +26,6 @@ static void event_cb(
     G_GNUC_UNUSED gpointer user_data) {
     g_printerr("Client Event = %u\n", events);
 }
-
-// static void logging_cb(
-//     G_GNUC_UNUSED MooseClient * client,
-//     const char * message,
-//     G_GNUC_UNUSED MooseLogLevel level,
-//     G_GNUC_UNUSED gpointer user_data)
-// {
-//     g_printerr("Logging: %s on %p\n", message, g_thread_self());
-// }
 
 static gboolean timeout_cb(gpointer user_data) {
     GMainLoop * loop = user_data;
@@ -53,16 +44,15 @@ int main(int argc, char const * argv[]) {
         client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     }
 
-    struct MooseJobManager * jm = moose_jm_create(execute, client);
-    // moose_client_signal_add(client, "logging", logging_cb, NULL);
+    MooseJobManager * jm = moose_job_manager_new();
+    g_signal_connect(jm, "dispatch", G_CALLBACK(execute), client);
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
-    // moose_client_signal_add(client, "client-event", event_cb, NULL);
 
     char * error = moose_client_connect(client, NULL, "localhost", 6600, 2.0);
     if (error == NULL) {
-        // long job = moose_jm_send(jm, 0, NULL);
+        // long job = moose_job_manager_send(jm, 0, NULL);
         // send_some_commands(client);
-        // moose_jm_wait_for_id(jm, job);
+        // moose_job_manager_wait_for_id(jm, job);
         // g_print("After wait.\n");
     } else {
         g_printerr("Uh, cannot connect: %s\n", error);
@@ -73,10 +63,10 @@ int main(int argc, char const * argv[]) {
     g_main_loop_run(loop);
     g_printerr("MAIN LOOP RUN OVER\n");
 
-    moose_jm_wait(jm);
+    moose_job_manager_wait(jm);
     moose_client_disconnect(client);
     moose_client_unref(client);
     g_main_loop_unref(loop);
-    moose_jm_close(jm);
+    moose_job_manager_unref(jm);
     return 0;
 }

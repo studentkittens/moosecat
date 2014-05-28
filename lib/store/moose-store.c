@@ -49,7 +49,7 @@ typedef struct _MooseStorePrivate {
     bool force_update_plchanges;
 
     /* Job manager used to process database tasks in the background */
-    struct MooseJobManager * jm;
+    MooseJobManager * jm;
 
     /* Locked when setting an attribute, or reading from one
      * Attributes are:
@@ -170,7 +170,7 @@ static long moose_store_send_job_no_args(
     MooseJobData * data = g_new0(MooseJobData, 1);
     data->op = op;
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[data->op], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[data->op], data);
 }
 
 /**
@@ -515,8 +515,8 @@ static void moose_store_connectivity_callback(
 }
 
 void * moose_store_job_execute_callback(
-    G_GNUC_UNUSED struct MooseJobManager * jm,   /* store->jm */
-    volatile bool * cancel_op,                   /* Check if the operation should be cancelled */
+    G_GNUC_UNUSED MooseJobManager * jm,   /* store->jm */
+    volatile gboolean * cancel_op,                   /* Check if the operation should be cancelled */
     void * user_data,                            /* store */
     void * job_data                              /* operation data */
 ) {
@@ -696,7 +696,7 @@ long moose_store_playlist_load(MooseStore * self, const char * playlist_name) {
     data->op = MOOSE_OPER_SPL_LOAD;
     data->playlist_name = g_strdup(playlist_name);
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LOAD], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LOAD], data);
 }
 
 long moose_store_playlist_select_to_stack(
@@ -713,7 +713,7 @@ long moose_store_playlist_select_to_stack(
     data->match_clause = g_strdup(match_clause);
     data->out_stack = stack;
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_QUERY], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_QUERY], data);
 }
 
 long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth) {
@@ -726,7 +726,7 @@ long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, c
     data->dir_depth = depth;
     data->out_stack = stack;
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_DIR_SEARCH], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_DIR_SEARCH], data);
 }
 
 long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stack) {
@@ -737,7 +737,7 @@ long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stac
     data->op = MOOSE_OPER_SPL_LIST;
     data->out_stack = stack;
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST], data);
 }
 
 long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack) {
@@ -748,7 +748,7 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
     data->op = MOOSE_OPER_SPL_LIST_ALL;
     data->out_stack = stack;
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST_ALL], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST_ALL], data);
 }
 
 long moose_store_search_to_stack(
@@ -763,19 +763,19 @@ long moose_store_search_to_stack(
     data->length_limit = limit_len;
     data->out_stack = stack;
 
-    return moose_jm_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_DB_SEARCH], data);
+    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_DB_SEARCH], data);
 }
 
 void moose_store_wait(MooseStore * self) {
-    moose_jm_wait(self->priv->jm);
+    moose_job_manager_wait(self->priv->jm);
 }
 
 void moose_store_wait_for_job(MooseStore * self, int job_id) {
-    moose_jm_wait_for_id(self->priv->jm, job_id);
+    moose_job_manager_wait_for_id(self->priv->jm, job_id);
 }
 
 MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id) {
-    return moose_jm_get_result(self->priv->jm, job_id);
+    return moose_job_manager_get_result(self->priv->jm, job_id);
 }
 
 MoosePlaylist * moose_store_gw(MooseStore * self, int job_id) {
@@ -795,7 +795,7 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
     data->op = MOOSE_OPER_FIND_SONG_BY_ID;
     data->needle_song_id = needle_song_id;
 
-    unsigned job_id = moose_jm_send(
+    unsigned job_id = moose_job_manager_send(
                           self->priv->jm, MooseJobPrios[MOOSE_OPER_FIND_SONG_BY_ID], data
                       );
     moose_store_wait_for_job(self, job_id);
@@ -826,7 +826,10 @@ static void moose_store_init(MooseStore * self) {
     g_mutex_init(&priv->mirrored_mtx);
 
     /* Initialize the job manager used to background jobs */
-    priv->jm = moose_jm_create(moose_store_job_execute_callback, self);
+    priv->jm = moose_job_manager_new();
+    g_signal_connect(
+        priv->jm, "dispatch", G_CALLBACK(moose_store_job_execute_callback), self
+    );
 
     /* Remember the host/port */
     priv->mirrored_host = g_strdup(moose_client_get_host(priv->client));
@@ -877,7 +880,7 @@ static void moose_store_finalize(GObject * gobject) {
     moose_stprv_lock_attributes(self->priv);
 
     /* Close the job pool (still finishes current operation) */
-    moose_jm_close(self->priv->jm);
+    moose_job_manager_unref(self->priv->jm);
 
     moose_store_shutdown(self);
 

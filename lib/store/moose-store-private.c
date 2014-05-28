@@ -218,7 +218,7 @@ void moose_stprv_dir_finalize_statements(MooseStorePrivate * self);
  * @param store The Store passed.
  * @param cancel A flag indicating the desired cancellation of a Job.
  */
-void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile bool * cancel);
+void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile gboolean * cancel);
 
 /**
  * @brief List all changes of the Queue since the last time.
@@ -228,7 +228,7 @@ void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile bool * can
  * @param store The Store passed.
  * @param cancel A flag indicating the desired cancellation of a Job.
  */
-void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile bool * cancel);
+void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile gboolean * cancel);
 
 /**
  * @brief Init self->spl.*
@@ -1537,7 +1537,7 @@ static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data) {
  *       Also, this value is adjustable in mpd.conf
  *       e.g. max_command_list_size "16192"
  */
-void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile bool * cancel) {
+void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile gboolean * cancel) {
     g_assert(store);
     g_assert(store->client);
 
@@ -1613,7 +1613,7 @@ void moose_stprv_oper_listallinfo(MooseStorePrivate * store, volatile bool * can
         mpd_send_list_all_meta(conn, "/");
 
         while ((ent = mpd_recv_entity(conn)) != NULL) {
-            if (moose_jm_check_cancel(store->jm, cancel)) {
+            if (moose_job_manager_check_cancel(store->jm, cancel)) {
                 moose_warning("database: listallinfo cancelled!");
                 break;
             }
@@ -1708,7 +1708,7 @@ static gpointer moose_stprv_do_plchanges_sql_thread(gpointer user_data) {
     return NULL;
 }
 
-void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile bool * cancel) {
+void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile gboolean * cancel) {
     g_assert(store);
 
     int progress_counter = 0;
@@ -1771,7 +1771,7 @@ void moose_stprv_oper_plchanges(MooseStorePrivate * store, volatile bool * cance
                 MooseSong * song = moose_song_new_from_struct(song_struct);
                 mpd_song_free(song_struct);
 
-                if (moose_jm_check_cancel(store->jm, cancel)) {
+                if (moose_job_manager_check_cancel(store->jm, cancel)) {
                     moose_warning("database: plchanges canceled!");
                     break;
                 }

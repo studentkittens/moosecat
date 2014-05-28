@@ -39,7 +39,7 @@ static gboolean idle_callback(void * user_data) {
     return FALSE;
 }
 
-static void reconnect_manytimes() {
+static void reconnect_manytimes(void) {
     MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     g_signal_connect(client, "connectivity", G_CALLBACK(signal_connectivity), NULL);
 

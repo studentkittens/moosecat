@@ -38,8 +38,8 @@ enum {
 static guint SIGNALS[NUM_SIGNALS];
 
 static void * moose_client_command_dispatcher(
-    struct MooseJobManager * jm,
-    volatile bool * cancel,
+    MooseJobManager * jm,
+    volatile gboolean * cancel,
     void * user_data,
     void * job_data
 );
@@ -68,7 +68,7 @@ typedef struct _MooseClientPrivate {
     bool is_virgin;
 
     /* Job Dispatcher */
-    struct MooseJobManager * jm;
+    MooseJobManager * jm;
 
     struct {
         /* Id of command list job */
@@ -475,7 +475,10 @@ char * moose_client_connect(
 
     ASSERT_IS_MAINTHREAD(self);
 
-    self->priv->jm = moose_jm_create(moose_client_command_dispatcher, self);
+    self->priv->jm = moose_job_manager_new();
+    g_signal_connect(
+        self->priv->jm, "dispatch", G_CALLBACK(moose_client_command_dispatcher), self
+    );
 
     moose_message("Attempting to connect…");
 
@@ -546,7 +549,7 @@ char * moose_client_disconnect(
         g_rec_mutex_lock(&priv->getput_mutex);
         {
             /* Finish current running command */
-            moose_jm_close(priv->jm);
+            moose_job_manager_unref(priv->jm);
             priv->jm = NULL;
 
             /* let the connector clean up itself */
@@ -1389,8 +1392,8 @@ static char moose_client_command_list_is_start_or_end(const char * command) {
 }
 
 static void * moose_client_command_dispatcher(
-    G_GNUC_UNUSED struct MooseJobManager * jm,
-    G_GNUC_UNUSED volatile bool * cancel,
+    G_GNUC_UNUSED MooseJobManager * jm,
+    G_GNUC_UNUSED volatile gboolean * cancel,
     void * user_data,
     void * job_data) {
     g_assert(user_data);
@@ -1540,20 +1543,20 @@ static bool moose_client_command_list_commit(MooseClient * self) {
 long moose_client_send(MooseClient * self, const char * command) {
     g_assert(self);
 
-    return moose_jm_send(self->priv->jm, 0, (void *)g_strdup(command));
+    return moose_job_manager_send(self->priv->jm, 0, (void *)g_strdup(command));
 }
 
 bool moose_client_recv(MooseClient * self, long job_id) {
     g_assert(self);
 
-    moose_jm_wait_for_id(self->priv->jm, job_id);
-    return GPOINTER_TO_INT(moose_jm_get_result(self->priv->jm, job_id));
+    moose_job_manager_wait_for_id(self->priv->jm, job_id);
+    return GPOINTER_TO_INT(moose_job_manager_get_result(self->priv->jm, job_id));
 }
 
 void moose_client_wait(MooseClient * self) {
     g_assert(self);
 
-    moose_jm_wait(self->priv->jm);
+    moose_job_manager_wait(self->priv->jm);
 }
 
 bool moose_client_run(MooseClient * self, const char * command) {

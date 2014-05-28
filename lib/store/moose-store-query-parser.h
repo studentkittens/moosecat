@@ -1,6 +1,8 @@
 #ifndef MOOSE_DB_QUERY_PASRSER_HH
 #define MOOSE_DB_QUERY_PASRSER_HH
 
+#include "../mpd/moose-song.h"
+
 /* Provide extended Syntax for FTS Query.
  *
  * Query may contain following things:
@@ -83,6 +85,6 @@ bool moose_store_qp_is_valid_tag(const char * tag, size_t len);
  *
  * @return a member of mpd_tag_type.
  */
-enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char * tag);
+MooseTagType moose_store_qp_str_to_tag_enum(const char * tag);
 
 #endif /* end of include guard: MOOSE_DB_QUERY_PASRSER_HH */

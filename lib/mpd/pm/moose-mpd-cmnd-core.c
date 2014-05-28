@@ -73,7 +73,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(
 
 /* We want to make helgrind happy. */
 static bool moose_cmd_client_get_run_pinger(MooseCmdClient * self) {
-    volatile bool result = false;
+    volatile gboolean result = false;
     g_mutex_lock(&self->priv->flagmtx_run_pinger);
     result = self->priv->run_pinger;
     g_mutex_unlock(&self->priv->flagmtx_run_pinger);
@@ -81,14 +81,14 @@ static bool moose_cmd_client_get_run_pinger(MooseCmdClient * self) {
     return result;
 }
 
-static void moose_cmd_client_set_run_pinger(MooseCmdClient * self, volatile bool state) {
+static void moose_cmd_client_set_run_pinger(MooseCmdClient * self, volatile gboolean state) {
     g_mutex_lock(&self->priv->flagmtx_run_pinger);
     self->priv->run_pinger = state;
     g_mutex_unlock(&self->priv->flagmtx_run_pinger);
 }
 
 static bool moose_cmd_client_get_run_listener(MooseCmdClient * self, GThread * thread) {
-    volatile bool result = false;
+    volatile gboolean result = false;
     g_mutex_lock(&self->priv->flagmtx_run_listener);
     result = GPOINTER_TO_INT(g_hash_table_lookup(
                                  self->priv->run_listener_table, thread
@@ -98,7 +98,7 @@ static bool moose_cmd_client_get_run_listener(MooseCmdClient * self, GThread * t
     return result;
 }
 
-static void moose_cmd_client_set_run_listener(MooseCmdClient * self, GThread * thread, volatile bool state) {
+static void moose_cmd_client_set_run_listener(MooseCmdClient * self, GThread * thread, volatile gboolean state) {
     g_mutex_lock(&self->priv->flagmtx_run_listener);
     g_hash_table_insert(self->priv->run_listener_table, thread, GINT_TO_POINTER(state));
     g_mutex_unlock(&self->priv->flagmtx_run_listener);
