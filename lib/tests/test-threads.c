@@ -6,7 +6,6 @@ static MooseThreads * threads;
 static int n = 0, N = 10;
 static GMainLoop * loop = NULL;
 
-
 static void * thread(
     G_GNUC_UNUSED MooseThreads * self, void * data, G_GNUC_UNUSED void * user_data
 ) {
@@ -34,8 +33,7 @@ static void * deliver(
     return NULL;
 }
 
-static void test_launch_threads(void)
-{
+static void test_launch_threads(void) {
     threads = moose_threads_new(10);
     g_signal_connect(threads, "thread", G_CALLBACK(thread), NULL);
     g_signal_connect(threads, "deliver", G_CALLBACK(deliver), NULL);
@@ -50,8 +48,7 @@ static void test_launch_threads(void)
     moose_threads_unref(threads);
 }
 
-int main (int argc, char **argv)
-{
+int main (int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
     g_test_add_func("/misc/threads", test_launch_threads);
     return g_test_run();

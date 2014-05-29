@@ -106,7 +106,7 @@ static void moose_threads_get_property(
 
     switch (property_id) {
     case PROP_MAX_THREADS:
-         g_value_set_int(value, self->priv->max_threads);
+        g_value_set_int(value, self->priv->max_threads);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -137,38 +137,38 @@ static void moose_threads_class_init(MooseThreadsClass * klass) {
     gobject_class->finalize = moose_threads_finalize;
     gobject_class->get_property = moose_threads_get_property;
     gobject_class->set_property = moose_threads_set_property;
-    
+
     /**
      * MooseThreads:max-threads: (type int)
      *
      * Maximum number of threads to be launched.
      */
-    g_object_class_install_property(gobject_class, PROP_MAX_THREADS, 
-        g_param_spec_int(
-                "max-threads",
-                "Max. Threads",
-                "Maximum number of threads to launch",
-                0, G_MAXINT, 10, G_PARAM_READWRITE | G_PARAM_CONSTRUCT
-            )
-    );
+    g_object_class_install_property(gobject_class, PROP_MAX_THREADS,
+                                    g_param_spec_int(
+                                        "max-threads",
+                                        "Max. Threads",
+                                        "Maximum number of threads to launch",
+                                        0, G_MAXINT, 10, G_PARAM_READWRITE | G_PARAM_CONSTRUCT
+                                    )
+                                   );
 
     SIGNALS[SIGNAL_THREAD] = g_signal_new("thread",
-            G_TYPE_FROM_CLASS(klass),
-            G_SIGNAL_RUN_LAST,
-            0, NULL, NULL, NULL,
-            G_TYPE_POINTER /* return_type */,
-            1 /* n_params */,
-            G_TYPE_POINTER /* param_types */
-    );
+                                          G_TYPE_FROM_CLASS(klass),
+                                          G_SIGNAL_RUN_LAST,
+                                          0, NULL, NULL, NULL,
+                                          G_TYPE_POINTER /* return_type */,
+                                          1 /* n_params */,
+                                          G_TYPE_POINTER /* param_types */
+                                         );
 
     SIGNALS[SIGNAL_DELIVER] = g_signal_new("deliver",
-            G_TYPE_FROM_CLASS(klass),
-            G_SIGNAL_RUN_LAST,
-            0, NULL, NULL, NULL,
-            G_TYPE_NONE /* return_type */,
-            1 /* n_params */,
-            G_TYPE_POINTER /* param_types */
-    );
+                                           G_TYPE_FROM_CLASS(klass),
+                                           G_SIGNAL_RUN_LAST,
+                                           0, NULL, NULL, NULL,
+                                           G_TYPE_NONE /* return_type */,
+                                           1 /* n_params */,
+                                           G_TYPE_POINTER /* param_types */
+                                          );
 }
 
 static void moose_threads_init(MooseThreads * self) {
@@ -178,12 +178,12 @@ static void moose_threads_init(MooseThreads * self) {
     GError * error = NULL;
     self->priv->queue = g_async_queue_new();
     self->priv->pool = g_thread_pool_new(
-                     moose_threads_dispatch,
-                     self,
-                     10,
-                     FALSE,
-                     &error
-                 );
+                           moose_threads_dispatch,
+                           self,
+                           10,
+                           FALSE,
+                           &error
+                       );
 
     /* Be nice and check for the error */
     if (error != NULL) {

@@ -391,8 +391,7 @@ static char * moose_compose_error_msg(const char * topic, const char * src) {
     }
 }
 
-static bool moose_client_disconnect_idle(MooseClient *self)
-{
+static bool moose_client_disconnect_idle(MooseClient *self) {
     moose_client_disconnect(self);
     return FALSE;
 }
