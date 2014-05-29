@@ -119,6 +119,7 @@ unsigned long moose_status_stats_get_db_play_time(const MooseStatus * self);
 const char * moose_status_get_replay_gain_mode(const MooseStatus * self);
 MooseSong * moose_status_get_current_song(const MooseStatus * self);
 GHashTable * moose_status_outputs_get(const MooseStatus * self);
+int moose_status_output_lookup_id(const MooseStatus * self, const char * name);
 
 G_END_DECLS
 

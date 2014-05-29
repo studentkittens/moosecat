@@ -128,12 +128,16 @@ static gpointer moose_job_manager_executor(gpointer data) {
             /* Do actual job */
             if (is_already_canceled == FALSE) {
                 void *item = NULL;
-                g_signal_emit(
-                    jm, SIGNALS[SIGNAL_DISPATCH], 0,
-                    &job->cancel,
-                    job->job_data,
-                    &item
-                );
+
+                g_object_ref(jm); {
+                    g_signal_emit(
+                        jm, SIGNALS[SIGNAL_DISPATCH], 0,
+                        &job->cancel,
+                        job->job_data,
+                        &item
+                    );
+                }
+                g_object_unref(jm);
 
                 g_mutex_lock(&priv->hash_table_mutex);
                 {

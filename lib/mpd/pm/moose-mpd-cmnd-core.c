@@ -13,16 +13,6 @@
  */
 #define PING_SLEEP_TIMEOUT 500 // ms
 
-/* WARNING AND TODO:
- *
- * Currently this code does not work for obscure reasons.
- * Perhaps I changed something and braimdumped during that.
- *
- * After a while the connections timeouts and both close.
- *
- * This needs to be debugged.
- *
- */
 typedef struct _MooseCmdClientPrivate {
     /* Connection to send commands */
     struct mpd_connection * cmnd_con;

@@ -150,9 +150,6 @@ static void moose_client_finalize(GObject * gobject) {
 
     MooseClientPrivate * priv = self->priv;
 
-    /* Disconnect if not done yet */
-    // moose_client_disconnect(self);
-
     if (moose_client_timer_get_active(self)) {
         moose_client_timer_set_active(self, false);
     }
@@ -162,6 +159,9 @@ static void moose_client_finalize(GObject * gobject) {
 
     /* Wait for the thread to finish */
     g_thread_join(priv->update_thread);
+
+    /* Disconnect if not done yet */
+    moose_client_disconnect(self);
 
     if (priv->status != NULL) {
         moose_status_unref(priv->status);
@@ -623,6 +623,7 @@ void moose_client_timer_set_active(MooseClient * self, bool state) {
     g_assert(self);
 
     if(state == false) {
+        /* Unregister */
         if (moose_client_timer_get_active(self)) {
             MooseClientPrivate * priv = self->priv;
             g_mutex_lock(&priv->status_timer.mutex);
@@ -640,6 +641,7 @@ void moose_client_timer_set_active(MooseClient * self, bool state) {
             g_mutex_unlock(&priv->status_timer.mutex);
         }
     } else {
+        /* Register */
         float timeout = 0.5;
         g_object_get(self, "timer-interval", &timeout, NULL);
 
@@ -670,40 +672,40 @@ static bool moose_client_command_list_commit(MooseClient * self);
  *  shuffle_range
  *  (...)
  */
-#define COMMAND(_getput_code_, _command_list_code_) \
-    if (moose_client_command_list_is_active(self)) {    \
-        _command_list_code_;                        \
-    } else {                                        \
-        _getput_code_;                              \
-    }                                               \
+#define COMMAND(_getput_code_, _command_list_code_)  \
+    if (moose_client_command_list_is_active(self)) { \
+        _command_list_code_;                         \
+    } else {                                         \
+        _getput_code_;                               \
+    }                                                \
  
 
-#define intarg(argument, result)                                   \
-    {                                                                  \
-        char * endptr = NULL;                                           \
-        result = g_ascii_strtoll(argument, &endptr, 10);               \
-                                                                   \
-        if (endptr != NULL && *endptr != '\0') {                        \
+#define intarg(argument, result)                                          \
+    {                                                                     \
+        char * endptr = NULL;                                             \
+        result = g_ascii_strtoll(argument, &endptr, 10);                  \
+                                                                          \
+        if (endptr != NULL && *endptr != '\0') {                          \
             moose_warning("Could not convert to int: ''%s''", argument);  \
-            return false;                                              \
-        }                                                              \
-    }                                                                  \
+            return false;                                                 \
+        }                                                                 \
+    }                                                                     \
  
 #define intarg_named(argument, name) \
     int name = 0;                    \
     intarg(argument, name);          \
  
 
-#define floatarg(argument, result)                                       \
-    {                                                                    \
-        char * endptr = NULL;                                            \
-        result = g_ascii_strtod(argument, &endptr);                      \
-                                                                         \
-        if (endptr != NULL && *endptr != '\0') {                         \
+#define floatarg(argument, result)                                          \
+    {                                                                       \
+        char * endptr = NULL;                                               \
+        result = g_ascii_strtod(argument, &endptr);                         \
+                                                                            \
+        if (endptr != NULL && *endptr != '\0') {                            \
             moose_warning("Could not convert to float: ''%s''", argument);  \
-            return false;                                                \
-        }                                                                \
-    }                                                                    \
+            return false;                                                   \
+        }                                                                   \
+    }                                                                       \
  
 #define floatarg_named(argument, name) \
     double name = 0;                   \
@@ -781,15 +783,14 @@ static bool handle_queue_delete_range(MooseClient * self, struct mpd_connection 
 }
 
 static bool handle_output_switch(MooseClient * self, struct mpd_connection * conn, const char ** argv) {
-    // const char * output_name = argv[0];
-    // int output_id = moose_priv_outputs_name_to_id(self->outputs, output_name);
-    //
-    // TODO
-    int output_id = 0;
-
-    intarg_named(argv[1], mode);
+    const char * output_name = argv[0];
+    MooseStatus * status = moose_client_ref_status(self);
+    int output_id =  moose_status_output_lookup_id(status, output_name);
+    moose_status_unref(status);
 
     if (output_id != -1) {
+        intarg_named(argv[1], mode);
+
         if (mode == TRUE) {
             COMMAND(
                 mpd_run_enable_output(conn, output_id),
@@ -1267,8 +1268,6 @@ static const MooseHandlerField * moose_client_find_handler(const char * command)
     }
     return NULL;
 }
-
-// TODO: GVariant instead of string parsing.
 
 /**
  * @brief Parses a string like "command arg1 /// arg2" to a string vector of

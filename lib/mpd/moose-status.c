@@ -473,3 +473,22 @@ GHashTable * moose_status_outputs_get(const MooseStatus * self) {
     g_rw_lock_reader_unlock(&self->priv->ref_lock);
     return ref;
 }
+
+
+int moose_status_output_lookup_id(const MooseStatus * self, const char * name) {
+    g_return_val_if_fail(self, -1);
+    g_return_val_if_fail(name, -1);
+
+    int id = -1;
+
+    GHashTable *outputs = moose_status_outputs_get(self);
+    if(outputs != NULL) {
+        GVariant *data_variant = g_hash_table_lookup(outputs, name);
+        if(data_variant != NULL) {
+            g_variant_get_child(data_variant, 1, "i", &id);
+        }
+        g_hash_table_unref(outputs);
+    }
+
+    return id;
+}

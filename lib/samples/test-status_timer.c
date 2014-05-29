@@ -22,7 +22,7 @@ int main(void) {
     MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     g_signal_connect(client, "client-event", G_CALLBACK(signal_event), loop);
     moose_client_timer_set_active(client, TRUE);
-    moose_client_connect(client, NULL, "localhost", 6601, 2.0);
+    moose_client_connect(client, NULL, "localhost", 6600, 20);
 
     g_printerr("Is %d\n", moose_client_is_connected(client));
 

@@ -421,10 +421,6 @@ static void moose_idle_client_init(MooseIdleClient * object) {
 
 static void moose_idle_client_finalize(GObject * gobject) {
     MooseIdleClient * self = MOOSE_IDLE_CLIENT(gobject);
-    if (self == NULL) {
-        return;
-    }
-
     moose_idle_client_do_disconnect(MOOSE_CLIENT(self));
     g_mutex_clear(&self->priv->one_thread_only_mtx);
 
