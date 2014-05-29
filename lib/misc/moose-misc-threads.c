@@ -66,7 +66,6 @@ void moose_threads_push(MooseThreads * self, void * data) {
     if (self->priv->pool != NULL) {
         g_thread_pool_push(self->priv->pool, data, NULL);
     }
-
 }
 
 void moose_threads_forward(MooseThreads * self, void * result) {
@@ -74,7 +73,6 @@ void moose_threads_forward(MooseThreads * self, void * result) {
         g_async_queue_push(self->priv->queue, result);
         g_idle_add(moose_threads_mainloop_callback, self);
     }
-
 }
 
 void moose_threads_unref(MooseThreads * self) {
