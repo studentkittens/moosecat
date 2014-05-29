@@ -1,15 +1,10 @@
 #ifndef MOOSECAT_API_HH
 #define MOOSECAT_API_HH
 
-#include "moose-config.h"
-
 /* All relevant headers are included here */
-#include "misc/moose-misc-external-logs.h"
+#include "moose-config.h"
 #include "misc/moose-misc-zeroconf.h"
-
 #include "mpd/moose-mpd-client.h"
-#include "mpd/moose-mpd-client.h"
-
 #include "store/moose-store.h"
 #include "store/moose-store-query-parser.h"
 
