@@ -271,6 +271,9 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  */
 MooseStoreCompletion * moose_store_get_completion(MooseStore * self);
 
+GPtrArray * moose_store_get_known_playlists(MooseStore * self);
+GPtrArray * moose_store_get_loaded_playlists(MooseStore * self);
+
 G_END_DECLS
 
 #endif /* end of include guard: DB_GUARD_H */

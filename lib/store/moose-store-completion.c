@@ -210,16 +210,11 @@ static int moose_store_completion_art_callback(void * user_data, const unsigned 
         return 1;
     }
 
-    // TODO: What about locking?
-    // moose_stprv_lock_attributes(data->self->priv->store);
-    {
-        MooseSong * song = moose_playlist_at(full_playlist, song_idx);
-        if (song != NULL) {
-            /* Try to retrieve the original song */
-            data->result = g_strdup(moose_song_get_tag(song, data->tag));
-        }
+    MooseSong * song = moose_playlist_at(full_playlist, song_idx);
+    if (song != NULL) {
+        /* Try to retrieve the original song */
+        data->result = g_strdup(moose_song_get_tag(song, data->tag));
     }
-    // moose_stprv_unlock_attributes(data->self->priv->store);
 
     if (data->result == NULL) {
         /* Fallback */

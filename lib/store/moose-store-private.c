@@ -293,7 +293,7 @@ int moose_stprv_spl_select_playlist(MooseStorePrivate * store, MoosePlaylist * o
  *
  * @return Number of laoded playlists
  */
-int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, MoosePlaylist * stack);
+int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, GPtrArray * stack);
 
 /**
  * @brief Return a list of a all known mpd_playlists structs
@@ -435,8 +435,6 @@ enum {
 /* this enum mirros the order in the CREATE statement */
 enum {
     SQL_COL_URI = 0,
-    SQL_COL_START,
-    SQL_COL_END,
     SQL_COL_DURATION,
     SQL_COL_LAST_MODIFIED,
     SQL_COL_ARTIST,
@@ -464,8 +462,6 @@ static const char * _sql_stmts[] = {
     "-- Note: Type information is not parsed at all, and rather meant as hint for the developer.        \n"
     "CREATE VIRTUAL TABLE IF NOT EXISTS songs USING fts4(                                               \n"
     "    uri            TEXT UNIQUE NOT NULL,     -- Path to file, or URL to webradio etc.              \n"
-    "    start          INTEGER NOT NULL,         -- Start of the virtual song within the physical file \n"
-    "    end            INTEGER NOT NULL,         -- End of the virtual song within the physical file   \n"
     "    duration       INTEGER NOT NULL,         -- Songudration in Seconds. (0 means unknown)         \n"
     "    last_modified  INTEGER NOT NULL,         -- Last modified as Posix UTC Timestamp               \n"
     "    -- Tags (all tags are saved, regardless if used or not):                                       \n"
@@ -530,7 +526,7 @@ static const char * _sql_stmts[] = {
     [STMT_SQL_COUNT] =
     "SELECT count(*) FROM songs;",
     [STMT_SQL_INSERT] =
-    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO songs VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [STMT_SQL_QUEUE_INSERT_ROW] =
     "INSERT INTO queue(song_idx, pos, idx) VALUES((SELECT rowid FROM songs_content WHERE c0uri = ?), ?, ?);",
     [STMT_SQL_QUEUE_CLEAR] =
@@ -799,10 +795,7 @@ bool moose_stprv_insert_song(MooseStorePrivate * db, MooseSong * song) {
     bool rc = true;
 
     /* bind basic attributes */
-    // TODO TODO TODO: Start/End is empty.
     BIND_TXT(db, INSERT, pos_idx, moose_song_get_uri(song), error_id);
-    BIND_INT(db, INSERT, pos_idx, 0, error_id);
-    BIND_INT(db, INSERT, pos_idx, 1, error_id);
     BIND_INT(db, INSERT, pos_idx, moose_song_get_duration(song), error_id);
     BIND_INT(db, INSERT, pos_idx, moose_song_get_last_modified(song), error_id);
 
@@ -1143,16 +1136,6 @@ void moose_stprv_deserialize_songs(MooseStorePrivate * self) {
 
     /* loop over all rows in the songs table */
     while ((error_id = sqlite3_step(stmt)) == SQLITE_ROW) {
-        /* Following fields are understood by libmpdclient:
-         * file (= uri)
-         * Time (= duration)
-         * Range (= start-end)
-         * Last-Modified
-         * Pos (= here, always 0)
-         * Id (= here, always 0)
-         *
-         * It's also case-sensitive.
-         */
         MooseSong * song = moose_song_new();
         moose_song_set_uri(
             song, (char *)sqlite3_column_text(stmt, SQL_COL_URI)
@@ -2356,7 +2339,7 @@ int moose_stprv_spl_select_playlist(MooseStorePrivate * store, MoosePlaylist * o
     return rc;
 }
 
-int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, MoosePlaylist * stack) {
+int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, GPtrArray * stack) {
     g_assert(store);
     g_assert(stack);
 
@@ -2374,7 +2357,7 @@ int moose_stprv_spl_get_loaded_playlists(MooseStorePrivate * store, MoosePlaylis
                     struct mpd_playlist * playlist = moose_stprv_spl_name_to_playlist(store, playlist_name);
 
                     if (playlist != NULL) {
-                        moose_playlist_append(stack, playlist);
+                        g_ptr_array_add(stack, playlist);
                         ++rc;
                     }
 

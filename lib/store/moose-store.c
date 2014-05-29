@@ -126,8 +126,6 @@ int MooseJobPrios[] = {
     [MOOSE_OPER_UPDATE_META]     = +1,
     [MOOSE_OPER_DB_SEARCH]       = +2,
     [MOOSE_OPER_DIR_SEARCH]      = +2,
-    [MOOSE_OPER_SPL_LIST]        = +2,
-    [MOOSE_OPER_SPL_LIST_ALL]    = +2,
     [MOOSE_OPER_SPL_QUERY]       = +2,
     [MOOSE_OPER_WRITE_DATABASE]  = +3,
     [MOOSE_OPER_FIND_SONG_BY_ID] = +4,
@@ -146,8 +144,6 @@ const char * MooseJobNames[] = {
     [MOOSE_OPER_UPDATE_META]     = "UPDATE_META",
     [MOOSE_OPER_DB_SEARCH]       = "DB_SEARCH",
     [MOOSE_OPER_DIR_SEARCH]      = "DIR_SEARCH",
-    [MOOSE_OPER_SPL_LIST]        = "SPL_LIST",
-    [MOOSE_OPER_SPL_LIST_ALL]    = "SPL_LIST_ALL",
     [MOOSE_OPER_SPL_QUERY]       = "SPL_QUERY",
     [MOOSE_OPER_WRITE_DATABASE]  = "WRITE_DATABASE",
     [MOOSE_OPER_FIND_SONG_BY_ID] = "FIND_SONG_BY_ID",
@@ -586,17 +582,6 @@ void * moose_store_job_execute_callback(
             moose_stprv_spl_load_by_playlist_name(self->priv, data->playlist_name);
         }
 
-        if (data->op & MOOSE_OPER_SPL_LIST) {
-            moose_stprv_spl_get_loaded_playlists(self->priv, data->out_stack);
-            result = data->out_stack;
-        }
-
-        if (data->op & MOOSE_OPER_SPL_LIST_ALL) {
-            // TODO!
-            // moose_stprv_spl_get_known_playlists(self, data->out_stack);
-            result = data->out_stack;
-        }
-
         if (data->op & MOOSE_OPER_DB_SEARCH) {
             moose_stprv_select_to_stack(
                 self->priv, data->match_clause, data->queue_only,
@@ -656,8 +641,6 @@ void * moose_store_job_execute_callback(
     if ((data->op & (0
                      | MOOSE_OPER_DB_SEARCH
                      | MOOSE_OPER_SPL_QUERY
-                     | MOOSE_OPER_SPL_LIST
-                     | MOOSE_OPER_SPL_LIST_ALL
                      | MOOSE_OPER_DIR_SEARCH)) == 0) {
         moose_stprv_unlock_attributes(self->priv);
     }
@@ -729,17 +712,6 @@ long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, c
     return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_DIR_SEARCH], data);
 }
 
-long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stack) {
-    g_assert(self);
-    g_assert(stack);
-
-    MooseJobData * data = g_new0(MooseJobData, 1);
-    data->op = MOOSE_OPER_SPL_LIST;
-    data->out_stack = stack;
-
-    return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST], data);
-}
-
 long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack) {
     g_assert(self);
     g_assert(stack);
@@ -806,6 +778,39 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
     }
     return NULL;
 }
+
+static GPtrArray * moose_store_get_playlists_impl(
+    MooseStore * self,
+    int (*func)(MooseStorePrivate *, GPtrArray *)) {
+    g_assert(self);
+
+    GPtrArray *stack = g_ptr_array_new();
+    GPtrArray *result = g_ptr_array_new_full(5, g_free);
+    moose_stprv_lock_attributes(self->priv);
+    {
+        func(self->priv, stack);
+        for(unsigned i = 0; i < stack->len; ++i) {
+            struct mpd_playlist *playlist = g_ptr_array_index(stack, i);
+            if(playlist != NULL) {
+                g_ptr_array_add(
+                    result, g_strdup(mpd_playlist_get_path(playlist))
+                );
+            }
+        }
+    }
+    moose_stprv_unlock_attributes(self->priv);
+
+    return result;
+}
+
+GPtrArray * moose_store_get_known_playlists(MooseStore * self) {
+    return moose_store_get_playlists_impl(self, moose_stprv_spl_get_known_playlists);
+}
+
+GPtrArray * moose_store_get_loaded_playlists(MooseStore * self) {
+    return moose_store_get_playlists_impl(self, moose_stprv_spl_get_loaded_playlists);
+}
+
 
 MooseStoreCompletion * moose_store_get_completion(MooseStore * self) {
     g_assert(self);

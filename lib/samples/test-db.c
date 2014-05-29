@@ -119,40 +119,32 @@ int main(int argc, char * argv[]) {
 
                 if (strncmp(line_buf, ":list-all", 8) == 0) {
 
-                    MoosePlaylist * stack = moose_playlist_new();
-                    moose_store_gw(db, moose_store_playlist_get_all_known(db, stack));
-                    int found = moose_playlist_length(stack);
-                    if (found == 0) {
+                    GPtrArray * array = moose_store_get_known_playlists(db);
+                    if (array->len == 0) {
                         g_print("No playlists found.\n");
                     } else {
-                        for (int i = 0; i < found; ++i) {
-                            struct mpd_playlist * playlist = moose_playlist_at(stack, i);
-                            g_print("%s: %010d\n", mpd_playlist_get_path(playlist), (int)mpd_playlist_get_last_modified(playlist));
+                        for (unsigned i = 0; i < array->len; ++i) {
+                            char *playlist_name = g_ptr_array_index(array, i);
+                            g_print("%s\n", playlist_name);
                         }
                     }
-                    moose_store_release(db);
-
-                    g_object_unref(stack);
+                    g_ptr_array_unref(array);
 
                     continue;
                 }
 
                 if (strncmp(line_buf, ":list-loaded", 8) == 0) {
 
-                    MoosePlaylist * stack = moose_playlist_new();
-                    moose_store_gw(db, moose_store_playlist_get_all_loaded(db, stack));
-                    int found = moose_playlist_length(stack);
-                    if (found == 0) {
+                    GPtrArray * array = moose_store_get_loaded_playlists(db);
+                    if (array->len == 0) {
                         g_print("No playlists found.\n");
                     } else {
-                        for (int i = 0; i < found; ++i) {
-                            struct mpd_playlist * playlist = moose_playlist_at(stack, i);
-                            g_print("%s: %010d\n", mpd_playlist_get_path(playlist), (int)mpd_playlist_get_last_modified(playlist));
+                        for (unsigned i = 0; i < array->len; ++i) {
+                            char *playlist_name = g_ptr_array_index(array, i);
+                            g_print("%s\n", playlist_name);
                         }
                     }
-                    moose_store_release(db);
-
-                    g_object_unref(stack);
+                    g_ptr_array_unref(array);
 
                     continue;
                 }
