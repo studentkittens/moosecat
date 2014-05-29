@@ -2,13 +2,6 @@
 #include "../misc/moose-misc-job-manager.h"
 #include <glib.h>
 
-static void send_some_commands(MooseClient * client) {
-    for (int i = 0; i < 100; ++i) {
-        moose_client_send(client, "pause");
-        moose_client_send(client, "pause");
-    }
-}
-
 static void event_cb(
     G_GNUC_UNUSED MooseClient * client,
     MooseIdle events,
@@ -36,7 +29,10 @@ int main(int argc, char const * argv[]) {
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
     char * error = moose_client_connect(client, NULL, "localhost", 6600, 2.0);
     if (error == NULL) {
-        send_some_commands(client);
+        for (int i = 0; i < 100; ++i) {
+            moose_client_send(client, "pause");
+            moose_client_send(client, "pause");
+        }
     } else {
         g_printerr("Uh, cannot connect: %s\n", error);
     }

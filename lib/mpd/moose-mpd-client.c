@@ -136,7 +136,7 @@ MooseClient * moose_client_new(MooseProtocolType protocol) {
         return g_object_new(MOOSE_TYPE_CMD_CLIENT, NULL);
     case MOOSE_PROTOCOL_IDLE:
     default:
-        return g_object_new(MOOSE_TYPE_CMD_CLIENT, NULL);
+        return g_object_new(MOOSE_TYPE_IDLE_CLIENT, NULL);
     }
 }
 
@@ -151,7 +151,7 @@ static void moose_client_finalize(GObject * gobject) {
     MooseClientPrivate * priv = self->priv;
 
     /* Disconnect if not done yet */
-    moose_client_disconnect(self);
+    // moose_client_disconnect(self);
 
     if (moose_client_timer_get_active(self)) {
         moose_client_timer_set_active(self, false);
@@ -187,10 +187,7 @@ static void moose_client_finalize(GObject * gobject) {
     g_rec_mutex_clear(&priv->getput_mutex);
     g_rec_mutex_clear(&priv->client_attr_mutex);
 
-    /* Always chain up to the parent class; as with dispose(), finalize()
-     * is guaranteed to exist on the parent's class virtual function table
-     */
-    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
+    G_OBJECT_CLASS(moose_client_parent_class)->finalize(gobject);
 }
 
 static void moose_client_get_property(
@@ -267,14 +264,14 @@ static void moose_client_class_init(MooseClientClass * klass) {
                                        G_OBJECT_CLASS_TYPE(klass),
                                        G_SIGNAL_RUN_LAST, 0, NULL, NULL,
                                        g_cclosure_marshal_VOID__INT,
-                                       G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_POINTER
+                                       G_TYPE_NONE, 1, G_TYPE_INT
                                    );
     SIGNALS[SIGNAL_CONNECTIVITY] = g_signal_new(
                                        "connectivity",
                                        G_OBJECT_CLASS_TYPE(klass),
                                        G_SIGNAL_RUN_LAST, 0, NULL, NULL,
                                        g_cclosure_marshal_VOID__BOOLEAN,
-                                       G_TYPE_NONE, 2, G_TYPE_BOOLEAN, G_TYPE_POINTER
+                                       G_TYPE_NONE, 1, G_TYPE_BOOLEAN
                                    );
 
     GParamSpec * pspec = NULL;
@@ -503,7 +500,7 @@ char * moose_client_connect(
 bool moose_client_is_connected(MooseClient * self) {
     g_assert(self);
 
-    bool result = (self && self->do_is_connected(self));
+    bool result = (self && self->do_is_connected && self->do_is_connected(self));
 
     return result;
 }
@@ -531,7 +528,7 @@ struct mpd_connection * moose_client_get(MooseClient * self) {
      * the user to lock himself. */
     g_rec_mutex_lock(&self->priv->getput_mutex);
 
-    if (moose_client_is_connected(self)) {
+    if (moose_client_is_connected(self) && self->do_get != NULL) {
         cconn = self->do_get(self);
         moose_client_check_error(self, cconn);
     }
@@ -556,7 +553,7 @@ bool moose_client_disconnect(
             priv->jm = NULL;
 
             /* let the connector clean up itself */
-            error_happenend = !self->do_disconnect(self);
+            error_happenend = (self->do_disconnect) ? !self->do_disconnect(self) : true;
 
             /* Reset status/song/stats to NULL */
             if (priv->status != NULL) {
@@ -1378,15 +1375,15 @@ static char moose_client_command_list_is_start_or_end(const char * command) {
 static void * moose_client_command_dispatcher(
     G_GNUC_UNUSED MooseJobManager * jm,
     G_GNUC_UNUSED volatile gboolean * cancel,
-    void * user_data,
-    void * job_data) {
+    void * job_data,
+    void * user_data) {
     g_assert(user_data);
 
     bool result = false;
 
     if (job_data != NULL) {
         /* Client to operate on */
-        MooseClient * self = user_data;
+        MooseClient * self = MOOSE_CLIENT(user_data);
 
         /* Input command left to parse */
         const char * input = job_data;

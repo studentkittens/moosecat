@@ -185,8 +185,6 @@ static void moose_idle_client_dispatch_events(MooseIdleClient * self, MooseIdle 
      * So we set this flag to indicate we're running.
      * It is resette by moose_idle_client_enter().
      * */
-    g_printerr("DISPATCHING events: %d\n", events);
-
     self->priv->is_in_idle_mode = FALSE;
     self->priv->is_running_extern = TRUE;
     {
@@ -252,8 +250,8 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
-    self->priv->is_running_extern = TRUE;
     moose_client_get(MOOSE_CLIENT(self));
+    self->priv->is_running_extern = TRUE;
 
     if (mpd_async_io(self->priv->async_mpd_conn, events) == FALSE) {
         /* Failure during IO */
@@ -289,8 +287,8 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
     /* Unlock again - We're now ready to take other
      * get/puts again
      */
-    moose_client_put(MOOSE_CLIENT(self));
     self->priv->is_running_extern = FALSE;
+    moose_client_put(MOOSE_CLIENT(self));
     return keep_notify;
 }
 
@@ -430,10 +428,14 @@ static void moose_idle_client_finalize(GObject * gobject) {
     moose_idle_client_do_disconnect(MOOSE_CLIENT(self));
     g_mutex_clear(&self->priv->one_thread_only_mtx);
 
-    /* Always chain up to the parent class; as with dispose(), finalize()
-     * is guaranteed to exist on the parent's class virtual function table
-     */
-    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
+    MooseClient * parent = MOOSE_CLIENT(self);
+    parent->do_disconnect = NULL;
+    parent->do_get = NULL;
+    parent->do_put = NULL;
+    parent->do_connect = NULL;
+    parent->do_is_connected = NULL;
+
+    G_OBJECT_CLASS(moose_idle_client_parent_class)->finalize(gobject);
 }
 
 static void moose_idle_client_class_init(MooseIdleClientClass * klass) {
