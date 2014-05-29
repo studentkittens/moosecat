@@ -9,17 +9,6 @@ static void send_some_commands(MooseClient * client) {
     }
 }
 
-static void * execute(
-    G_GNUC_UNUSED MooseJobManager * jm,
-    G_GNUC_UNUSED volatile gboolean * cancel,
-    G_GNUC_UNUSED void * job_data,
-    void * user_data) {
-    MooseClient * client = user_data;
-    moose_warning("test.");
-    send_some_commands(client);
-    return NULL;
-}
-
 static void event_cb(
     G_GNUC_UNUSED MooseClient * client,
     MooseIdle events,
@@ -44,16 +33,10 @@ int main(int argc, char const * argv[]) {
         client = moose_client_new(MOOSE_PROTOCOL_IDLE);
     }
 
-    MooseJobManager * jm = moose_job_manager_new();
-    g_signal_connect(jm, "dispatch", G_CALLBACK(execute), client);
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
-
     char * error = moose_client_connect(client, NULL, "localhost", 6600, 2.0);
     if (error == NULL) {
-        // long job = moose_job_manager_send(jm, 0, NULL);
-        // send_some_commands(client);
-        // moose_job_manager_wait_for_id(jm, job);
-        // g_print("After wait.\n");
+        send_some_commands(client);
     } else {
         g_printerr("Uh, cannot connect: %s\n", error);
     }
@@ -63,10 +46,8 @@ int main(int argc, char const * argv[]) {
     g_main_loop_run(loop);
     g_printerr("MAIN LOOP RUN OVER\n");
 
-    moose_job_manager_wait(jm);
     moose_client_disconnect(client);
     moose_client_unref(client);
     g_main_loop_unref(loop);
-    moose_job_manager_unref(jm);
     return 0;
 }

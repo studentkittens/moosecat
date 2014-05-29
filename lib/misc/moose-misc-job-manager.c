@@ -106,7 +106,7 @@ static int moose_job_manager_prio_sort_func(gconstpointer a, gconstpointer b, gp
 static gpointer moose_job_manager_executor(gpointer data) {
     MooseJob * job;
     MooseJobManager * jm = MOOSE_JOB_MANAGER(data);
-    struct _MooseJobManagerPrivate *priv = jm->priv;
+    MooseJobManagerPrivate *priv = jm->priv;
 
     while ((job = g_async_queue_pop(jm->priv->job_queue)) != &priv->terminator) {
         gboolean is_already_canceled = FALSE;
@@ -134,7 +134,6 @@ static gpointer moose_job_manager_executor(gpointer data) {
                     job->job_data,
                     &item
                 );
-                // void * item = priv->callback(jm, &job->cancel, priv->user_data, job->job_data);
 
                 g_mutex_lock(&priv->hash_table_mutex);
                 {
@@ -326,7 +325,7 @@ static void moose_job_manager_class_init(MooseJobManagerClass * klass) {
 
     SIGNALS[SIGNAL_DISPATCH] = g_signal_new("dispatch",
                                             G_TYPE_FROM_CLASS(klass),
-                                            G_SIGNAL_RUN_FIRST,
+                                            G_SIGNAL_RUN_LAST,
                                             0,
                                             NULL /* accumulator */,
                                             NULL /* accumulator data */,
@@ -359,6 +358,6 @@ static void moose_job_manager_init(MooseJobManager * self) {
 
     /* Keep the thread running in the background */
     priv->execute_thread = g_thread_new(
-                               "job-execute-thread", moose_job_manager_executor, priv
+                               "job-execute-thread", moose_job_manager_executor, self
                            );
 }

@@ -27,7 +27,7 @@ enum {
 };
 
 enum {
-    PROP_HOST,
+    PROP_HOST = 1,
     PROP_PORT,
     PROP_TIMEOUT,
     PROP_TIMER_INTERVAL,
@@ -265,14 +265,14 @@ static void moose_client_class_init(MooseClientClass * klass) {
     SIGNALS[SIGNAL_CLIENT_EVENT] = g_signal_new(
                                        "client-event",
                                        G_OBJECT_CLASS_TYPE(klass),
-                                       G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
-                                       g_cclosure_marshal_VOID__ENUM,
-                                       G_TYPE_NONE, 2, G_TYPE_ENUM, G_TYPE_POINTER
+                                       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+                                       g_cclosure_marshal_VOID__INT,
+                                       G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_POINTER
                                    );
     SIGNALS[SIGNAL_CONNECTIVITY] = g_signal_new(
                                        "connectivity",
                                        G_OBJECT_CLASS_TYPE(klass),
-                                       G_SIGNAL_RUN_FIRST, 0, NULL, NULL,
+                                       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
                                        g_cclosure_marshal_VOID__BOOLEAN,
                                        G_TYPE_NONE, 2, G_TYPE_BOOLEAN, G_TYPE_POINTER
                                    );
@@ -391,6 +391,12 @@ static char * moose_compose_error_msg(const char * topic, const char * src) {
     }
 }
 
+static bool moose_client_disconnect_idle(MooseClient *self)
+{
+    moose_client_disconnect(self);
+    return FALSE;
+}
+
 static bool moose_client_check_error_impl(MooseClient * self, struct mpd_connection * cconn, bool handle_fatal) {
     if (self == NULL || cconn == NULL) {
         if (self != NULL) {
@@ -432,7 +438,7 @@ static bool moose_client_check_error_impl(MooseClient * self, struct mpd_connect
          * than using an invalid connection */
         if (handle_fatal && is_fatal) {
             moose_warning("That was fatal. Disconnecting on mainthread.");
-            g_idle_add((GSourceFunc)moose_client_disconnect, self);
+            g_idle_add((GSourceFunc)moose_client_disconnect_idle, self);
         }
 
         /* Dispatch the error to the users */
@@ -534,13 +540,13 @@ struct mpd_connection * moose_client_get(MooseClient * self) {
     return cconn;
 }
 
-char * moose_client_disconnect(
+bool moose_client_disconnect(
     MooseClient * self) {
+    bool error_happenend = true;
     if (self && moose_client_is_connected(self)) {
 
         ASSERT_IS_MAINTHREAD(self);
 
-        bool error_happenend = false;
         MooseClientPrivate * priv = self->priv;
 
         /* Lock the connection while destroying it */
@@ -568,16 +574,9 @@ char * moose_client_disconnect(
              */
         }
         g_rec_mutex_unlock(&priv->getput_mutex);
-
-        // TODO
-        if (error_happenend) {
-            return g_strdup("Unknown Error.");
-        } else {
-            return NULL;
-        }
     }
 
-    return (self == NULL) ? g_strdup("Client is null") : NULL;
+    return error_happenend;
 }
 
 void moose_client_unref(MooseClient * self) {

@@ -303,7 +303,7 @@ env.AlwaysBuild(
 
 lib = env.StaticLibrary('moosecat', FindLibmoosecatSource())
 
-
+# Sample programs:
 for node in Glob('lib/samples/test-*.c'):
     name = str(node).split('/')[-1]
     if name.endswith('.c'):
@@ -314,36 +314,28 @@ for node in Glob('lib/samples/test-*.c'):
         LIBPATH='.'
     )
 
+if 'test' in COMMAND_LINE_TARGETS:
+    def BuildTest(target, source, env):
+        subprocess.call([
+            '/usr/bin/gtester', '--verbose',
+            '-o', str(target[0]),
+            str(source[0])
+        ])
 
-# Method that calls routines neccessary to create shared library.
-def cythonPseudoBuilder(env, source):
-    c_code = env.CythonBuilder(source)
+    commands = []
 
-    # Hack: Find out the python version:
-    py_version = '34m'
-    for entry in env['CPPPATH']:
-        match = re.match('.*python(\d\.\d.*)', entry)
-        if match:
-            py_version = match.group(1).replace('.', '')
-            break
+    # test_alias = Alias('test', [program], program[0].abspath)
+    for node in Glob('lib/tests/test-*.c'):
+        name = str(node).split('/')[-1]
+        if name.endswith('.c'):
+            name = name[:-2]
+        prog = env.Program(
+            name, [str(node)],
+            LIBS=env['LIBS'] + [lib, 'm', 'dl'],
+            LIBPATH='.'
+        )
+        command = env.Command(name + '.log', name, BuildTest)
+        env.Depends(command, prog)
+        commands.append(command)
 
-    cython_lib = env.SharedLibrary(
-        source, c_code,
-        LIBS=env['LIBS'] + [lib, 'm', 'dl'],
-        LIBPATH='.'
-    )
-
-    # This is currently Unix-specific.
-    py_extension_file = '{name}.cpython-{version}.so'.format(
-        name=os.path.basename(source),
-        version=py_version
-    )
-    py_extension_file = os.path.join(os.path.dirname(source), py_extension_file)
-    Command(
-        target=py_extension_file,
-        source=cython_lib[0],
-        action=Move("$TARGET", "$SOURCE")
-    )
-
-env.AddMethod(cythonPseudoBuilder, 'Cython')
-# env.Cython('moosecat/core/moose')
+    env.AlwaysBuild(env.Alias('test', [commands]))

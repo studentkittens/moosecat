@@ -195,7 +195,7 @@ bool moose_client_is_connected(MooseClient * self);
  *
  * @return a error string, or NULL if no error happened
  */
-char * moose_client_disconnect(MooseClient * self);
+bool moose_client_disconnect(MooseClient * self);
 
 /**
  * @brief Free all data associated with this connector.

@@ -22,7 +22,7 @@ typedef struct _MooseStoreCompletionIterTag {
 } MooseStoreCompletionIterTag;
 
 enum {
-    PROP_STORE,
+    PROP_STORE = 1,
     PROP_N
 };
 

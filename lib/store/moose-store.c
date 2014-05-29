@@ -82,7 +82,7 @@ typedef struct _MooseStorePrivate {
 } MooseStorePrivate;
 
 enum {
-    PROP_CLIENT,
+    PROP_CLIENT = 1,
     PROP_FULL_PLAYLIST,
     PROP_DB_DIRECTORY,
     PROP_USE_COMPRESSION,
