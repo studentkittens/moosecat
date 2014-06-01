@@ -17,6 +17,8 @@ static gboolean timeout_cb(gpointer user_data) {
 }
 
 int main(int argc, char const * argv[]) {
+    moose_debug_install_handler();
+
     MooseClient * client = NULL;
     if (argc > 1 && g_strcmp0(argv[1], "-c") == 0) {
         g_printerr("Using CMND ProtocolMachine.\n");
@@ -27,8 +29,8 @@ int main(int argc, char const * argv[]) {
     }
 
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
-    bool error = moose_client_connect(client, "localhost", 6600, 20);
-    if (error == false) {
+    if(moose_client_connect(client, "localhost", 6600, 20)) {
+        g_printerr("-- Sending some stuff.\n");
         for (int i = 0; i < 100; ++i) {
             moose_client_send_single(client, "pause");
             moose_client_send_single(client, "pause");

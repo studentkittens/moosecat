@@ -502,7 +502,7 @@ static gboolean moose_client_command_list_commit(MooseClient * self);
  
 static gboolean handle_queue_add(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * uri = NULL;
-    g_variant_get(variant, format, &uri);
+    g_variant_get(variant, format, NULL, &uri);
     COMMAND(
         mpd_run_add(conn, uri),
         mpd_send_add(conn, uri)
@@ -522,7 +522,7 @@ static gboolean handle_queue_clear(MooseClient * self, struct mpd_connection * c
 
 static gboolean handle_consume(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     bool mode = false;
-    g_variant_get(variant, format, &mode);
+    g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(
         mpd_run_consume(conn, mode),
@@ -534,7 +534,7 @@ static gboolean handle_consume(MooseClient * self, struct mpd_connection * conn,
 
 static gboolean handle_crossfade(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     double xfade = 0;
-    g_variant_get(variant, format, &xfade);
+    g_variant_get(variant, format, NULL, &xfade);
 
     COMMAND(
         mpd_run_crossfade(conn, xfade),
@@ -546,7 +546,7 @@ static gboolean handle_crossfade(MooseClient * self, struct mpd_connection * con
 
 static gboolean handle_queue_delete(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int pos = 0;
-    g_variant_get(variant, format, &pos);
+    g_variant_get(variant, format, NULL, &pos);
 
     COMMAND(
         mpd_run_delete(conn, pos),
@@ -558,7 +558,7 @@ static gboolean handle_queue_delete(MooseClient * self, struct mpd_connection * 
 
 static gboolean handle_queue_delete_id(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int id = 0;
-    g_variant_get(variant, format, &id);
+    g_variant_get(variant, format, NULL, &id);
 
     COMMAND(
         mpd_run_delete_id(conn, id),
@@ -570,7 +570,7 @@ static gboolean handle_queue_delete_id(MooseClient * self, struct mpd_connection
 
 static gboolean handle_queue_delete_range(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int start = 0, end = 1;
-    g_variant_get(variant, format, &start, &end);
+    g_variant_get(variant, format, NULL, &start, &end);
 
     COMMAND(
         mpd_run_delete_range(conn, start, end),
@@ -585,9 +585,10 @@ static gboolean handle_output_switch(MooseClient * self, struct mpd_connection *
     bool mode = true;
     int output_id;
 
-    g_variant_get(variant, format, &output_name, &mode);
+    g_variant_get(variant, format, NULL, &output_name, &mode);
 
-    MooseStatus * status = moose_client_ref_status(self); {
+    MooseStatus * status = moose_client_ref_status(self);
+    {
         output_id =  moose_status_output_lookup_id(status, output_name);
     }
     moose_status_unref(status);
@@ -612,7 +613,7 @@ static gboolean handle_output_switch(MooseClient * self, struct mpd_connection *
 
 static gboolean handle_playlist_load(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * playlist = NULL;
-    g_variant_get(variant, format, &playlist);
+    g_variant_get(variant, format, NULL, &playlist);
     if(playlist == NULL) {
         return false;
     }
@@ -627,7 +628,7 @@ static gboolean handle_playlist_load(MooseClient * self, struct mpd_connection *
 
 static gboolean handle_mixramdb(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     double decibel = 0;
-    g_variant_get(variant, format, &decibel);
+    g_variant_get(variant, format, NULL, &decibel);
 
     COMMAND(
         mpd_run_mixrampdb(conn, decibel),
@@ -639,7 +640,7 @@ static gboolean handle_mixramdb(MooseClient * self, struct mpd_connection * conn
 
 static gboolean handle_mixramdelay(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     double seconds = 0;
-    g_variant_get(variant, format, &seconds);
+    g_variant_get(variant, format, NULL, &seconds);
 
     COMMAND(
         mpd_run_mixrampdelay(conn, seconds),
@@ -651,7 +652,7 @@ static gboolean handle_mixramdelay(MooseClient * self, struct mpd_connection * c
 
 static gboolean handle_queue_move(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int old_id = 0, new_id = 0;
-    g_variant_get(variant, format, &old_id, &new_id);
+    g_variant_get(variant, format, NULL, &old_id, &new_id);
 
     COMMAND(
         mpd_run_move_id(conn, old_id, new_id),
@@ -663,7 +664,7 @@ static gboolean handle_queue_move(MooseClient * self, struct mpd_connection * co
 
 static gboolean handle_queue_move_range(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int start_pos = 0, end_pos = 1, new_pos = 0;
-    g_variant_get(variant, format, &start_pos, &end_pos, &new_pos);
+    g_variant_get(variant, format, NULL, &start_pos, &end_pos, &new_pos);
 
     COMMAND(
         mpd_run_move_range(conn, start_pos, end_pos, new_pos),
@@ -685,12 +686,11 @@ static gboolean handle_password(MooseClient * self, struct mpd_connection * conn
     const char * password = NULL;
     gboolean rc = false;
 
-    g_variant_get(variant, format, &password);
+    g_variant_get(variant, format, NULL, &password);
 
     if(password == NULL) {
         return FALSE;
     }
-
 
     COMMAND(
         rc = mpd_run_password(conn, password),
@@ -715,11 +715,11 @@ static gboolean handle_play(MooseClient * self, struct mpd_connection * conn, G_
     )
 
     return true;
-} 
+}
 
 static gboolean handle_play_id(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int id = 0;
-    g_variant_get(variant, format, &id);
+    g_variant_get(variant, format, NULL, &id);
 
     COMMAND(
         mpd_run_play_id(conn, id),
@@ -732,7 +732,7 @@ static gboolean handle_play_id(MooseClient * self, struct mpd_connection * conn,
 static gboolean handle_playlist_add(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * name = NULL, * file = NULL;
 
-    g_variant_get(variant, format, &name, &file);
+    g_variant_get(variant, format, NULL, &name, &file);
 
     if(name == NULL || file == NULL) {
         return FALSE;
@@ -749,7 +749,7 @@ static gboolean handle_playlist_add(MooseClient * self, struct mpd_connection * 
 static gboolean handle_playlist_clear(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * name = NULL;
 
-    g_variant_get(variant, format, &name);
+    g_variant_get(variant, format, NULL, &name);
 
     if(name == NULL) {
         return FALSE;
@@ -767,12 +767,11 @@ static gboolean handle_playlist_delete(MooseClient * self, struct mpd_connection
     const char * name = NULL;
     int pos = 0;
 
-    g_variant_get(variant, format, &name, &pos);
+    g_variant_get(variant, format, NULL, &name, &pos);
 
-    if(name == NULL) { 
+    if(name == NULL) {
         return FALSE;
     }
-
 
     COMMAND(
         mpd_run_playlist_delete(conn, name, pos),
@@ -785,8 +784,8 @@ static gboolean handle_playlist_delete(MooseClient * self, struct mpd_connection
 static gboolean handle_playlist_move(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * name = NULL;
     int old_pos = 0, new_pos = 1;
-    
-    g_variant_get(variant, format, &name, &old_pos, &new_pos);
+
+    g_variant_get(variant, format, NULL, &name, &old_pos, &new_pos);
 
     if(name == NULL) {
         return FALSE;
@@ -813,7 +812,7 @@ static gboolean handle_previous(MooseClient * self, struct mpd_connection * conn
 
 static gboolean handle_prio(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int prio = 0, position = 0;
-    g_variant_get(variant, format, &prio, &position);
+    g_variant_get(variant, format, NULL, &prio, &position);
 
     COMMAND(
         mpd_run_prio(conn,  prio, position),
@@ -825,7 +824,7 @@ static gboolean handle_prio(MooseClient * self, struct mpd_connection * conn, co
 
 static gboolean handle_prio_range(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int prio = 0, start_pos = 0, end_pos = 1;
-    g_variant_get(variant, format, &prio, &start_pos, &end_pos);
+    g_variant_get(variant, format, NULL, &prio, &start_pos, &end_pos);
 
     COMMAND(
         mpd_run_prio_range(conn,  prio, start_pos, end_pos),
@@ -836,9 +835,10 @@ static gboolean handle_prio_range(MooseClient * self, struct mpd_connection * co
 }
 
 static gboolean handle_prio_id(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
-    int prio = 0; int id = 0;
+    int prio = 0;
+    int id = 0;
 
-    g_variant_get(variant, format, &prio, &id);
+    g_variant_get(variant, format, NULL, &prio, &id);
 
     COMMAND(
         mpd_run_prio_id(conn,  prio, id),
@@ -851,7 +851,7 @@ static gboolean handle_prio_id(MooseClient * self, struct mpd_connection * conn,
 static gboolean handle_random(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     bool mode = FALSE;
 
-    g_variant_get(variant, format, &mode);
+    g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(
         mpd_run_random(conn, mode),
@@ -862,9 +862,9 @@ static gboolean handle_random(MooseClient * self, struct mpd_connection * conn, 
 }
 
 static gboolean handle_playlist_rename(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
-    const char * old_name = NULL; 
-    const char * new_name = NULL; 
-    g_variant_get(variant, format, &old_name, &new_name);
+    const char * old_name = NULL;
+    const char * new_name = NULL;
+    g_variant_get(variant, format, NULL, &old_name, &new_name);
 
     if(old_name == NULL || new_name == NULL) {
         return FALSE;
@@ -879,7 +879,7 @@ static gboolean handle_playlist_rename(MooseClient * self, struct mpd_connection
 
 static gboolean handle_repeat(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     bool mode = false;
-    g_variant_get(variant, format, &mode);
+    g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(
         mpd_run_repeat(conn, mode),
@@ -890,8 +890,8 @@ static gboolean handle_repeat(MooseClient * self, struct mpd_connection * conn, 
 }
 
 static gboolean handle_replay_gain_mode(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
-    const char * replay_gain_mode = NULL;  
-    g_variant_get(variant, format, &replay_gain_mode);
+    const char * replay_gain_mode = NULL;
+    g_variant_get(variant, format, NULL, &replay_gain_mode);
     if(replay_gain_mode == NULL) {
         return FALSE;
     }
@@ -908,7 +908,7 @@ static gboolean handle_replay_gain_mode(MooseClient * self, struct mpd_connectio
 
 static gboolean handle_database_rescan(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * path = NULL;
-    g_variant_get(variant, format, &path);
+    g_variant_get(variant, format, NULL, &path);
     if(path == NULL) {
         return FALSE;
     }
@@ -923,7 +923,7 @@ static gboolean handle_database_rescan(MooseClient * self, struct mpd_connection
 
 static gboolean handle_playlist_rm(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * playlist_name = NULL;
-    g_variant_get(variant, format, &playlist_name);
+    g_variant_get(variant, format, NULL, &playlist_name);
     if(playlist_name == NULL) {
         return FALSE;
     }
@@ -938,11 +938,11 @@ static gboolean handle_playlist_rm(MooseClient * self, struct mpd_connection * c
 
 static gboolean handle_playlist_save(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * as_name = NULL;
-    g_variant_get(variant, format, &as_name);
+    g_variant_get(variant, format, NULL, &as_name);
     if(as_name == NULL) {
         return FALSE;
     }
-    
+
     COMMAND(
         mpd_run_save(conn, as_name),
         mpd_send_save(conn, as_name)
@@ -954,7 +954,7 @@ static gboolean handle_playlist_save(MooseClient * self, struct mpd_connection *
 static gboolean handle_seek(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int pos = 0;
     double seconds = 0;
-    g_variant_get(variant, format, &pos, &seconds);
+    g_variant_get(variant, format, NULL, &pos, &seconds);
 
     COMMAND(
         mpd_run_seek_pos(conn, pos, seconds),
@@ -967,19 +967,19 @@ static gboolean handle_seek(MooseClient * self, struct mpd_connection * conn, co
 static gboolean handle_seek_id(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int id = 0;
     double seconds = 0;
-    g_variant_get(variant, format, &id, &seconds);
+    g_variant_get(variant, format, NULL, &id, &seconds);
 
     COMMAND(
         mpd_run_seek_id(conn, id, seconds),
         mpd_send_seek_id(conn, id, seconds)
-    ); 
+    );
 
     return true;
 }
 
 static gboolean handle_seekcur(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int seconds = 0;
-    g_variant_get(variant, format, &seconds);
+    g_variant_get(variant, format, NULL, &seconds);
 
     /* there is 'seekcur' in newer mpd versions,
      * but we can emulate it easily */
@@ -1009,7 +1009,7 @@ static gboolean handle_seekcur(MooseClient * self, struct mpd_connection * conn,
 
 static gboolean handle_setvol(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int volume = 100;
-    g_variant_get(variant, format, &volume);
+    g_variant_get(variant, format, NULL, &volume);
 
     COMMAND(
         mpd_run_set_volume(conn, volume),
@@ -1029,7 +1029,7 @@ static gboolean handle_queue_shuffle(MooseClient * self, struct mpd_connection *
 
 static gboolean handle_single(MooseClient * self, struct mpd_connection * conn, const char *format, GVariant *variant) {
     bool mode = false;
-    g_variant_get(variant, format, &mode);
+    g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(
         mpd_run_single(conn, mode),
@@ -1050,7 +1050,7 @@ static gboolean handle_stop(MooseClient * self, struct mpd_connection * conn, G_
 
 static gboolean handle_queue_swap(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int pos_a = 0, pos_b = 0;
-    g_variant_get(variant, format, &pos_a, &pos_b);
+    g_variant_get(variant, format, NULL, &pos_a, &pos_b);
 
     COMMAND(
         mpd_run_swap(conn, pos_a, pos_b),
@@ -1062,7 +1062,7 @@ static gboolean handle_queue_swap(MooseClient * self, struct mpd_connection * co
 
 static gboolean handle_queue_swap_id(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     int id_a = 0, id_b = 0;
-    g_variant_get(variant, format, &id_a, &id_b);
+    g_variant_get(variant, format, NULL, &id_a, &id_b);
 
     COMMAND(
         mpd_run_swap_id(conn, id_a, id_b),
@@ -1074,8 +1074,8 @@ static gboolean handle_queue_swap_id(MooseClient * self, struct mpd_connection *
 
 static gboolean handle_database_update(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
     const char * path = NULL;
-    g_variant_get(variant, format, &path);
-    
+    g_variant_get(variant, format, NULL, &path);
+
     if(path != NULL) {
         return FALSE;
     }
@@ -1171,7 +1171,11 @@ static gboolean moose_client_execute(
 
     /* Argument vector */
     char *command = NULL;
-    g_variant_get(variant, 0, "s", &command);
+    g_variant_get_child(variant, 0, "s", &command);
+
+    if(command == NULL) {
+        return FALSE;
+    }
 
     /* find out what handler to call */
     const MooseHandlerField * handler = moose_client_find_handler(g_strstrip(command));
@@ -1199,10 +1203,10 @@ static gboolean moose_client_execute(
 
 static char moose_client_command_list_is_start_or_end(GVariant* variant) {
     g_return_val_if_fail(variant, 0);
-    
+
     char status = 0;
     char *command = NULL;
-    g_variant_get(variant, 0, "s", &command);
+    g_variant_get_child(variant, 0, "s", &command);
 
     if(command == NULL) {
         return 0;
@@ -1256,14 +1260,12 @@ static void * moose_client_command_dispatcher(
     /* Are we in command list mode? */
     if (moose_client_command_list_is_active(self)) {
         moose_client_command_list_append(self, input);
-        if (moose_client_is_connected(self)) {
-            result = true;
-            free_input = false;
-        }
+        result = moose_client_is_connected(self);
+        free_input = false;
     } else if (moose_client_command_list_is_start_or_end(input) == +1) {
         /* Apparently not, shall we get into command list mode? */
         moose_client_command_list_begin(self);
-        result = true;
+        result = moose_client_is_connected(self);
     } else {
         /* Nope, just a normal command. */
         struct mpd_connection * conn = moose_client_get(self);
@@ -1277,7 +1279,6 @@ static void * moose_client_command_dispatcher(
     }
 
 cleanup:
-
     if (free_input) {
         /* Input was strdup'd */
         g_variant_unref(input);
@@ -1387,11 +1388,15 @@ long moose_client_send_single(MooseClient * self, const char * command_name) {
     const MooseHandlerField * handler = moose_client_find_handler(command_name);
     if(handler != NULL) {
         if(strcmp(handler->format, "(s)") != 0) {
-            moose_warning("moose_client_send_single(\"%s\") requires arguments.", command_name);
+            moose_warning(
+                "moose_client_send_single(\"%s\") requires arguments.", command_name
+            );
             return -1;
         }
 
-        return moose_client_send_variant(self, g_variant_new("(s)", command_name));
+        return moose_job_manager_send(
+            self->priv->jm, 0, g_variant_new("(s)", command_name)
+        );
     } else {
         return -1;
     }

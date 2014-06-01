@@ -284,7 +284,7 @@ MooseStatus * moose_client_ref_status(MooseClient * self);
 /**
  * moose_client_send:
  * @self: a #MooseClient
- * @command: A command to send. This includes arguments. 
+ * @command: A command to send. This includes arguments.
  *
  * Examples:
  * ('add', '/')
@@ -313,7 +313,7 @@ long moose_client_send_single(MooseClient * self, const char * command_name);
 /**
  * moose_client_send_variant:
  * @self: a #MooseClient
- * @variant: 
+ * @variant:
  *
  * Returns: A unique job-id. It can be used to wait on and fetch the result.
  */
