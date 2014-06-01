@@ -474,7 +474,6 @@ GHashTable * moose_status_outputs_get(const MooseStatus * self) {
     return ref;
 }
 
-
 int moose_status_output_lookup_id(const MooseStatus * self, const char * name) {
     g_return_val_if_fail(self, -1);
     g_return_val_if_fail(name, -1);

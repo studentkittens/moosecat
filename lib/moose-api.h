@@ -3,6 +3,7 @@
 
 /* All relevant headers are included here */
 #include "moose-config.h"
+#include "moose-debug.h"
 #include "misc/moose-misc-zeroconf.h"
 #include "mpd/moose-mpd-client.h"
 #include "store/moose-store.h"

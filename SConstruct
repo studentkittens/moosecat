@@ -137,6 +137,7 @@ def FindLibmoosecatSource():
     c_files += Glob('lib/store/moose-store-query-parser.c')
     c_files += Glob('lib/gtk/*.c')
     c_files += Glob('lib/store/libart/*.c')
+    c_files += Glob('lib/*.c')
     c_files += ['ext/sqlite/sqlite3.c']
 
     return c_files

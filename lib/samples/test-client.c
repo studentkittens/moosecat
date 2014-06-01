@@ -27,14 +27,12 @@ int main(int argc, char const * argv[]) {
     }
 
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
-    char * error = moose_client_connect(client, NULL, "localhost", 6600, 2.0);
-    if (error == NULL) {
+    bool error = moose_client_connect(client, "localhost", 6600, 20);
+    if (error == false) {
         for (int i = 0; i < 100; ++i) {
             moose_client_send(client, "pause");
             moose_client_send(client, "pause");
         }
-    } else {
-        g_printerr("Uh, cannot connect: %s\n", error);
     }
 
     GMainLoop * loop = g_main_loop_new(NULL, TRUE);

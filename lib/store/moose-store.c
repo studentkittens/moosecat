@@ -1,5 +1,6 @@
 #include "../moose-config.h"
 #include "../misc/moose-misc-gzip.h"
+#include "../misc/moose-misc-job-manager.h"
 
 #include "moose-store.h"
 #include "sqlite3.h"
@@ -810,7 +811,6 @@ GPtrArray * moose_store_get_known_playlists(MooseStore * self) {
 GPtrArray * moose_store_get_loaded_playlists(MooseStore * self) {
     return moose_store_get_playlists_impl(self, moose_stprv_spl_get_loaded_playlists);
 }
-
 
 MooseStoreCompletion * moose_store_get_completion(MooseStore * self) {
     g_assert(self);

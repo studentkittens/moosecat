@@ -38,16 +38,16 @@ typedef struct _MooseIdleClientPrivate {
     enum mpd_async_event last_io_events;
 
     /* true if currently polling for events */
-    bool is_in_idle_mode;
+    gboolean is_in_idle_mode;
 
     /* true if being in the outside world */
-    bool is_running_extern;
+    gboolean is_running_extern;
 
     /* Mutex with descriptive name */
     GMutex one_thread_only_mtx;
 
     /* Handle the incoming get/put? */
-    bool handle_getput;
+    gboolean handle_getput;
 
 } MooseIdleClientPrivate;
 
@@ -100,7 +100,7 @@ static void moose_idle_client_report_error(
     moose_critical("idle-error: %s", error_msg);
 }
 
-static bool moose_idle_client_check_and_report_async_error(MooseIdleClient * self) {
+static gboolean moose_idle_client_check_and_report_async_error(MooseIdleClient * self) {
     g_assert(self);
     enum mpd_error error = mpd_async_get_error(self->priv->async_mpd_conn);
 
@@ -140,8 +140,8 @@ static void moose_idle_client_remove_watch_kitten(MooseIdleClient * self) {
     }
 }
 
-static bool moose_idle_client_leave(MooseIdleClient * self) {
-    bool rc = true;
+static gboolean moose_idle_client_leave(MooseIdleClient * self) {
+    gboolean rc = true;
 
     if (self->priv->is_in_idle_mode == true &&
             self->priv->is_running_extern == false) {
@@ -195,7 +195,7 @@ static void moose_idle_client_dispatch_events(MooseIdleClient * self, MooseIdle 
     moose_idle_client_enter(self);
 }
 
-static bool moose_idle_client_process_received(MooseIdleClient * self) {
+static gboolean moose_idle_client_process_received(MooseIdleClient * self) {
     g_assert(self);
     char * line = NULL;
     MooseIdle event_mask = 0;
@@ -266,7 +266,7 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
 
     events = mpd_async_events(self->priv->async_mpd_conn);
 
-    bool keep_notify = FALSE;
+    gboolean keep_notify = FALSE;
     if (events == 0) {
         /* No events need to be polled - so disable the watch
          * (I've never seen this happen though.
@@ -304,8 +304,7 @@ static void moose_idle_client_reset_struct(MooseIdleClient * self) {
     self->priv->is_running_extern = FALSE;
 }
 
-static char * moose_idle_client_do_connect(MooseClient * parent, GMainContext * context, const char * host, int port, float timeout) {
-    (void)context;
+static char * moose_idle_client_do_connect(MooseClient * parent, const char * host, int port, float timeout) {
     g_assert(parent);
 
     MooseIdleClient * self = MOOSE_IDLE_CLIENT(parent);
@@ -343,11 +342,11 @@ failure:
     return g_strdup(error);
 }
 
-static bool moose_idle_client_do_is_connected(MooseClient * client) {
+static gboolean moose_idle_client_do_is_connected(MooseClient * client) {
     MooseIdleClient * self = MOOSE_IDLE_CLIENT(client);
 
     g_mutex_lock(&self->priv->one_thread_only_mtx);
-    bool result = (self && self->priv->con);
+    gboolean result = (self && self->priv->con);
     g_mutex_unlock(&self->priv->one_thread_only_mtx);
     return result;
 }
@@ -370,7 +369,7 @@ static void moose_idle_client_do_put(MooseClient * self) {
     }
 }
 
-static bool moose_idle_client_do_disconnect(MooseClient * parent) {
+static gboolean moose_idle_client_do_disconnect(MooseClient * parent) {
     if (moose_idle_client_do_is_connected(parent)) {
         MooseIdleClient * self = MOOSE_IDLE_CLIENT(parent);
 

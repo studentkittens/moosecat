@@ -129,7 +129,8 @@ static gpointer moose_job_manager_executor(gpointer data) {
             if (is_already_canceled == FALSE) {
                 void *item = NULL;
 
-                g_object_ref(jm); {
+                g_object_ref(jm);
+                {
                     g_signal_emit(
                         jm, SIGNALS[SIGNAL_DISPATCH], 0,
                         &job->cancel,

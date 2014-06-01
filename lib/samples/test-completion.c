@@ -39,7 +39,7 @@ static gboolean timeout_client_change(gpointer user_data) {
 int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[]) {
     MooseClient * self = moose_client_new(MOOSE_PROTOCOL_IDLE);
 
-    moose_client_connect(self, NULL, "localhost", 6600, 10.0);
+    moose_client_connect(self, "localhost", 6600, 10.0);
     g_signal_connect(self, "client-event", G_CALLBACK(print_event), NULL);
     g_signal_connect(self, "connectivity", G_CALLBACK(print_connectivity), NULL);
 
