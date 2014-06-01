@@ -4,6 +4,8 @@
 #include <gio/gio.h>
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <signal.h>
 
 /* You might encounter an error like:
@@ -28,7 +30,7 @@ static int moose_print_trace(void) {
     g_snprintf(pidstr, sizeof(pidstr), "%d", getpid ());
 
     gdb = g_subprocess_new(
-              G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_SILENCE,
+              G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE,
               &error,
               "/usr/bin/gdb", "-q", "-nw", "-batch", "-p", pidstr,
               "-ex", "thread apply all bt full",
@@ -48,9 +50,13 @@ static int moose_print_trace(void) {
     }
 
     unsigned char buffer[4096];
-    buffer[sizeof(buffer) - 1] = '\0';
-    while ((bytes_read = g_input_stream_read(stdout_stream, buffer, sizeof(buffer) - 2, NULL, &error)) > 0) {
-        g_printerr("%s", buffer);
+    memset(buffer, 0, sizeof(buffer));
+    while(g_input_stream_read_all(stdout_stream, buffer, sizeof(buffer) - 2, &bytes_read, NULL, &error)) {
+        if(bytes_read == 0) {
+            break;
+        }
+        buffer[bytes_read] = '\0';
+        fputs(buffer, stderr);
     }
 
     g_subprocess_wait(gdb, NULL, &error);
@@ -94,16 +100,20 @@ static void moose_signal_handler(int signum) {
 void moose_debug_install_handler(void) {
     GArray *signals = g_array_new(FALSE, FALSE, sizeof(gint));
     int signum;
-    signum = SIGUSR1; g_array_append_val(signals, signum);
-    signum = SIGSEGV; g_array_append_val(signals, signum);
-    signum = SIGABRT; g_array_append_val(signals, signum);
-    signum = SIGFPE; g_array_append_val(signals, signum);
+    signum = SIGUSR1;
+    g_array_append_val(signals, signum);
+    signum = SIGSEGV;
+    g_array_append_val(signals, signum);
+    signum = SIGABRT;
+    g_array_append_val(signals, signum);
+    signum = SIGFPE;
+    g_array_append_val(signals, signum);
     moose_debug_install_handler_full(signals);
     g_array_free(signals, TRUE);
 }
 
 void moose_debug_install_handler_full(GArray *signals) {
-    g_assert(signals); 
+    g_assert(signals);
 
     for(int i = 0; i < signals->len; ++i) {
         int signum = g_array_index(signals, gint, i);
@@ -120,7 +130,7 @@ const char * moose_debug_version(void) {
     return "libmoosecat " MOOSE_VERSION " (" MOOSE_VERSION_GIT_REVISION ")";
 }
 
-#if 0
+#if 1
 
 #include <unistd.h>
 
