@@ -24,6 +24,14 @@ void moose_debug_install_handler(void);
  *
  * Configures all signals mentioned in signals to print a backtrace once
  * they are encountered.
+ *
+ * You might encounter an error like this:
+ *
+ *   ptrace: Operation not permitted
+ *
+ * If you get this, you can disable it via:
+ *
+ *   echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
  */
 void moose_debug_install_handler_full(GArray *signals);
 

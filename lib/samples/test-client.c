@@ -30,8 +30,8 @@ int main(int argc, char const * argv[]) {
     bool error = moose_client_connect(client, "localhost", 6600, 20);
     if (error == false) {
         for (int i = 0; i < 100; ++i) {
-            moose_client_send(client, "pause");
-            moose_client_send(client, "pause");
+            moose_client_send_single(client, "pause");
+            moose_client_send_single(client, "pause");
         }
     }
 

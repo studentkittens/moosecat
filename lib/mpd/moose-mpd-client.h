@@ -284,13 +284,40 @@ MooseStatus * moose_client_ref_status(MooseClient * self);
 /**
  * moose_client_send:
  * @self: a #MooseClient
- * @command: A command to send.
+ * @command: A command to send. This includes arguments. 
+ *
+ * Examples:
+ * ('add', '/')
+ * ('crossfade', 0.1)
+ *
+ * For the exact syntax, see g_variant_parse().
+ * Invalid strings will return -1;
  *
  * TODO: write docs.
  *
  * Returns: A unique job-id. It can be used to wait on and fetch the result.
  */
 long moose_client_send(MooseClient * self, const char * command);
+
+/**
+ * moose_client_send_single:
+ * @self: a #MooseClient
+ * @command_name: A single command without any arguments.
+ *
+ * This is a shortcurt. Often used with commands like 'play', 'pause' etc.
+ *
+ * Returns: A unique job-id. It can be used to wait on and fetch the result.
+ */
+long moose_client_send_single(MooseClient * self, const char * command_name);
+
+/**
+ * moose_client_send_variant:
+ * @self: a #MooseClient
+ * @variant: 
+ *
+ * Returns: A unique job-id. It can be used to wait on and fetch the result.
+ */
+long moose_client_send_variant(MooseClient * self, GVariant * variant);
 
 /**
  * moose_client_recv:

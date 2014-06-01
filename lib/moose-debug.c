@@ -8,15 +8,6 @@
 #include <string.h>
 #include <signal.h>
 
-/* You might encounter an error like:
- *
- *   ptrace: Operation not permitted
- *
- * If you get this, you can disable it via:
- *
- *   echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
-*/
-
 static int moose_print_trace(void) {
     GError *error = NULL;
     gchar pidstr[16];
@@ -51,12 +42,12 @@ static int moose_print_trace(void) {
 
     unsigned char buffer[4096];
     memset(buffer, 0, sizeof(buffer));
-    while(g_input_stream_read_all(stdout_stream, buffer, sizeof(buffer) - 2, &bytes_read, NULL, &error)) {
+    while(g_input_stream_read_all(stdout_stream, buffer, sizeof(buffer) - 1, &bytes_read, NULL, &error)) {
         if(bytes_read == 0) {
             break;
         }
         buffer[bytes_read] = '\0';
-        fputs(buffer, stderr);
+        fputs((char *)buffer, stderr);
     }
 
     g_subprocess_wait(gdb, NULL, &error);
@@ -115,7 +106,7 @@ void moose_debug_install_handler(void) {
 void moose_debug_install_handler_full(GArray *signals) {
     g_assert(signals);
 
-    for(int i = 0; i < signals->len; ++i) {
+    for(unsigned i = 0; i < signals->len; ++i) {
         int signum = g_array_index(signals, gint, i);
 
         if(signal(signum, moose_signal_handler) != NULL) {
@@ -130,15 +121,15 @@ const char * moose_debug_version(void) {
     return "libmoosecat " MOOSE_VERSION " (" MOOSE_VERSION_GIT_REVISION ")";
 }
 
-#if 1
+#if 0
 
 #include <unistd.h>
 
-static int dummy2(void) {
+static void dummy2(void) {
     pause();
 }
 
-static int dummy1(void) {
+static void dummy1(void) {
     dummy2();
 }
 
