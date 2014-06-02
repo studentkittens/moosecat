@@ -347,6 +347,8 @@ gboolean moose_client_recv(MooseClient * self, long job_id);
  * Returns: True if the command ran succesfully.
  */
 gboolean moose_client_run(MooseClient * self, const char * command);
+gboolean moose_client_run_single(MooseClient * self, const char * command_name);
+gboolean moose_client_run_variant(MooseClient * self, GVariant * variant);
 
 /**
  * moose_client_command_list_is_active:
