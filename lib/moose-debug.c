@@ -21,7 +21,7 @@ static int moose_print_trace(void) {
     g_snprintf(pidstr, sizeof(pidstr), "%d", getpid ());
 
     gdb = g_subprocess_new(
-              G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE,
+              G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_SILENCE,
               &error,
               "/usr/bin/gdb", "-q", "-nw", "-batch", "-p", pidstr,
               "-ex", "thread apply all bt full",
@@ -70,6 +70,9 @@ cleanup:
 static void moose_signal_handler(int signum) {
     g_printerr(
         "\n\n////// BACKTRACE //////\n\n"
+        "If you see something like: \"ptrace: Operation not allowed\"\n"
+        "then issue the following command and try again:\n\n"
+        "    echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope\n\n"
     );
 
     moose_print_trace();
@@ -105,6 +108,8 @@ void moose_debug_install_handler(void) {
 
 void moose_debug_install_handler_full(GArray *signals) {
     g_assert(signals);
+
+    moose_message("This is PID %d", getpid());
 
     for(unsigned i = 0; i < signals->len; ++i) {
         int signum = g_array_index(signals, gint, i);

@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <time.h>
+#include "../moose-api.h"
 #include "../misc/moose-misc-threads.h"
 
 static MooseThreads * threads;
@@ -49,6 +50,7 @@ static void test_launch_threads(void) {
 }
 
 int main (int argc, char **argv) {
+    moose_debug_install_handler();
     g_test_init(&argc, &argv, NULL);
     g_test_add_func("/misc/threads", test_launch_threads);
     return g_test_run();

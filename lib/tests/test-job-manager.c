@@ -1,5 +1,6 @@
 #include <glib.h>
 #include "../misc/moose-misc-job-manager.h"
+#include "../moose-api.h"
 
 static gpointer _on_execute(MooseJobManager *self, volatile gboolean *cancel, void *job_data, gpointer user_data) {
     g_assert(self == user_data);
@@ -20,6 +21,7 @@ static void test_launch_job_manager(void) {
 }
 
 int main (int argc, char **argv) {
+    moose_debug_install_handler();
     g_test_init(&argc, &argv, NULL);
     g_test_add_func("/misc/job_manager", test_launch_job_manager);
     return g_test_run();

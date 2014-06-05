@@ -143,8 +143,7 @@ static void moose_idle_client_remove_watch_kitten(MooseIdleClient * self) {
 static gboolean moose_idle_client_leave(MooseIdleClient * self) {
     gboolean rc = true;
 
-    if (self->priv->is_in_idle_mode == true &&
-            self->priv->is_running_extern == false) {
+    if (self->priv->is_in_idle_mode == true && self->priv->is_running_extern == false) {
         /* Since we're sending actively, we do not want
          * to be informed about it. */
         moose_idle_client_remove_watch_kitten(self);
@@ -185,12 +184,10 @@ static void moose_idle_client_dispatch_events(MooseIdleClient * self, MooseIdle 
      * So we set this flag to indicate we're running.
      * It is resette by moose_idle_client_enter().
      * */
+    moose_client_force_sync((MooseClient *)self, events);
+
     self->priv->is_in_idle_mode = FALSE;
-    self->priv->is_running_extern = TRUE;
-    {
-        moose_client_force_sync((MooseClient *)self, events);
-    }
-    self->priv->is_running_extern = FALSE;
+
     /* reenter idle-mode (we did not leave by calling moose_idle_client_leave though!) */
     moose_idle_client_enter(self);
 }
@@ -250,8 +247,9 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
-    moose_client_get(MOOSE_CLIENT(self));
-    self->priv->is_running_extern = TRUE;
+    // self->priv->is_running_extern = TRUE;
+    // moose_client_get(MOOSE_CLIENT(self));
+    g_rec_mutex_lock(&self->parent.getput_mutex);
 
     if (mpd_async_io(self->priv->async_mpd_conn, events) == FALSE) {
         /* Failure during IO */
@@ -287,8 +285,9 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
     /* Unlock again - We're now ready to take other
      * get/puts again
      */
-    self->priv->is_running_extern = FALSE;
-    moose_client_put(MOOSE_CLIENT(self));
+    // moose_client_put(MOOSE_CLIENT(self));
+    g_rec_mutex_unlock(&self->parent.getput_mutex);
+    // self->priv->is_running_extern = FALSE;
     return keep_notify;
 }
 
@@ -385,6 +384,7 @@ static gboolean moose_idle_client_do_disconnect(MooseClient * parent) {
 
         if (self->priv->watch_source_id != 0) {
             g_source_remove(self->priv->watch_source_id);
+            self->priv->watch_source_id = 0;
         }
 
         g_io_channel_unref(self->priv->async_chan);

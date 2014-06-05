@@ -107,6 +107,8 @@ typedef struct _MooseClient {
      * May not be NULL.
      */
     gboolean (* do_is_connected)(struct _MooseClient *);
+
+    GRecMutex getput_mutex;
 } MooseClient;
 
 typedef struct _MooseClientClass {

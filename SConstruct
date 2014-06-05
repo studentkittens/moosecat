@@ -267,7 +267,7 @@ if 'LDFLAGS' in os.environ:
 
 # Needed/Adviceable flags:
 conf.env.Append(CCFLAGS=[
-    '-std=c11', '-pipe', '-fPIC', '-g', '-O1'
+    '-std=c11', '-pipe', '-fPIC', '-g'
 ])
 
 # Optional flags:
@@ -315,28 +315,29 @@ for node in Glob('lib/samples/test-*.c'):
         LIBPATH='.'
     )
 
-if 'test' in COMMAND_LINE_TARGETS:
-    def BuildTest(target, source, env):
-        subprocess.call([
-            '/usr/bin/gtester', '--verbose',
-            '-o', str(target[0]),
-            str(source[0])
-        ])
+def BuildTest(target, source, env):
+    subprocess.call([
+        '/usr/bin/gtester', '--verbose',
+        '-o', str(target[0]),
+        str(source[0])
+    ])
 
-    commands = []
+TEST_COMMANDS = []
 
-    # test_alias = Alias('test', [program], program[0].abspath)
-    for node in Glob('lib/tests/test-*.c'):
-        name = str(node).split('/')[-1]
-        if name.endswith('.c'):
-            name = name[:-2]
-        prog = env.Program(
-            name, [str(node)],
-            LIBS=env['LIBS'] + [lib, 'm', 'dl'],
-            LIBPATH='.'
-        )
+# test_alias = Alias('test', [program], program[0].abspath)
+for node in Glob('lib/tests/test-*.c'):
+    name = str(node).split('/')[-1]
+    if name.endswith('.c'):
+        name = name[:-2]
+    prog = env.Program(
+        name, [str(node)],
+        LIBS=env['LIBS'] + [lib, 'm', 'dl'],
+        LIBPATH='.'
+    )
+    if 'test' in COMMAND_LINE_TARGETS:
         command = env.Command(name + '.log', name, BuildTest)
         env.Depends(command, prog)
-        commands.append(command)
+        TEST_COMMANDS.append(command)
 
+if 'test' in COMMAND_LINE_TARGETS:
     env.AlwaysBuild(env.Alias('test', [commands]))
