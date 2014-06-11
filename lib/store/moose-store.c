@@ -199,7 +199,7 @@ static void moose_store_op_to_string(MooseStoreOperation op, char *buf, size_t b
         }
     }
 
-    for(unsigned i = 0; i < name_index, ++i) {
+    for(unsigned i = 0; i < name_index; ++i) {
         strncat(buf, names[i], buf_size);
         if(i + 1 != name_index) {
             strncat(buf, ", ", buf_size);
@@ -625,9 +625,9 @@ void * moose_store_job_execute_callback(
     }
     moose_stprv_unlock(self->priv);
 
-    char * buf[256]
+    char buf[256] = {0};
     moose_store_op_to_string(data->op, buf, sizeof(buf));
-    moose_debug("Processing done: %s", processed_ops);
+    moose_debug("Processing done: %s", buf);
 
 cleanup:
     /* Free the data pack */

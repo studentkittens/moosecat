@@ -192,7 +192,6 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
         }
     }
     self->priv->trees[tag] = tree;
-    moose_store_release(self->priv->store);
     g_object_unref(copy);
 
     return tree;

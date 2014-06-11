@@ -109,7 +109,6 @@ int main(int argc, char * argv[]) {
                                 g_print("%s\n", moose_song_get_uri(song));
                             }
                         }
-                        moose_store_release(db);
 
                         g_object_unref(stack);
                         g_strfreev(args);
@@ -166,7 +165,6 @@ int main(int argc, char * argv[]) {
                                 g_print("%s\n", (char *)moose_playlist_at(stack, i));
                             }
                         }
-                        moose_store_release(db);
 
                         g_object_unref(stack);
                         g_strfreev(args);
@@ -195,7 +193,6 @@ int main(int argc, char * argv[]) {
                 } else {
                     g_print("=> No results.\n");
                 }
-                moose_store_release(db);
             }
 
             g_object_unref(song_buf);
