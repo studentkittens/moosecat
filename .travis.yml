@@ -1,0 +1,6 @@
+language: c
+install: "apt-get install libmpdclient-dev libgtk-3-dev libavahi-glib-dev"
+compiler:
+    - clang
+    - gcc
+script: scons
