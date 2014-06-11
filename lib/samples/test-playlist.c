@@ -29,7 +29,7 @@ int main(int argc, char ** argv) {
 
     moose_store_playlist_load(store, argv[1]);
     g_timer_start(pl_timer);
-    moose_store_playlist_select_to_stack(store, songs, argv[1], argv[2]);
+    moose_store_playlist_query(store, songs, argv[1], argv[2]);
 
     g_print("Found songs: %d\n", moose_playlist_length(songs));
     g_print("Time elapsed: %2.3fs\n", g_timer_elapsed(pl_timer, NULL));

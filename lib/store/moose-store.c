@@ -181,18 +181,15 @@ static long moose_store_send_job_no_args(
  * This function is used for debugging only currently.
  *
  * @param op a bitmask of operations
- *
- * @return a newly allocated string. Free it when done with g_free
+ * @param buf: Out.
+ * @param buf_size: Guess.
  */
-static char * moose_store_op_to_string(MooseStoreOperation op) {
+static void moose_store_op_to_string(MooseStoreOperation op, char *buf, size_t buf_size) {
     g_assert(0 <= op && op <= MOOSE_OPER_ENUM_MAX);
+    g_return_if_fail(op != 0);
 
-    if (op == 0) {
-        return NULL;
-    }
-
-    unsigned name_index = 0;
-    unsigned base = (unsigned)log2(MOOSE_OPER_ENUM_MAX);
+    /* Trick: Get the index of (2 << index) via log2 */
+    unsigned name_index = 0, base = (unsigned)log2(MOOSE_OPER_ENUM_MAX);
     const char * names[base + 1];
 
     for (unsigned i = 0; i < base; ++i) {
@@ -202,7 +199,12 @@ static char * moose_store_op_to_string(MooseStoreOperation op) {
         }
     }
 
-    return g_strjoinv(", ", (char **)names);
+    for(unsigned i = 0; i < name_index, ++i) {
+        strncat(buf, names[i], buf_size);
+        if(i + 1 != name_index) {
+            strncat(buf, ", ", buf_size);
+        }
+    }
 }
 
 /**
@@ -374,7 +376,7 @@ static void moose_store_shutdown(MooseStore * self) {
     char * db_path = moose_store_construct_full_dbpath(self, priv->db_directory);
 
     if (priv->write_to_disk) {
-        moose_stprv_load_or_save(self->priv, true, db_path);
+        moose_stprv_lock_or_save(self->priv, true, db_path);
     }
 
     if (priv->settings.use_compression && moose_gzip(db_path) == false) {
@@ -434,7 +436,7 @@ static void moose_store_buildup(MooseStore * self) {
                             );
 
         /* load the old database into memory */
-        moose_stprv_load_or_save(self->priv, false, db_path);
+        moose_stprv_lock_or_save(self->priv, false, db_path);
 
         moose_store_send_job_no_args(self, MOOSE_OPER_DESERIALIZE);
     }
@@ -495,7 +497,7 @@ static void moose_store_connectivity_callback(
     if (moose_client_is_connected(client)) {
         if (server_changed) {
 
-            moose_stprv_lock_attributes(self->priv);
+            moose_stprv_lock(self->priv);
             {
                 moose_store_shutdown(self);
                 g_free(self->priv->mirrored_host);
@@ -503,7 +505,7 @@ static void moose_store_connectivity_callback(
                 self->priv->mirrored_port = moose_client_get_port(client);
                 moose_store_buildup(self);
             }
-            moose_stprv_unlock_attributes(self->priv);
+            moose_stprv_unlock(self->priv);
         } else {
             /* Important to send those two seperate (different priorities */
             moose_store_send_job_no_args(self, MOOSE_OPER_LISTALLINFO);
@@ -513,33 +515,20 @@ static void moose_store_connectivity_callback(
 }
 
 void * moose_store_job_execute_callback(
-    G_GNUC_UNUSED MooseJobManager * jm,   /* store->jm */
-    volatile gboolean * cancel_op,                   /* Check if the operation should be cancelled */
-    void * job_data,                             /* operation data */
-    void * user_data                            /* store */
+    G_GNUC_UNUSED MooseJobManager * jm,  /* store->jm */
+    volatile gboolean * cancel_op,       /* Check if the operation should be cancelled */
+    void * job_data,                     /* operation data */
+    void * user_data                     /* store */
 ) {
     void * result = NULL;
     MooseStore * self = user_data;
     MooseJobData * data = job_data;
 
     if (data->op == 0) {
-        /* Beware. The devil is here. */
         goto cleanup;
     }
 
-    /* Lock the whole Processing once. more. Why?
-     *
-     * In case of searching something from the database
-     * we return a result. This result is passed to the user of the API.
-     * When selecting for example something from the Query we just
-     * create a new stack and append pointers to songs in store->stack to it.
-     * Now during a client-update these songs could be freed at any time.
-     * (The curse of multithreaded programs)
-     *
-     * So we lock a mutex here, and let the user unlock it.
-     * What happens if the user does not unlock it? Bad things like deadlocks.
-     * */
-    moose_stprv_lock_attributes(self->priv);
+    moose_stprv_lock(self->priv);
     {
         moose_debug("Processing: %s", MooseJobNames[data->op]);
 
@@ -593,7 +582,7 @@ void * moose_store_job_execute_callback(
         }
 
         if (data->op & MOOSE_OPER_DIR_SEARCH) {
-            moose_stprv_dir_select_to_stack(
+            moose_stprv_query_directories(
                 self->priv, data->out_stack,
                 data->dir_directory, data->dir_depth
             );
@@ -613,7 +602,7 @@ void * moose_store_job_execute_callback(
                 char * full_path = moose_store_construct_full_dbpath(
                                        self, self->priv->db_directory
                                    );
-                moose_stprv_load_or_save(self->priv, true, full_path);
+                moose_stprv_lock_or_save(self->priv, true, full_path);
                 g_free(full_path);
             }
         }
@@ -623,9 +612,8 @@ void * moose_store_job_execute_callback(
             result = data->out_stack;
         }
 
-        /* If the operation includes writing stuff,
-         * we need to remember to save the database to
-         * disk */
+        /* If the operation includes writing stuff, we need to remember to save
+         * the database to disk */
         if (data->op & (0
                         | MOOSE_OPER_LISTALLINFO
                         | MOOSE_OPER_PLCHANGES
@@ -634,22 +622,12 @@ void * moose_store_job_execute_callback(
                         | MOOSE_OPER_UPDATE_META)) {
             self->priv->write_to_disk = TRUE;
         }
-
     }
-    /* ATTENTION:
-     * We only unlock if we have an operation that does not deliver a result.
-     * Otherwise the user has to unlock it himself!
-     */
-    if ((data->op & (0
-                     | MOOSE_OPER_DB_SEARCH
-                     | MOOSE_OPER_SPL_QUERY
-                     | MOOSE_OPER_DIR_SEARCH)) == 0) {
-        moose_stprv_unlock_attributes(self->priv);
-    }
+    moose_stprv_unlock(self->priv);
 
-    char * processed_ops = moose_store_op_to_string(data->op);
+    char * buf[256]
+    moose_store_op_to_string(data->op, buf, sizeof(buf));
     moose_debug("Processing done: %s", processed_ops);
-    g_free(processed_ops);
 
 cleanup:
     /* Free the data pack */
@@ -677,7 +655,7 @@ long moose_store_playlist_load(MooseStore * self, const char * playlist_name) {
     return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LOAD], data);
 }
 
-long moose_store_playlist_select_to_stack(
+long moose_store_playlist_query(
     MooseStore * self, MoosePlaylist * stack,
     const char * playlist_name, const char * match_clause) {
     g_assert(self);
@@ -694,7 +672,7 @@ long moose_store_playlist_select_to_stack(
     return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_QUERY], data);
 }
 
-long moose_store_dir_select_to_stack(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth) {
+long moose_store_query_directories(MooseStore * self, MoosePlaylist * stack, const char * directory, int depth) {
     g_assert(self);
     g_assert(stack);
 
@@ -718,7 +696,7 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
     return moose_job_manager_send(self->priv->jm, MooseJobPrios[MOOSE_OPER_SPL_LIST_ALL], data);
 }
 
-long moose_store_search_to_stack(
+long moose_store_query(
     MooseStore * self, const char * match_clause,
     bool queue_only, MoosePlaylist * stack, int limit_len
 ) {
@@ -752,7 +730,7 @@ MoosePlaylist * moose_store_gw(MooseStore * self, int job_id) {
 
 void moose_store_release(MooseStore * self) {
     g_assert(self);
-    moose_stprv_unlock_attributes(self->priv);
+    moose_stprv_unlock(self->priv);
 }
 
 MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_id) {
@@ -781,7 +759,7 @@ static GPtrArray * moose_store_get_playlists_impl(
 
     GPtrArray *stack = g_ptr_array_new();
     GPtrArray *result = g_ptr_array_new_full(5, g_free);
-    moose_stprv_lock_attributes(self->priv);
+    moose_stprv_lock(self->priv);
     {
         func(self->priv, stack);
         for(unsigned i = 0; i < stack->len; ++i) {
@@ -793,7 +771,7 @@ static GPtrArray * moose_store_get_playlists_impl(
             }
         }
     }
-    moose_stprv_unlock_attributes(self->priv);
+    moose_stprv_unlock(self->priv);
 
     return result;
 }
@@ -876,14 +854,14 @@ static void moose_store_finalize(GObject * gobject) {
         self->priv->client, moose_store_connectivity_callback, self
     );
 
-    moose_stprv_lock_attributes(self->priv);
+    moose_stprv_lock(self->priv);
 
     /* Close the job pool (still finishes current operation) */
     moose_job_manager_unref(self->priv->jm);
 
     moose_store_shutdown(self);
 
-    moose_stprv_unlock_attributes(self->priv);
+    moose_stprv_unlock(self->priv);
     g_mutex_clear(&self->priv->attr_set_mtx);
     g_mutex_clear(&self->priv->mirrored_mtx);
 

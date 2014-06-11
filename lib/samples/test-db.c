@@ -97,7 +97,7 @@ int main(int argc, char * argv[]) {
 
                     if (args != NULL) {
                         MoosePlaylist * stack = moose_playlist_new();
-                        moose_store_gw(db, moose_store_playlist_select_to_stack(db, stack, args[1], args[2]));
+                        moose_store_gw(db, moose_store_playlist_query(db, stack, args[1], args[2]));
                         g_print("%s %s\n", args[1], args[2]);
 
                         int found = moose_playlist_length(stack);
@@ -156,7 +156,7 @@ int main(int argc, char * argv[]) {
                         char * query = (*args[1] == '_') ? NULL : args[1];
                         MoosePlaylist * stack = moose_playlist_new_full(100, g_free);
                         int depth = (args[2]) ? g_ascii_strtoll(args[2], NULL, 10) : -1;
-                        moose_store_gw(db, moose_store_dir_select_to_stack(db, stack, query, depth));
+                        moose_store_gw(db, moose_store_query_directories(db, stack, query, depth));
 
                         int found = moose_playlist_length(stack);
                         if (found == 0) {
@@ -176,7 +176,7 @@ int main(int argc, char * argv[]) {
                 }
 
                 moose_playlist_clear(song_buf);
-                moose_store_gw(db, moose_store_search_to_stack(db, line_buf, queue_only, song_buf, song_buf_size));
+                moose_store_gw(db, moose_store_query(db, line_buf, queue_only, song_buf, song_buf_size));
 
                 int selected = moose_playlist_length(song_buf);
                 if (selected > 0) {

@@ -45,7 +45,7 @@ static void update_view(EntryTag * tag, const char * search_text) {
     char * query = moose_store_qp_parse(search_text, NULL, NULL);
     parse_time = g_timer_elapsed(parse_timer, NULL);
 
-    moose_store_gw(tag->store, moose_store_search_to_stack(tag->store, query, true, tag->song_buf, -1));
+    moose_store_gw(tag->store, moose_store_query(tag->store, query, true, tag->song_buf, -1));
 
     int found = moose_playlist_length(tag->song_buf);
 

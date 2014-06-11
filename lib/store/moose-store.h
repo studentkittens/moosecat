@@ -120,7 +120,7 @@ long moose_store_playlist_load(MooseStore * self, const char * playlist_name);
  *
  * @return a job id
  */
-long moose_store_playlist_select_to_stack(
+long moose_store_playlist_query(
     MooseStore * self, MoosePlaylist * stack,
     const char * playlist_name, const char * match_clause);
 
@@ -134,32 +134,9 @@ long moose_store_playlist_select_to_stack(
  *
  * @return a job id
  */
-long moose_store_dir_select_to_stack(
+long moose_store_query_directories(
     MooseStore * self, MoosePlaylist * stack,
     const char * directory, int depth);
-
-/**
- * @brief return a stack of the loaded playlists. Not the actually ones there.
- *
- * @param self the store to operate on.
- * @param stack a stack of mpd_playlists. DO NOT FREE CONTENT!
- *
- * @return a job id
- */
-long moose_store_playlist_get_all_loaded(MooseStore * self, MoosePlaylist * stack);
-
-/**
- * @brief Returns a stack with mpd_playlists of all KNOWN playlists (not loaded)
- *
- * Only free the stack with g_object_unref(). Not the playlists!
- *
- *
- * @param self the store to operate on
- * @param stack a stack to store the playlists in.
- *
- * @return a job id
- */
-long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack);
 
 /**
  * @brief search the Queue or the whole Database.
@@ -176,19 +153,18 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
  * Example:
  *
  *      MoosePlaylist * stack = moose_playlist_new();
- *      int job_id = moose_store_search_to_stack(store, "artist:Akrea", true, stack, -1);
+ *      int job_id = moose_store_query(store, "artist:Akrea", true, stack, -1);
  *      // You can other things than waiting here.
  *      moose_store_wait_for_job(store, job_id);
  *      moose_store_lock(store);
  *      for(int i = 0; i < moose_playlist_length(stack); ++i) {
  *          printf("%s\n", moose_song_tag(moose_playlist_at(i), MPD_TAG_TITLE, 0));
  *      }
- *      moose_store_unlock(store);
  *
  *
  * @return a Job id
  */
-long moose_store_search_to_stack(
+long moose_store_query(
     MooseStore * self, const char * match_clause,
     bool queue_only, MoosePlaylist * stack, int limit_len);
 
@@ -238,23 +214,12 @@ MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
 MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
 
 /**
- * @brief Tells store that you done using a ressource.
- *
- *
- * Bad things will happen if you don't release the ressources.
- * libmoosecat will likely deadlock.
- *
- * @param self the store you had the ressources from
- */
-void moose_store_release(MooseStore * self);
-
-/**
  * @brief Find a song by it's ID in the database.
  *
  * This is often used and therefore implemented for convienience/speed in C.
  * Note: This has linear complexity since it needs to scan the whole list.
- *
- * You need to call moose_store_release() after done using the song.
+ *  
+ * TODO: Can this be more efficient?
  *
  * @param self the Store to search on.
  * @param needle_song_id

@@ -168,7 +168,7 @@ static art_tree * moose_store_completion_create_index(MooseStoreCompletion * sel
 
     MoosePlaylist * copy = moose_playlist_new();
     moose_store_gw(self->priv->store,
-                   moose_store_search_to_stack(
+                   moose_store_query(
                        self->priv->store, "*", FALSE, copy, -1
                    )
                   );

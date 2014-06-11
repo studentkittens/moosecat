@@ -65,7 +65,7 @@ void moose_stprv_delete_songs_table(MooseStorePrivate * self);
  *
  * @returns 0 on success, an SQLITE errcode otherwise.
  */
-void moose_stprv_load_or_save(MooseStorePrivate * self, bool is_save, const char * db_path);
+void moose_stprv_lock_or_save(MooseStorePrivate * self, bool is_save, const char * db_path);
 
 /**
  * @brief Load songs from previously saved database into stack.
@@ -145,12 +145,12 @@ void moose_stprv_close_handle(MooseStorePrivate * self, bool free_statements);
 /**
  * @brief Lock self->stack and self->spl.stack for change
  */
-void moose_stprv_lock_attributes(MooseStorePrivate * self);
+void moose_stprv_lock(MooseStorePrivate * self);
 
 /**
- * @brief Unlock previous lock by moose_stprv_lock_attributes()
+ * @brief Unlock previous lock by moose_stprv_lock()
  */
-void moose_stprv_unlock_attributes(MooseStorePrivate * self);
+void moose_stprv_unlock(MooseStorePrivate * self);
 
 /* @brief Count the 'depth' of a path.
  * @param dir_path the path to count
@@ -194,7 +194,7 @@ void moose_stprv_dir_delete(MooseStorePrivate * self);
  *
  * @return number of matches
  */
-int moose_stprv_dir_select_to_stack(MooseStorePrivate * self, MoosePlaylist * stack, const char * directory, int depth);
+int moose_stprv_query_directories(MooseStorePrivate * self, MoosePlaylist * stack, const char * directory, int depth);
 
 /**
  * @brief Compile all SQL statements
@@ -567,13 +567,13 @@ static const char * _sql_stmts[] = {
     ""
 };
 
-void moose_stprv_lock_attributes(MooseStorePrivate * self) {
+void moose_stprv_lock(MooseStorePrivate * self) {
     g_assert(self);
 
     g_mutex_lock(&self->attr_set_mtx);
 }
 
-void moose_stprv_unlock_attributes(MooseStorePrivate * self) {
+void moose_stprv_unlock(MooseStorePrivate * self) {
     g_assert(self);
 
     g_mutex_unlock(&self->attr_set_mtx);
@@ -1067,7 +1067,7 @@ int moose_stprv_select_to_stack(MooseStorePrivate * self, const char * match_cla
  ** If the operation is successful, SQLITE_OK is returned. Otherwise, if
  ** an error occurs, an SQLite error code is returned.
  */
-void moose_stprv_load_or_save(MooseStorePrivate * self, bool is_save, const char * db_path) {
+void moose_stprv_lock_or_save(MooseStorePrivate * self, bool is_save, const char * db_path) {
     sqlite3 * pFile;           /* Database connection opened on zFilename */
     sqlite3_backup * pBackup;  /* Backup object used to copy data */
     sqlite3 * pTo;             /* Database to copy to (pFile or pInMemory) */
@@ -1384,7 +1384,7 @@ void moose_stprv_dir_delete(MooseStorePrivate * self) {
     sqlite3_reset(SQL_STMT(self, DIR_DELETE_ALL));
 }
 
-int moose_stprv_dir_select_to_stack(MooseStorePrivate * self, MoosePlaylist * stack, const char * directory, int depth) {
+int moose_stprv_query_directories(MooseStorePrivate * self, MoosePlaylist * stack, const char * directory, int depth) {
     g_assert(self);
     g_assert(stack);
     int returned = 0;
