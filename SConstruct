@@ -239,8 +239,8 @@ DEPS = {
     'libmpdclient >= 2.3': 'libmpdclient',
     'avahi-glib >= 0.6.30': 'avahi_glib',
     'avahi-client': 'avahi_client',
-    'zlib': 'zlib',
-    'python3 >= 3.2': 'python3'
+    'zlib': 'zlib'
+    # 'python3 >= 3.2': 'python3'
 }
 
 for pkg, name in DEPS.items():
