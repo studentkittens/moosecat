@@ -116,7 +116,8 @@ def BuildConfigTemplate(target, source, env):
     with codecs.open(str(target[0]), 'w') as handle:
         handle.write(text.format(
             HAVE_GLIB=conf.env['glib'],
-            HAVE_GTK3=conf.env['gtk'],
+            HAVE_GTK3=0,
+            # HAVE_GTK3=conf.env['gtk'],
             HAVE_ZLIB=conf.env['zlib'],
             HAVE_AVAHI_GLIB=conf.env['avahi_glib'],
             VERSION_MAJOR=0,
@@ -235,6 +236,8 @@ conf.CheckPKGConfig('0.15.0')
 # Pkg-config to internal name
 DEPS = {
     'glib-2.0 >= 2.32': 'glib',
+    'gobject-2.0': 'gobject',
+    'gio-2.0': 'gio',
     'gtk+-3.0': 'gtk',
     'libmpdclient >= 2.3': 'libmpdclient',
     'avahi-glib >= 0.6.30': 'avahi_glib',
@@ -315,6 +318,7 @@ for node in Glob('lib/samples/test-*.c'):
         LIBPATH='.'
     )
 
+
 def BuildTest(target, source, env):
     subprocess.call([
         '/usr/bin/gtester', '--verbose',
@@ -323,6 +327,7 @@ def BuildTest(target, source, env):
     ])
 
 TEST_COMMANDS = []
+TEST_PROGRAMS = []
 
 # test_alias = Alias('test', [program], program[0].abspath)
 for node in Glob('lib/tests/test-*.c'):
@@ -334,10 +339,16 @@ for node in Glob('lib/tests/test-*.c'):
         LIBS=env['LIBS'] + [lib, 'm', 'dl'],
         LIBPATH='.'
     )
+    TEST_PROGRAMS.append(prog)
+
     if 'test' in COMMAND_LINE_TARGETS:
         command = env.Command(name + '.log', name, BuildTest)
         env.Depends(command, prog)
         TEST_COMMANDS.append(command)
 
+if 'build-test' in COMMAND_LINE_TARGETS:
+    env.AlwaysBuild(env.Alias('build-test', [TEST_PROGRAMS]))
+
 if 'test' in COMMAND_LINE_TARGETS:
-    env.AlwaysBuild(env.Alias('test', [commands]))
+    env.AlwaysBuild(env.Alias('test', [TEST_COMMANDS]))
+

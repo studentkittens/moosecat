@@ -257,6 +257,14 @@ gboolean moose_client_connect(
         self->priv->jm, "dispatch", G_CALLBACK(moose_client_command_dispatcher), self
     );
 
+    g_rec_mutex_lock(&self->priv->client_attr_mutex); {
+        self->priv->timeout = timeout;
+        self->priv->port = port;
+        self->priv->host = g_strdup(host);
+    }
+    g_rec_mutex_unlock(&self->priv->client_attr_mutex);
+
+
     moose_message("Attempting to connect…");
 
     /* Actual implementation of the connection in respective protcolmachine */
@@ -380,7 +388,7 @@ char * moose_client_get_host(MooseClient * self) {
 }
 
 unsigned moose_client_get_port(MooseClient * self) {
-    unsigned port = 0;
+    unsigned port = 6600;
     if(moose_client_is_connected(self)) {
         g_object_get(G_OBJECT(self), "port", &port, NULL);
     }
@@ -388,7 +396,7 @@ unsigned moose_client_get_port(MooseClient * self) {
 }
 
 float moose_client_get_timeout(MooseClient * self) {
-    float timeout = 0;
+    float timeout = 20;
     if(moose_client_is_connected(self)) {
         g_object_get(G_OBJECT(self), "timeout", &timeout, NULL);
     }
@@ -1984,7 +1992,7 @@ static void moose_client_class_init(MooseClientClass * klass) {
                 "Max. amount of time to wait (in seconds) before cancelling the operation",
                 1,    /* Minimum value */
                 100,  /* Maximum value */
-                10,   /* Default value */
+                20,   /* Default value */
                 G_PARAM_READWRITE
             );
 
