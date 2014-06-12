@@ -235,9 +235,9 @@ conf.CheckPKGConfig('0.15.0')
 # Pkg-config to internal name
 DEPS = {
     'glib-2.0 >= 2.32': 'glib',
-    'gtk+-3.0 >= 3.1.2': 'gtk',
-    'libmpdclient >= 2.9': 'libmpdclient',
-    'avahi-glib >= 0.6.31': 'avahi_glib',
+    'gtk+-3.0': 'gtk',
+    'libmpdclient >= 2.3': 'libmpdclient',
+    'avahi-glib >= 0.6.30': 'avahi_glib',
     'avahi-client': 'avahi_client',
     'zlib': 'zlib',
     'python3 >= 3.2': 'python3'
