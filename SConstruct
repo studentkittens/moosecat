@@ -240,7 +240,7 @@ DEPS = {
     'avahi-glib >= 0.6.30': 'avahi_glib',
     'avahi-client': 'avahi_client',
     'zlib': 'zlib',
-    'python3 >= 3.0': 'python3'
+    'python3 >= 3.2': 'python3'
 }
 
 for pkg, name in DEPS.items():
