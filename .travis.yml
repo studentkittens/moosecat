@@ -1,5 +1,5 @@
 language: c
-install: "sudo apt-get install libmpdclient-dev libgtk-3-dev libavahi-glib-dev"
+install: "sudo apt-get install libmpdclient-dev libgtk-3-dev libavahi-glib-dev libavahi-client-dev"
 compiler:
     - clang
     - gcc
