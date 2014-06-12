@@ -102,6 +102,8 @@ void moose_debug_install_handler(void) {
     g_array_append_val(signals, signum);
     signum = SIGFPE;
     g_array_append_val(signals, signum);
+    signum = SIGTRAP;
+    g_array_append_val(signals, signum);
     moose_debug_install_handler_full(signals);
     g_array_free(signals, TRUE);
 }

@@ -535,7 +535,7 @@ static gboolean handle_queue_clear(MooseClient * self, struct mpd_connection * c
 }
 
 static gboolean handle_consume(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
-    bool mode = false;
+    gboolean mode = false;
     g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(
@@ -595,14 +595,15 @@ static gboolean handle_queue_delete_range(MooseClient * self, struct mpd_connect
 }
 
 static gboolean handle_output_switch(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {
-    const char * output_name = NULL;
-    bool mode = true;
+
+    char * output_name = NULL;
+    gboolean mode = true;
     int output_id;
+    gboolean result = false;
 
     g_variant_get(variant, format, NULL, &output_name, &mode);
 
-    MooseStatus * status = moose_client_ref_status(self);
-    {
+    MooseStatus * status = moose_client_ref_status(self); {
         output_id =  moose_status_output_lookup_id(status, output_name);
     }
     moose_status_unref(status);
@@ -619,10 +620,14 @@ static gboolean handle_output_switch(MooseClient * self, struct mpd_connection *
                 mpd_send_disable_output(conn, output_id)
             );
         }
-        return true;
+        result = true;
     } else {
-        return false;
+        moose_warning("switch-output: Cannot find name for '%s'", output_name);
+        result = false;
     }
+
+    g_free(output_name);
+    return result;
 }
 
 static gboolean handle_playlist_load(MooseClient * self, struct mpd_connection * conn, const char * format, GVariant * variant) {

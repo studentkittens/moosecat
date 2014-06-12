@@ -433,8 +433,8 @@ void moose_status_outputs_clear(const MooseStatus * self) {
             g_hash_table_unref(outputs);
             self->priv->outputs = g_hash_table_new_full(
                                       g_str_hash,
-                                      g_direct_equal,
-                                      NULL,
+                                      g_str_equal,
+                                      g_free,
                                       (GDestroyNotify)g_variant_unref
                                   );
         }
@@ -450,7 +450,7 @@ void moose_status_outputs_add(const MooseStatus * self, struct mpd_output * outp
     {
         g_hash_table_insert(
             self->priv->outputs,
-            (gpointer)mpd_output_get_name(output),
+            (gpointer)g_strdup(mpd_output_get_name(output)),
             g_variant_new(
                 "(sib)",
                 mpd_output_get_name(output),
