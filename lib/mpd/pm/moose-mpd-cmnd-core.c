@@ -250,9 +250,7 @@ static gpointer moose_cmd_client_ping_server(MooseCmdClient * self) {
      * on server-side.
      *
      * The ping-thread only exists to work solely against this purpose. */
-    int timeout_ms = 0;
-    g_object_get(self, "timeout", &timeout_ms, NULL);
-    timeout_ms = MIN(MAX(2000, timeout_ms), 20 * 1000);
+    int timeout_ms = MIN(MAX(2000, moose_client_get_timeout(MOOSE_CLIENT(self))), 20 * 1000);
 
     while (moose_cmd_client_get_run_pinger(self)) {
         moose_cmd_client_sleep_grained(self, timeout_ms / 2, PING_SLEEP_TIMEOUT);
