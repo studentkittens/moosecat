@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../moose-config.h"
 #include "moose-misc-gzip.h"
 
 #define CHUNK_SIZE (2 << 14)  /* 32KB */
@@ -29,7 +30,7 @@ static gboolean transform(const char * src, const char * dst, gboolean compress)
 
     src_stream = G_INPUT_STREAM(g_file_read(src_file, NULL, &error));
     if (src_stream == NULL) {
-        g_printerr("Cannot create input stream: %s\n", error->message);
+        moose_warning("Cannot create input stream: %s\n", error->message);
         g_error_free(error);
         result = FALSE;
         goto free_all;
@@ -42,7 +43,7 @@ static gboolean transform(const char * src, const char * dst, gboolean compress)
                                  ));
 
     if (dst_stream == NULL) {
-        g_printerr("Cannot create output stream: %s\n", error->message);
+        moose_warning("Cannot create output stream: %s\n", error->message);
         g_error_free(error);
         result = FALSE;
         goto free_all;
@@ -74,7 +75,7 @@ static gboolean transform(const char * src, const char * dst, gboolean compress)
     while ((bytes_read = g_input_stream_read(source, buffer, CHUNK_SIZE, NULL, &error)) > 0) {
         g_output_stream_write(sink, buffer, bytes_read, NULL, &error);
         if (error != NULL) {
-            g_printerr("Error during writing: %s\n", error->message);
+            moose_warning("Error during writing: %s\n", error->message);
             g_error_free(error);
             error = NULL;
             result = FALSE;
@@ -134,19 +135,19 @@ gboolean moose_gunzip(const char * file_path) {
 
 int main(int argc, char const * argv[]) {
     if (argc < 3) {
-        g_printerr("Usage:\n");
-        g_printerr("  %s compress <file>\n", argv[0]);
-        g_printerr("  %s decompress <file>\n", argv[0]);
+        moose_message("Usage:\n");
+        moose_message("  %s compress <file>\n", argv[0]);
+        moose_message("  %s decompress <file>\n", argv[0]);
         return -1;
     }
 
     if (!strcmp(argv[1], "compress")) {
         if (moose_gzip(argv[2]) == FALSE) {
-            g_printerr("Nope.\n");
+            moose_message("Nope.\n");
         }
     } else if (!strcmp(argv[1], "decompress")) {
         if (moose_gunzip(argv[2]) == FALSE) {
-            g_printerr("Nope.\n");
+            moose_message("Nope.\n");
         }
     }
 

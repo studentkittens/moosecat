@@ -68,7 +68,7 @@ cleanup:
 }
 
 static void moose_signal_handler(int signum) {
-    g_printerr(
+    moose_critical(
         "\n\n////// BACKTRACE //////\n\n"
         "If you see something like: \"ptrace: Operation not allowed\"\n"
         "then issue the following command and try again:\n\n"
@@ -77,7 +77,7 @@ static void moose_signal_handler(int signum) {
 
     moose_print_trace();
 
-    g_printerr(
+    moose_critical(
         "\n\n////// INFORMATION //////\n\n"
         "libmoosecat (%s) received a signal that caused a backtrace to be printed.\n"
         "If you did not trigger this willfully, then this probably means that\n"
@@ -140,7 +140,7 @@ static void dummy1(void) {
 
 int main () {
     moose_debug_install_handler();
-    g_printerr("Run: kill -USR1 %d\n", getpid());
+    moose_message("Run: kill -USR1 %d\n", getpid());
     dummy1();
     return EXIT_SUCCESS;
 }
