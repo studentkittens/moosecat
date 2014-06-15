@@ -60,8 +60,8 @@ MooseThreads * moose_threads_new(int max_threads);
  * @self: a #MooseThreads
  * @data: An arbitary pointer. No ownership is taken.
  *
- * Push some data to a thread pool. A thread is started and the 
- * data is delivered to it. Use the 'thread' signal to connect to it 
+ * Push some data to a thread pool. A thread is started and the
+ * data is delivered to it. Use the 'thread' signal to connect to it
  * and to pass aditional per-signal user-data.
  */
 void moose_threads_push(MooseThreads * self, void * data);
@@ -70,8 +70,8 @@ void moose_threads_push(MooseThreads * self, void * data);
  * moose_threads_forward:
  * @self: a #MooseThreads
  * @result: An arbitary pointer. No ownership is taken.
- * 
- * Forward results to the main-thread. You're supposed to call this 
+ *
+ * Forward results to the main-thread. You're supposed to call this
  * function from a thread. Once the result arrives on the main-thread,
  * the 'dispatch' signal is called.
  */

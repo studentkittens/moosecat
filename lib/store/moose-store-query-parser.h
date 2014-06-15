@@ -61,7 +61,7 @@ G_BEGIN_DECLS
  * @warning: (out): If input is invalid a warning is placed (still a result is returned)
  * @warning_pos: (out): If warning is filled, the position inside the string is written in here.
  *
- * Parses a MooseQuerty into a valid FTS-Query. If the compilation fails, 
+ * Parses a MooseQuerty into a valid FTS-Query. If the compilation fails,
  * @warning and @warning_pos are filled appropiately. All Store functions
  * use this function implicitly. You can use this function to validate the
  * query without executing it.
@@ -76,7 +76,7 @@ char * moose_store_qp_parse(const char * query, const char ** warning, int * war
  * @len: The length of the tag.
  *
  * Tags may be abbreviated to save time. This function gives you the full
- * version. "artist:" may be written as "a:". 
+ * version. "artist:" may be written as "a:".
  *
  * Returns: (transfer none): The full tag-name
  */
@@ -85,8 +85,8 @@ const char * moose_store_qp_tag_abbrev_to_full(const char * token, size_t len);
 /**
  * moose_store_qp_is_valid_tag:
  * @tag: A tag-name.
- * @len: length of the tag. 
- * 
+ * @len: length of the tag.
+ *
  * Also works for abbreviated tags.
  *
  * Returns: True if it is an valid tag.

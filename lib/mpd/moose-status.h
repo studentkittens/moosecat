@@ -134,7 +134,7 @@ bool moose_status_get_consume(const MooseStatus * status);
  * moose_status_get_queue_length:
  * @self: a #MooseStatus
  *
- * Returns: The amount of songs that are in the Queue 
+ * Returns: The amount of songs that are in the Queue
  */
 unsigned moose_status_get_queue_length(const MooseStatus * status);
 
@@ -142,7 +142,7 @@ unsigned moose_status_get_queue_length(const MooseStatus * status);
  * moose_status_get_queue_version:
  * @self: a #MooseStatus
  *
- * A version that indicates changes in the queue. The integer is 
+ * A version that indicates changes in the queue. The integer is
  * incremented on every change.
  *
  * Returns: The Queue version.
@@ -248,7 +248,7 @@ unsigned moose_status_get_total_time(const MooseStatus * status);
  * Note: Normally the kbit rate will only update only on every relevant event.
  * Therefore this won't give correct results for dynamically encoded audio
  * always.  If you want real-time updates, you gonna have to use
- * moose_client_timer_set_active() 
+ * moose_client_timer_set_active()
  *
  * Returns: The kbit-rate of the currenlty playing song.
  */
@@ -281,7 +281,7 @@ unsigned moose_status_get_update_id(const MooseStatus * status);
  * moose_status_get_audio_sample_rate:
  * @self: a #MooseStatus
  *
- * Returns: The sample rate of the currenty playing audio (like 44000) or 0 
+ * Returns: The sample rate of the currenty playing audio (like 44000) or 0
  */
 uint32_t moose_status_get_audio_sample_rate(const MooseStatus * self);
 
@@ -297,7 +297,7 @@ uint8_t moose_status_get_audio_bits(const MooseStatus * self);
  * moose_status_get_audio_channels:
  * @self: a #MooseStatus
  *
- * Note: In most cases this will return 2. 
+ * Note: In most cases this will return 2.
  *
  * Returns: The number of audio channels the current song has or 0
  */
@@ -362,7 +362,7 @@ unsigned long moose_status_stats_get_db_play_time(const MooseStatus * self);
 /**
  * moose_status_get_replay_gain_mode:
  * @self: a #MooseStatus
- * 
+ *
  * Might be one of "off", "album", "artist"
  *
  * Returns: (transfer none): The replay gain mode.
@@ -372,7 +372,7 @@ const char * moose_status_get_replay_gain_mode(const MooseStatus * self);
 /**
  * moose_status_get_current_song:
  * @self: a #MooseStatus
- * 
+ *
  * Returns a  #MooseSong. A ref is taken, use g_object_unref() when done.
  *
  * Returns: a reffed #MooseSong
@@ -382,8 +382,8 @@ MooseSong * moose_status_get_current_song(const MooseStatus * self);
 /**
  * moose_status_outputs_get:
  * @self: a #MooseStatus
- * 
- * Returns a reffed #GHashTable, which maps output names to 
+ *
+ * Returns a reffed #GHashTable, which maps output names to
  * a #GVariant of the output-name, the output-id and an boolean, indicating
  * if the output is enabled. The format string you can use to unpack this
  * #GVariant is "(sib)". A ref was taken with g_hash_table_ref(), use
@@ -393,14 +393,14 @@ MooseSong * moose_status_get_current_song(const MooseStatus * self);
  *
  * moose_client_send(client, "('output-switch', 'name of the output', TRUE)");
  *
- * Returns: (type (s(sib))): a reffed #GHashTable 
+ * Returns: (type (s(sib))): a reffed #GHashTable
  */
 GHashTable * moose_status_outputs_get(const MooseStatus * self);
 
-/** 
+/**
  * moose_status_output_lookup_id: skip:
  * @self: a #MooseStatus
- * 
+ *
  * This is used internally.
  *
  * Returns: The Output-ID of the specified song or -1

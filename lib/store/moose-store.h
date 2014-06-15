@@ -39,8 +39,8 @@ typedef struct _MooseStoreClass {
 /**
  * moose_store_new:
  * @client: The client that is used to retrieve the database.
- * 
- * Creates  a new Store with default options. 
+ *
+ * Creates  a new Store with default options.
  * See moose_store_new_full().
  *
  * Returns: A newly allocated store with a refcount of 1.
@@ -54,17 +54,17 @@ MooseStore *moose_store_new(MooseClient *client);
  * @tokenizer: (allow-none): Tokenizer to use or NULL.
  * @use_memory_db: Cache the database in memory
  * @use_compression: Compress the database using gzip when writing on disk.
- * 
+ *
  * The database will be named db_directory/moosecat_${host}:${port}.zip
  * The .zip ending is only used when @use_compression is True.
  *
  * Available tokenizers are: "simple", "porter", "icu". "porter" is the default.
  *
  * If @use_memory_db is True, then the whole database is cached in memory.  This
- * obviously uses a bit more Heapstorage, but allows a little faster lookups. 
+ * obviously uses a bit more Heapstorage, but allows a little faster lookups.
  * The database will be backupped to disk on the appropiate times.
- * 
- * Creates  a new Store with default options. 
+ *
+ * Creates  a new Store with default options.
  *
  * Returns: A newly allocated store with a refcount of 1.
  */
@@ -78,10 +78,10 @@ MooseStore *moose_store_new_full(
 
 /**
  * moose_store_unref:
- * @self: (allow-none): a #MoseStore 
+ * @self: (allow-none): a #MoseStore
  *
  * Decrements the reference count of a #MooseStore.
- */ 
+ */
 void moose_store_unref(MooseStore *self);
 
 /**
@@ -218,7 +218,7 @@ MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
  *
  * This is often used and therefore implemented for convienience/speed in C.
  * Note: This has linear complexity since it needs to scan the whole list.
- *  
+ *
  * TODO: Can this be more efficient?
  *
  * @param self the Store to search on.

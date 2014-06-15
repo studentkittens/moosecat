@@ -24,7 +24,7 @@ static void event_cb(
     while (g_hash_table_iter_next(&iter, (gpointer *)&name, (gpointer *)&output)) {
         int output_id;
         char * same_as_name;
-        gboolean new_state; 
+        gboolean new_state;
 
         g_variant_get(output, "(sib)", &same_as_name, &output_id, &new_state);
         moose_message("(#%d) %s: %s", output_id, name, new_state ? "Yes" : "No");
@@ -32,7 +32,7 @@ static void event_cb(
         g_assert_cmpstr(name, ==, same_as_name);
         if(COUNTER != 0) {
             g_assert(new_state != STATE);
-        } 
+        }
 
         g_assert(output_id == 0);
         g_assert_cmpstr(name, ==, "YouHopefullyDontUseThisDoYou");
@@ -46,11 +46,11 @@ static void event_cb(
 
     if(COUNTER == 0) {
         g_assert(events == (MooseIdle)INT_MAX);
-        
+
         moose_message("Switching output %s.", !STATE ? "On" : "Off");
         GVariant * variant = g_variant_new(
-            "(ssb)", "output-switch", "YouHopefullyDontUseThisDoYou", !STATE 
-        );
+                                 "(ssb)", "output-switch", "YouHopefullyDontUseThisDoYou", !STATE
+                             );
         moose_client_send_variant(client, variant);
         g_variant_unref(variant);
     } else {

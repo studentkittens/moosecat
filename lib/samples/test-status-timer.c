@@ -1,35 +1,78 @@
 #include "../moose-api.h"
 
-static void signal_event(
+static int COUNTER = 0;
+static GMainLoop * LOOP = NULL;
+static GTimer * TIMER = NULL;
+
+#define TIMEOUT 0.1
+
+static void event_cb(
     MooseClient * client,
     MooseIdle event,
-    void * user_data) {
-    g_printerr("event = %d\n", event);
-    MooseStatus * status = moose_client_ref_status(client);
-    g_printerr("State: %d\n", moose_status_get_state(status));
-    moose_status_unref(status);
-    g_printerr("Unlocked.\n");
+    G_GNUC_UNUSED void * user_data) {
 
-    static int counter = 0;
-    if (++counter == 15) {
-        g_main_loop_quit((GMainLoop *)user_data);
+    if(event & MOOSE_IDLE_STATUS_TIMER_FLAG) {
+        COUNTER++;
+    }
+
+    g_printerr("#%02d event = %d\n", COUNTER, event);
+
+    if (COUNTER == 20) {
+        g_main_loop_quit(LOOP);
+        g_printerr("%f\n", g_timer_elapsed(TIMER, NULL));
     }
 }
 
-int main(void) {
-    GMainLoop * loop = g_main_loop_new(NULL, FALSE);
-
-    MooseClient * client = moose_client_new(MOOSE_PROTOCOL_IDLE);
-    g_signal_connect(client, "client-event", G_CALLBACK(signal_event), loop);
-    moose_client_timer_set_active(client, TRUE);
+static void test_status_timer_real(MooseProtocolType pm) {
+    MooseClient * client = moose_client_new(pm);
     moose_client_connect(client, "localhost", 6666, 20);
+    g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
 
-    g_printerr("Is %d\n", moose_client_is_connected(client));
+    if (moose_client_is_connected(client)) {
+        g_object_set(client, "timer-interval", TIMEOUT, NULL);
+        g_object_set(client, "timer-only-when-playing", FALSE, NULL);
+        g_timer_start(TIMER);
 
-    /* BLOCKS */
-    g_main_loop_run(loop);
-    g_main_loop_unref(loop);
+        moose_client_timer_set_active(client, TRUE);
+        moose_client_send_single(client, "play");
+        moose_client_send_single(client, "pause");
 
+        LOOP = g_main_loop_new(NULL, FALSE);
+        g_main_loop_run(LOOP);
+        g_main_loop_unref(LOOP);
+        LOOP = NULL;
+
+        g_printerr("Disconnecting...\n");
+        moose_client_disconnect(client);
+    } else {
+        moose_warning("Test server running?");
+        g_assert_not_reached();
+    }
     moose_client_unref(client);
-    return 0;
+}
+
+static void test_status_timer_cmd(void) {
+    COUNTER = 0;
+    TIMER = g_timer_new();
+    test_status_timer_real(MOOSE_PROTOCOL_COMMAND);
+    g_timer_destroy(TIMER);
+    g_printerr("---\n");
+}
+
+static void test_status_timer_idle(void) {
+    COUNTER = 0;
+    TIMER = g_timer_new();
+    test_status_timer_real(MOOSE_PROTOCOL_IDLE);
+    g_timer_destroy(TIMER);
+    g_printerr("---\n");
+}
+
+int main(int argc, char **argv) {
+    // moose_debug_install_handler();
+
+    g_test_init(&argc, &argv, NULL);
+    //g_test_add_func("/mpd/client/status-timer-cmd", test_status_timer_cmd);
+    g_test_add_func("/mpd/client/status-timer-idle", test_status_timer_cmd);
+    g_test_add_func("/mpd/client/status-timer-idle", test_status_timer_cmd);
+    return g_test_run();
 }

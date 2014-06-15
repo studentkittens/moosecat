@@ -6,7 +6,7 @@
 G_BEGIN_DECLS
 
 /**
- * moose_client_check_error: skip: 
+ * moose_client_check_error: skip:
  * @self: a #MooseClient
  * @conn: a connection to check for errors.
  *
@@ -15,12 +15,12 @@ G_BEGIN_DECLS
  * On fatal errors, disconnect will be called to prevent
  * more errors.
  *
- * Returns: True if an error happened. 
- */ 
+ * Returns: True if an error happened.
+ */
 gboolean moose_client_check_error(MooseClient * self, struct mpd_connection *conn);
 
 /**
- * moose_client_check_error_without_handling: skip: 
+ * moose_client_check_error_without_handling: skip:
  * @self: a #MooseClient
  * @conn: a connection to check for errors.
  *
@@ -28,13 +28,13 @@ gboolean moose_client_check_error(MooseClient * self, struct mpd_connection *con
  * If yes, the error will be logged.
  * Fatal errors will not be further handled.
  *
- * Returns: True if an error happened. 
- */ 
+ * Returns: True if an error happened.
+ */
 gboolean moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection *conn);
 
 /**
  * moose_base_connect: skip:
- * @self: a #MooseClient. 
+ * @self: a #MooseClient.
  * @host: the hostname to connect to.
  * @port: The port  to connect to
  * @timeout: How many seconds to wait before cancelling a network op

@@ -13,16 +13,15 @@ G_BEGIN_DECLS
  *
  * These two functions work like the standard unix gunzip/gzip tools.
  * They take a path to a file which has no .zip ending and compresses it.
- * The compressed file will be written to file_path.zip. The original file is 
+ * The compressed file will be written to file_path.zip. The original file is
  * removed.
  */
-
 
 /**
  * moose_gzip:
  * @file_path: Path to the file which should be zipped.
  *
- * Returns: True when the original file was removed. 
+ * Returns: True when the original file was removed.
  */
 gboolean moose_gzip(const char * file_path);
 

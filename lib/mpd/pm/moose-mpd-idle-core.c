@@ -248,8 +248,6 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
      * could happen from another thread. This could alter the state
      * of the client while we're processing
      */
-    // self->priv->is_running_extern = TRUE;
-    // moose_client_get(MOOSE_CLIENT(self));
     g_rec_mutex_lock(&self->parent.getput_mutex);
 
     if (mpd_async_io(self->priv->async_mpd_conn, events) == FALSE) {
@@ -286,9 +284,7 @@ static gboolean moose_idle_client_socket_event(GIOChannel * source, GIOCondition
     /* Unlock again - We're now ready to take other
      * get/puts again
      */
-    // moose_client_put(MOOSE_CLIENT(self));
     g_rec_mutex_unlock(&self->parent.getput_mutex);
-    // self->priv->is_running_extern = FALSE;
     return keep_notify;
 }
 

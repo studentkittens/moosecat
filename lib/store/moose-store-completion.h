@@ -3,7 +3,7 @@
 
 /**
  * SECTION: moose-store-completion
- * @short_description: Utility for completing incomplete strings to their full version. 
+ * @short_description: Utility for completing incomplete strings to their full version.
  *
  * This uses internally Radix-Tree-Caches to make this operation very efficient.
  * The caches will be created on their first access, so no memory is wasted when
@@ -11,7 +11,7 @@
  * invalidated.
  *
  * The Store offers with moose_store_get_completion() a convinient instancing
- * method for this. 
+ * method for this.
  */
 
 #include <glib-object.h>

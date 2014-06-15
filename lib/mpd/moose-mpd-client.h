@@ -8,11 +8,11 @@
  * The #MooseClient is the main entry point to libmoosecat. If features a
  * GObject-based interface to MPD. Clients can connect to one Host/Port at a time.
  * Once a connection (demanded via moose_client_connect()) is established, the
- * MooseClient:connectivity signal is called. 
+ * MooseClient:connectivity signal is called.
  *
  * If the state of the server changes, the 'client-event' is changed with the
  * appropiate event. Once the signal handler is called, it is guaranteed, that
- * a #MooseStatus can be retrieved with moose_client_ref_status(). 
+ * a #MooseStatus can be retrieved with moose_client_ref_status().
  *
  * Commands can be asynchronously send to the server via the moose_client_send()
  * method. If you're interested if the command could be executed correctly,
@@ -20,7 +20,7 @@
  * moose_client_run in the first place. Normally this is not needed though,
  * since most error handling and logging is done for you.
  *
- * The send-mechanism can be used together with command-lists. 
+ * The send-mechanism can be used together with command-lists.
  * A bunch of commands can be queued and executed at once. This is useful in
  * particular when executing many commands (like 'add' at once)
  */

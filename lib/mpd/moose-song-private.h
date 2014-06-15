@@ -8,7 +8,7 @@ G_BEGIN_DECLS
 /* moose_song_new_from_struct: skip:
  * @song: The mpd_song to convert.
  *
- * Create a MooseSong from a mpd_song 
+ * Create a MooseSong from a mpd_song
  *
  * Returns: a newly allocated #MooseSong with a refcount of 1
  * */
@@ -21,7 +21,6 @@ MooseSong * moose_song_new_from_struct(struct mpd_song * song);
  * Fills in the values of the mpd_song into an empty #MooseSong
  * */
 void moose_song_convert(MooseSong * self, struct mpd_song * song);
-
 
 /**
  * moose_song_set_prio:

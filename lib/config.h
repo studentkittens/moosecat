@@ -17,11 +17,10 @@
 #define MC_VERSION_PATCH 1
 #define MC_VERSION_GIT_REVISION "39f30b7"
 
-
 /* Might come in useful */
 #define MC_CHECK_VERSION(X,Y,Z) (0  \
     || X <= MC_VERSION_MAJOR        \
     || Y <= MC_VERSION_MINOR        \
     || Z <= MC_VERSION_MICRO)       \
-
+ 
 #endif

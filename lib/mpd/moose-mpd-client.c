@@ -36,6 +36,7 @@ enum {
     PROP_TIMEOUT,
     PROP_TIMER_INTERVAL,
     PROP_TIMER_TRIGGER_EVENT,
+    PROP_TIMER_ONLY_WHEN_PLAYING,
     PROP_NUMBER
 };
 
@@ -48,6 +49,7 @@ const MooseIdle ON_STATUS_UPDATE_FLAGS =
     | MOOSE_IDLE_MIXER
     | MOOSE_IDLE_OUTPUT
     | MOOSE_IDLE_QUEUE
+    | MOOSE_IDLE_STATUS_TIMER_FLAG
     ;
 const MooseIdle ON_STATS_UPDATE_FLAGS =
     0
@@ -96,6 +98,7 @@ typedef struct _MooseClientPrivate {
         int timeout_id;
         int interval;
         gboolean trigger_event;
+        gboolean only_when_playing;
         GTimer * last_update;
         GMutex mutex;
     } status_timer;
@@ -257,13 +260,13 @@ gboolean moose_client_connect(
         self->priv->jm, "dispatch", G_CALLBACK(moose_client_command_dispatcher), self
     );
 
-    g_rec_mutex_lock(&self->priv->client_attr_mutex); {
+    g_rec_mutex_lock(&self->priv->client_attr_mutex);
+    {
         self->priv->timeout = timeout;
         self->priv->port = port;
         self->priv->host = g_strdup(host);
     }
     g_rec_mutex_unlock(&self->priv->client_attr_mutex);
-
 
     moose_message("Attempting to connect…");
 
@@ -416,7 +419,7 @@ gboolean moose_client_timer_get_active(MooseClient * self) {
 static gboolean moose_update_status_timer_cb(gpointer user_data) {
     MooseClient * self = MOOSE_CLIENT(user_data);
     if (moose_client_is_connected(self) == false) {
-        return false;
+        return moose_client_timer_get_active(self);
     }
 
     MooseState state = MOOSE_STATE_UNKNOWN;
@@ -428,24 +431,28 @@ static gboolean moose_update_status_timer_cb(gpointer user_data) {
     }
     moose_status_unref(status);
 
-    if (status != NULL && state == MOOSE_STATE_PLAY) {
-        /* Substract a small amount to include the network latency - a bit of a hack
-         * but worst thing that could happen: you miss one status update.
-         * */
-        gint interval = self->priv->status_timer.interval;
-        float compare = MAX(interval - interval / 10, 0);
-        float elapsed = 1000 * g_timer_elapsed(
-                            self->priv->status_timer.last_update, NULL
-                        );
+    g_rec_mutex_lock(&self->priv->client_attr_mutex);
+    {
+        if (status != NULL && (state == MOOSE_STATE_PLAY || !self->priv->status_timer.only_when_playing)) {
+            /* Substract a small amount to include the network latency - a bit of a hack
+            * but worst thing that could happen: you miss one status update.
+            * */
+            gint interval = self->priv->status_timer.interval;
+            float compare = MAX(interval - interval / 10, 0);
+            float elapsed = 1000 * g_timer_elapsed(
+                                self->priv->status_timer.last_update, NULL
+                            );
 
-        if (elapsed >= compare) {
-            /* MIXER is a harmless event, but it causes the status to update */
-            moose_updata_data_push(self, MOOSE_IDLE_MIXER, true);
+            if (elapsed >= compare) {
+                /* MIXER is a harmless event, but it causes the status to update */
+                moose_updata_data_push(self, MOOSE_IDLE_STATUS_TIMER_FLAG, true);
+            }
+
+            /* Restart. */
+            g_timer_start(self->priv->status_timer.last_update);
         }
-
-        /* Restart. */
-        g_timer_start(self->priv->status_timer.last_update);
     }
+    g_rec_mutex_unlock(&self->priv->client_attr_mutex);
 
     /* If false the source is disconnected */
     return moose_client_timer_get_active(self);
@@ -461,13 +468,14 @@ void moose_client_timer_set_active(MooseClient * self, gboolean state) {
         {
             if (priv->status_timer.timeout_id > 0) {
                 g_source_remove(priv->status_timer.timeout_id);
+                priv->status_timer.timeout_id = -1;
             }
 
-            priv->status_timer.timeout_id = -1;
             priv->status_timer.interval = 0;
 
             if (priv->status_timer.last_update != NULL) {
                 g_timer_destroy(priv->status_timer.last_update);
+                priv->status_timer.last_update = NULL;
             }
         }
         g_mutex_unlock(&priv->status_timer.mutex);
@@ -475,6 +483,7 @@ void moose_client_timer_set_active(MooseClient * self, gboolean state) {
         /* Register */
         float timeout = 0.5;
         g_object_get(self, "timer-interval", &timeout, NULL);
+        timeout = MAX(0.1, timeout);
 
         g_mutex_lock(&self->priv->status_timer.mutex);
         {
@@ -488,12 +497,18 @@ void moose_client_timer_set_active(MooseClient * self, gboolean state) {
 }
 
 MooseStatus * moose_client_ref_status(MooseClient * self) {
-    MooseStatus * status = self->priv->status;
-    if (status != NULL) {
-        return g_object_ref(status);
-    } else {
-        return NULL;
+    MooseStatus * status = NULL;
+
+    /* Make helgrind happy, g_object_ref should be safe already. */
+    g_rec_mutex_lock(&self->priv->client_attr_mutex);
+    {
+        if (self->priv->status != NULL) {
+            status = g_object_ref(self->priv->status);
+        }
     }
+    g_rec_mutex_unlock(&self->priv->client_attr_mutex);
+
+    return status;
 }
 
 /* Prototypes */
@@ -603,7 +618,8 @@ static gboolean handle_output_switch(MooseClient * self, struct mpd_connection *
 
     g_variant_get(variant, format, NULL, &output_name, &mode);
 
-    MooseStatus * status = moose_client_ref_status(self); {
+    MooseStatus * status = moose_client_ref_status(self);
+    {
         output_id =  moose_status_output_lookup_id(status, output_name);
     }
     moose_status_unref(status);
@@ -1347,7 +1363,9 @@ static gboolean moose_client_command_list_begin(MooseClient * self) {
     g_assert(self);
 
     g_rec_mutex_lock(&self->priv->client_attr_mutex);
-    self->priv->command_list.is_active = 1;
+    {
+        self->priv->command_list.is_active = 1;
+    }
     g_rec_mutex_unlock(&self->priv->client_attr_mutex);
 
     return moose_client_command_list_is_active(self);
@@ -1403,7 +1421,9 @@ static gboolean moose_client_command_list_commit(MooseClient * self) {
     moose_client_put(self);
 
     g_rec_mutex_lock(&priv->client_attr_mutex);
-    priv->command_list.is_active = 0;
+    {
+        priv->command_list.is_active = 0;
+    }
     g_rec_mutex_unlock(&priv->client_attr_mutex);
 
     return !moose_client_command_list_is_active(self);
@@ -1482,7 +1502,9 @@ gboolean moose_client_command_list_is_active(MooseClient * self) {
     gboolean rc = false;
 
     g_rec_mutex_lock(&self->priv->client_attr_mutex);
-    rc = self->priv->command_list.is_active;
+    {
+        rc = self->priv->command_list.is_active;
+    }
     g_rec_mutex_unlock(&self->priv->client_attr_mutex);
 
     return rc;
@@ -1551,10 +1573,14 @@ static void moose_update_context_info_cb(MooseClient * self, MooseIdle events) {
         struct mpd_status * tmp_status_struct;
         tmp_status_struct = mpd_recv_status(conn);
 
-        if (priv->status_timer.last_update != NULL) {
-            /* Reset the status timer to 0 */
-            g_timer_start(priv->status_timer.last_update);
+        g_mutex_lock(&self->priv->status_timer.mutex);
+        {
+            if (priv->status_timer.last_update != NULL) {
+                /* Reset the status timer to 0 */
+                g_timer_start(priv->status_timer.last_update);
+            }
         }
+        g_mutex_unlock(&self->priv->status_timer.mutex);
 
         if (tmp_status_struct) {
             MooseStatus * status = moose_client_ref_status(self);
@@ -1572,9 +1598,13 @@ static void moose_update_context_info_cb(MooseClient * self, MooseIdle events) {
             /* TODO Locking? */
 
             /* Swap the value */
-            MooseStatus *old_status = priv->status;
-            priv->status = moose_status_new_from_struct(tmp_status_struct);
-            moose_status_unref(old_status);
+            g_rec_mutex_lock(&self->priv->client_attr_mutex);
+            {
+                MooseStatus *old_status = priv->status;
+                priv->status = moose_status_new_from_struct(tmp_status_struct);
+                moose_status_unref(old_status);
+            }
+            g_rec_mutex_unlock(&self->priv->client_attr_mutex);
 
             mpd_status_free(tmp_status_struct);
         }
@@ -1732,7 +1762,7 @@ static gpointer moose_update_thread(gpointer user_data) {
         gboolean trigger_it = true;
         if (1
                 && (event_mask & MOOSE_IDLE_STATUS_TIMER_FLAG)
-                && self->priv->status_timer.trigger_event) {
+                && !self->priv->status_timer.trigger_event) {
             trigger_it = false;
         }
 
@@ -1805,6 +1835,9 @@ static void moose_client_init(MooseClient * self) {
 
     priv->last_song_data.id = -1;
     priv->last_song_data.state = MOOSE_STATE_UNKNOWN;
+
+    priv->status_timer.only_when_playing = TRUE;
+    priv->status_timer.trigger_event = TRUE;
 
     priv->initial_thread = g_thread_self();
     priv->update_thread =
@@ -1882,25 +1915,30 @@ static void moose_client_get_property(
     MooseClient * self = MOOSE_CLIENT(object);
 
     g_rec_mutex_lock(&self->priv->client_attr_mutex);
-    switch (property_id) {
-    case PROP_HOST:
-        g_value_set_string(value, self->priv->host);
-        break;
-    case PROP_PORT:
-        g_value_set_int(value, self->priv->port);
-        break;
-    case PROP_TIMEOUT:
-        g_value_set_float(value, self->priv->timeout);
-        break;
-    case PROP_TIMER_INTERVAL:
-        g_value_set_float(value, self->priv->status_timer.interval * 1000);
-        break;
-    case PROP_TIMER_TRIGGER_EVENT:
-        g_value_set_boolean(value, self->priv->status_timer.trigger_event);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-        break;
+    {
+        switch (property_id) {
+        case PROP_HOST:
+            g_value_set_string(value, self->priv->host);
+            break;
+        case PROP_PORT:
+            g_value_set_int(value, self->priv->port);
+            break;
+        case PROP_TIMEOUT:
+            g_value_set_float(value, self->priv->timeout);
+            break;
+        case PROP_TIMER_INTERVAL:
+            g_value_set_float(value, self->priv->status_timer.interval * 1000);
+            break;
+        case PROP_TIMER_TRIGGER_EVENT:
+            g_value_set_boolean(value, self->priv->status_timer.trigger_event);
+            break;
+        case PROP_TIMER_ONLY_WHEN_PLAYING:
+            g_value_set_boolean(value, self->priv->status_timer.only_when_playing);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+            break;
+        }
     }
     g_rec_mutex_unlock(&self->priv->client_attr_mutex);
 }
@@ -1913,26 +1951,31 @@ static void moose_client_set_property(
     MooseClient * self = MOOSE_CLIENT(object);
 
     g_rec_mutex_lock(&self->priv->client_attr_mutex);
-    switch (property_id) {
-    case PROP_HOST:
-        g_free(self->priv->host);
-        self->priv->host = g_value_dup_string(value);
-        break;
-    case PROP_PORT:
-        self->priv->port = g_value_get_int(value);
-        break;
-    case PROP_TIMEOUT:
-        self->priv->timeout = g_value_get_float(value);
-        break;
-    case PROP_TIMER_INTERVAL:
-        self->priv->status_timer.interval = g_value_get_float(value) * 1000;
-        break;
-    case PROP_TIMER_TRIGGER_EVENT:
-        self->priv->status_timer.trigger_event = g_value_get_boolean(value);
-        break;
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-        break;
+    {
+        switch (property_id) {
+        case PROP_HOST:
+            g_free(self->priv->host);
+            self->priv->host = g_value_dup_string(value);
+            break;
+        case PROP_PORT:
+            self->priv->port = g_value_get_int(value);
+            break;
+        case PROP_TIMEOUT:
+            self->priv->timeout = g_value_get_float(value);
+            break;
+        case PROP_TIMER_INTERVAL:
+            self->priv->status_timer.interval = g_value_get_float(value);
+            break;
+        case PROP_TIMER_TRIGGER_EVENT:
+            self->priv->status_timer.trigger_event = g_value_get_boolean(value);
+            break;
+        case PROP_TIMER_ONLY_WHEN_PLAYING:
+            self->priv->status_timer.only_when_playing = g_value_get_boolean(value);
+            break;
+        default:
+            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+            break;
+        }
     }
     g_rec_mutex_unlock(&self->priv->client_attr_mutex);
 }
@@ -2012,7 +2055,7 @@ static void moose_client_class_init(MooseClientClass * klass) {
                 "timer-interval",
                 "Timerinterval",
                 "How many seconds to wait before retrieving the next status",
-                0.1,  /* Minimum value */
+                0.05, /* Minimum value */
                 100,  /* Maximum value */
                 0.5,  /* Default value */
                 G_PARAM_READWRITE
@@ -2039,4 +2082,19 @@ static void moose_client_class_init(MooseClientClass * klass) {
      * Timer Interval, after which the status is force-updated.
      */
     g_object_class_install_property(gobject_class, PROP_TIMER_TRIGGER_EVENT, pspec);
+
+    pspec = g_param_spec_boolean(
+                "timer-only-when-playing",
+                "Run only when playing",
+                "Only update status when someting is playing currently?",
+                TRUE,
+                G_PARAM_READWRITE
+            );
+
+    /**
+     * MooseClient:timer-interval: (type float)
+     *
+     * Timer Interval, after which the status is force-updated.
+     */
+    g_object_class_install_property(gobject_class, PROP_TIMER_ONLY_WHEN_PLAYING, pspec);
 }
