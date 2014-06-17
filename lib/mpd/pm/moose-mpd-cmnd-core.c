@@ -15,10 +15,11 @@
 #include <sys/select.h>
 #include <errno.h>
 
-/* time to check between sleep if pinger thread
- * needs to be closed down
- */
-#define PING_SLEEP_TIMEOUT 500 // ms
+typedef enum _MooseListenerState {
+    LISTENER_ERROR = -2,
+    LISTENER_NOT_RUNNING = -1
+} MooseListenerState;
+
 
 typedef struct _MooseCmdClientPrivate {
     /* Connection to send commands */
@@ -30,23 +31,17 @@ typedef struct _MooseCmdClientPrivate {
     /* Thread that polls idle_con */
     GThread * listener_thread;
 
-    /* Table of listener threads in the format:
-     *
-     *  <GThread* 1>: [true|false]
-     *  <GThread* 2>: [true|false]
-     *  ...
-     *
-     *  Indicates if the key-thread should be running.
-     *  There's at last one active thread. (The one in listener_thread or NULL)
-     *  All other references are invalid and shall not be accessed.
+    /* The current state of the listener thread.
+     * If this value is less than 0, it's using a member of MooseListenerState.
+     * Otherwise the fd of the idle-socket is stored here.
+     * On disconnect a "close\n" is sent to the fd.
      */
-    GHashTable * run_listener_table;
+    volatile MooseListenerState run_listener;
 
-    /* Indicates if the ping thread is supposed to run.
-     * We need to ping the server because of the connection-timeout ,,feature'',
-     * Otherwise we'll get disconnected after (by default) ~60 seconds.
-     * Setting this flag to false will stop running threads. */
-    volatile gboolean run_pinger;
+    /* Queue read from the pinger thread,
+     * once the queue is written to, the pinger thread exits.
+     * */
+    GAsyncQueue *run_pinger_queue;
 
     /* Actual thread for the pinger thread.
      * It is started on first connect,
@@ -56,67 +51,37 @@ typedef struct _MooseCmdClientPrivate {
 
     /* Protect write read access
      * to the run_* flags
-     */
-    GMutex flagmtx_run_pinger;
+     * */
     GMutex flagmtx_run_listener;
 
+    /* Mutex to sync between the two connections on connect.
+     * We want to be sure that both connections are up and running
+     * before returning to the caller */
     GMutex sync_mutex;
+
+    /* The actual condition variable mentioned above */
     GCond sync_cond;
 
 } MooseCmdClientPrivate;
-
-typedef enum _MooseListenerState {
-    LISTENER_NOT_RUNNING = -1,
-    LISTENER_ERROR = -2
-} MooseListenerState;
 
 G_DEFINE_TYPE_WITH_PRIVATE(
     MooseCmdClient, moose_cmd_client, MOOSE_TYPE_CLIENT
 );
 
 /* We want to make helgrind happy. */
-static gboolean moose_cmd_client_get_run_pinger(MooseCmdClient * self) {
-    volatile gboolean result = false;
-    g_mutex_lock(&self->priv->flagmtx_run_pinger);
-    {
-        result = self->priv->run_pinger;
-    }
-    g_mutex_unlock(&self->priv->flagmtx_run_pinger);
-
-    return result;
-}
-
-static void moose_cmd_client_set_run_pinger(MooseCmdClient * self, volatile gboolean state) {
-    g_mutex_lock(&self->priv->flagmtx_run_pinger);
-    {
-        self->priv->run_pinger = state;
-    }
-    g_mutex_unlock(&self->priv->flagmtx_run_pinger);
-}
-
-static gboolean moose_cmd_client_get_run_listener(MooseCmdClient * self, GThread * thread) {
-    volatile gboolean result = false;
-
-    if(self->priv->listener_thread == NULL) {
-        return result;
-    }
-
-    g_mutex_lock(&self->priv->flagmtx_run_listener);
-    {
-        result = GPOINTER_TO_INT(
-                     g_hash_table_lookup(
-                         self->priv->run_listener_table, thread
-                     ));
+static gboolean moose_cmd_client_get_run_listener(MooseCmdClient * self) {
+    gboolean result = false;
+    g_mutex_lock(&self->priv->flagmtx_run_listener); {
+        result = self->priv->run_listener;
     }
     g_mutex_unlock(&self->priv->flagmtx_run_listener);
 
     return result;
 }
 
-static void moose_cmd_client_set_run_listener(MooseCmdClient * self, GThread * thread, volatile gboolean state) {
-    g_mutex_lock(&self->priv->flagmtx_run_listener);
-    {
-        g_hash_table_insert(self->priv->run_listener_table, thread, GINT_TO_POINTER(state));
+static void moose_cmd_client_set_run_listener(MooseCmdClient * self, volatile gboolean state) {
+    g_mutex_lock(&self->priv->flagmtx_run_listener); {
+        self->priv->run_listener = state;
     }
     g_mutex_unlock(&self->priv->flagmtx_run_listener);
 }
@@ -221,9 +186,9 @@ static gpointer moose_cmd_client_listener_thread(gpointer data) {
     /* Signal the connect function that we're almost up and running */
     g_mutex_lock(&self->priv->sync_mutex); {
         if (idle_con && error_message == NULL) {
-            moose_cmd_client_set_run_listener(self, g_thread_self(), mpd_async_get_fd(async));
+            moose_cmd_client_set_run_listener(self, mpd_async_get_fd(async));
         } else {
-            moose_cmd_client_set_run_listener(self, g_thread_self(), LISTENER_ERROR);
+            moose_cmd_client_set_run_listener(self, LISTENER_ERROR);
             moose_critical("listener_thread: cannot connect: %s", error_message);
             if(idle_con != NULL) {
                 mpd_connection_free(idle_con);
@@ -266,7 +231,7 @@ static gpointer moose_cmd_client_listener_thread(gpointer data) {
     moose_message("Leaving idle-loop");
 
     if(idle_con != NULL) {
-        moose_cmd_client_set_run_listener(self, g_thread_self(), LISTENER_NOT_RUNNING);
+        moose_cmd_client_set_run_listener(self, LISTENER_NOT_RUNNING);
         mpd_connection_free(idle_con);
         idle_con = NULL;
     }
@@ -277,7 +242,8 @@ static gpointer moose_cmd_client_listener_thread(gpointer data) {
 static void moose_cmd_client_shutdown_pinger(MooseCmdClient * self) {
     g_assert(self);
 
-    moose_cmd_client_set_run_pinger(self, FALSE);
+    GAsyncQueue *queue = self->priv->run_pinger_queue;
+    g_async_queue_push(queue, queue);
 
     if (self->priv->pinger_thread != NULL) {
         g_thread_join(self->priv->pinger_thread);
@@ -293,7 +259,7 @@ static void moose_cmd_client_reset(MooseCmdClient * self) {
         *       moose_cmd_client_set_run_listener() avbove
         */
 
-        int idle_fd = moose_cmd_client_get_run_listener(self, self->priv->listener_thread);
+        int idle_fd = moose_cmd_client_get_run_listener(self);
         if(idle_fd > 0) {
             const char command[] = "close\n";
             if(send(idle_fd, command, sizeof(command), 0) < 0) {
@@ -304,7 +270,7 @@ static void moose_cmd_client_reset(MooseCmdClient * self) {
         g_thread_join(self->priv->listener_thread);
         self->priv->listener_thread = NULL;
 
-        moose_cmd_client_set_run_listener(self, self->priv->listener_thread, LISTENER_NOT_RUNNING);
+        moose_cmd_client_set_run_listener(self, LISTENER_NOT_RUNNING);
 
         g_mutex_lock(&self->priv->cmnd_con_mtx);
         {
@@ -314,26 +280,6 @@ static void moose_cmd_client_reset(MooseCmdClient * self) {
             }
         }
         g_mutex_unlock(&self->priv->cmnd_con_mtx);
-    }
-}
-
-void moose_cmd_client_sleep_grained(MooseCmdClient * self, unsigned ms, unsigned interval_ms) {
-    g_assert(self);
-
-    if (interval_ms == 0) {
-        if (moose_cmd_client_get_run_pinger(self)) {
-            g_usleep((ms) * 1000);
-        }
-    } else {
-        unsigned n = ms / interval_ms;
-
-        for (unsigned i = 0; i < n && moose_cmd_client_get_run_pinger(self); ++i) {
-            g_usleep(interval_ms * 1000);
-        }
-
-        if (moose_cmd_client_get_run_pinger(self)) {
-            g_usleep((ms % interval_ms) * 1000);
-        }
     }
 }
 
@@ -360,18 +306,14 @@ static gpointer moose_cmd_client_ping_server(MooseCmdClient * self) {
      * on server-side.
      *
      * The ping-thread only exists to work solely against this purpose. */
-    int timeout_ms = MIN(MAX(2000, moose_client_get_timeout(MOOSE_CLIENT(self))), 20 * 1000);
 
-    while (moose_cmd_client_get_run_pinger(self)) {
-        moose_cmd_client_sleep_grained(self, timeout_ms / 2, PING_SLEEP_TIMEOUT);
+    int timeout_ms = moose_client_get_timeout(MOOSE_CLIENT(self));
+    int timeout_micro = MIN(MAX(2000, timeout_ms), 20 * 1000) * 1000;
+    g_printerr("PING TIMEOUT: %d\n", timeout_ms);
 
-        if (moose_cmd_client_get_run_pinger(self) == false) {
-            break;
-        }
-
+    while (g_async_queue_timeout_pop(self->priv->run_pinger_queue, timeout_micro) == NULL) {
         if (moose_client_is_connected((MooseClient *)self)) {
             struct mpd_connection * con = moose_client_get((MooseClient *)self);
-
             if (con != NULL) {
                 if (mpd_send_command(con, "ping", NULL) == false) {
                     moose_client_check_error((MooseClient *)self, con);
@@ -381,15 +323,9 @@ static gpointer moose_cmd_client_ping_server(MooseCmdClient * self) {
                     moose_client_check_error((MooseClient *)self, con);
                 }
             }
-
             moose_client_put((MooseClient *)self);
         }
-
-        if (moose_cmd_client_get_run_pinger(self)) {
-            moose_cmd_client_sleep_grained(self, timeout_ms, PING_SLEEP_TIMEOUT);
-        }
     }
-
     return NULL;
 }
 
@@ -406,7 +342,6 @@ static char * moose_cmd_client_do_connect(
 
     /* start ping thread */
     if (priv->pinger_thread == NULL) {
-        moose_cmd_client_set_run_pinger(self, TRUE);
         priv->pinger_thread = g_thread_new(
                                   "cmnd-core-pinger",
                                   (GThreadFunc)moose_cmd_client_ping_server,
@@ -433,7 +368,7 @@ static char * moose_cmd_client_do_connect(
     g_mutex_unlock(&priv->cmnd_con_mtx);
 
     /* Set it to not yet initialized */
-    moose_cmd_client_set_run_listener(self, self->priv->listener_thread, LISTENER_NOT_RUNNING);
+    moose_cmd_client_set_run_listener(self, LISTENER_NOT_RUNNING);
 
     /* Start thre thread */
     self->priv->listener_thread = g_thread_try_new(
@@ -450,10 +385,11 @@ static char * moose_cmd_client_do_connect(
     }
 
     /* Wait for the thread to be connected and running */
-    g_mutex_lock(&self->priv->sync_mutex);
     MooseListenerState state;
-    while((state = moose_cmd_client_get_run_listener(self, self->priv->listener_thread)) <= 0) {
-        g_cond_wait(&self->priv->sync_cond, &self->priv->sync_mutex);
+    g_mutex_lock(&self->priv->sync_mutex); {
+        while((state = moose_cmd_client_get_run_listener(self)) <= 0) {
+            g_cond_wait(&self->priv->sync_cond, &self->priv->sync_mutex);
+        }
     }
     g_mutex_unlock(&self->priv->sync_mutex);
 
@@ -466,9 +402,10 @@ static char * moose_cmd_client_do_connect(
 
 static gboolean moose_cmd_client_do_is_connected(MooseClient * parent) {
     MooseCmdClient * self = MOOSE_CMD_CLIENT(parent);
-
-    g_mutex_lock(&self->priv->cmnd_con_mtx);
-    struct mpd_connection * conn = self->priv->cmnd_con;
+    struct mpd_connection * conn = NULL;
+    g_mutex_lock(&self->priv->cmnd_con_mtx); {
+        conn = self->priv->cmnd_con;
+    }
     g_mutex_unlock(&self->priv->cmnd_con_mtx);
 
     return (conn != NULL);
@@ -503,12 +440,10 @@ static void moose_cmd_client_init(MooseCmdClient * object) {
 
     MooseCmdClient * self = MOOSE_CMD_CLIENT(object);
     self->priv = moose_cmd_client_get_instance_private(self);
-    self->priv->run_listener_table = g_hash_table_new(
-                                         g_direct_hash, g_direct_equal
-                                     );
+
+    self->priv->run_pinger_queue = g_async_queue_new();
 
     g_mutex_init(&self->priv->cmnd_con_mtx);
-    g_mutex_init(&self->priv->flagmtx_run_pinger);
     g_mutex_init(&self->priv->flagmtx_run_listener);
     g_mutex_init(&self->priv->sync_mutex);
     g_cond_init(&self->priv->sync_cond);
@@ -522,12 +457,11 @@ static void moose_cmd_client_finalize(GObject * gobject) {
 
     /* Close the ping thread */
     moose_cmd_client_shutdown_pinger(self);
-
     moose_cmd_client_do_disconnect(MOOSE_CLIENT(self));
 
-    g_hash_table_destroy(self->priv->run_listener_table);
+    g_async_queue_unref(self->priv->run_pinger_queue);
+
     g_mutex_clear(&self->priv->cmnd_con_mtx);
-    g_mutex_clear(&self->priv->flagmtx_run_pinger);
     g_mutex_clear(&self->priv->flagmtx_run_listener);
     g_mutex_clear(&self->priv->sync_mutex);
     g_cond_clear(&self->priv->sync_cond);
