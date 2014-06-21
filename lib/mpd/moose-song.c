@@ -164,7 +164,11 @@ void moose_song_convert(MooseSong * self, struct mpd_song * song) {
     moose_song_set_id(self, mpd_song_get_id(song));
     moose_song_set_last_modified(self, mpd_song_get_last_modified(song));
     moose_song_set_duration(self, mpd_song_get_duration(song));
+#if LIBMPDCLIENT_CHECK_VERSION(2, 9, 0)
     moose_song_set_prio(self, mpd_song_get_prio(song));
+#else
+    moose_song_set_prio(self, 0);
+#endif
 }
 
 MooseSong * moose_song_new_from_struct(struct mpd_song * song) {

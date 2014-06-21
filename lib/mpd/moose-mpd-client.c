@@ -1462,9 +1462,13 @@ long moose_client_send(MooseClient * self, const char * command) {
     GVariant * parsed = g_variant_parse(NULL, command, NULL, NULL, &error);
 
     if(error != NULL) {
+#if GLIB_CHECK_VERSION(2, 40, 0)
         char * error_string = g_variant_parse_error_print_context(error, command);
         moose_critical("Cannot run command: %s\n:%s", command, error_string);
         g_free(error_string);
+#else
+        moose_critical("Cannot run command: %s (exact error only available with GLib>=2.40)", command);
+#endif
         return -1;
     } else {
         return moose_job_manager_send(self->priv->jm, 0, parsed);
