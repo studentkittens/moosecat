@@ -71,7 +71,7 @@ static void moose_signal_handler(int signum) {
     moose_critical(
         "\n\n////// BACKTRACE //////\n\n"
         "If you see something like: \"ptrace: Operation not allowed\"\n"
-        "then issue the following command and try again:\n\n"
+        "then issue the following command and try again (or use sudo):\n\n"
         "    echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope\n\n"
     );
 
