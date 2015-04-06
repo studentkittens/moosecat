@@ -2,7 +2,6 @@
 # encoding: utf-8
 
 import os
-import re
 import sys
 import shutil
 import codecs
@@ -18,7 +17,7 @@ import glob
 ###########################################################################
 
 
-def DownloadSqlite(context, url):
+def download_sqlite(context, url):
     try:
         context.Message('Downloading SQLite Amalgamation... ')
         if os.path.exists('ext/sqlite'):
@@ -103,7 +102,9 @@ def CheckPKG(context, name, varname, required=True):
 
 def CheckGitRev(context):
     context.Message('Checking for git revision... ')
-    rev = subprocess.check_output('git log --pretty=format:"%h" -n 1', shell=True)
+    rev = subprocess.check_output(
+        'git log --pretty=format:"%h" -n 1', shell=True
+    )
     context.Result(rev)
     conf.env['gitrev'] = rev
     return rev
@@ -220,7 +221,7 @@ conf = Configure(env, custom_tests={
     'CheckPKGConfig': CheckPKGConfig,
     'CheckPKG': CheckPKG,
     'CheckGitRev': CheckGitRev,
-    'DownloadSqlite': DownloadSqlite
+    'DownloadSqlite': download_sqlite
 })
 
 if not conf.CheckCC():
