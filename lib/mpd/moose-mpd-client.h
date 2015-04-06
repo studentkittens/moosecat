@@ -166,7 +166,7 @@ typedef struct _MooseClientClass { GObjectClass parent_class; } MooseClientClass
 MooseClient *moose_client_new(MooseProtocolType protocol);
 
 /**
- * moose_client_connect:
+ * moose_client_connect: (rename-to moose_client_connect_to)
  * @self: a #MooseClient
  * @host: The host we want to connect to. E.g. 'localhost'
  * @port: The port we want to connect to. E.g. 6600
