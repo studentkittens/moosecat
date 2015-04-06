@@ -752,20 +752,20 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
     return NULL;
 }
 
-static GPtrArray * moose_store_get_playlists_impl(
+static GList * moose_store_get_playlists_impl(
     MooseStore * self,
     int (*func)(MooseStorePrivate *, GPtrArray *)) {
     g_assert(self);
 
     GPtrArray *stack = g_ptr_array_new();
-    GPtrArray *result = g_ptr_array_new_full(5, g_free);
+    GList *result = NULL;
     moose_stprv_lock(self->priv);
     {
         func(self->priv, stack);
         for(unsigned i = 0; i < stack->len; ++i) {
             struct mpd_playlist *playlist = g_ptr_array_index(stack, i);
             if(playlist != NULL) {
-                g_ptr_array_add(
+                result = g_list_prepend(
                     result, g_strdup(mpd_playlist_get_path(playlist))
                 );
             }
@@ -776,11 +776,11 @@ static GPtrArray * moose_store_get_playlists_impl(
     return result;
 }
 
-GPtrArray * moose_store_get_known_playlists(MooseStore * self) {
+GList * moose_store_get_known_playlists(MooseStore * self) {
     return moose_store_get_playlists_impl(self, moose_stprv_spl_get_known_playlists);
 }
 
-GPtrArray * moose_store_get_loaded_playlists(MooseStore * self) {
+GList * moose_store_get_loaded_playlists(MooseStore * self) {
     return moose_store_get_playlists_impl(self, moose_stprv_spl_get_loaded_playlists);
 }
 

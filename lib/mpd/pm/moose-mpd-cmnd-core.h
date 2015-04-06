@@ -6,7 +6,7 @@
 G_BEGIN_DECLS
 
 /**
- * @brief Connector using two connections, one for sending, one for events.
+ * Connector using two connections, one for sending, one for events.
  *
  * Sending a command:
  * - send it in the cmnd_con, read the response

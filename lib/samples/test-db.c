@@ -118,32 +118,32 @@ int main(int argc, char * argv[]) {
 
                 if (strncmp(line_buf, ":list-all", 8) == 0) {
 
-                    GPtrArray * array = moose_store_get_known_playlists(db);
-                    if (array->len == 0) {
+                    GList * list = moose_store_get_known_playlists(db);
+                    if (list == NULL) {
                         g_print("No playlists found.\n");
                     } else {
-                        for (unsigned i = 0; i < array->len; ++i) {
-                            char *playlist_name = g_ptr_array_index(array, i);
+                        for (GList *iter = list; iter; iter = iter->next) {
+                            char *playlist_name = iter->data;
                             g_print("%s\n", playlist_name);
                         }
                     }
-                    g_ptr_array_unref(array);
+                    g_list_free_full(list, g_free);
 
                     continue;
                 }
 
                 if (strncmp(line_buf, ":list-loaded", 8) == 0) {
 
-                    GPtrArray * array = moose_store_get_loaded_playlists(db);
-                    if (array->len == 0) {
+                    GList *list = moose_store_get_loaded_playlists(db);
+                    if (list == NULL) {
                         g_print("No playlists found.\n");
                     } else {
-                        for (unsigned i = 0; i < array->len; ++i) {
-                            char *playlist_name = g_ptr_array_index(array, i);
+                        for (GList *iter = list; iter; iter = iter->next) {
+                            char *playlist_name = iter->data;
                             g_print("%s\n", playlist_name);
                         }
                     }
-                    g_ptr_array_unref(array);
+                    g_list_free_full(list, g_free);
 
                     continue;
                 }
