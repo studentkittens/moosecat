@@ -30,17 +30,17 @@ int main(int argc, char * argv[]) {
 
     /* Trigger some bugs */
     for (int i = 0; i < 1; i++) {
-        moose_client_connect(client, "localhost", 6601, 10.0);
+        moose_client_connect(client, "localhost", 6600, 10.0);
         moose_client_disconnect(client);
     }
 
-    moose_client_connect(client, "localhost", 6601, 10.0);
+    moose_client_connect(client, "localhost", 6600, 200.0);
     g_signal_connect(client, "client-event", G_CALLBACK(print_event), NULL);
     g_signal_connect(client, "connectivity", G_CALLBACK(print_connectivity), NULL);
 
     MooseStore * db = moose_store_new_full(client, NULL, NULL, false, false);
 
-    moose_store_playlist_load(db, "test1");
+    // moose_store_playlist_load(db, "test1");
 
     if (db != NULL) {
         if (g_strcmp0(argv[1], "search") == 0) {

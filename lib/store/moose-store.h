@@ -243,6 +243,16 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  */
 MooseStoreCompletion * moose_store_get_completion(MooseStore * self);
 
+/**
+ * moose_store_get_client:
+ * @self: a #MooseStore
+ *
+ * Get the client property of the store.
+ *
+ * Returns: The client.
+ */
+MooseClient *moose_store_get_client(MooseStore *self);
+
 GPtrArray * moose_store_get_known_playlists(MooseStore * self);
 GPtrArray * moose_store_get_loaded_playlists(MooseStore * self);
 

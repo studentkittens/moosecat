@@ -621,7 +621,7 @@ void moose_stprv_insert_meta_attributes(MooseStorePrivate * self) {
 bool moose_stprv_create_song_table(MooseStorePrivate * self) {
     g_assert(self);
 
-    if (self->settings.tokenizer == NULL) {
+    if (self->settings.tokenizer == NULL || *(self->settings.tokenizer) == 0) {
         strcpy(self->settings.tokenizer, "porter");
     } else { /* validate tokenizer string */
         bool found = false;
@@ -1461,10 +1461,10 @@ static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data) {
     while ((gpointer)(ent = g_async_queue_pop(queue)) != queue) {
         switch (mpd_entity_get_type(ent)) {
         case MPD_ENTITY_TYPE_SONG: {
-
             MooseSong * song = moose_song_new_from_struct(
                                    (struct mpd_song *)mpd_entity_get_song(ent)
                                );
+            g_printerr("New song %p %s\n", song, moose_song_get_tag(song, MOOSE_TAG_ALBUM));
 
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);

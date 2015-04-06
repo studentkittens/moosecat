@@ -807,29 +807,6 @@ static void moose_store_init(MooseStore * self) {
     g_signal_connect(
         priv->jm, "dispatch", G_CALLBACK(moose_store_job_execute_callback), self
     );
-
-    /* Remember the host/port */
-    priv->mirrored_host = g_strdup(moose_client_get_host(priv->client));
-    priv->mirrored_port = moose_client_get_port(priv->client);
-
-    /* Do the actual hard work */
-    moose_store_buildup(self);
-
-    /* Register for client events */
-    g_signal_connect(
-        priv->client,
-        "client-event",
-        G_CALLBACK(moose_store_update_callback),
-        self
-    );
-
-    /* Register to be notifed when the connection status changes */
-    g_signal_connect(
-        priv->client,
-        "connectivity",
-        G_CALLBACK(moose_store_connectivity_callback),
-        self
-    );
 }
 
 /*
@@ -915,7 +892,8 @@ static void moose_store_set_property(
     guint property_id,
     const GValue * value,
     GParamSpec * pspec) {
-    MooseStorePrivate * priv = MOOSE_STORE(object)->priv;
+    MooseStore *self = MOOSE_STORE(object);
+    MooseStorePrivate * priv = self->priv;
 
     switch(property_id) {
     case PROP_USE_COMPRESSION:
@@ -925,18 +903,45 @@ static void moose_store_set_property(
         priv->settings.use_memory_db = g_value_get_boolean(value);
         break;
     case PROP_TOKENIZER:
-        strncpy(
-            priv->settings.tokenizer,
-            g_value_get_string(value),
-            sizeof(priv->settings.tokenizer)
-        );
+        if(g_value_get_string(value)) {
+            strncpy(
+                priv->settings.tokenizer,
+                g_value_get_string(value),
+                sizeof(priv->settings.tokenizer)
+            );
+        }
         break;
     case PROP_DB_DIRECTORY:
         g_free(priv->db_directory);
         priv->db_directory = g_value_dup_string(value);
         break;
-    case PROP_FULL_PLAYLIST:
     case PROP_CLIENT:
+        priv->client = g_value_get_object(value);
+
+        /* Remember the host/port */
+        priv->mirrored_host = g_strdup(moose_client_get_host(priv->client));
+        priv->mirrored_port = moose_client_get_port(priv->client);
+
+        /* Do the actual hard work */
+        moose_store_buildup(self);
+
+        /* Register for client events */
+        g_signal_connect(
+            priv->client,
+            "client-event",
+            G_CALLBACK(moose_store_update_callback),
+            self
+        );
+
+        /* Register to be notifed when the connection status changes */
+        g_signal_connect(
+            priv->client,
+            "connectivity",
+            G_CALLBACK(moose_store_connectivity_callback),
+            self
+        );
+        break;
+    case PROP_FULL_PLAYLIST:
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
         break;
@@ -1049,7 +1054,7 @@ static void moose_store_class_init(MooseStoreClass * klass) {
      * Possible values: porter, default, icu
      *
      */
-    g_object_class_install_property(gobject_class, PROP_USE_MEMORY_DB, pspec);
+    g_object_class_install_property(gobject_class, PROP_TOKENIZER, pspec);
 }
 
 MooseStore *moose_store_new(MooseClient *client) {
@@ -1083,3 +1088,10 @@ void moose_store_unref(MooseStore *self) {
         g_object_unref(self);
     }
 }
+
+MooseClient *moose_store_get_client(MooseStore *self) {
+    MooseClient *client = NULL;
+    g_object_get(self, "client", &client, NULL);
+    return client;
+}
+

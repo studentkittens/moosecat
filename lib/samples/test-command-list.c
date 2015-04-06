@@ -37,5 +37,5 @@ int main(void) {
     puts("-- Freeing client.");
 
     moose_client_unref(client);
-    return 0;
+    return EXIT_SUCCESS;
 }
