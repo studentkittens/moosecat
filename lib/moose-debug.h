@@ -8,7 +8,7 @@
  *
  * Returns: (transfer none): A human readable string, describing libmoosecat's version.
  */
-const char * moose_debug_version(void);
+const char *moose_debug_version(void);
 
 /**
  * moose_debug_install_handler:
@@ -36,4 +36,3 @@ void moose_debug_install_handler(void);
 void moose_debug_install_handler_full(GArray *signals);
 
 #endif /* end of include guard: MOOSE_DEBUG_H */
-

@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static GMainLoop * LOOP = NULL;
+static GMainLoop *LOOP = NULL;
 static int COUNTER = 0;
 static gboolean STATE;
 
-static void event_cb(
-    MooseClient * client, G_GNUC_UNUSED MooseIdle events, G_GNUC_UNUSED gpointer user_data) {
+static void event_cb(MooseClient *client, G_GNUC_UNUSED MooseIdle events,
+                     G_GNUC_UNUSED gpointer user_data) {
     g_assert(client);
 
     MooseStatus *status = moose_client_ref_status(client);
@@ -21,9 +21,9 @@ static void event_cb(
     GVariant *output = NULL;
 
     g_hash_table_iter_init(&iter, outputs);
-    while (g_hash_table_iter_next(&iter, (gpointer *)&name, (gpointer *)&output)) {
+    while(g_hash_table_iter_next(&iter, (gpointer *)&name, (gpointer *)&output)) {
         int output_id;
-        char * same_as_name;
+        char *same_as_name;
         gboolean new_state;
 
         g_variant_get(output, "(sib)", &same_as_name, &output_id, &new_state);
@@ -48,9 +48,8 @@ static void event_cb(
         g_assert(events == (MooseIdle)INT_MAX);
 
         moose_message("Switching output %s.", !STATE ? "On" : "Off");
-        GVariant * variant = g_variant_new(
-                                 "(ssb)", "output-switch", "YouHopefullyDontUseThisDoYou", !STATE
-                             );
+        GVariant *variant = g_variant_new("(ssb)", "output-switch",
+                                          "YouHopefullyDontUseThisDoYou", !STATE);
         moose_client_send_variant(client, variant);
         g_variant_unref(variant);
     } else {
@@ -62,11 +61,11 @@ static void event_cb(
 }
 
 static void test_outputs_real(MooseProtocolType pm) {
-    MooseClient * client = moose_client_new(pm);
+    MooseClient *client = moose_client_new(pm);
     moose_client_connect(client, "localhost", 6666, 20);
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
 
-    if (moose_client_is_connected(client)) {
+    if(moose_client_is_connected(client)) {
         LOOP = g_main_loop_new(NULL, FALSE);
         g_main_loop_run(LOOP);
         g_main_loop_unref(LOOP);

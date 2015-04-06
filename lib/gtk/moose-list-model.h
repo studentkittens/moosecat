@@ -14,8 +14,7 @@ G_BEGIN_DECLS
  */
 
 /* Some boilerplate GObject defines */
-#define MOOSE_TYPE_LIST_MODEL \
-    (moose_list_model_get_type())
+#define MOOSE_TYPE_LIST_MODEL (moose_list_model_get_type())
 #define MOOSE_LIST_MODEL(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_LIST_MODEL, MooseListModel))
 #define MOOSE_LIST_MODEL_CLASS(klass) \
@@ -45,7 +44,7 @@ enum {
 typedef struct _MooseListModel {
     /* this must be the first member for memory layout. */
     GObject parent;
-    struct _MooseListModelPrivate * priv;
+    struct _MooseListModelPrivate* priv;
 } MooseListModel;
 
 GType moose_list_model_get_type(void);
@@ -57,7 +56,7 @@ GType moose_list_model_get_type(void);
  *
  * Return value: a new #MooseListModel.
  */
-MooseListModel * moose_list_model_new(void);
+MooseListModel* moose_list_model_new(void);
 
 /**
  * moose_list_model_append_record:
@@ -69,11 +68,9 @@ MooseListModel * moose_list_model_new(void);
  *
  * Return value: nothing.
  */
-void moose_list_model_append_record(
-    MooseListModel * custom_list,
-    const gchar * name,
-    guint year_born
-);
+void moose_list_model_append_record(MooseListModel* custom_list,
+                                    const gchar* name,
+                                    guint year_born);
 
 G_END_DECLS
 

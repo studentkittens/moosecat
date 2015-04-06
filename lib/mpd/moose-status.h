@@ -41,16 +41,13 @@ typedef enum _MooseState {
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_STATUS \
-    (moose_status_get_type())
+#define MOOSE_TYPE_STATUS (moose_status_get_type())
 #define MOOSE_STATUS(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_STATUS, MooseStatus))
-#define MOOSE_IS_STATUS(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_STATUS))
+#define MOOSE_IS_STATUS(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_STATUS))
 #define MOOSE_STATUS_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_STATUS, MooseStatusClass))
-#define MOOSE_IS_STATUS_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_STATUS))
+#define MOOSE_IS_STATUS_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_STATUS))
 #define MOOSE_STATUS_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_STATUS, MooseStatusClass))
 
@@ -58,12 +55,10 @@ struct _MooseStatusPrivate;
 
 typedef struct _MooseStatus {
     GObject parent;
-    struct _MooseStatusPrivate * priv;
+    struct _MooseStatusPrivate* priv;
 } MooseStatus;
 
-typedef struct _MooseStatusClass {
-    GObjectClass parent_class;
-} MooseStatusClass;
+typedef struct _MooseStatusClass { GObjectClass parent_class; } MooseStatusClass;
 
 GType moose_status_get_type(void);
 
@@ -74,13 +69,13 @@ GType moose_status_get_type(void);
  *
  * Return value: a new #MooseStatus.
  */
-MooseStatus * moose_status_new(void);
+MooseStatus* moose_status_new(void);
 
 /* Create a MooseStatus from a moose_status */
-MooseStatus * moose_status_new_from_struct(const struct mpd_status * status);
+MooseStatus* moose_status_new_from_struct(const struct mpd_status* status);
 
 /* Convert an existing MooseStatus from a moose_status */
-void moose_status_convert(MooseStatus * status, const struct mpd_status * mpd_status);
+void moose_status_convert(MooseStatus* status, const struct mpd_status* mpd_status);
 
 /**
  * moose_status_unref:
@@ -88,7 +83,7 @@ void moose_status_convert(MooseStatus * status, const struct mpd_status * mpd_st
  *
  * Unrefs a #MooseStatus
  */
-void moose_status_unref(MooseStatus * status);
+void moose_status_unref(MooseStatus* status);
 
 /**
  * moose_status_get_volume:
@@ -96,7 +91,7 @@ void moose_status_unref(MooseStatus * status);
  *
  * Returns: The volume in percent from 1 to 100
  */
-int moose_status_get_volume(const MooseStatus * status);
+int moose_status_get_volume(const MooseStatus* status);
 
 /**
  * moose_status_get_repeat:
@@ -104,7 +99,7 @@ int moose_status_get_volume(const MooseStatus * status);
  *
  * Returns: If the repeat mode is enabled
  */
-gboolean moose_status_get_repeat(const MooseStatus * status);
+gboolean moose_status_get_repeat(const MooseStatus* status);
 
 /**
  * moose_status_get_random:
@@ -112,7 +107,7 @@ gboolean moose_status_get_repeat(const MooseStatus * status);
  *
  * Returns: If the random mode is enabled
  */
-gboolean moose_status_get_random(const MooseStatus * status);
+gboolean moose_status_get_random(const MooseStatus* status);
 
 /**
  * moose_status_get_single:
@@ -120,7 +115,7 @@ gboolean moose_status_get_random(const MooseStatus * status);
  *
  * Returns: If the single mode is enabled
  */
-gboolean moose_status_get_single(const MooseStatus * status);
+gboolean moose_status_get_single(const MooseStatus* status);
 
 /**
  * moose_status_get_consume:
@@ -128,7 +123,7 @@ gboolean moose_status_get_single(const MooseStatus * status);
  *
  * Returns: If the consume mode is enabled
  */
-gboolean moose_status_get_consume(const MooseStatus * status);
+gboolean moose_status_get_consume(const MooseStatus* status);
 
 /**
  * moose_status_get_queue_length:
@@ -136,7 +131,7 @@ gboolean moose_status_get_consume(const MooseStatus * status);
  *
  * Returns: The amount of songs that are in the Queue
  */
-unsigned moose_status_get_queue_length(const MooseStatus * status);
+unsigned moose_status_get_queue_length(const MooseStatus* status);
 
 /**
  * moose_status_get_queue_version:
@@ -147,7 +142,7 @@ unsigned moose_status_get_queue_length(const MooseStatus * status);
  *
  * Returns: The Queue version.
  */
-unsigned moose_status_get_queue_version(const MooseStatus * status);
+unsigned moose_status_get_queue_version(const MooseStatus* status);
 
 /**
  * moose_status_get_state:
@@ -157,7 +152,7 @@ unsigned moose_status_get_queue_version(const MooseStatus * status);
  *
  * Returns: one of #MooseState
  */
-MooseState moose_status_get_state(const MooseStatus * status);
+MooseState moose_status_get_state(const MooseStatus* status);
 
 /**
  * moose_status_get_crossfade:
@@ -167,7 +162,7 @@ MooseState moose_status_get_state(const MooseStatus * status);
  *
  * Returns: Seconds of crossfade.
  */
-unsigned moose_status_get_crossfade(const MooseStatus * status);
+unsigned moose_status_get_crossfade(const MooseStatus* status);
 
 /**
  * moose_status_get_mixrampdb:
@@ -175,7 +170,7 @@ unsigned moose_status_get_crossfade(const MooseStatus * status);
  *
  * Returns: Mixramdb in decibel
  */
-float moose_status_get_mixrampdb(const MooseStatus * status);
+float moose_status_get_mixrampdb(const MooseStatus* status);
 
 /**
  * moose_status_get_mixrampdelay:
@@ -183,7 +178,7 @@ float moose_status_get_mixrampdb(const MooseStatus * status);
  *
  * Returns: Mixramdelay in seconds
  */
-float moose_status_get_mixrampdelay(const MooseStatus * status);
+float moose_status_get_mixrampdelay(const MooseStatus* status);
 
 /**
  * moose_status_get_song_pos:
@@ -191,7 +186,7 @@ float moose_status_get_mixrampdelay(const MooseStatus * status);
  *
  * Returns: The position of the current song in the Queue, starting from 1, or -1
  */
-int moose_status_get_song_pos(const MooseStatus * status);
+int moose_status_get_song_pos(const MooseStatus* status);
 
 /**
  * moose_status_get_song_id:
@@ -199,7 +194,7 @@ int moose_status_get_song_pos(const MooseStatus * status);
  *
  * Returns: The ID of the current song in the queue or -1.
  */
-int moose_status_get_song_id(const MooseStatus * status);
+int moose_status_get_song_id(const MooseStatus* status);
 
 /**
  * moose_status_get_next_song_pos:
@@ -207,7 +202,7 @@ int moose_status_get_song_id(const MooseStatus * status);
  *
  * Returns: The Position of the next-to-be-played song in the queue or -1
  */
-int moose_status_get_next_song_pos(const MooseStatus * status);
+int moose_status_get_next_song_pos(const MooseStatus* status);
 
 /**
  * moose_status_get_next_song_id:
@@ -215,7 +210,7 @@ int moose_status_get_next_song_pos(const MooseStatus * status);
  *
  * Returns: The ID of the next-to-be-played song in the queue or -1
  */
-int moose_status_get_next_song_id(const MooseStatus * status);
+int moose_status_get_next_song_id(const MooseStatus* status);
 
 /**
  * moose_status_get_elapsed_time:
@@ -223,7 +218,7 @@ int moose_status_get_next_song_id(const MooseStatus * status);
  *
  * Returns: The amount of time in seconds the current song has elapsed or 0
  */
-unsigned moose_status_get_elapsed_time(const MooseStatus * status);
+unsigned moose_status_get_elapsed_time(const MooseStatus* status);
 
 /**
  * moose_status_get_elapsed_ms:
@@ -231,7 +226,7 @@ unsigned moose_status_get_elapsed_time(const MooseStatus * status);
  *
  * Returns: The amount of time in milliseconds the current song has elapsed or 0
  */
-unsigned moose_status_get_elapsed_ms(const MooseStatus * status);
+unsigned moose_status_get_elapsed_ms(const MooseStatus* status);
 
 /**
  * moose_status_get_total_time:
@@ -239,7 +234,7 @@ unsigned moose_status_get_elapsed_ms(const MooseStatus * status);
  *
  * Returns: How many seconds the song has to play totally.
  */
-unsigned moose_status_get_total_time(const MooseStatus * status);
+unsigned moose_status_get_total_time(const MooseStatus* status);
 
 /**
  * moose_status_get_kbit_rate:
@@ -252,7 +247,7 @@ unsigned moose_status_get_total_time(const MooseStatus * status);
  *
  * Returns: The kbit-rate of the currenlty playing song.
  */
-unsigned moose_status_get_kbit_rate(const MooseStatus * status);
+unsigned moose_status_get_kbit_rate(const MooseStatus* status);
 
 /**
  * moose_status_get_last_error:
@@ -264,7 +259,7 @@ unsigned moose_status_get_kbit_rate(const MooseStatus * status);
  *
  * Returns: (transfer none): A descriptive error message.
  */
-const char * moose_status_get_last_error(const MooseStatus * status);
+const char* moose_status_get_last_error(const MooseStatus* status);
 
 /**
  * moose_status_get_update_id:
@@ -275,7 +270,7 @@ const char * moose_status_get_last_error(const MooseStatus * status);
  *
  * Returns: A unique ID of the update, or 0 if one is running.
  */
-unsigned moose_status_get_update_id(const MooseStatus * status);
+unsigned moose_status_get_update_id(const MooseStatus* status);
 
 /**
  * moose_status_get_audio_sample_rate:
@@ -283,7 +278,7 @@ unsigned moose_status_get_update_id(const MooseStatus * status);
  *
  * Returns: The sample rate of the currenty playing audio (like 44000) or 0
  */
-uint32_t moose_status_get_audio_sample_rate(const MooseStatus * status);
+uint32_t moose_status_get_audio_sample_rate(const MooseStatus* status);
 
 /**
  * moose_status_get_audio_bits:
@@ -291,7 +286,7 @@ uint32_t moose_status_get_audio_sample_rate(const MooseStatus * status);
  *
  * Returns: How many bits were used in the audio :-)
  */
-uint8_t moose_status_get_audio_bits(const MooseStatus * status);
+uint8_t moose_status_get_audio_bits(const MooseStatus* status);
 
 /**
  * moose_status_get_audio_channels:
@@ -301,7 +296,7 @@ uint8_t moose_status_get_audio_bits(const MooseStatus * status);
  *
  * Returns: The number of audio channels the current song has or 0
  */
-uint8_t moose_status_get_audio_channels(const MooseStatus * status);
+uint8_t moose_status_get_audio_channels(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_number_of_artists:
@@ -309,7 +304,7 @@ uint8_t moose_status_get_audio_channels(const MooseStatus * status);
  *
  * Returns: Total number of artists in the database
  */
-unsigned moose_status_stats_get_number_of_artists(const MooseStatus * status);
+unsigned moose_status_stats_get_number_of_artists(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_number_of_albums:
@@ -317,7 +312,7 @@ unsigned moose_status_stats_get_number_of_artists(const MooseStatus * status);
  *
  * Returns: Total number of albums in the database
  */
-unsigned moose_status_stats_get_number_of_albums(const MooseStatus * status);
+unsigned moose_status_stats_get_number_of_albums(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_number_of_songs:
@@ -325,7 +320,7 @@ unsigned moose_status_stats_get_number_of_albums(const MooseStatus * status);
  *
  * Returns: Total number of songs in the database
  */
-unsigned moose_status_stats_get_number_of_songs(const MooseStatus * status);
+unsigned moose_status_stats_get_number_of_songs(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_uptime:
@@ -333,7 +328,7 @@ unsigned moose_status_stats_get_number_of_songs(const MooseStatus * status);
  *
  * Returns: Total number of seconds the server is already running.
  */
-unsigned long moose_status_stats_get_uptime(const MooseStatus * status);
+unsigned long moose_status_stats_get_uptime(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_db_update_time:
@@ -341,7 +336,7 @@ unsigned long moose_status_stats_get_uptime(const MooseStatus * status);
  *
  * Returns: Total number of seconds since the last Database update.
  */
-unsigned long moose_status_stats_get_db_update_time(const MooseStatus * status);
+unsigned long moose_status_stats_get_db_update_time(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_play_time:
@@ -349,7 +344,7 @@ unsigned long moose_status_stats_get_db_update_time(const MooseStatus * status);
  *
  * Returns: Total number of seconds this mpd server was playing.
  */
-unsigned long moose_status_stats_get_play_time(const MooseStatus * status);
+unsigned long moose_status_stats_get_play_time(const MooseStatus* status);
 
 /**
  * moose_status_stats_get_db_play_time:
@@ -357,7 +352,7 @@ unsigned long moose_status_stats_get_play_time(const MooseStatus * status);
  *
  * Returns: Sum of seconds the songs in the database have.
  */
-unsigned long moose_status_stats_get_db_play_time(const MooseStatus * status);
+unsigned long moose_status_stats_get_db_play_time(const MooseStatus* status);
 
 /**
  * moose_status_get_replay_gain_mode:
@@ -367,7 +362,7 @@ unsigned long moose_status_stats_get_db_play_time(const MooseStatus * status);
  *
  * Returns: (transfer none): The replay gain mode.
  */
-const char * moose_status_get_replay_gain_mode(const MooseStatus * status);
+const char* moose_status_get_replay_gain_mode(const MooseStatus* status);
 
 /**
  * moose_status_get_current_song:
@@ -377,7 +372,7 @@ const char * moose_status_get_replay_gain_mode(const MooseStatus * status);
  *
  * Returns: (transfer full): a reffed #MooseSong
  */
-MooseSong * moose_status_get_current_song(const MooseStatus * status);
+MooseSong* moose_status_get_current_song(const MooseStatus* status);
 
 /**
  * moose_status_outputs_get:
@@ -396,7 +391,7 @@ MooseSong * moose_status_get_current_song(const MooseStatus * status);
  *
  * Returns: (transfer container) (element-type utf8 GVariant): a reffed #GHashTable
  */
-GHashTable * moose_status_outputs_get(const MooseStatus * status);
+GHashTable* moose_status_outputs_get(const MooseStatus* status);
 
 /**
  * moose_status_output_lookup_id: skip:
@@ -406,7 +401,7 @@ GHashTable * moose_status_outputs_get(const MooseStatus * status);
  *
  * Returns: The Output-ID of the specified song or -1
  */
-int moose_status_output_lookup_id(const MooseStatus * status, const char * name);
+int moose_status_output_lookup_id(const MooseStatus* status, const char* name);
 
 G_END_DECLS
 

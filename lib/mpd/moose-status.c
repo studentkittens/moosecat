@@ -100,9 +100,9 @@ typedef struct _MooseStatusPrivate {
     unsigned update_id;
 
     /** error message */
-    const char * last_error;
+    const char *last_error;
 
-    const MooseSong * current_song;
+    const MooseSong *current_song;
 
     struct {
         unsigned number_of_artists;
@@ -116,31 +116,30 @@ typedef struct _MooseStatusPrivate {
 
     char replay_gain_mode[64];
 
-    GHashTable * outputs;
+    GHashTable *outputs;
 
 } MooseStatusPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(MooseStatus, moose_status, G_TYPE_OBJECT);
 
-#define READ(self, return_name, return_type, default_val) { \
-        g_return_val_if_fail(self, default_val);                \
-        return_type rval;                                       \
-        g_rw_lock_reader_lock(&self->priv->ref_lock); {         \
-            rval = self->priv->return_name;                     \
-        }                                                       \
-        g_rw_lock_reader_unlock(&self->priv->ref_lock);         \
-        return rval;                                            \
-}                                                           \
- 
+#define READ(self, return_name, return_type, default_val) \
+    {                                                     \
+        g_return_val_if_fail(self, default_val);          \
+        return_type rval;                                 \
+        g_rw_lock_reader_lock(&self->priv->ref_lock);     \
+        { rval = self->priv->return_name; }               \
+        g_rw_lock_reader_unlock(&self->priv->ref_lock);   \
+        return rval;                                      \
+    }
 
-static void moose_status_finalize(GObject * gobject) {
-    MooseStatus * self = MOOSE_STATUS(gobject);
+static void moose_status_finalize(GObject *gobject) {
+    MooseStatus *self = MOOSE_STATUS(gobject);
 
-    if (self == NULL) {
+    if(self == NULL) {
         return;
     }
 
-    if (self->priv->current_song != NULL) {
+    if(self->priv->current_song != NULL) {
         g_object_unref(MOOSE_SONG(self->priv->current_song));
     }
 
@@ -154,12 +153,12 @@ static void moose_status_finalize(GObject * gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
-static void moose_status_class_init(MooseStatusClass * klass) {
-    GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
+static void moose_status_class_init(MooseStatusClass *klass) {
+    GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_status_finalize;
 }
 
-static void moose_status_init(MooseStatus * self) {
+static void moose_status_init(MooseStatus *self) {
     self->priv = moose_status_get_instance_private(self);
     self->priv->state = MOOSE_STATE_UNKNOWN;
     self->priv->volume = -1;
@@ -172,120 +171,116 @@ static void moose_status_init(MooseStatus * self) {
 
     g_rw_lock_init(&self->priv->ref_lock);
     self->priv->outputs = g_hash_table_new_full(
-                              g_str_hash,
-                              g_direct_equal,
-                              NULL,
-                              (GDestroyNotify)g_variant_unref
-                          );
+        g_str_hash, g_direct_equal, NULL, (GDestroyNotify)g_variant_unref);
 }
 
-MooseStatus * moose_status_new(void) {
+MooseStatus *moose_status_new(void) {
     return g_object_new(MOOSE_TYPE_STATUS, NULL);
 }
 
-void moose_status_unref(MooseStatus * self) {
-    if (self != NULL) {
+void moose_status_unref(MooseStatus *self) {
+    if(self != NULL) {
         g_object_unref(self);
     }
 }
 
-int moose_status_get_volume(const MooseStatus * self) {
+int moose_status_get_volume(const MooseStatus *self) {
     READ(self, volume, int, -1)
 }
 
-gboolean moose_status_get_repeat(const MooseStatus * self) {
+gboolean moose_status_get_repeat(const MooseStatus *self) {
     READ(self, repeat, bool, false)
 }
 
-gboolean moose_status_get_random(const MooseStatus * self) {
+gboolean moose_status_get_random(const MooseStatus *self) {
     READ(self, random, bool, false)
 }
 
-gboolean moose_status_get_single(const MooseStatus * self) {
+gboolean moose_status_get_single(const MooseStatus *self) {
     READ(self, single, bool, false)
 }
 
-gboolean moose_status_get_consume(const MooseStatus * self) {
+gboolean moose_status_get_consume(const MooseStatus *self) {
     READ(self, consume, bool, false)
 }
 
-unsigned moose_status_get_queue_length(const MooseStatus * self) {
+unsigned moose_status_get_queue_length(const MooseStatus *self) {
     READ(self, queue_length, unsigned, 0)
 }
 
-unsigned moose_status_get_queue_version(const MooseStatus * self) {
+unsigned moose_status_get_queue_version(const MooseStatus *self) {
     READ(self, queue_version, unsigned, 0)
 }
 
-MooseState moose_status_get_state(const MooseStatus * self) {
+MooseState moose_status_get_state(const MooseStatus *self) {
     READ(self, state, MooseState, MOOSE_STATE_UNKNOWN)
 }
 
-unsigned moose_status_get_crossfade(const MooseStatus * self) {
+unsigned moose_status_get_crossfade(const MooseStatus *self) {
     READ(self, crossfade, unsigned, 0)
 }
 
-float moose_status_get_mixrampdb(const MooseStatus * self) {
+float moose_status_get_mixrampdb(const MooseStatus *self) {
     READ(self, mixrampdb, float, 0)
 }
 
-float moose_status_get_mixrampdelay(const MooseStatus * self) {
+float moose_status_get_mixrampdelay(const MooseStatus *self) {
     READ(self, mixrampdelay, float, 0)
 }
 
-int moose_status_get_song_pos(const MooseStatus * self) {
+int moose_status_get_song_pos(const MooseStatus *self) {
     READ(self, song_pos, int, -1)
 }
 
-int moose_status_get_song_id(const MooseStatus * self) {
+int moose_status_get_song_id(const MooseStatus *self) {
     READ(self, song_id, int, -1)
 }
 
-int moose_status_get_next_song_pos(const MooseStatus * self) {
+int moose_status_get_next_song_pos(const MooseStatus *self) {
     READ(self, next_song_pos, int, -1)
 }
 
-int moose_status_get_next_song_id(const MooseStatus * self) {
+int moose_status_get_next_song_id(const MooseStatus *self) {
     READ(self, next_song_id, int, -1)
 }
 
-unsigned moose_status_get_elapsed_time(const MooseStatus * self) {
+unsigned moose_status_get_elapsed_time(const MooseStatus *self) {
     READ(self, elapsed_time, unsigned, 0)
 }
 
-unsigned moose_status_get_elapsed_ms(const MooseStatus * self) {
+unsigned moose_status_get_elapsed_ms(const MooseStatus *self) {
     READ(self, elapsed_ms, unsigned, 0)
 }
 
-unsigned moose_status_get_total_time(const MooseStatus * self) {
+unsigned moose_status_get_total_time(const MooseStatus *self) {
     READ(self, total_time, unsigned, 0)
 }
 
-unsigned moose_status_get_kbit_rate(const MooseStatus * self) {
+unsigned moose_status_get_kbit_rate(const MooseStatus *self) {
     READ(self, kbit_rate, unsigned, 0)
 }
 
-unsigned moose_status_get_update_id(const MooseStatus * self) {
+unsigned moose_status_get_update_id(const MooseStatus *self) {
     READ(self, update_id, unsigned, 0)
 }
 
-const char * moose_status_get_last_error(const MooseStatus * self) {
+const char *moose_status_get_last_error(const MooseStatus *self) {
     READ(self, last_error, const char *, NULL)
 }
 
-uint32_t moose_status_get_audio_sample_rate(const MooseStatus * self) {
+uint32_t moose_status_get_audio_sample_rate(const MooseStatus *self) {
     READ(self, audio.sample_rate, uint32_t, 0)
 }
 
-uint8_t moose_status_get_audio_bits(const MooseStatus * self) {
+uint8_t moose_status_get_audio_bits(const MooseStatus *self) {
     READ(self, audio.bits, uint8_t, 0)
 }
 
-uint8_t moose_status_get_audio_channels(const MooseStatus * self) {
+uint8_t moose_status_get_audio_channels(const MooseStatus *self) {
     READ(self, audio.channels, uint8_t, 0)
 }
 
-void moose_status_convert(MooseStatus * self, const struct mpd_status * status) {
+void moose_status_convert(MooseStatus *self, const struct mpd_status *status) {
     g_assert(self);
     g_assert(status);
 
@@ -313,8 +308,8 @@ void moose_status_convert(MooseStatus * self, const struct mpd_status * status) 
         self->priv->update_id = mpd_status_get_update_id(status);
         self->priv->last_error = mpd_status_get_error(status);
 
-        const struct mpd_audio_format * audio = mpd_status_get_audio_format(status);
-        if (audio != NULL) {
+        const struct mpd_audio_format *audio = mpd_status_get_audio_format(status);
+        if(audio != NULL) {
             self->priv->audio.sample_rate = audio->sample_rate;
             self->priv->audio.channels = audio->channels;
             self->priv->audio.bits = audio->bits;
@@ -323,32 +318,32 @@ void moose_status_convert(MooseStatus * self, const struct mpd_status * status) 
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-MooseStatus * moose_status_new_from_struct(const struct mpd_status * status) {
+MooseStatus *moose_status_new_from_struct(const struct mpd_status *status) {
     g_return_val_if_fail(status, NULL);
 
-    MooseStatus * self = moose_status_new();
+    MooseStatus *self = moose_status_new();
     moose_status_convert(self, status);
     return self;
 }
 
-MooseSong * moose_status_get_current_song(const MooseStatus * self) {
+MooseSong *moose_status_get_current_song(const MooseStatus *self) {
     g_return_val_if_fail(self, NULL);
-    if (self->priv->current_song) {
+    if(self->priv->current_song) {
         g_object_ref(MOOSE_SONG(self->priv->current_song));
     }
     return (MooseSong *)self->priv->current_song;
 }
 
-void moose_status_set_current_song(MooseStatus * self, const MooseSong * song) {
+void moose_status_set_current_song(MooseStatus *self, const MooseSong *song) {
     g_rw_lock_writer_lock(&self->priv->ref_lock);
     {
-        if (self->priv->current_song) {
+        if(self->priv->current_song) {
             g_object_unref(MOOSE_SONG(song));
             self->priv->current_song = NULL;
         }
 
-        if (self != NULL) {
-            if (song != NULL) {
+        if(self != NULL) {
+            if(song != NULL) {
                 g_object_ref(MOOSE_SONG(song));
             }
             self->priv->current_song = song;
@@ -357,41 +352,41 @@ void moose_status_set_current_song(MooseStatus * self, const MooseSong * song) {
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-unsigned moose_status_stats_get_number_of_artists(const MooseStatus * self) {
+unsigned moose_status_stats_get_number_of_artists(const MooseStatus *self) {
     READ(self, stats.number_of_artists, unsigned, 0)
 }
 
-unsigned moose_status_stats_get_number_of_albums(const MooseStatus * self) {
+unsigned moose_status_stats_get_number_of_albums(const MooseStatus *self) {
     READ(self, stats.number_of_albums, unsigned, 0)
 }
 
-unsigned moose_status_stats_get_number_of_songs(const MooseStatus * self) {
+unsigned moose_status_stats_get_number_of_songs(const MooseStatus *self) {
     READ(self, stats.number_of_songs, unsigned, 0)
 }
 
-unsigned long moose_status_stats_get_uptime(const MooseStatus * self) {
+unsigned long moose_status_stats_get_uptime(const MooseStatus *self) {
     READ(self, stats.uptime, unsigned long, 0)
 }
 
-unsigned long moose_status_stats_get_db_update_time(const MooseStatus * self) {
+unsigned long moose_status_stats_get_db_update_time(const MooseStatus *self) {
     READ(self, stats.db_update_time, unsigned long, 0)
 }
 
-unsigned long moose_status_stats_get_play_time(const MooseStatus * self) {
+unsigned long moose_status_stats_get_play_time(const MooseStatus *self) {
     READ(self, stats.play_time, unsigned long, 0)
 }
 
-unsigned long moose_status_stats_get_db_play_time(const MooseStatus * self) {
+unsigned long moose_status_stats_get_db_play_time(const MooseStatus *self) {
     READ(self, stats.db_play_time, unsigned long, 0)
 }
 
-void moose_status_update_stats(const MooseStatus * self, const struct mpd_stats * stats) {
+void moose_status_update_stats(const MooseStatus *self, const struct mpd_stats *stats) {
     g_assert(self);
     g_assert(stats);
 
     g_rw_lock_writer_lock(&self->priv->ref_lock);
     {
-        self->priv->stats.number_of_artists  = mpd_stats_get_number_of_artists(stats);
+        self->priv->stats.number_of_artists = mpd_stats_get_number_of_artists(stats);
         self->priv->stats.number_of_albums = mpd_stats_get_number_of_albums(stats);
         self->priv->stats.number_of_songs = mpd_stats_get_number_of_songs(stats);
         self->priv->stats.uptime = mpd_stats_get_uptime(stats);
@@ -402,79 +397,67 @@ void moose_status_update_stats(const MooseStatus * self, const struct mpd_stats 
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-const char * moose_status_get_replay_gain_mode(const MooseStatus * self) {
+const char *moose_status_get_replay_gain_mode(const MooseStatus *self) {
     READ(self, replay_gain_mode, const char *, "off")
 }
 
-void moose_status_set_replay_gain_mode(const MooseStatus * self, const char * mode) {
+void moose_status_set_replay_gain_mode(const MooseStatus *self, const char *mode) {
     g_return_if_fail(self);
 
-    if (mode != NULL) {
+    if(mode != NULL) {
         g_rw_lock_writer_lock(&self->priv->ref_lock);
         {
-            strncpy(
-                self->priv->replay_gain_mode,
-                mode,
-                sizeof(self->priv->replay_gain_mode) - 1
-            );
+            strncpy(self->priv->replay_gain_mode,
+                    mode,
+                    sizeof(self->priv->replay_gain_mode) - 1);
         }
         g_rw_lock_writer_unlock(&self->priv->ref_lock);
     }
 }
 
-void moose_status_outputs_clear(const MooseStatus * self) {
+void moose_status_outputs_clear(const MooseStatus *self) {
     g_assert(self);
 
     g_rw_lock_writer_lock(&self->priv->ref_lock);
     {
-        GHashTable * outputs = self->priv->outputs;
-        if (outputs != NULL) {
+        GHashTable *outputs = self->priv->outputs;
+        if(outputs != NULL) {
             self->priv->outputs = NULL;
             g_hash_table_unref(outputs);
             self->priv->outputs = g_hash_table_new_full(
-                                      g_str_hash,
-                                      g_str_equal,
-                                      g_free,
-                                      (GDestroyNotify)g_variant_unref
-                                  );
+                g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_variant_unref);
         }
     }
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-void moose_status_outputs_add(const MooseStatus * self, struct mpd_output * output) {
+void moose_status_outputs_add(const MooseStatus *self, struct mpd_output *output) {
     g_assert(self);
     g_assert(output);
 
     g_rw_lock_writer_lock(&self->priv->ref_lock);
     {
-        g_hash_table_insert(
-            self->priv->outputs,
-            (gpointer)g_strdup(mpd_output_get_name(output)),
-            g_variant_new(
-                "(sib)",
-                mpd_output_get_name(output),
-                mpd_output_get_id(output),
-                mpd_output_get_enabled(output)
-            )
-        );
+        g_hash_table_insert(self->priv->outputs,
+                            (gpointer)g_strdup(mpd_output_get_name(output)),
+                            g_variant_new("(sib)",
+                                          mpd_output_get_name(output),
+                                          mpd_output_get_id(output),
+                                          mpd_output_get_enabled(output)));
     }
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-GHashTable * moose_status_outputs_get(const MooseStatus * self) {
+GHashTable *moose_status_outputs_get(const MooseStatus *self) {
     g_return_val_if_fail(self, NULL);
 
-    GHashTable * ref = NULL;
+    GHashTable *ref = NULL;
     g_rw_lock_reader_lock(&self->priv->ref_lock);
-    {
-        ref = g_hash_table_ref(self->priv->outputs);
-    }
+    { ref = g_hash_table_ref(self->priv->outputs); }
     g_rw_lock_reader_unlock(&self->priv->ref_lock);
     return ref;
 }
 
-int moose_status_output_lookup_id(const MooseStatus * self, const char * name) {
+int moose_status_output_lookup_id(const MooseStatus *self, const char *name) {
     g_return_val_if_fail(self, -1);
     g_return_val_if_fail(name, -1);
 

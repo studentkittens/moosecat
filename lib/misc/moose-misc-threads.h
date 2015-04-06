@@ -21,12 +21,10 @@ G_BEGIN_DECLS
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_THREADS \
-    (moose_threads_get_type())
+#define MOOSE_TYPE_THREADS (moose_threads_get_type())
 #define MOOSE_THREADS(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_THREADS, MooseThreads))
-#define MOOSE_IS_THREADS(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_THREADS))
+#define MOOSE_IS_THREADS(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_THREADS))
 #define MOOSE_THREADS_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_THREADS, MooseThreadsClass))
 #define MOOSE_IS_THREADS_CLASS(klass) \
@@ -43,9 +41,7 @@ typedef struct _MooseThreads {
     struct _MooseThreadsPrivate *priv;
 } MooseThreads;
 
-typedef struct _MooseThreadsClass {
-    GObjectClass parent;
-} MooseThreadsClass;
+typedef struct _MooseThreadsClass { GObjectClass parent; } MooseThreadsClass;
 
 /**
  * moose_threads_new:
@@ -53,7 +49,7 @@ typedef struct _MooseThreadsClass {
  *
  * Returns: A newly allocated threads-helper, with a refcount of 1
  */
-MooseThreads * moose_threads_new(int max_threads);
+MooseThreads *moose_threads_new(int max_threads);
 
 /**
  * moose_threads_push:
@@ -64,7 +60,7 @@ MooseThreads * moose_threads_new(int max_threads);
  * data is delivered to it. Use the 'thread' signal to connect to it
  * and to pass aditional per-signal user-data.
  */
-void moose_threads_push(MooseThreads * self, void * data);
+void moose_threads_push(MooseThreads *self, void *data);
 
 /**
  * moose_threads_forward:
@@ -75,7 +71,7 @@ void moose_threads_push(MooseThreads * self, void * data);
  * function from a thread. Once the result arrives on the main-thread,
  * the 'dispatch' signal is called.
  */
-void moose_threads_forward(MooseThreads * self, void * result);
+void moose_threads_forward(MooseThreads *self, void *result);
 
 /**
  * moose_threads_unref:
@@ -83,7 +79,7 @@ void moose_threads_forward(MooseThreads * self, void * result);
  *
  * Unrefs the #MooseThreads
  */
-void moose_threads_unref(MooseThreads * self);
+void moose_threads_unref(MooseThreads *self);
 
 G_END_DECLS
 

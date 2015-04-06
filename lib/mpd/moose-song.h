@@ -52,16 +52,12 @@ typedef enum _MooseTagType {
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_SONG \
-    (moose_song_get_type())
-#define MOOSE_SONG(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_SONG, MooseSong))
-#define MOOSE_IS_SONG(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_SONG))
+#define MOOSE_TYPE_SONG (moose_song_get_type())
+#define MOOSE_SONG(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_SONG, MooseSong))
+#define MOOSE_IS_SONG(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_SONG))
 #define MOOSE_SONG_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_SONG, MooseSongClass))
-#define MOOSE_IS_SONG_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_SONG))
+#define MOOSE_IS_SONG_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_SONG))
 #define MOOSE_SONG_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_SONG, MooseSongClass))
 
@@ -69,12 +65,10 @@ struct _MooseSongPrivate;
 
 typedef struct _MooseSong {
     GObject parent;
-    struct _MooseSongPrivate * priv;
+    struct _MooseSongPrivate* priv;
 } MooseSong;
 
-typedef struct _MooseSongClass {
-    GObjectClass parent_class;
-} MooseSongClass;
+typedef struct _MooseSongClass { GObjectClass parent_class; } MooseSongClass;
 
 GType moose_song_get_type(void);
 
@@ -85,7 +79,7 @@ GType moose_song_get_type(void);
  *
  * Return value: a new empty #MooseSong.
  */
-MooseSong * moose_song_new(void);
+MooseSong* moose_song_new(void);
 
 /**
  * moose_song_unref:
@@ -93,7 +87,7 @@ MooseSong * moose_song_new(void);
  *
  * Unrefs a #MooseSong. Convinience.
  */
-void moose_song_unref(MooseSong * self);
+void moose_song_unref(MooseSong* self);
 
 /**
  * moose_song_get_tag:
@@ -104,7 +98,7 @@ void moose_song_unref(MooseSong * self);
  *
  * Returns: (transfer none): The tag as string.
  */
-char * moose_song_get_tag(MooseSong * self, MooseTagType tag);
+char* moose_song_get_tag(MooseSong* self, MooseTagType tag);
 
 /**
  * moose_song_get_uri:
@@ -114,7 +108,7 @@ char * moose_song_get_tag(MooseSong * self, MooseTagType tag);
  *
  * Returns: (transfer none): The uri as string.
  */
-const char * moose_song_get_uri(MooseSong * self);
+const char* moose_song_get_uri(MooseSong* self);
 
 /**
  * moose_song_get_duration:
@@ -124,7 +118,7 @@ const char * moose_song_get_uri(MooseSong * self);
  *
  * Returns: The Duration
  */
-unsigned moose_song_get_duration(MooseSong * self);
+unsigned moose_song_get_duration(MooseSong* self);
 
 /**
  * moose_song_get_last_modified:
@@ -134,7 +128,7 @@ unsigned moose_song_get_duration(MooseSong * self);
  *
  * Returns: The last_modified
  */
-time_t moose_song_get_last_modified(MooseSong * self);
+time_t moose_song_get_last_modified(MooseSong* self);
 
 /**
  * moose_song_get_pos:
@@ -144,7 +138,7 @@ time_t moose_song_get_last_modified(MooseSong * self);
  *
  * Returns: The pos
  */
-unsigned moose_song_get_pos(MooseSong * self);
+unsigned moose_song_get_pos(MooseSong* self);
 
 /**
  * moose_song_get_id:
@@ -154,7 +148,7 @@ unsigned moose_song_get_pos(MooseSong * self);
  *
  * Returns: The id
  */
-unsigned moose_song_get_id(MooseSong * self);
+unsigned moose_song_get_id(MooseSong* self);
 
 /**
  * moose_song_get_prio:
@@ -164,7 +158,7 @@ unsigned moose_song_get_id(MooseSong * self);
  *
  * Returns: The prio
  */
-unsigned moose_song_get_prio(MooseSong * self);
+unsigned moose_song_get_prio(MooseSong* self);
 
 G_END_DECLS
 

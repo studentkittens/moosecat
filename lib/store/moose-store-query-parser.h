@@ -59,7 +59,8 @@ G_BEGIN_DECLS
  * moose_store_qp_parse:
  * @query: A String with query extensions.
  * @warning: (out): If input is invalid a warning is placed (still a result is returned)
- * @warning_pos: (out): If warning is filled, the position inside the string is written in here.
+ * @warning_pos: (out): If warning is filled, the position inside the string is written in
+ *here.
  *
  * Parses a MooseQuerty into a valid FTS-Query. If the compilation fails,
  * @warning and @warning_pos are filled appropiately. All Store functions
@@ -68,7 +69,7 @@ G_BEGIN_DECLS
  *
  * Returns: (transfer full): A newly allocated string containing a valid FTS Query.
  */
-char * moose_store_qp_parse(const char * query, const char ** warning, int * warning_pos);
+char* moose_store_qp_parse(const char* query, const char** warning, int* warning_pos);
 
 /**
  * moose_store_qp_tag_abbrev_to_full:
@@ -80,7 +81,7 @@ char * moose_store_qp_parse(const char * query, const char ** warning, int * war
  *
  * Returns: (transfer none): The full tag-name
  */
-const char * moose_store_qp_tag_abbrev_to_full(const char * token, size_t len);
+const char* moose_store_qp_tag_abbrev_to_full(const char* token, size_t len);
 
 /**
  * moose_store_qp_is_valid_tag:
@@ -91,7 +92,7 @@ const char * moose_store_qp_tag_abbrev_to_full(const char * token, size_t len);
  *
  * Returns: True if it is an valid tag.
  */
-gboolean moose_store_qp_is_valid_tag(const char * tag, size_t len);
+gboolean moose_store_qp_is_valid_tag(const char* tag, size_t len);
 
 /**
  * moose_store_qp_str_to_tag_enum:
@@ -99,7 +100,7 @@ gboolean moose_store_qp_is_valid_tag(const char * tag, size_t len);
  *
  * Returns: a #MooseTagType
  */
-MooseTagType moose_store_qp_str_to_tag_enum(const char * tag);
+MooseTagType moose_store_qp_str_to_tag_enum(const char* tag);
 
 G_END_DECLS
 

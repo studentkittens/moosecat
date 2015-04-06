@@ -1,34 +1,32 @@
 #include "../moose-api.h"
 
 static int COUNTER = 0;
-static GMainLoop * LOOP = NULL;
-static GTimer * TIMER = NULL;
+static GMainLoop *LOOP = NULL;
+static GTimer *TIMER = NULL;
 
 #define TIMEOUT 0.1
 
-static void event_cb(
-    G_GNUC_UNUSED MooseClient * client,
-    MooseIdle event,
-    G_GNUC_UNUSED void * user_data) {
-
+static void event_cb(G_GNUC_UNUSED MooseClient *client,
+                     MooseIdle event,
+                     G_GNUC_UNUSED void *user_data) {
     if(event & MOOSE_IDLE_STATUS_TIMER_FLAG) {
         COUNTER++;
     }
 
     g_printerr("#%02d event = %d\n", COUNTER, event);
 
-    if (COUNTER == 20) {
+    if(COUNTER == 20) {
         g_main_loop_quit(LOOP);
         g_printerr("%f\n", g_timer_elapsed(TIMER, NULL));
     }
 }
 
 static void test_status_timer_real(MooseProtocolType pm) {
-    MooseClient * client = moose_client_new(pm);
+    MooseClient *client = moose_client_new(pm);
     moose_client_connect(client, "localhost", 6666, 20);
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
 
-    if (moose_client_is_connected(client)) {
+    if(moose_client_is_connected(client)) {
         g_object_set(client, "timer-interval", TIMEOUT, NULL);
         g_object_set(client, "timer-only-when-playing", FALSE, NULL);
         g_timer_start(TIMER);
@@ -73,7 +71,7 @@ int main(int argc, char **argv) {
     // moose_debug_install_handler();
 
     g_test_init(&argc, &argv, NULL);
-    //g_test_add_func("/mpd/client/status-timer-cmd", test_status_timer_cmd);
+    // g_test_add_func("/mpd/client/status-timer-cmd", test_status_timer_cmd);
     g_test_add_func("/mpd/client/status-timer-idle", test_status_timer_cmd);
     g_test_add_func("/mpd/client/status-timer-idle", test_status_timer_cmd);
     return g_test_run();

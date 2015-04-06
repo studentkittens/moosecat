@@ -13,8 +13,7 @@ G_BEGIN_DECLS
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_JOB_MANAGER \
-    (moose_job_manager_get_type())
+#define MOOSE_TYPE_JOB_MANAGER (moose_job_manager_get_type())
 #define MOOSE_JOB_MANAGER(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_JOB_MANAGER, MooseJobManager))
 #define MOOSE_IS_JOB_MANAGER(obj) \
@@ -35,18 +34,17 @@ typedef struct _MooseJobManager {
     struct _MooseJobManagerPrivate *priv;
 } MooseJobManager;
 
-typedef struct _MooseJobManagerClass {
-    GObjectClass parent;
-} MooseJobManagerClass;
+typedef struct _MooseJobManagerClass { GObjectClass parent; } MooseJobManagerClass;
 
 /**
  * moose_job_manager_new:
  *
  * Create a new JobManger instance.
  *
- * Returns: a newly allocated MooseJobManager, pass to moose_job_manager_unref() when done.
+ * Returns: a newly allocated MooseJobManager, pass to moose_job_manager_unref() when
+ *done.
  */
-MooseJobManager * moose_job_manager_new(void);
+MooseJobManager *moose_job_manager_new(void);
 
 /**
  * moose_job_manager_check_cancel:
@@ -60,7 +58,7 @@ MooseJobManager * moose_job_manager_new(void);
  *
  * Returns: if you should cancel your operation.
  */
-gboolean moose_job_manager_check_cancel(MooseJobManager * jm, volatile gboolean * cancel);
+gboolean moose_job_manager_check_cancel(MooseJobManager *jm, volatile gboolean *cancel);
 
 /**
  * moose_job_manager_send:
@@ -72,7 +70,7 @@ gboolean moose_job_manager_check_cancel(MooseJobManager * jm, volatile gboolean 
  *
  * Returns: a unique integer, being the id of the job.
  */
-long moose_job_manager_send(MooseJobManager * jm, int priority, void * user_data);
+long moose_job_manager_send(MooseJobManager *jm, int priority, void *user_data);
 
 /**
  * moose_job_manager_wait:
@@ -80,7 +78,7 @@ long moose_job_manager_send(MooseJobManager * jm, int priority, void * user_data
  *
  * Blocks until the internal Queue is empty. (== No jobs currently processed)
  */
-void moose_job_manager_wait(MooseJobManager * jm);
+void moose_job_manager_wait(MooseJobManager *jm);
 
 /**
  * moose_job_manager_wait_for_id:
@@ -89,7 +87,7 @@ void moose_job_manager_wait(MooseJobManager * jm);
  *
  * Wait for the `job_id` to finish.
  */
-void moose_job_manager_wait_for_id(MooseJobManager * jm, int job_id);
+void moose_job_manager_wait_for_id(MooseJobManager *jm, int job_id);
 
 /**
  * moose_job_manager_get_result:
@@ -102,7 +100,7 @@ void moose_job_manager_wait_for_id(MooseJobManager * jm, int job_id);
  *
  * Returns: (transfer none): the void * pointer returned by your callback.
  */
-void * moose_job_manager_get_result(MooseJobManager * jm, int job_id);
+void *moose_job_manager_get_result(MooseJobManager *jm, int job_id);
 
 /**
  * moose_job_manager_unref:
@@ -113,7 +111,7 @@ void * moose_job_manager_get_result(MooseJobManager * jm, int job_id);
  * Note: This will send a termination job, with highest priority.
  *       Call moose_job_manager_wait() before if you want to wait for the jobs to finish.
  */
-void moose_job_manager_unref(MooseJobManager * jm);
+void moose_job_manager_unref(MooseJobManager *jm);
 
 G_END_DECLS
 

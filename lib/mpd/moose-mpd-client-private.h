@@ -17,7 +17,7 @@ G_BEGIN_DECLS
  *
  * Returns: True if an error happened.
  */
-gboolean moose_client_check_error(MooseClient * self, struct mpd_connection *conn);
+gboolean moose_client_check_error(MooseClient *self, struct mpd_connection *conn);
 
 /**
  * moose_client_check_error_without_handling: skip:
@@ -30,7 +30,8 @@ gboolean moose_client_check_error(MooseClient * self, struct mpd_connection *con
  *
  * Returns: True if an error happened.
  */
-gboolean moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection *conn);
+gboolean moose_client_check_error_without_handling(MooseClient *self,
+                                                   struct mpd_connection *conn);
 
 /**
  * moose_base_connect: (skip)
@@ -42,9 +43,9 @@ gboolean moose_client_check_error_without_handling(MooseClient * self, struct mp
  *
  * Returns: (transfer none): A readily connected mpd_connection.
  */
-struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char ** err);
+struct mpd_connection *moose_base_connect(MooseClient *self, const char *host, int port,
+                                          float timeout, char **err);
 
 G_END_DECLS
 
 #endif /* end of include guard: MOOSE_MPD_CLIENT_PRIVATE_H */
-

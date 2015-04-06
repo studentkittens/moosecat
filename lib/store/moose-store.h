@@ -10,16 +10,12 @@ G_BEGIN_DECLS
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_STORE \
-    (moose_store_get_type())
-#define MOOSE_STORE(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_STORE, MooseStore))
-#define MOOSE_IS_STORE(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_STORE))
+#define MOOSE_TYPE_STORE (moose_store_get_type())
+#define MOOSE_STORE(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_STORE, MooseStore))
+#define MOOSE_IS_STORE(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_STORE))
 #define MOOSE_STORE_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_STORE, MooseStoreClass))
-#define MOOSE_IS_STORE_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_STORE))
+#define MOOSE_IS_STORE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_STORE))
 #define MOOSE_STORE_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_STORE, MooseStoreClass))
 
@@ -32,9 +28,7 @@ typedef struct _MooseStore {
     struct _MooseStorePrivate *priv;
 } MooseStore;
 
-typedef struct _MooseStoreClass {
-    GObjectClass parent_class;
-} MooseStoreClass;
+typedef struct _MooseStoreClass { GObjectClass parent_class; } MooseStoreClass;
 
 /**
  * moose_store_new:
@@ -68,13 +62,11 @@ MooseStore *moose_store_new(MooseClient *client);
  *
  * Returns: A newly allocated store with a refcount of 1.
  */
-MooseStore *moose_store_new_full(
-    MooseClient *client,
-    const char *db_directory,
-    const char *tokenizer,
-    gboolean use_memory_db,
-    gboolean use_compression
-);
+MooseStore *moose_store_new_full(MooseClient *client,
+                                 const char *db_directory,
+                                 const char *tokenizer,
+                                 gboolean use_memory_db,
+                                 gboolean use_compression);
 
 /**
  * moose_store_unref:
@@ -94,7 +86,7 @@ void moose_store_unref(MooseStore *self);
  *
  * Returns: The number of rows in the database.
  */
-int moose_store_total_songs(MooseStore * self);
+int moose_store_total_songs(MooseStore *self);
 
 /**
  * moose_store_playlist_load:
@@ -102,19 +94,20 @@ int moose_store_total_songs(MooseStore * self);
  * @playlist_name: a playlist name, as displayed by MPD.
  *
  * Load the playlist from the MPD server and store it in the database.
- * Note: For every song in a playlist only an ID is stored. 
+ * Note: For every song in a playlist only an ID is stored.
  * Therefore, this is quite efficient.
  *
  * Returns: A job id
  */
-long moose_store_playlist_load(MooseStore * self, const char * playlist_name);
+long moose_store_playlist_load(MooseStore *self, const char *playlist_name);
 
 /**
  * moose_store_playlist_query:
  * @self: a #MooseStore
  * @stack: The playlist to fill.
  * @playlist_name: A playlist name (as displayed by MPD)
- * @match_clause: an fts match clause. Empty ("") or NULL returns *all* songs in the playlist.
+ * @match_clause: an fts match clause. Empty ("") or NULL returns *all* songs in the
+ *playlist.
  *
  * Filters a stored playlist `playlist_name` by `match_clause` and writes it to
  * `stack`.
@@ -122,9 +115,8 @@ long moose_store_playlist_load(MooseStore * self, const char * playlist_name);
  *
  * Returns: a job id
  */
-long moose_store_playlist_query(
-    MooseStore * self, MoosePlaylist * stack,
-    const char * playlist_name, const char * match_clause);
+long moose_store_playlist_query(MooseStore *self, MoosePlaylist *stack,
+                                const char *playlist_name, const char *match_clause);
 
 /**
  * moose_store_query_directories:
@@ -137,9 +129,8 @@ long moose_store_playlist_query(
  *
  * Returns: A job id which you can call moose_store_wait_for_job on.
  */
-long moose_store_query_directories(
-    MooseStore * self, MoosePlaylist * stack,
-    const char * directory, int depth);
+long moose_store_query_directories(MooseStore *self, MoosePlaylist *stack,
+                                   const char *directory, int depth);
 
 /**
  * moose_store_query:
@@ -157,7 +148,7 @@ long moose_store_query_directories(
  *
  *      MoosePlaylist * stack = moose_playlist_new();
  *      int job_id = moose_store_query(store, "artist:Akrea", true, stack, -1);
- *      // You can other things than waiting here. 
+ *      // You can other things than waiting here.
  *      moose_store_wait_for_job(store, job_id);
  *      moose_store_lock(store);
  *      for(int i = 0; i < moose_playlist_length(stack); ++i) {
@@ -166,9 +157,8 @@ long moose_store_query_directories(
  *
  * Returns: a Job id
  */
-long moose_store_query(
-    MooseStore * self, const char * match_clause,
-    gboolean queue_only, MoosePlaylist * stack, int limit_len);
+long moose_store_query(MooseStore *self, const char *match_clause, gboolean queue_only,
+                       MoosePlaylist *stack, int limit_len);
 
 /**
  * moose_store_wait:
@@ -177,7 +167,7 @@ long moose_store_query(
  * Wait for the store to finish it's current operation.
  * This is useful to wait for it to finish before shutdown.
  */
-void moose_store_wait(MooseStore * self);
+void moose_store_wait(MooseStore *self);
 
 /**
  * moose_store_wait_for_job:
@@ -189,7 +179,7 @@ void moose_store_wait(MooseStore * self);
  * and do other things in the meanwhile. After some time you can get the result
  * with moose_store_get_result()
  */
-void moose_store_wait_for_job(MooseStore * self, int job_id);
+void moose_store_wait_for_job(MooseStore *self, int job_id);
 
 /**
  * moose_store_get_result:
@@ -203,7 +193,7 @@ void moose_store_wait_for_job(MooseStore * self, int job_id);
  *
  * Returns: (transfer full): a MoosePlaylist containing the results you wanted.
  */
-MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
+MoosePlaylist *moose_store_get_result(MooseStore *self, int job_id);
 
 /**
  * moose_store_gw:
@@ -214,7 +204,7 @@ MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
  *
  * Returns: (transfer full): same as moose_store_get_result
  */
-MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
+MoosePlaylist *moose_store_gw(MooseStore *self, int job_id);
 
 /**
  * moose_store_find_song_by_id:
@@ -230,7 +220,7 @@ MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
  *
  * Returns: (transfer full): NULL if not found or a mpd_song struct (do not free!)
  */
-MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_id);
+MooseSong *moose_store_find_song_by_id(MooseStore *self, unsigned needle_song_id);
 
 /**
  * moose_store_get_completion:
@@ -245,7 +235,7 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  *
  * Returns: (transfer none): a valid MooseStoreCompletion, do not free.
  */
-MooseStoreCompletion * moose_store_get_completion(MooseStore * self);
+MooseStoreCompletion *moose_store_get_completion(MooseStore *self);
 
 /**
  * moose_store_get_client:
@@ -265,7 +255,7 @@ MooseClient *moose_store_get_client(MooseStore *self);
  *
  * Returns: (transfer container) (element-type utf8): List of Playlists names.
  */
-GList * moose_store_get_known_playlists(MooseStore * self);
+GList *moose_store_get_known_playlists(MooseStore *self);
 
 /**
  * moose_store_get_loaded_playlists:
@@ -275,7 +265,7 @@ GList * moose_store_get_known_playlists(MooseStore * self);
  *
  * Returns: (transfer container) (element-type utf8) : List of Playlists names.
  */
-GList * moose_store_get_loaded_playlists(MooseStore * self);
+GList *moose_store_get_loaded_playlists(MooseStore *self);
 
 G_END_DECLS
 
