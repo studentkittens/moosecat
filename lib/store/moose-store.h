@@ -51,7 +51,7 @@ MooseStore *moose_store_new(MooseClient *client);
  * moose_store_new_full:
  * @client: The client that is used to retrieve the database.
  * @db_directory: The directory where the zipped db is created in.
- * @tokenizer: (allow-none): Tokenizer to use or NULL.
+ * @tokenizer: (nullable): Tokenizer to use or NULL.
  * @use_memory_db: Cache the database in memory
  * @use_compression: Compress the database using gzip when writing on disk.
  *
@@ -78,7 +78,7 @@ MooseStore *moose_store_new_full(
 
 /**
  * moose_store_unref:
- * @self: (allow-none): a #MoseStore
+ * @self: (nullable): a #MoseStore
  *
  * Decrements the reference count of a #MooseStore.
  */

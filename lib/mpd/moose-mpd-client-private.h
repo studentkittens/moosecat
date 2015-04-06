@@ -38,7 +38,7 @@ gboolean moose_client_check_error_without_handling(MooseClient * self, struct mp
  * @host: the hostname to connect to.
  * @port: The port  to connect to
  * @timeout: How many seconds to wait before cancelling a network op
- * @err: (out): (allow-none): Out-param for the error-location.
+ * @err: (out): (nullable): Out-param for the error-location.
  *
  * Returns: A readily connected mpd_connection.
  */
