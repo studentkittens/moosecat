@@ -128,18 +128,19 @@ def BuildConfigTemplate(target, source, env):
         ))
 
 
-def FindLibmoosecatSource():
+def FindLibmoosecatSource(suffix='.c', extensions=True):
     c_files = []
-    c_files += Glob('lib/mpd/*.c')
-    c_files += Glob('lib/mpd/pm/*.c')
-    c_files += Glob('lib/misc/*.c')
-    c_files += Glob('lib/store/moose-store.c')
-    c_files += Glob('lib/store/moose-store-playlist.c')
-    c_files += Glob('lib/store/moose-store-completion.c')
-    c_files += Glob('lib/store/moose-store-query-parser.c')
-    c_files += Glob('lib/gtk/*.c')
-    c_files += Glob('lib/*.c')
-    c_files += ['ext/sqlite/sqlite3.c', 'ext/libart/art.c']
+    c_files += Glob('lib/mpd/*' + suffix)
+    c_files += Glob('lib/mpd/pm/*' + suffix)
+    c_files += Glob('lib/misc/*' + suffix)
+    c_files += Glob('lib/store/moose-store' + suffix)
+    c_files += Glob('lib/store/moose-store-playlist' + suffix)
+    c_files += Glob('lib/store/moose-store-completion' + suffix)
+    c_files += Glob('lib/store/moose-store-query-parser' + suffix)
+    c_files += Glob('lib/gtk/*' + suffix)
+    c_files += Glob('lib/*' + suffix)
+    if extensions:
+        c_files += ['ext/sqlite/sqlite3.c', 'ext/libart/art.c']
 
     return c_files
 
@@ -334,8 +335,33 @@ def BuildTest(target, source, env):
         str(source[0])
     ])
 
-TEST_COMMANDS = []
-TEST_PROGRAMS = []
+
+MOOSE_GIR_NAME = 'Moose'
+MOOSE_GIR_VERSION = '0.1'
+MOOSE_GIR = 'Moose' + '-' + MOOSE_GIR_VERSION
+
+
+def BuildGir(target, source, env):
+    files = [str(node) for node in source]
+    subprocess.call([
+            'g-ir-scanner',
+            '--include=GObject-2.0',
+            '--namespace=' + MOOSE_GIR_NAME,
+            '--nsversion=' + MOOSE_GIR_VERSION,
+            '--output=' + MOOSE_GIR + '.gir',
+            '--warn-all',
+            '-L.', '--library=moosecat',
+        ] + files,
+        env=dict(os.environ.items(), LD_LIBRARY_PATH='.')
+    )
+    subprocess.call([
+        'g-ir-compiler',
+        'Moose-0.1.gir',
+        '--output',
+        MOOSE_GIR + '.typelib'
+    ])
+
+TEST_COMMANDS, TEST_PROGRAMS = [], []
 
 # test_alias = Alias('test', [program], program[0].abspath)
 for node in Glob('lib/tests/test-*.c'):
@@ -359,3 +385,8 @@ if 'build-test' in COMMAND_LINE_TARGETS:
 
 if 'test' in COMMAND_LINE_TARGETS:
     env.AlwaysBuild(env.Alias('test', [TEST_COMMANDS]))
+
+if 'gir' in COMMAND_LINE_TARGETS:
+    sources = FindLibmoosecatSource('.h', False)
+    command = env.Command(MOOSE_GIR + '.typelib', sources, BuildGir)
+    env.AlwaysBuild(env.Alias('gir', [command]))
