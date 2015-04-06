@@ -317,7 +317,7 @@ MooseZeroconfBrowser * moose_zeroconf_browser_new(void) {
     return g_object_new(MOOSE_TYPE_ZEROCONF_BROWSER, NULL);
 }
 
-void moose_zeroconf_browser_destroy(MooseZeroconfBrowser * self) {
+void moose_zeroconf_browser_unref(MooseZeroconfBrowser * self) {
     g_object_unref(G_OBJECT(self));
 }
 
@@ -601,22 +601,4 @@ int moose_zeroconf_server_get_port(MooseZeroconfServer * server) {
     int port;
     g_object_get(server, "port", &port, NULL);
     return port;
-}
-
-/* Deprecated! Only for Cython compat. */
-
-MooseZeroconfServer ** moose_zeroconf_browser_get_server(MooseZeroconfBrowser * self) {
-    g_assert(self);
-
-    MooseZeroconfServer ** buf = NULL;
-
-    if (self->priv->server_list != NULL) {
-        unsigned cursor = 0;
-        buf = g_malloc0(sizeof(MooseZeroconfServer *) * (g_list_length(self->priv->server_list) + 1));
-        for (GList * iter = self->priv->server_list; iter; iter = iter->next) {
-            buf[cursor++] = iter->data;
-            buf[cursor + 0] = NULL;
-        }
-    }
-    return buf;
 }

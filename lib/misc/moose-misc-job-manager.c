@@ -328,6 +328,15 @@ static void moose_job_manager_class_init(MooseJobManagerClass * klass) {
     GObjectClass * gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_job_manager_finalize;
 
+    /**
+    * MooseJobManager:dispatch:
+    * @cancel: pointer to boolean which contains the cancellation state.
+    * @job_data: pointer to passed job data.
+    *
+    * Emitted once the job is supposed to run.
+    *
+    * Returns: (transfer none): The result of the job.
+    */
     SIGNALS[SIGNAL_DISPATCH] = g_signal_new("dispatch",
                                             G_TYPE_FROM_CLASS(klass),
                                             G_SIGNAL_RUN_LAST,

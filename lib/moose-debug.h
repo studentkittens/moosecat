@@ -20,7 +20,7 @@ void moose_debug_install_handler(void);
 
 /**
  * moose_debug_install_handler_full:
- * @signals: An array of signals to register.
+ * @signals: (element-type int): An array of signals to register.
  *
  * Configures all signals mentioned in signals to print a backtrace once
  * they are encountered.

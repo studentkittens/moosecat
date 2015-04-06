@@ -137,9 +137,8 @@ def FindLibmoosecatSource():
     c_files += Glob('lib/store/moose-store-completion.c')
     c_files += Glob('lib/store/moose-store-query-parser.c')
     c_files += Glob('lib/gtk/*.c')
-    c_files += Glob('lib/store/libart/*.c')
     c_files += Glob('lib/*.c')
-    c_files += ['ext/sqlite/sqlite3.c']
+    c_files += ['ext/sqlite/sqlite3.c', 'ext/libart/art.c']
 
     return c_files
 
@@ -192,7 +191,7 @@ options = dict(
     RANLIBCOMSTR=ranlib_library_message,
     SHLINKCOMSTR=link_shared_library_message,
     LINKCOMSTR=link_program_message,
-    CPPPATH=['ext/sqlite/inc'],
+    CPPPATH=['ext/sqlite/inc', 'ext/libart/'],
     BUILDERS={'CythonBuilder': Builder(
         action='cython $SOURCE',
         suffix='.c',
@@ -237,6 +236,8 @@ conf.CheckPKGConfig('0.15.0')
 DEPS = {
     'glib-2.0 >= 2.32': 'glib',
     'gobject-2.0': 'gobject',
+    'gmodule-2.0': 'gmodule',
+    'gobject-introspection-1.0': 'gobject_introspection',
     'gio-2.0': 'gio',
     'gtk+-3.0': 'gtk',
     'libmpdclient >= 2.3': 'libmpdclient',
@@ -268,6 +269,7 @@ if 'LDFLAGS' in os.environ:
     conf.env.Append(LINKFLAGS=os.environ['LDFLAGS'])
     print(">> Appending custom link flags : " + os.environ['LDFLAGS'])
 
+# conf.env.Append(LINKFLAGS=['-ld'])
 # Needed/Adviceable flags:
 conf.env.Append(CCFLAGS=[
     '-std=c11', '-pipe', '-fPIC', '-g'
@@ -305,7 +307,11 @@ env.AlwaysBuild(
     )
 )
 
-lib = env.StaticLibrary('moosecat', FindLibmoosecatSource())
+lib = env.SharedLibrary(
+    'moosecat',
+    FindLibmoosecatSource(),
+    LIBS=env['LIBS'] + ['m', 'dl']
+)
 
 # Sample programs:
 for node in Glob('lib/samples/test-*.c'):
@@ -351,4 +357,3 @@ if 'build-test' in COMMAND_LINE_TARGETS:
 
 if 'test' in COMMAND_LINE_TARGETS:
     env.AlwaysBuild(env.Alias('test', [TEST_COMMANDS]))
-

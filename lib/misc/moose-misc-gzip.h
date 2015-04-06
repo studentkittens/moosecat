@@ -26,7 +26,7 @@ G_BEGIN_DECLS
 gboolean moose_gzip(const char * file_path);
 
 /**
- * moose_gzip:
+ * moose_gunzip:
  * @file_path: Path to the file which should be unzipped.
  *
  * The file_path needs a .gzip ending, otherwise it is ignored and

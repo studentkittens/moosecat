@@ -156,7 +156,7 @@ static void moose_threads_class_init(MooseThreadsClass * klass) {
      *
      * Emitted once the thread was succesfully started.
      *
-     * Returns: The result of the thread.
+     * Returns: (transfer none): The result of the thread.
      */
     SIGNALS[SIGNAL_THREAD] = g_signal_new("thread",
                                           G_TYPE_FROM_CLASS(klass),

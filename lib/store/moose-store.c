@@ -698,7 +698,7 @@ long moose_store_playlist_get_all_known(MooseStore * self, MoosePlaylist * stack
 
 long moose_store_query(
     MooseStore * self, const char * match_clause,
-    bool queue_only, MoosePlaylist * stack, int limit_len
+    gboolean queue_only, MoosePlaylist * stack, int limit_len
 ) {
     MooseJobData * data = g_new0(MooseJobData, 1);
     data->op = MOOSE_OPER_DB_SEARCH;
@@ -1069,8 +1069,8 @@ MooseStore *moose_store_new_full(
     MooseClient *client,
     const char *db_directory,
     const char *tokenizer,
-    bool use_memory_db,
-    bool use_compression
+    gboolean use_memory_db,
+    gboolean use_compression
 ) {
     return g_object_new(
                MOOSE_TYPE_STORE,

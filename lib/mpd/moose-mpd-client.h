@@ -40,43 +40,43 @@ G_BEGIN_DECLS
  * An enumeration of all possible events.
  */
 typedef enum MooseIdle {
-    /** song database has been updated*/
+    /* song database has been updated*/
     MOOSE_IDLE_DATABASE = MPD_IDLE_DATABASE,
 
-    /** a stored playlist has been modified, created, deleted or renamed */
+    /* a stored playlist has been modified, created, deleted or renamed */
     MOOSE_IDLE_STORED_PLAYLIST = MPD_IDLE_STORED_PLAYLIST,
 
-    /** the queue has been modified */
+    /* the queue has been modified */
     MOOSE_IDLE_QUEUE = MPD_IDLE_QUEUE,
 
-    /** the player state has changed: play, stop, pause, seek, ... */
+    /* the player state has changed: play, stop, pause, seek, ... */
     MOOSE_IDLE_PLAYER = MPD_IDLE_PLAYER,
 
-    /** the volume has been modified */
+    /* the volume has been modified */
     MOOSE_IDLE_MIXER = MPD_IDLE_MIXER,
 
-    /** an audio output device has been enabled or disabled */
+    /* an audio output device has been enabled or disabled */
     MOOSE_IDLE_OUTPUT = MPD_IDLE_OUTPUT,
 
-    /** options have changed: crossfade, random, repeat, ... */
+    /* options have changed: crossfade, random, repeat, ... */
     MOOSE_IDLE_OPTIONS = MPD_IDLE_OPTIONS,
 
-    /** a database update has started or finished. */
+    /* a database update has started or finished. */
     MOOSE_IDLE_UPDATE = MPD_IDLE_UPDATE,
 
-    /** a sticker has been modified. */
+    /* a sticker has been modified. */
     MOOSE_IDLE_STICKER = MPD_IDLE_STICKER,
 
-    /** a client has subscribed to or unsubscribed from a channel */
+    /* a client has subscribed to or unsubscribed from a channel */
     MOOSE_IDLE_SUBSCRIPTION = MPD_IDLE_SUBSCRIPTION,
 
-    /** a message on a subscribed channel was received */
+    /* a message on a subscribed channel was received */
     MOOSE_IDLE_MESSAGE = MPD_IDLE_MESSAGE,
 
-    /** a seek event */
+    /* a seek event */
     MOOSE_IDLE_SEEK = MPD_IDLE_MESSAGE << 1,
 
-    /** Indicates if an event was triggered by the status timer */
+    /* Indicates if an event was triggered by the status timer */
     MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2,
 
     /*< private >*/
@@ -119,28 +119,28 @@ typedef struct _MooseClient {
     /* Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char *(*do_connect)(struct _MooseClient *, const char *, int, float);
+    char *(*do_connect)(struct _MooseClient *self, const char *host, int port, float timeout);
 
     /* Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    struct mpd_connection *(*do_get)(struct _MooseClient *);
+    struct mpd_connection *(*do_get)(struct _MooseClient *self);
 
     /* Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put)(struct _MooseClient *);
+    void (* do_put)(struct _MooseClient *self);
 
     /* Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    gboolean (* do_disconnect)(struct _MooseClient *);
+    gboolean (* do_disconnect)(struct _MooseClient *self);
 
     /* Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    gboolean (* do_is_connected)(struct _MooseClient *);
+    gboolean (* do_is_connected)(struct _MooseClient *self);
 
     GRecMutex getput_mutex;
 } MooseClient;
@@ -186,7 +186,7 @@ MooseClient * moose_client_new(MooseProtocolType protocol);
 gboolean moose_client_connect(MooseClient * self, const char * host, int port, float timeout);
 
 /**
- * moose_client_get:
+ * moose_client_get: (skip)
  * @self: a #MooseClient
  *
  * This function locks the internally used connection. You can safely use
@@ -197,7 +197,7 @@ gboolean moose_client_connect(MooseClient * self, const char * host, int port, f
  * You would screw things up if you forget to call moose_client_put().
  * Internally libmoosecat is using several threads to work without blocking.
  *
- * Returns: a libmpdclient connection (which is used internally)
+ * Returns: (transfer none): a libmpdclient connection (which is used internally)
  */
 struct mpd_connection * moose_client_get(MooseClient * self);
 

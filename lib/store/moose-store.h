@@ -72,8 +72,8 @@ MooseStore *moose_store_new_full(
     MooseClient *client,
     const char *db_directory,
     const char *tokenizer,
-    bool use_memory_db,
-    bool use_compression
+    gboolean use_memory_db,
+    gboolean use_compression
 );
 
 /**
@@ -168,7 +168,7 @@ long moose_store_query_directories(
  */
 long moose_store_query(
     MooseStore * self, const char * match_clause,
-    bool queue_only, MoosePlaylist * stack, int limit_len);
+    gboolean queue_only, MoosePlaylist * stack, int limit_len);
 
 /**
  * moose_store_wait:
@@ -201,7 +201,7 @@ void moose_store_wait_for_job(MooseStore * self, int job_id);
  * Note: This function does NOT wait. To be sure that the result is there
  *       you should call moose_store_wait_for_job() previously.
  *
- * Returns: a MoosePlaylist containing the results you wanted.
+ * Returns: (transfer full): a MoosePlaylist containing the results you wanted.
  */
 MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
 
@@ -212,7 +212,7 @@ MoosePlaylist * moose_store_get_result(MooseStore * self, int job_id);
  *
  * Shortcurt for moose_store_wait_for_job and moose_store_get_result.
  *
- * Returns: same as moose_store_get_result
+ * Returns: (transfer full): same as moose_store_get_result
  */
 MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
 
@@ -228,7 +228,7 @@ MoosePlaylist * moose_store_gw(MooseStore * self, int job_id);
  *
  * TODO: Can this be more efficient?
  *
- * Returns: NULL if not found or a mpd_song struct (do not free!)
+ * Returns: (transfer full): NULL if not found or a mpd_song struct (do not free!)
  */
 MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_id);
 
@@ -243,7 +243,7 @@ MooseSong * moose_store_find_song_by_id(MooseStore * self, unsigned needle_song_
  * You can use moose_store_completion_lookup() to get a suggestion for a certain
  * tag and prefix.
  *
- * Returns: a valid MooseStoreCompletion, do not free.
+ * Returns: (transfer none): a valid MooseStoreCompletion, do not free.
  */
 MooseStoreCompletion * moose_store_get_completion(MooseStore * self);
 
@@ -253,7 +253,7 @@ MooseStoreCompletion * moose_store_get_completion(MooseStore * self);
  *
  * Get the client property of the store.
  *
- * Returns: The client.
+ * Returns: (transfer none): The client.
  */
 MooseClient *moose_store_get_client(MooseStore *self);
 
@@ -263,7 +263,7 @@ MooseClient *moose_store_get_client(MooseStore *self);
  *
  * Get all known playlists (i.e. all, not just loaded)
  *
- * Returns (element-type utf8) (transfer full): List of Playlists names.
+ * Returns: (transfer container) (element-type utf8): List of Playlists names.
  */
 GList * moose_store_get_known_playlists(MooseStore * self);
 
@@ -273,7 +273,7 @@ GList * moose_store_get_known_playlists(MooseStore * self);
  *
  * Get all loadded playlists.
  *
- * Returns (element-type utf8) (transfer full): List of Playlists names.
+ * Returns: (transfer container) (element-type utf8) : List of Playlists names.
  */
 GList * moose_store_get_loaded_playlists(MooseStore * self);
 

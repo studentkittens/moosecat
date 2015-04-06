@@ -55,7 +55,7 @@ int main(G_GNUC_UNUSED int argc, G_GNUC_UNUSED char const * argv[]) {
         } else {
             g_printerr("No avahi daemon running.\n");
         }
-        moose_zeroconf_browser_destroy(browser);
+        moose_zeroconf_browser_unref(browser);
     }
 
     return 0;

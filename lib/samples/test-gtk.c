@@ -162,7 +162,6 @@ static void build_gui(EntryTag * tag) {
     GtkTreeViewColumn * column;
     GtkTreeView * treeview = GTK_TREE_VIEW(tvw);
     tag->view = treeview;
-    gtk_tree_view_set_rules_hint(treeview, TRUE);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scw), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
     gtk_tree_view_set_fixed_height_mode(treeview, true);
     static const char * column_desc[] = {

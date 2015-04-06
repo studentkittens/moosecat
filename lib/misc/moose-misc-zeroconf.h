@@ -98,7 +98,12 @@ typedef struct _MooseZeroconfServerClass {
  */
 MooseZeroconfBrowser * moose_zeroconf_browser_new(void);
 
-void moose_zeroconf_browser_destroy(MooseZeroconfBrowser * self);
+/**
+ * moose_zeroconf_browser_unref:
+ *
+ * Unrefs a #MooseZeroconfBrowser
+ */
+void moose_zeroconf_browser_unref(MooseZeroconfBrowser * self);
 
 /**
  * moose_zeroconf_browser_get_state:
@@ -173,10 +178,6 @@ char * moose_zeroconf_server_get_domain(MooseZeroconfServer * self);
  * Returns: Port of the Service
  */
 int moose_zeroconf_server_get_port(MooseZeroconfServer * self);
-
-/* DEPRECATED */
-
-MooseZeroconfServer ** moose_zeroconf_browser_get_server(MooseZeroconfBrowser * self);
 
 G_END_DECLS
 

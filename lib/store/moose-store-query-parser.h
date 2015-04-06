@@ -91,7 +91,7 @@ const char * moose_store_qp_tag_abbrev_to_full(const char * token, size_t len);
  *
  * Returns: True if it is an valid tag.
  */
-bool moose_store_qp_is_valid_tag(const char * tag, size_t len);
+gboolean moose_store_qp_is_valid_tag(const char * tag, size_t len);
 
 /**
  * moose_store_qp_str_to_tag_enum:

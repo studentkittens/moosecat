@@ -8,7 +8,7 @@
 #include "moose-store.h"
 
 /* Internal, but not mine */
-#include "libart/art.h"
+#include "../../libart/art.h"
 
 typedef struct _MooseStoreCompletionPrivate {
     MooseStore * store;

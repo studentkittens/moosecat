@@ -18,7 +18,7 @@
 G_BEGIN_DECLS
 
 /**
- * MooseZeroconfState:
+ * MooseTagType:
  *
  * Possible tags stored by MooseSong.
  * This reflects mpd_tag_type.

@@ -50,9 +50,9 @@ void moose_song_set_id(MooseSong * self, unsigned id);
 void moose_song_set_pos(MooseSong * self, unsigned pos);
 
 /**
- * moose_song_set_duration:
+ * moose_song_set_last_modified:
  * @self: a #MooseSong
- * @duration: The duration to set.
+ * @last_modified: The duration to set.
  *
  * Set the duration.
  */

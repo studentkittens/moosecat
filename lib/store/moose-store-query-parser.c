@@ -116,7 +116,7 @@ enum mpd_tag_type moose_store_qp_str_to_tag_enum(const char * tag) {
     return MPD_TAG_UNKNOWN;
 }
 
-bool moose_store_qp_is_valid_tag(const char * tag, size_t len) {
+gboolean moose_store_qp_is_valid_tag(const char * tag, size_t len) {
     static const char * tags[] = {
         "uri", "start", "end", "duration",
         "last_modified", "date", "artist", "album", "title",

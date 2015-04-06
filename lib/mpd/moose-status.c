@@ -193,19 +193,19 @@ int moose_status_get_volume(const MooseStatus * self) {
     READ(self, volume, int, -1)
 }
 
-bool moose_status_get_repeat(const MooseStatus * self) {
+gboolean moose_status_get_repeat(const MooseStatus * self) {
     READ(self, repeat, bool, false)
 }
 
-bool moose_status_get_random(const MooseStatus * self) {
+gboolean moose_status_get_random(const MooseStatus * self) {
     READ(self, random, bool, false)
 }
 
-bool moose_status_get_single(const MooseStatus * self) {
+gboolean moose_status_get_single(const MooseStatus * self) {
     READ(self, single, bool, false)
 }
 
-bool moose_status_get_consume(const MooseStatus * self) {
+gboolean moose_status_get_consume(const MooseStatus * self) {
     READ(self, consume, bool, false)
 }
 

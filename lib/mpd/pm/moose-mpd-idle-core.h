@@ -5,7 +5,7 @@
 
 G_BEGIN_DECLS
 
-/**
+/*
  * Connector using two connections, one for sending, one for events.
  *
  * Sending a command:

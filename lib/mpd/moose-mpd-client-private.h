@@ -33,14 +33,14 @@ gboolean moose_client_check_error(MooseClient * self, struct mpd_connection *con
 gboolean moose_client_check_error_without_handling(MooseClient * self, struct mpd_connection *conn);
 
 /**
- * moose_base_connect: skip:
+ * moose_base_connect: (skip)
  * @self: a #MooseClient.
  * @host: the hostname to connect to.
  * @port: The port  to connect to
  * @timeout: How many seconds to wait before cancelling a network op
  * @err: (out): (nullable): Out-param for the error-location.
  *
- * Returns: A readily connected mpd_connection.
+ * Returns: (transfer none): A readily connected mpd_connection.
  */
 struct mpd_connection * moose_base_connect(MooseClient * self, const char * host, int port, float timeout, char ** err);
 

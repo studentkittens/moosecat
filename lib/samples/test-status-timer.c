@@ -7,7 +7,7 @@ static GTimer * TIMER = NULL;
 #define TIMEOUT 0.1
 
 static void event_cb(
-    MooseClient * client,
+    G_GNUC_UNUSED MooseClient * client,
     MooseIdle event,
     G_GNUC_UNUSED void * user_data) {
 
@@ -59,6 +59,7 @@ static void test_status_timer_cmd(void) {
     g_printerr("---\n");
 }
 
+/*
 static void test_status_timer_idle(void) {
     COUNTER = 0;
     TIMER = g_timer_new();
@@ -66,6 +67,7 @@ static void test_status_timer_idle(void) {
     g_timer_destroy(TIMER);
     g_printerr("---\n");
 }
+*/
 
 int main(int argc, char **argv) {
     // moose_debug_install_handler();
