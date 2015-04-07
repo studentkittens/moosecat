@@ -393,10 +393,13 @@ if 'build-test' in COMMAND_LINE_TARGETS:
 if 'test' in COMMAND_LINE_TARGETS:
     env.AlwaysBuild(env.Alias('test', [TEST_COMMANDS]))
 
-if 'gir' in COMMAND_LINE_TARGETS:
+# TODO
+if 1 or 'gir' in COMMAND_LINE_TARGETS:
     sources = FindLibmoosecatSource('.h', False)
     command = env.Command(MOOSE_GIR + '.typelib', sources, BuildGir)
-    env.AlwaysBuild(env.Alias('gir', [command]))
+    gir_target = env.Alias('gir', [command])
+    env.Depends(gir_target, lib)
+    env.AlwaysBuild(gir_target)
 
 
 AddOption(

@@ -4,7 +4,29 @@ import cmd
 # Internal:
 from gi.repository import Moose
 
+
+from gi.repository import GObject
+
+
+class InternalLogCatcher(GObject.Object):
+    __gsignals__ = {
+        'log-message': (
+            GObject.SIGNAL_RUN_FIRST,
+            None,
+            (str, str, str)
+        )
+    }
+
+def log_message(catcher, domain, level, msg):
+    pass
+
+
+catcher = InternalLogCatcher()
+catcher.connect('log-message', log_message)
+Moose.misc_catch_external_logs(catcher)
+
 client = Moose.CmdClient()
+
 client.connect_to('localhost', 6600, 100)
 store = Moose.Store.new(client)
 completion = store.get_completion()
