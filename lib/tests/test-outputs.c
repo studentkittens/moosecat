@@ -62,7 +62,7 @@ static void event_cb(MooseClient *client, G_GNUC_UNUSED MooseIdle events,
 
 static void test_outputs_real(MooseProtocolType pm) {
     MooseClient *client = moose_client_new(pm);
-    moose_client_connect(client, "localhost", 6666, 20);
+    moose_client_connect_to(client, "localhost", 6666, 20);
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);
 
     if(moose_client_is_connected(client)) {

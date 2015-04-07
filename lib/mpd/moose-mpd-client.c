@@ -213,7 +213,7 @@ static void *moose_client_command_dispatcher(MooseJobManager *jm,
                                              void *job_data,
                                              void *user_data);
 
-gboolean moose_client_connect(MooseClient *self,
+gboolean moose_client_connect_to(MooseClient *self,
                               const char *host,
                               int port,
                               float timeout) {

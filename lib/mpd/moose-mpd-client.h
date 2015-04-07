@@ -7,7 +7,7 @@
  *
  * The #MooseClient is the main entry point to libmoosecat. If features a
  * GObject-based interface to MPD. Clients can connect to one Host/Port at a time.
- * Once a connection (demanded via moose_client_connect()) is established, the
+ * Once a connection (demanded via moose_client_connect_to()) is established, the
  * MooseClient:connectivity signal is called.
  *
  * If the state of the server changes, the 'client-event' is changed with the
@@ -166,7 +166,7 @@ typedef struct _MooseClientClass { GObjectClass parent_class; } MooseClientClass
 MooseClient *moose_client_new(MooseProtocolType protocol);
 
 /**
- * moose_client_connect: (rename-to moose_client_connect_to)
+ * moose_client_connect_to:
  * @self: a #MooseClient
  * @host: The host we want to connect to. E.g. 'localhost'
  * @port: The port we want to connect to. E.g. 6600
@@ -179,7 +179,7 @@ MooseClient *moose_client_new(MooseProtocolType protocol);
  *
  * Returns: True on success.
  */
-gboolean moose_client_connect(MooseClient *self, const char *host, int port,
+gboolean moose_client_connect_to(MooseClient *self, const char *host, int port,
                               float timeout);
 
 /**
@@ -190,7 +190,7 @@ gboolean moose_client_connect(MooseClient *self, const char *host, int port,
  * it with the mpd_run_* functions of libmpdclient.
  * This is for lowlevel support, use moose_client_send() instead.
  *
- * Warning: For normal users: you're not supposed to call this.
+ * WARNING: For normal users: you're not supposed to call this.
  * You would screw things up if you forget to call moose_client_put().
  * Internally libmoosecat is using several threads to work without blocking.
  *

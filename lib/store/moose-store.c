@@ -880,6 +880,7 @@ static void moose_store_set_property(GObject *object,
         break;
     case PROP_CLIENT:
         priv->client = g_value_get_object(value);
+        g_object_ref(priv->client);
 
         /* Remember the host/port */
         priv->mirrored_host = g_strdup(moose_client_get_host(priv->client));

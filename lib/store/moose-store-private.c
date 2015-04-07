@@ -1500,8 +1500,6 @@ static gpointer moose_stprv_do_list_all_info_sql_thread(gpointer user_data) {
         case MPD_ENTITY_TYPE_SONG: {
             MooseSong *song =
                 moose_song_new_from_struct((struct mpd_song *)mpd_entity_get_song(ent));
-            g_printerr("New song %p %s\n", song,
-                       moose_song_get_tag(song, MOOSE_TAG_ALBUM));
 
             moose_playlist_append(self->stack, song);
             moose_stprv_insert_song(self, song);

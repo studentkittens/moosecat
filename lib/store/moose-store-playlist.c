@@ -75,7 +75,7 @@ void moose_playlist_sort(MoosePlaylist* self, GCompareFunc func) {
     g_ptr_array_sort(self->priv->stack, func);
 }
 
-void* moose_playlist_at(MoosePlaylist* self, unsigned at) {
+MooseSong* moose_playlist_at(MoosePlaylist* self, unsigned at) {
     if(at < moose_playlist_length(self)) {
         return g_ptr_array_index(self->priv->stack, at);
     } else {

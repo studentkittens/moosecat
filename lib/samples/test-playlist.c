@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     }
 
     MooseClient* client = moose_client_new(MOOSE_PROTOCOL_IDLE);
-    if(moose_client_connect(client, "localhost", 6600, 2) == FALSE) {
+    if(moose_client_connect_to(client, "localhost", 6600, 2) == FALSE) {
         g_print("Some error.\n");
         return EXIT_FAILURE;
     }

@@ -10,6 +10,7 @@
  */
 
 #include <glib-object.h>
+#include "../mpd/moose-song.h"
 
 G_BEGIN_DECLS
 
@@ -99,7 +100,7 @@ void moose_playlist_sort(MoosePlaylist* self, GCompareFunc func);
  *
  * Returns: (transfer none): An appended object.
  */
-void* moose_playlist_at(MoosePlaylist* self, unsigned at);
+MooseSong* moose_playlist_at(MoosePlaylist* self, unsigned at);
 
 /**
  * moose_playlist_copy:

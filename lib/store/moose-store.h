@@ -191,7 +191,7 @@ void moose_store_wait_for_job(MooseStore *self, int job_id);
  * Note: This function does NOT wait. To be sure that the result is there
  *       you should call moose_store_wait_for_job() previously.
  *
- * Returns: (transfer full): a MoosePlaylist containing the results you wanted.
+ * Returns: (transfer none): a MoosePlaylist containing the results you wanted.
  */
 MoosePlaylist *moose_store_get_result(MooseStore *self, int job_id);
 
@@ -202,7 +202,7 @@ MoosePlaylist *moose_store_get_result(MooseStore *self, int job_id);
  *
  * Shortcurt for moose_store_wait_for_job and moose_store_get_result.
  *
- * Returns: (transfer full): same as moose_store_get_result
+ * Returns: (transfer none): same as moose_store_get_result
  */
 MoosePlaylist *moose_store_gw(MooseStore *self, int job_id);
 
