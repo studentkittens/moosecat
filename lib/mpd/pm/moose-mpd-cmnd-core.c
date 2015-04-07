@@ -304,7 +304,6 @@ static gpointer moose_cmd_client_ping_server(MooseCmdClient *self) {
 
     int timeout_ms = moose_client_get_timeout(MOOSE_CLIENT(self));
     int timeout_micro = MIN(MAX(2000, timeout_ms), 20 * 1000) * 1000;
-    g_printerr("PING TIMEOUT: %d\n", timeout_ms);
 
     while(g_async_queue_timeout_pop(self->priv->run_pinger_queue, timeout_micro) ==
           NULL) {

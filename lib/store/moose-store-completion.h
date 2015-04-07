@@ -52,7 +52,7 @@ GType moose_store_completion_get_type(void);
  * moose_store_completion_lookup:
  * @self: a #MooseStoreCompletion
  * @tag: a #MooseTagType
- * @key: The key to complete for the appropiate tag.
+ * @key: (nullable): The key to complete for the appropiate tag. 
  *
  * If there are more than possiblities, the first alphabetically matching is
  * taken. E.g. when completing "Ab", "Abba" is returned before "Abel".

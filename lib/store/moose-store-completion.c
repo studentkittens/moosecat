@@ -12,7 +12,7 @@
 
 typedef struct _MooseStoreCompletionPrivate {
     MooseStore *store;
-    art_tree *trees[MPD_TAG_COUNT];
+    art_tree *trees[MOOSE_TAG_COUNT];
 } MooseStoreCompletionPrivate;
 
 typedef struct _MooseStoreCompletionIterTag {
@@ -95,9 +95,33 @@ static void moose_store_completion_set_property(GObject *object,
     }
 }
 
+static void moose_store_completion_constructed(GObject *object) {
+    MooseStoreCompletion *self = MOOSE_STORE_COMPLETION(object);
+
+    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->constructed(object);
+
+    MooseStore *store = NULL;
+    MooseClient *client = NULL;
+
+    g_object_get(self, "store", &store, NULL);
+    g_object_get(store, "client", &client, NULL);
+
+    g_assert(store);
+    g_assert(client);
+
+    g_signal_connect(
+        client, "client-event", G_CALLBACK(moose_store_completion_client_event),
+        self
+    );
+
+    g_object_unref(store);
+    g_object_unref(client);
+}
+
 static void moose_store_completion_class_init(MooseStoreCompletionClass *klass) {
     GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_store_completion_finalize;
+    gobject_class->constructed = moose_store_completion_constructed;
     gobject_class->get_property = moose_store_completion_get_property;
     gobject_class->set_property = moose_store_completion_set_property;
 
@@ -118,20 +142,6 @@ static void moose_store_completion_class_init(MooseStoreCompletionClass *klass) 
 
 static void moose_store_completion_init(MooseStoreCompletion *self) {
     self->priv = moose_store_completion_get_instance_private(self);
-
-    MooseStore *store = NULL;
-    MooseClient *client = NULL;
-
-    g_object_get(self, "store", &store, NULL);
-    g_object_get(store, "client", &client, NULL);
-
-    g_assert(store);
-    g_assert(client);
-
-    g_signal_connect(
-        client, "client-event", G_CALLBACK(moose_store_completion_client_event), self);
-    g_object_unref(store);
-    g_object_unref(client);
 }
 
 static char *moose_store_completion_normalize_string(const char *input) {
@@ -186,7 +196,7 @@ static int moose_store_completion_art_callback(void *user_data, const unsigned c
     MoosePlaylist *full_playlist = NULL;
 
     g_object_get(data->self->priv->store, "full-playlist", &full_playlist, NULL);
-    if(full_playlist != NULL) {
+    if(full_playlist == NULL) {
         return 1;
     }
 

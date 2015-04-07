@@ -372,6 +372,7 @@ static void moose_store_shutdown(MooseStore *self) {
 
     if(priv->completion != NULL) {
         moose_store_completion_unref(priv->completion);
+        priv->completion = NULL;
     }
 
     g_free(db_path);
@@ -760,7 +761,8 @@ MooseStoreCompletion *moose_store_get_completion(MooseStore *self) {
 
     if(self->priv->completion == NULL) {
         self->priv->completion =
-            g_object_new(MOOSE_TYPE_STORE_COMPLETION, "store", self->priv, NULL);
+            g_object_new(MOOSE_TYPE_STORE_COMPLETION, "store", self, NULL);
+
     }
     return self->priv->completion;
 }
@@ -771,6 +773,8 @@ static void moose_store_init(MooseStore *self) {
     /* Initialize the Attribute mutex early */
     g_mutex_init(&priv->attr_set_mtx);
     g_mutex_init(&priv->mirrored_mtx);
+
+    priv->completion = NULL;
 
     /* Initialize the job manager used to background jobs */
     priv->jm = moose_job_manager_new();
