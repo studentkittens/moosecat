@@ -22,12 +22,7 @@
 #define ASSERT_IS_MAINTHREAD(client) \
     g_assert(g_thread_self() == (client)->priv->initial_thread)
 
-enum {
-    SIGNAL_CLIENT_EVENT,
-    SIGNAL_CONNECTIVITY,
-    SIGNAL_LOG_MESSAGE,
-    NUM_SIGNALS
-};
+enum { SIGNAL_CLIENT_EVENT, SIGNAL_CONNECTIVITY, SIGNAL_LOG_MESSAGE, NUM_SIGNALS };
 
 enum {
     PROP_HOST = 1,
@@ -213,9 +208,9 @@ static void *moose_client_command_dispatcher(MooseJobManager *jm,
                                              void *user_data);
 
 gboolean moose_client_connect_to(MooseClient *self,
-                              const char *host,
-                              int port,
-                              float timeout) {
+                                 const char *host,
+                                 int port,
+                                 float timeout) {
     char *error = NULL;
 
     /* Do not connect if already connected. */

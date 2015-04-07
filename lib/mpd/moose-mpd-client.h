@@ -180,7 +180,7 @@ MooseClient *moose_client_new(MooseProtocolType protocol);
  * Returns: True on success.
  */
 gboolean moose_client_connect_to(MooseClient *self, const char *host, int port,
-                              float timeout);
+                                 float timeout);
 
 /**
  * moose_client_get: (skip)

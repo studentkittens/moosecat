@@ -195,8 +195,8 @@ static gboolean moose_idle_client_process_received(MooseIdleClient *self) {
 
         switch(result) {
         case MPD_PARSER_MALFORMED:
-            moose_idle_client_report_error(
-                self, MPD_ERROR_MALFORMED, "cannot parse malformed response");
+            moose_idle_client_report_error(self, MPD_ERROR_MALFORMED,
+                                           "cannot parse malformed response");
             return false;
 
         case MPD_PARSER_SUCCESS:

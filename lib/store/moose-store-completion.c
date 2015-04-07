@@ -98,7 +98,8 @@ static void moose_store_completion_set_property(GObject *object,
 static void moose_store_completion_constructed(GObject *object) {
     MooseStoreCompletion *self = MOOSE_STORE_COMPLETION(object);
 
-    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->constructed(object);
+    G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))
+        ->constructed(object);
 
     MooseStore *store = NULL;
     MooseClient *client = NULL;
@@ -109,10 +110,8 @@ static void moose_store_completion_constructed(GObject *object) {
     g_assert(store);
     g_assert(client);
 
-    g_signal_connect(
-        client, "client-event", G_CALLBACK(moose_store_completion_client_event),
-        self
-    );
+    g_signal_connect(client, "client-event",
+                     G_CALLBACK(moose_store_completion_client_event), self);
 
     g_object_unref(store);
     g_object_unref(client);

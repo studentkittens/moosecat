@@ -762,7 +762,6 @@ MooseStoreCompletion *moose_store_get_completion(MooseStore *self) {
     if(self->priv->completion == NULL) {
         self->priv->completion =
             g_object_new(MOOSE_TYPE_STORE_COMPLETION, "store", self, NULL);
-
     }
     return self->priv->completion;
 }
@@ -894,8 +893,8 @@ static void moose_store_set_property(GObject *object,
         moose_store_buildup(self);
 
         /* Register for client events */
-        g_signal_connect(
-            priv->client, "client-event", G_CALLBACK(moose_store_update_callback), self);
+        g_signal_connect(priv->client, "client-event",
+                         G_CALLBACK(moose_store_update_callback), self);
 
         /* Register to be notifed when the connection status changes */
         g_signal_connect(priv->client,
