@@ -183,8 +183,15 @@ link_shared_library_message = '%sLinking Shared Library %s==> %s$TARGET%s' % \
     (colors['red'], colors['purple'], colors['yellow'], colors['end'])
 
 
+AddOption(
+    '--prefix', default='/usr',
+    dest='prefix', type='string', nargs=1,
+    action='store', metavar='DIR', help='installation prefix'
+)
+
 # General Environment
 options = dict(
+    PREFIX=GetOption('prefix'),
     CXXCOMSTR=compile_source_message,
     CCCOMSTR=compile_source_message,
     SHCCCOMSTR=compile_shared_source_message,
@@ -390,3 +397,43 @@ if 'gir' in COMMAND_LINE_TARGETS:
     sources = FindLibmoosecatSource('.h', False)
     command = env.Command(MOOSE_GIR + '.typelib', sources, BuildGir)
     env.AlwaysBuild(env.Alias('gir', [command]))
+
+
+AddOption(
+    '--libdir', default='lib',
+    dest='libdir', type='string', nargs=1,
+    action='store', metavar='DIR', help='libdir name (lib or lib64)'
+)
+
+def create_uninstall_target(env, path):
+    env.Command("uninstall-" + path, path, [
+        Delete("$SOURCE"),
+    ])
+    env.Alias("uninstall", "uninstall-" + path)
+
+
+import gi
+override_path = os.path.join(gi.__path__[0], 'overrides')
+lib_path = os.path.join("$PREFIX", GetOption('libdir'))
+typelib_path = os.path.join(lib_path, 'girepository-1.0')
+
+# TODO:
+override_path = '/usr/lib64/python3.4/site-packages/gi/overrides'
+
+
+if 'install' in COMMAND_LINE_TARGETS:
+    env.Alias('install', env.Install(override_path, ['lib/Moose.py']))
+    env.Alias('install', env.Install(typelib_path, [MOOSE_GIR + '.typelib']))
+    env.Alias('install', env.Install(lib_path, [lib]))
+
+
+if 'uninstall' in COMMAND_LINE_TARGETS:
+    create_uninstall_target(
+        env, os.path.join(lib_path, os.path.basename(str(lib[0])))
+    )
+    create_uninstall_target(
+        env, os.path.join(override_path, 'Moose.py')
+    )
+    create_uninstall_target(
+        env, os.path.join(typelib_path, MOOSE_GIR + '.typelib')
+    )
