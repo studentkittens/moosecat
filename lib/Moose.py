@@ -78,12 +78,23 @@ def reffed_status(client):
         status.unref()
 
 
+@contextlib.contextmanager
 def reffed_current_song(client):
     status = client.ref_status()
     try:
-        yield status
+        yield status.get_current_song()
     finally:
         status.unref()
 
 
 Moose.Client.reffed_status = reffed_status
+Moose.Client.reffed_current_song = reffed_current_song
+
+_connect_to = Moose.Client.connect_to
+
+# Provided sane defaults.
+def connect_to(client, host='localhost', port=6600, timeout=100):
+    _connect_to(client, host, port, timeout)
+
+
+Moose.Client.connect_to = connect_to
