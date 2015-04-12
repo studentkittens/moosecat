@@ -110,6 +110,14 @@ MooseSong* moose_playlist_at(MoosePlaylist* self, unsigned at);
  */
 MoosePlaylist* moose_playlist_copy(MoosePlaylist* self);
 
+/**
+ * moose_playlist_unref:
+ * @self: A #MoosePlaylist
+ *
+ * Unrefs an playlist.
+ */
+void moose_playlist_unref(MoosePlaylist* self);
+
 G_END_DECLS
 
 #endif /* end of include guard: MOOSE_STORE_STACK_H */

@@ -1,7 +1,7 @@
 from gi.repository import Moose
 from gi.repository import GLib
 
-c = Moose.CmdClient()
+c = Moose.IdleClient()
 c.connect_to('localhost', 6600, 100)
 print(c.is_connected())
 

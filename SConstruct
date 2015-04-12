@@ -129,20 +129,25 @@ def BuildConfigTemplate(target, source, env):
 
 
 def FindLibmoosecatSource(suffix='.c', extensions=True):
-    c_files = []
-    c_files += Glob('lib/mpd/*' + suffix)
-    c_files += Glob('lib/mpd/pm/*' + suffix)
-    c_files += Glob('lib/misc/*' + suffix)
-    c_files += Glob('lib/store/moose-store' + suffix)
-    c_files += Glob('lib/store/moose-store-playlist' + suffix)
-    c_files += Glob('lib/store/moose-store-completion' + suffix)
-    c_files += Glob('lib/store/moose-store-query-parser' + suffix)
-    c_files += Glob('lib/gtk/*' + suffix)
-    c_files += Glob('lib/*' + suffix)
-    if extensions:
-        c_files += ['ext/sqlite/sqlite3.c', 'ext/libart/art.c']
+    files = []
+    files += Glob('lib/mpd/*' + suffix)
+    files += Glob('lib/mpd/pm/*' + suffix)
+    files += Glob('lib/misc/*' + suffix)
+    files += Glob('lib/metadata/*' + suffix)
+    files += Glob('lib/store/moose-store' + suffix)
+    files += Glob('lib/store/moose-store-playlist' + suffix)
+    files += Glob('lib/store/moose-store-completion' + suffix)
+    files += Glob('lib/store/moose-store-query-parser' + suffix)
+    files += Glob('lib/gtk/*' + suffix)
+    files += Glob('lib/*' + suffix)
 
-    return c_files
+    if extensions:
+        files += ['ext/sqlite/sqlite3.c', 'ext/libart/art.c']
+    else:
+        # Filter header files with the -private.h extension.
+        files = [node for node in files if '-private' not in str(node)]
+
+    return files
 
 ###########################################################################
 #                                 Colors!                                 #
@@ -253,7 +258,8 @@ DEPS = {
     'libmpdclient >= 2.3': 'libmpdclient',
     'avahi-glib >= 0.6.30': 'avahi_glib',
     'avahi-client': 'avahi_client',
-    'zlib': 'zlib'
+    'zlib': 'zlib',
+    'libglyr': 'glyr'
     # 'python3 >= 3.2': 'python3'
 }
 

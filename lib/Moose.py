@@ -1,8 +1,25 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+"""
+This module provides override methods for libmoosecat.so.  While it is
+perfectly possible to use all functions directly from the python side, it may
+not be convinient to use the C paradigms used there.
+
+Therefore some python util methods are monkey patched to the relevant classes.
+"""
+
+
+# Stdlib:
+import contextlib
+
+# Internal:
 from ..module import get_introspection_module
 
 # We cannot use the normal `from gi.repository import Moose`.
 # Since we're inside the import process already.
 Moose = get_introspection_module('Moose')
+
 
 ########################
 #  PLAYLIST OVERRIDES  #
@@ -47,3 +64,26 @@ def _iter_server(server):
 Moose.ZeroconfServer.__getitem__ = _get_server_attr
 Moose.ZeroconfServer.__iter__ = _iter_server
 Moose.ZeroconfServer.valid_attrs = frozenset(VALID_ATTRS)
+
+######################
+#  CLIENT OVERRIDES  #
+######################
+
+@contextlib.contextmanager
+def reffed_status(client):
+    status = client.ref_status()
+    try:
+        yield status
+    finally:
+        status.unref()
+
+
+def reffed_current_song(client):
+    status = client.ref_status()
+    try:
+        yield status
+    finally:
+        status.unref()
+
+
+Moose.Client.reffed_status = reffed_status

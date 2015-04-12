@@ -98,3 +98,8 @@ MoosePlaylist* moose_playlist_copy(MoosePlaylist* self) {
 
     return other;
 }
+
+void moose_playlist_unref(MoosePlaylist* self) {
+    g_assert(self);
+    g_object_unref(self);
+}

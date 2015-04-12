@@ -1073,6 +1073,8 @@ int moose_stprv_select_to_stack(MooseStorePrivate *self, const char *match_claus
         moose_playlist_sort(stack, moose_stprv_select_impl_sort_func_by_stack_ptr);
         MoosePlaylist *queue = moose_stprv_build_queue_content(self, stack);
         moose_playlist_clear(stack);
+
+        /* Copy it over */
         for(unsigned i = 0; i < moose_playlist_length(queue); ++i) {
             moose_playlist_append(stack, moose_playlist_at(queue, i));
         }
