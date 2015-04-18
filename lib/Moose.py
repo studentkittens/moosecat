@@ -69,6 +69,7 @@ Moose.ZeroconfServer.valid_attrs = frozenset(VALID_ATTRS)
 #  CLIENT OVERRIDES  #
 ######################
 
+
 @contextlib.contextmanager
 def reffed_status(client):
     status = client.ref_status()
@@ -92,9 +93,43 @@ Moose.Client.reffed_current_song = reffed_current_song
 
 _connect_to = Moose.Client.connect_to
 
+
 # Provided sane defaults.
 def connect_to(client, host='localhost', port=6600, timeout=100):
     _connect_to(client, host, port, timeout)
 
 
 Moose.Client.connect_to = connect_to
+
+######################
+#  STATUS OVERRIDES  #
+######################
+
+
+def status_getitem(status, key):
+    try:
+        return status.get_property(key)
+    except TypeError:
+        raise KeyError('No such status-attr: `{}`'.format(key))
+
+
+Moose.Status.__getitem__ = status_getitem
+
+######################
+#   SONG OVERRIDES   #
+######################
+
+
+def hash_song(song):
+    return song.get_id()
+
+
+def song_getitem(song, key):
+    try:
+        return song.get_property(key)
+    except TypeError:
+        raise KeyError('No such song-attr: `{}`'.format(key))
+
+
+Moose.Song.__hash__ = hash_song
+Moose.Song.__getitem__ = song_getitem

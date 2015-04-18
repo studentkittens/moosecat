@@ -90,7 +90,7 @@ typedef struct _MooseClientPrivate {
         MooseState state;
     } last_song_data;
 
-    MooseProtocolType protocol;
+    MooseProtocol protocol;
 } MooseClientPrivate;
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(MooseClient, moose_client, G_TYPE_OBJECT);
@@ -1705,7 +1705,7 @@ static void moose_client_init(MooseClient *self) {
     priv->update_thread = g_thread_new("data-update-thread", moose_update_thread, self);
 }
 
-MooseClient *moose_client_new(MooseProtocolType protocol) {
+MooseClient *moose_client_new(MooseProtocol protocol) {
     switch(protocol) {
     case MOOSE_PROTOCOL_COMMAND:
         return g_object_new(MOOSE_TYPE_CMD_CLIENT, NULL);
@@ -1843,7 +1843,7 @@ static void moose_client_class_init(MooseClientClass *klass) {
 
     SIGNALS[SIGNAL_CLIENT_EVENT] = g_signal_new(
         "client-event", G_OBJECT_CLASS_TYPE(klass), G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-        g_cclosure_marshal_VOID__INT, G_TYPE_NONE, 1, G_TYPE_INT);
+        g_cclosure_marshal_VOID__FLAGS, G_TYPE_NONE, 1, G_TYPE_INT);
     SIGNALS[SIGNAL_CONNECTIVITY] = g_signal_new(
         "connectivity", G_OBJECT_CLASS_TYPE(klass), G_SIGNAL_RUN_LAST, 0, NULL, NULL,
         g_cclosure_marshal_VOID__BOOLEAN, G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
@@ -1934,4 +1934,46 @@ static void moose_client_class_init(MooseClientClass *klass) {
      * Timer Interval, after which the status is force-updated.
      */
     g_object_class_install_property(gobject_class, PROP_TIMER_ONLY_WHEN_PLAYING, pspec);
+}
+
+GType moose_idle_get_type(void) {
+    static GType flags_type = 0;
+
+    if(flags_type == 0) {
+        static GFlagsValue idle_types[] = {
+            {MOOSE_IDLE_DATABASE, "Database updated", "database"},
+            {MOOSE_IDLE_STORED_PLAYLIST, "stored playlist changed", "stored-playlist"},
+            {MOOSE_IDLE_QUEUE, "queue changed", "queue"},
+            {MOOSE_IDLE_PLAYER, "player state changed", "player"},
+            {MOOSE_IDLE_MIXER, "mixer state changed", "mixer"},
+            {MOOSE_IDLE_OUTPUT, "outputs changed", "output"},
+            {MOOSE_IDLE_OPTIONS, "playback options changed", "options"},
+            {MOOSE_IDLE_UPDATE, "update was triggered", "update"},
+            {MOOSE_IDLE_STICKER, "sticker info changed", "sticker"},
+            {MOOSE_IDLE_SUBSCRIPTION, "subscription changed", "subscription"},
+            {MOOSE_IDLE_MESSAGE, "message received", "message"},
+            {MOOSE_IDLE_SEEK, "seek position changed", "seek"},
+            {MOOSE_IDLE_STATUS_TIMER_FLAG, "status was updated", "status-timer"},
+            {0, NULL, NULL}};
+
+        flags_type = g_flags_register_static("MooseIdle", idle_types);
+    }
+
+    return flags_type;
+}
+
+GType moose_protocol_get_type(void) {
+    static GType enum_type = 0;
+
+    if(enum_type == 0) {
+        static GEnumValue protocol_types[] = {
+            {MOOSE_PROTOCOL_IDLE, "Idle protocol machine", "idle"},
+            {MOOSE_PROTOCOL_COMMAND, "Command protocol machine", "command"},
+            {MOOSE_PROTOCOL_DEFAULT, "Default protocol machine", "default"},
+            {0, NULL, NULL}};
+
+        enum_type = g_enum_register_static("MooseProtocol", protocol_types);
+    }
+
+    return enum_type;
 }

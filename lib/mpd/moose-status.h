@@ -38,6 +38,10 @@ typedef enum _MooseState {
     MOOSE_STATE_PAUSE = 3,
 } MooseState;
 
+#define MOOSE_TYPE_STATE (moose_state_get_type())
+
+GType moose_state_get_type(void);
+
 /*
  * Type macros.
  */

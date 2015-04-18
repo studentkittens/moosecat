@@ -49,6 +49,9 @@ typedef enum _MooseTagType {
     MOOSE_TAG_COUNT = MPD_TAG_COUNT
 } MooseTagType;
 
+#define MOOSE_TYPE_TAG_TYPE (moose_tag_type_get_type())
+GType moose_tag_type_get_type(void);
+
 /*
  * Type macros.
  */

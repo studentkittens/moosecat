@@ -34,6 +34,73 @@ typedef struct _MooseSongPrivate {
 
 G_DEFINE_TYPE_WITH_PRIVATE(MooseSong, moose_song, G_TYPE_OBJECT);
 
+enum {
+    PROP_URI = 1,
+    /* Not all tags have properties yet. */
+    PROP_ARTIST,
+    PROP_ALBUM,
+    PROP_ALBUM_ARTIST,
+    PROP_TITLE,
+    PROP_TRACK,
+    PROP_GENRE,
+    PROP_DATE,
+    PROP_LAST_MODIFIED,
+    PROP_POS,
+    PROP_ID,
+    PROP_PRIO,
+    N_PROPS
+};
+
+/* This is implemented for easier introspection support */
+static void moose_song_get_property(GObject* object,
+                                    guint property_id,
+                                    GValue* value,
+                                    GParamSpec* pspec) {
+    MooseSong* self = MOOSE_SONG(object);
+    MooseSongPrivate* priv = self->priv;
+    switch(property_id) {
+    case PROP_URI:
+        g_value_set_string(value, priv->uri);
+        break;
+    case PROP_ARTIST:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_ARTIST]);
+        break;
+    case PROP_ALBUM:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_ALBUM]);
+        break;
+    case PROP_ALBUM_ARTIST:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_ALBUM_ARTIST]);
+        break;
+    case PROP_TITLE:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_TITLE]);
+        break;
+    case PROP_TRACK:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_TRACK]);
+        break;
+    case PROP_GENRE:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_GENRE]);
+        break;
+    case PROP_DATE:
+        g_value_set_string(value, priv->tags[MOOSE_TAG_DATE]);
+        break;
+    case PROP_LAST_MODIFIED:
+        g_value_set_uint(value, priv->last_modified);
+        break;
+    case PROP_POS:
+        g_value_set_uint(value, priv->pos);
+        break;
+    case PROP_ID:
+        g_value_set_uint(value, priv->id);
+        break;
+    case PROP_PRIO:
+        g_value_set_uint(value, priv->prio);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
+    }
+}
+
 static void moose_song_finalize(GObject* gobject) {
     MooseSong* self = MOOSE_SONG(gobject);
 
@@ -52,13 +119,44 @@ static void moose_song_finalize(GObject* gobject) {
     G_OBJECT_CLASS(g_type_class_peek_parent(G_OBJECT_GET_CLASS(self)))->finalize(gobject);
 }
 
+static const GParamFlags DEFAULT_FLAGS = 0 | G_PARAM_READABLE | G_PARAM_STATIC_NICK |
+                                         G_PARAM_STATIC_BLURB | G_PARAM_STATIC_NAME;
+
+static GParamSpec* moose_status_prop_uint(const char* name) {
+    return g_param_spec_uint(name, name, name, 0, G_MAXUINT, 0, DEFAULT_FLAGS);
+}
+
+static GParamSpec* moose_status_prop_string(const char* name) {
+    return g_param_spec_string(name, name, name, NULL, DEFAULT_FLAGS);
+}
+
 static void moose_song_class_init(MooseSongClass* klass) {
     GObjectClass* gobject_class = G_OBJECT_CLASS(klass);
     gobject_class->finalize = moose_song_finalize;
+    gobject_class->get_property = moose_song_get_property;
+
+    static GParamSpec* props[N_PROPS] = {NULL};
+
+    props[PROP_URI] = moose_status_prop_string("uri");
+    props[PROP_ARTIST] = moose_status_prop_string("artist");
+    props[PROP_ALBUM] = moose_status_prop_string("album");
+    props[PROP_ALBUM_ARTIST] = moose_status_prop_string("album-artist");
+    props[PROP_TITLE] = moose_status_prop_string("title");
+    props[PROP_TRACK] = moose_status_prop_string("track");
+    props[PROP_GENRE] = moose_status_prop_string("genre");
+    props[PROP_DATE] = moose_status_prop_string("date");
+
+    props[PROP_LAST_MODIFIED] = moose_status_prop_uint("last-modified");
+    props[PROP_POS] = moose_status_prop_uint("pos");
+    props[PROP_ID] = moose_status_prop_uint("id");
+    props[PROP_PRIO] = moose_status_prop_uint("prio");
+
+    g_object_class_install_properties(G_OBJECT_CLASS(klass), N_PROPS, props);
 }
 
 static void moose_song_init(MooseSong* self) {
     self->priv = moose_song_get_instance_private(self);
+    memset(self->priv->tags, 0, sizeof(self->priv->tags));
 }
 
 MooseSong* moose_song_new(void) {
@@ -175,4 +273,34 @@ MooseSong* moose_song_new_from_struct(struct mpd_song* song) {
     MooseSong* self = moose_song_new();
     moose_song_convert(self, song);
     return self;
+}
+
+GType moose_tag_type_get_type(void) {
+    static GType enum_type = 0;
+
+    if(enum_type == 0) {
+        static GEnumValue tag_types[] = {
+            {MOOSE_TAG_UNKNOWN, "Unknown", ""},
+            {MOOSE_TAG_ARTIST, "Artist", "artist"},
+            {MOOSE_TAG_ALBUM, "Album", "album"},
+            {MOOSE_TAG_ALBUM_ARTIST, "Albumartist", "album-artist"},
+            {MOOSE_TAG_TITLE, "Title", "title"},
+            {MOOSE_TAG_TRACK, "Track", "track"},
+            {MOOSE_TAG_NAME, "Name", "name"},
+            {MOOSE_TAG_GENRE, "Genre", "genre"},
+            {MOOSE_TAG_DATE, "Releasedate", "date"},
+            {MOOSE_TAG_COMPOSER, "Composer", "composer"},
+            {MOOSE_TAG_PERFORMER, "Performer", "performer"},
+            {MOOSE_TAG_COMMENT, "Tag comments", "comment"},
+            {MOOSE_TAG_DISC, "Disc Number", "disc"},
+            {MOOSE_TAG_MUSICBRAINZ_ARTISTID, "MB Artist ID", "musicbrainz-artist-id"},
+            {MOOSE_TAG_MUSICBRAINZ_ALBUMID, "MB Album ID", "musicbrainz-album-id"},
+            {MOOSE_TAG_MUSICBRAINZ_ALBUMARTISTID, "MB Albumartist ID", "muscibrainz-albumartist-id"},
+            {MOOSE_TAG_MUSICBRAINZ_TRACKID, "MB Track ID", "musicbrainz-track-id"},
+            {0, NULL, NULL}};
+
+        enum_type = g_enum_register_static("MooseTagType", tag_types);
+    }
+
+    return enum_type;
 }

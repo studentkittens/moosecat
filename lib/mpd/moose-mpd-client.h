@@ -83,17 +83,27 @@ typedef enum MooseIdle {
     MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3
 } MooseIdle;
 
+#define MOOSE_TYPE_IDLE (moose_idle_get_type())
+GType moose_idle_get_type(void);
+
+/////////////////////////
+
 /**
- * MooseProtocolType:
+ * MooseProtocol:
  *
  * The Protocols that can be used with moose_client_new()
  */
-typedef enum MooseProtocolType {
+typedef enum MooseProtocol {
     MOOSE_PROTOCOL_IDLE,
     MOOSE_PROTOCOL_COMMAND,
     MOOSE_PROTOCOL_N,
     MOOSE_PROTOCOL_DEFAULT = MOOSE_PROTOCOL_IDLE
-} MooseProtocolType;
+} MooseProtocol;
+
+#define MOOSE_TYPE_PROTOCOL_TYPE
+GType moose_protocol_get_type(void);
+
+/////////////////////////
 
 #define MOOSE_TYPE_CLIENT (moose_client_get_type())
 #define MOOSE_CLIENT(obj) \
@@ -147,7 +157,7 @@ typedef struct _MooseClientClass { GObjectClass parent_class; } MooseClientClass
 
 /**
  * moose_client_new:
- * @protocol: a #MooseProtocolType
+ * @protocol: a #MooseProtocol
  *
  * Creates a new MooseIdleClient or a MooseCmdClient.
  * Note that you cannot instance a MooseClient itself,
@@ -163,7 +173,7 @@ typedef struct _MooseClientClass { GObjectClass parent_class; } MooseClientClass
  *
  * Returns: A newly instancen Client ready for your pleasure.
  */
-MooseClient *moose_client_new(MooseProtocolType protocol);
+MooseClient *moose_client_new(MooseProtocol protocol);
 
 /**
  * moose_client_connect_to:

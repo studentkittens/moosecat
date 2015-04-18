@@ -70,6 +70,11 @@ typedef enum MooseZeroconfState {
     MOOSE_ZEROCONF_STATE_ALL_FOR_NOW
 } MooseZeroconfState;
 
+
+#define MOOSE_TYPE_ZEROCONF_STATE (moose_zeroconf_state_get_type())
+GType moose_zeroconf_state_get_type(void);
+
+
 struct _MooseZeroconfBrowserPrivate;
 struct _MooseZeroconfServerPrivate;
 

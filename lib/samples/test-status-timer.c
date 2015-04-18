@@ -21,7 +21,7 @@ static void event_cb(G_GNUC_UNUSED MooseClient *client,
     }
 }
 
-static void test_status_timer_real(MooseProtocolType pm) {
+static void test_status_timer_real(MooseProtocol pm) {
     MooseClient *client = moose_client_new(pm);
     moose_client_connect_to(client, "localhost", 6666, 20);
     g_signal_connect(client, "client-event", G_CALLBACK(event_cb), NULL);

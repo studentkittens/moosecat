@@ -567,3 +567,23 @@ int moose_zeroconf_server_get_port(MooseZeroconfServer* server) {
     g_object_get(server, "port", &port, NULL);
     return port;
 }
+
+GType moose_zeroconf_state_get_type(void) {
+    static GType enum_type = 0;
+
+    if(enum_type == 0) {
+        static GEnumValue state_types [] = {
+            {MOOSE_ZEROCONF_STATE_UNCONNECTED, "", ""},
+            {MOOSE_ZEROCONF_STATE_CONNECTED, "", ""},
+            {MOOSE_ZEROCONF_STATE_ERROR, "", ""},
+            {MOOSE_ZEROCONF_STATE_CHANGED, "", ""},
+            {MOOSE_ZEROCONF_STATE_ALL_FOR_NOW, "", ""},
+            {0, NULL, NULL}};
+
+        enum_type = g_enum_register_static(
+            "MooseZeroconfState", state_types
+        );
+    }
+
+    return enum_type;
+}

@@ -94,14 +94,6 @@ const char* moose_store_qp_tag_abbrev_to_full(const char* token, size_t len);
  */
 gboolean moose_store_qp_is_valid_tag(const char* tag, size_t len);
 
-/**
- * moose_store_qp_str_to_tag_enum:
- * @tag: Convert a tag string (as used in the parser) to a MOOSE_TAG_* ID.
- *
- * Returns: a #MooseTagType
- */
-MooseTagType moose_store_qp_str_to_tag_enum(const char* tag);
-
 G_END_DECLS
 
 #endif /* end of include guard: MOOSE_DB_QUERY_PASRSER_HH */
