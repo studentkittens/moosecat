@@ -246,7 +246,8 @@ gboolean moose_client_connect_to(MooseClient *self,
         moose_report_connectivity(self, host, port, timeout);
         moose_message("…Fully connected!");
     } else {
-        moose_critical("…Cannot connect: %s\n", error);
+        g_signal_emit(self, SIGNALS[SIGNAL_CONNECTIVITY], 0, false);
+        moose_critical("…Cannot connect: %s", error);
     }
 
     return (error == NULL);
@@ -289,6 +290,8 @@ struct mpd_connection *moose_client_get(MooseClient *self) {
 gboolean moose_client_disconnect(MooseClient *self) {
     gboolean error_happenend = true;
     MooseClientPrivate *priv = self->priv;
+
+    g_printerr("DOING DISCONNECT\n!");
 
     if(self == NULL || moose_client_is_connected(self) == false) {
         return error_happenend;
@@ -1841,9 +1844,25 @@ static void moose_client_class_init(MooseClientClass *klass) {
     gobject_class->get_property = moose_client_get_property;
     gobject_class->set_property = moose_client_set_property;
 
+    /**
+     * MooseClient::client-event:
+     * @client: The client.
+     * @events: MooseIdle events that happened.
+     *
+     * Called on every client event that mpd gave us.
+     */
     SIGNALS[SIGNAL_CLIENT_EVENT] = g_signal_new(
         "client-event", G_OBJECT_CLASS_TYPE(klass), G_SIGNAL_RUN_LAST, 0, NULL, NULL,
         g_cclosure_marshal_VOID__FLAGS, G_TYPE_NONE, 1, G_TYPE_INT);
+
+    /**
+     * MooseClient::connectivity:
+     * @client: The client.
+     * @server_changed: True if the now connected server differs to older one.
+     *
+     * server_changed is False on disconnect events.
+     * Use moose_client_is_connected() to find out if it's connected.
+     */
     SIGNALS[SIGNAL_CONNECTIVITY] = g_signal_new(
         "connectivity", G_OBJECT_CLASS_TYPE(klass), G_SIGNAL_RUN_LAST, 0, NULL, NULL,
         g_cclosure_marshal_VOID__BOOLEAN, G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
@@ -1941,19 +1960,20 @@ GType moose_idle_get_type(void) {
 
     if(flags_type == 0) {
         static GFlagsValue idle_types[] = {
-            {MOOSE_IDLE_DATABASE, "Database updated", "database"},
-            {MOOSE_IDLE_STORED_PLAYLIST, "stored playlist changed", "stored-playlist"},
-            {MOOSE_IDLE_QUEUE, "queue changed", "queue"},
-            {MOOSE_IDLE_PLAYER, "player state changed", "player"},
-            {MOOSE_IDLE_MIXER, "mixer state changed", "mixer"},
-            {MOOSE_IDLE_OUTPUT, "outputs changed", "output"},
-            {MOOSE_IDLE_OPTIONS, "playback options changed", "options"},
-            {MOOSE_IDLE_UPDATE, "update was triggered", "update"},
-            {MOOSE_IDLE_STICKER, "sticker info changed", "sticker"},
-            {MOOSE_IDLE_SUBSCRIPTION, "subscription changed", "subscription"},
-            {MOOSE_IDLE_MESSAGE, "message received", "message"},
-            {MOOSE_IDLE_SEEK, "seek position changed", "seek"},
-            {MOOSE_IDLE_STATUS_TIMER_FLAG, "status was updated", "status-timer"},
+            {MOOSE_IDLE_DATABASE, "MOOSE_IDLE_DATABASE", "database"},
+            {MOOSE_IDLE_STORED_PLAYLIST, "MOOSE_IDLE_STORED_PLAYLIST", "stored-playlist"},
+            {MOOSE_IDLE_QUEUE, "MOOSE_IDLE_QUEUE", "queue"},
+            {MOOSE_IDLE_PLAYER, "MOOSE_IDLE_PLAYER", "player"},
+            {MOOSE_IDLE_MIXER, "MOOSE_IDLE_MIXER", "mixer"},
+            {MOOSE_IDLE_OUTPUT, "MOOSE_IDLE_OUTPUT", "output"},
+            {MOOSE_IDLE_OPTIONS, "MOOSE_IDLE_OPTIONS", "options"},
+            {MOOSE_IDLE_UPDATE, "MOOSE_IDLE_UPDATE", "update"},
+            {MOOSE_IDLE_STICKER, "MOOSE_IDLE_STICKER", "sticker"},
+            {MOOSE_IDLE_SUBSCRIPTION, "MOOSE_IDLE_SUBSCRIPTION", "subscription"},
+            {MOOSE_IDLE_MESSAGE, "MOOSE_IDLE_MESSAGE", "message"},
+            {MOOSE_IDLE_SEEK, "MOOSE_IDLE_SEEK", "seek"},
+            {MOOSE_IDLE_STATUS_TIMER_FLAG, "MOOSE_IDLE_STATUS_TIMER_FLAG",
+             "status-timer"},
             {0, NULL, NULL}};
 
         flags_type = g_flags_register_static("MooseIdle", idle_types);
@@ -1967,9 +1987,9 @@ GType moose_protocol_get_type(void) {
 
     if(enum_type == 0) {
         static GEnumValue protocol_types[] = {
-            {MOOSE_PROTOCOL_IDLE, "Idle protocol machine", "idle"},
-            {MOOSE_PROTOCOL_COMMAND, "Command protocol machine", "command"},
-            {MOOSE_PROTOCOL_DEFAULT, "Default protocol machine", "default"},
+            {MOOSE_PROTOCOL_IDLE, "MOOSE_PROTOCOL_IDLE", "idle"},
+            {MOOSE_PROTOCOL_COMMAND, "MOOSE_PROTOCOL_COMMAND", "command"},
+            {MOOSE_PROTOCOL_DEFAULT, "MOOSE_PROTOCOL_DEFAULT", "default"},
             {0, NULL, NULL}};
 
         enum_type = g_enum_register_static("MooseProtocol", protocol_types);

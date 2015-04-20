@@ -55,5 +55,5 @@ static void moose_register_log_domains(const char *domain, GObject *object) {
 void moose_misc_catch_external_logs(GObject *object) {
     moose_register_log_domains("GLib", object);
     moose_register_log_domains("GLib-GObject", object);
-    moose_register_log_domains("Moosecat", object);
+    moose_register_log_domains("Moose", object);
 }

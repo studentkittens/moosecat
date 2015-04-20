@@ -31,12 +31,13 @@ static gboolean idle_callback(void *user_data) {
 
     for(int i = 0; i < 10; i++) {
         g_printerr("+ connect\n");
-        moose_client_connect_to(self, "localhost", 6601, 2.0);
+        moose_client_connect_to(self, "localhost", 6666, 2.0);
         g_printerr("- disconnect\n");
         moose_client_disconnect(self);
     }
 
-    g_timeout_add(5000, quit_loop, self);
+        moose_client_connect_to(self, "localhost", 6666, 2.0);
+    g_timeout_add(50000, quit_loop, self);
     return FALSE;
 }
 

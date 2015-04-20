@@ -37,6 +37,11 @@ typedef struct _MooseStorePrivate {
      * */
     bool write_to_disk;
 
+    /* True if the store needs to be built up first,
+     * i.e. a call to moose_store_buildup is needed.
+     * */
+    bool needs_buildup;
+
     /* Support for stored playlists */
     GPtrArray *spl_stack;
 
@@ -384,6 +389,8 @@ static void moose_store_buildup(MooseStore *self) {
 
     char *db_path = moose_store_construct_full_dbpath(self, self->priv->db_directory);
 
+    self->priv->needs_buildup = FALSE;
+
     if((song_count = moose_store_check_if_db_is_still_valid(self, db_path)) < 0) {
         moose_message("database: will fetch stuff from mpd.");
 
@@ -481,10 +488,15 @@ static void moose_store_connectivity_callback(MooseClient *client,
                 g_free(self->priv->mirrored_host);
                 self->priv->mirrored_host = g_strdup(moose_client_get_host(client));
                 self->priv->mirrored_port = moose_client_get_port(client);
+                self->priv->needs_buildup = TRUE;
                 moose_store_buildup(self);
             }
             moose_stprv_unlock(self->priv);
         } else {
+            /* Do the actual hard work */
+            self->priv->needs_buildup = TRUE;
+            moose_store_buildup(self);
+
             /* Important to send those two seperate (different priorities */
             moose_store_send_job_no_args(self, MOOSE_OPER_LISTALLINFO);
             moose_store_send_job_no_args(self, MOOSE_OPER_WRITE_DATABASE);
@@ -889,8 +901,10 @@ static void moose_store_set_property(GObject *object,
         priv->mirrored_host = g_strdup(moose_client_get_host(priv->client));
         priv->mirrored_port = moose_client_get_port(priv->client);
 
-        /* Do the actual hard work */
-        moose_store_buildup(self);
+        if(moose_client_is_connected(priv->client)) {
+            self->priv->needs_buildup = TRUE;
+            moose_store_buildup(self);
+        }
 
         /* Register for client events */
         g_signal_connect(priv->client, "client-event",

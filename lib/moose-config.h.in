@@ -20,12 +20,12 @@
 )
 
 #define moose_debug(...) \
-    g_log("Moosecat", G_LOG_LEVEL_DEBUG, __VA_ARGS__)
+    g_log("Moose", G_LOG_LEVEL_DEBUG, __VA_ARGS__)
 #define moose_message(...) \
-    g_log("Moosecat", G_LOG_LEVEL_MESSAGE, __VA_ARGS__)
+    g_log("Moose", G_LOG_LEVEL_MESSAGE, __VA_ARGS__)
 #define moose_warning(...) \
-    g_log("Moosecat", G_LOG_LEVEL_WARNING, __VA_ARGS__)
+    g_log("Moose", G_LOG_LEVEL_WARNING, __VA_ARGS__)
 #define moose_critical(...) \
-    g_log("Moosecat", G_LOG_LEVEL_CRITICAL, __VA_ARGS__)
+    g_log("Moose", G_LOG_LEVEL_CRITICAL, __VA_ARGS__)
 
 #endif

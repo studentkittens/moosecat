@@ -3,7 +3,7 @@
 
 /**
  * SECTION: moose-mpd-client
- * @short_description: Implements an easy-to-use asynchronous, performat MPD-Client.
+ * @short_description: Implements an easy-to-use asynchronous, performant MPD-Client.
  *
  * The #MooseClient is the main entry point to libmoosecat. If features a
  * GObject-based interface to MPD. Clients can connect to one Host/Port at a time.
@@ -171,7 +171,7 @@ typedef struct _MooseClientClass { GObjectClass parent_class; } MooseClientClass
  *  g_object_new(MOOSE_TYPE_CMD_CLIENT, ...):
  *
  *
- * Returns: A newly instancen Client ready for your pleasure.
+ * Returns: A newly instanced Client ready for your pleasure.
  */
 MooseClient *moose_client_new(MooseProtocol protocol);
 

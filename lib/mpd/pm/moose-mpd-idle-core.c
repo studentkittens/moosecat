@@ -102,6 +102,7 @@ static gboolean moose_idle_client_check_and_report_async_error(MooseIdleClient *
     if(error != MPD_ERROR_SUCCESS) {
         const char *error_msg = mpd_async_get_error_message(self->priv->async_mpd_conn);
         moose_idle_client_report_error(self, error, error_msg);
+        moose_client_disconnect(MOOSE_CLIENT(self));
         return TRUE;
     }
 

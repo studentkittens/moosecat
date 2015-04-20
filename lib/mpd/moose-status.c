@@ -307,6 +307,11 @@ static GParamSpec *moose_status_prop_int(const char *name) {
     return g_param_spec_int(name, name, name, G_MININT, G_MAXINT, 0, DEFAULT_FLAGS);
 }
 
+static GParamSpec *moose_status_prop_float(const char *name) {
+    return g_param_spec_float(
+        name, name, name, -G_MAXFLOAT, G_MAXFLOAT, 0, DEFAULT_FLAGS);
+}
+
 static GParamSpec *moose_status_prop_boolean(const char *name) {
     return g_param_spec_boolean(name, name, name, FALSE, DEFAULT_FLAGS);
 }
@@ -335,8 +340,8 @@ static void moose_status_class_init(MooseStatusClass *klass) {
     props[PROP_QUEUE_VERSION] = moose_status_prop_int("queue-version");
     props[PROP_STATE] = moose_status_prop_enum("state", MOOSE_TYPE_STATE);
     props[PROP_CROSSFADE] = moose_status_prop_int("crossfade");
-    props[PROP_MIXRAMPDB] = moose_status_prop_int("mixrampdb");
-    props[PROP_MIXRAMPDELAY] = moose_status_prop_int("mixrampdelay");
+    props[PROP_MIXRAMPDB] = moose_status_prop_float("mixrampdb");
+    props[PROP_MIXRAMPDELAY] = moose_status_prop_float("mixrampdelay");
     props[PROP_SONG_POS] = moose_status_prop_int("song-pos");
     props[PROP_SONG_ID] = moose_status_prop_int("song-id");
     props[PROP_NEXT_SONG_POS] = moose_status_prop_int("next-song-pos");
@@ -683,10 +688,10 @@ GType moose_state_get_type(void) {
 
     if(moose_state_type == 0) {
         static GEnumValue pattern_types[] = {
-            {MOOSE_STATE_UNKNOWN, "Undefined state", "unknown"},
-            {MOOSE_STATE_STOP, "Playback stopped", "stopped"},
-            {MOOSE_STATE_PLAY, "Playback playing", "playing"},
-            {MOOSE_STATE_PAUSE, "Playback paused", "paused"},
+            {MOOSE_STATE_UNKNOWN, "MOOSE_STATE_UNKNOWN", "unknown"},
+            {MOOSE_STATE_STOP, "MOOSE_STATE_STOP", "stopped"},
+            {MOOSE_STATE_PLAY, "MOOSE_STATE_PLAY", "playing"},
+            {MOOSE_STATE_PAUSE, "MOOSE_STATE_PAUSE", "paused"},
             {0, NULL, NULL},
         };
 
