@@ -241,8 +241,7 @@ if not conf.CheckCC():
     print('Error: Your compiler and/or environment is not correctly configured.')
     Exit(1)
 
-SQLITE_AMALGAMATION = 'https://www.sqlite.org/snapshot/sqlite-amalgamation-201504011321.zip'
-
+SQLITE_AMALGAMATION = 'http://sqlite.org/snapshot/sqlite-amalgamation-201404281756.zip'
 conf.DownloadSqlite(SQLITE_AMALGAMATION)
 conf.CheckGitRev()
 conf.CheckPKGConfig('0.15.0')
