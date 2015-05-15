@@ -79,6 +79,9 @@ typedef enum MooseIdle {
     /* Indicates if an event was triggered by the status timer */
     MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2,
 
+    /* Selects all events. Useful moose_client_force_sync() */
+    MOOSE_IDLE_ALL = INT_MAX,
+
     /*< private >*/
     MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3
 } MooseIdle;

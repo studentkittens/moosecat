@@ -807,7 +807,7 @@ static gboolean handle_prio_id(MooseClient *self, struct mpd_connection *conn,
 
 static gboolean handle_random(MooseClient *self, struct mpd_connection *conn,
                               const char *format, GVariant *variant) {
-    bool mode = FALSE;
+    gboolean mode = FALSE;
 
     g_variant_get(variant, format, NULL, &mode);
 
@@ -833,7 +833,7 @@ static gboolean handle_playlist_rename(MooseClient *self, struct mpd_connection 
 
 static gboolean handle_repeat(MooseClient *self, struct mpd_connection *conn,
                               const char *format, GVariant *variant) {
-    bool mode = false;
+    gboolean mode = false;
     g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(mpd_run_repeat(conn, mode), mpd_send_repeat(conn, mode));
@@ -967,7 +967,7 @@ static gboolean handle_queue_shuffle(MooseClient *self, struct mpd_connection *c
 
 static gboolean handle_single(MooseClient *self, struct mpd_connection *conn,
                               const char *format, GVariant *variant) {
-    bool mode = false;
+    gboolean mode = false;
     g_variant_get(variant, format, NULL, &mode);
 
     COMMAND(mpd_run_single(conn, mode), mpd_send_single(conn, mode));
@@ -1972,8 +1972,8 @@ GType moose_idle_get_type(void) {
             {MOOSE_IDLE_SUBSCRIPTION, "MOOSE_IDLE_SUBSCRIPTION", "subscription"},
             {MOOSE_IDLE_MESSAGE, "MOOSE_IDLE_MESSAGE", "message"},
             {MOOSE_IDLE_SEEK, "MOOSE_IDLE_SEEK", "seek"},
-            {MOOSE_IDLE_STATUS_TIMER_FLAG, "MOOSE_IDLE_STATUS_TIMER_FLAG",
-             "status-timer"},
+            {MOOSE_IDLE_STATUS_TIMER_FLAG, "MOOSE_IDLE_STATUS_TIMER_FLAG", "status-timer"},
+            {MOOSE_IDLE_ALL, "MOOSE_IDLE_ALL", "all"},
             {0, NULL, NULL}};
 
         flags_type = g_flags_register_static("MooseIdle", idle_types);
