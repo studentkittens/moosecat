@@ -150,7 +150,6 @@ long moose_store_query_directories(MooseStore *self, MoosePlaylist *stack,
  *      int job_id = moose_store_query(store, "artist:Akrea", true, stack, -1);
  *      // You can other things than waiting here.
  *      moose_store_wait_for_job(store, job_id);
- *      moose_store_lock(store);
  *      for(int i = 0; i < moose_playlist_length(stack); ++i) {
  *          printf("%s\n", moose_song_tag(moose_playlist_at(i), MPD_TAG_TITLE, 0));
  *      }

@@ -434,15 +434,17 @@ static gboolean moose_store_qp_quote_eval_cb(const GMatchInfo *info, GString *re
     char **vector = g_strsplit(content, " ", -1);
 
     if(*content) {
-        g_string_append(res, " (");
+        g_string_append(res, "(");
         for(int i = 0; vector[i]; i++) {
             if(tag != NULL) {
                 g_string_append(res, tag);
             }
             g_string_append(res, g_strstrip(vector[i]));
-            g_string_append(res, " ");
+            if(vector[i + 1]) {
+                g_string_append(res, " ");
+            }
         }
-        g_string_append(res, ") ");
+        g_string_append(res, ")");
     } else {
         WARNING(parse_data, "Empty content in paranthesis");
     }

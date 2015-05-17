@@ -141,7 +141,7 @@ time_t moose_song_get_last_modified(MooseSong* self);
  *
  * Returns: The pos
  */
-unsigned moose_song_get_pos(MooseSong* self);
+int moose_song_get_pos(MooseSong* self);
 
 /**
  * moose_song_get_id:
@@ -151,7 +151,7 @@ unsigned moose_song_get_pos(MooseSong* self);
  *
  * Returns: The id
  */
-unsigned moose_song_get_id(MooseSong* self);
+int moose_song_get_id(MooseSong* self);
 
 /**
  * moose_song_get_prio:

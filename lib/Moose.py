@@ -134,3 +134,15 @@ def song_getitem(song, key):
 
 Moose.Song.__hash__ = hash_song
 Moose.Song.__getitem__ = song_getitem
+
+######################
+#   STORE OVERRIDES  #
+######################
+
+
+def query_sync(store, query_string, queue_only=True):
+    plt = Moose.Playlist()
+    id_ = store.query(query_string, queue_only, plt, -1)
+    return store.gw(id_)
+
+Moose.Store.query_sync = query_sync
