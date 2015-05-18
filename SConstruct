@@ -2,7 +2,6 @@
 # encoding: utf-8
 
 import os
-import re
 import sys
 import shutil
 import codecs
@@ -18,7 +17,7 @@ import glob
 ###########################################################################
 
 
-def DownloadSqlite(context, url):
+def download_sqlite(context, url):
     try:
         context.Message('Downloading SQLite Amalgamation... ')
         if os.path.exists('ext/sqlite'):
@@ -103,7 +102,9 @@ def CheckPKG(context, name, varname, required=True):
 
 def CheckGitRev(context):
     context.Message('Checking for git revision... ')
-    rev = subprocess.check_output('git log --pretty=format:"%h" -n 1', shell=True)
+    rev = subprocess.check_output(
+        'git log --pretty=format:"%h" -n 1', shell=True
+    )
     context.Result(rev)
     conf.env['gitrev'] = rev
     return rev
@@ -127,21 +128,26 @@ def BuildConfigTemplate(target, source, env):
         ))
 
 
-def FindLibmoosecatSource():
-    c_files = []
-    c_files += Glob('lib/mpd/*.c')
-    c_files += Glob('lib/mpd/pm/*.c')
-    c_files += Glob('lib/misc/*.c')
-    c_files += Glob('lib/store/moose-store.c')
-    c_files += Glob('lib/store/moose-store-playlist.c')
-    c_files += Glob('lib/store/moose-store-completion.c')
-    c_files += Glob('lib/store/moose-store-query-parser.c')
-    c_files += Glob('lib/gtk/*.c')
-    c_files += Glob('lib/store/libart/*.c')
-    c_files += Glob('lib/*.c')
-    c_files += ['ext/sqlite/sqlite3.c']
+def FindLibmoosecatSource(suffix='.c', extensions=True):
+    files = []
+    files += Glob('lib/mpd/*' + suffix)
+    files += Glob('lib/mpd/pm/*' + suffix)
+    files += Glob('lib/misc/*' + suffix)
+    files += Glob('lib/metadata/*' + suffix)
+    files += Glob('lib/store/moose-store' + suffix)
+    files += Glob('lib/store/moose-store-playlist' + suffix)
+    files += Glob('lib/store/moose-store-completion' + suffix)
+    files += Glob('lib/store/moose-store-query-parser' + suffix)
+    files += Glob('lib/gtk/*' + suffix)
+    files += Glob('lib/*' + suffix)
 
-    return c_files
+    if extensions:
+        files += ['ext/sqlite/sqlite3.c', 'ext/libart/art.c']
+    else:
+        # Filter header files with the -private.h extension.
+        files = [node for node in files if '-private' not in str(node)]
+
+    return files
 
 ###########################################################################
 #                                 Colors!                                 #
@@ -182,8 +188,15 @@ link_shared_library_message = '%sLinking Shared Library %s==> %s$TARGET%s' % \
     (colors['red'], colors['purple'], colors['yellow'], colors['end'])
 
 
+AddOption(
+    '--prefix', default='/usr',
+    dest='prefix', type='string', nargs=1,
+    action='store', metavar='DIR', help='installation prefix'
+)
+
 # General Environment
 options = dict(
+    PREFIX=GetOption('prefix'),
     CXXCOMSTR=compile_source_message,
     CCCOMSTR=compile_source_message,
     SHCCCOMSTR=compile_shared_source_message,
@@ -192,7 +205,7 @@ options = dict(
     RANLIBCOMSTR=ranlib_library_message,
     SHLINKCOMSTR=link_shared_library_message,
     LINKCOMSTR=link_program_message,
-    CPPPATH=['ext/sqlite/inc'],
+    CPPPATH=['ext/sqlite/inc', 'ext/libart/'],
     BUILDERS={'CythonBuilder': Builder(
         action='cython $SOURCE',
         suffix='.c',
@@ -221,14 +234,15 @@ conf = Configure(env, custom_tests={
     'CheckPKGConfig': CheckPKGConfig,
     'CheckPKG': CheckPKG,
     'CheckGitRev': CheckGitRev,
-    'DownloadSqlite': DownloadSqlite
+    'DownloadSqlite': download_sqlite
 })
 
 if not conf.CheckCC():
     print('Error: Your compiler and/or environment is not correctly configured.')
     Exit(1)
 
-SQLITE_AMALGAMATION = 'http://sqlite.org/snapshot/sqlite-amalgamation-201404281756.zip'
+SQLITE_AMALGAMATION = 'https://www.sqlite.org/snapshot/sqlite-amalgamation-201504011321.zip'
+
 conf.DownloadSqlite(SQLITE_AMALGAMATION)
 conf.CheckGitRev()
 conf.CheckPKGConfig('0.15.0')
@@ -237,12 +251,15 @@ conf.CheckPKGConfig('0.15.0')
 DEPS = {
     'glib-2.0 >= 2.32': 'glib',
     'gobject-2.0': 'gobject',
+    'gmodule-2.0': 'gmodule',
+    'gobject-introspection-1.0': 'gobject_introspection',
     'gio-2.0': 'gio',
     'gtk+-3.0': 'gtk',
     'libmpdclient >= 2.3': 'libmpdclient',
     'avahi-glib >= 0.6.30': 'avahi_glib',
     'avahi-client': 'avahi_client',
-    'zlib': 'zlib'
+    'zlib': 'zlib',
+    'libglyr': 'glyr'
     # 'python3 >= 3.2': 'python3'
 }
 
@@ -268,6 +285,7 @@ if 'LDFLAGS' in os.environ:
     conf.env.Append(LINKFLAGS=os.environ['LDFLAGS'])
     print(">> Appending custom link flags : " + os.environ['LDFLAGS'])
 
+# conf.env.Append(LINKFLAGS=['-ld'])
 # Needed/Adviceable flags:
 conf.env.Append(CCFLAGS=[
     '-std=c11', '-pipe', '-fPIC', '-g'
@@ -305,7 +323,11 @@ env.AlwaysBuild(
     )
 )
 
-lib = env.StaticLibrary('moosecat', FindLibmoosecatSource())
+lib = env.SharedLibrary(
+    'moosecat',
+    FindLibmoosecatSource(),
+    LIBS=env['LIBS'] + ['m', 'dl']
+)
 
 # Sample programs:
 for node in Glob('lib/samples/test-*.c'):
@@ -326,8 +348,33 @@ def BuildTest(target, source, env):
         str(source[0])
     ])
 
-TEST_COMMANDS = []
-TEST_PROGRAMS = []
+
+MOOSE_GIR_NAME = 'Moose'
+MOOSE_GIR_VERSION = '0.1'
+MOOSE_GIR = 'Moose' + '-' + MOOSE_GIR_VERSION
+
+
+def BuildGir(target, source, env):
+    files = [str(node) for node in source]
+    subprocess.call([
+            'g-ir-scanner',
+            '--include=GObject-2.0',
+            '--namespace=' + MOOSE_GIR_NAME,
+            '--nsversion=' + MOOSE_GIR_VERSION,
+            '--output=' + MOOSE_GIR + '.gir',
+            '--warn-all',
+            '-L.', '--library=moosecat',
+        ] + files,
+        env=dict(os.environ.items(), LD_LIBRARY_PATH='.')
+    )
+    subprocess.call([
+        'g-ir-compiler',
+        'Moose-0.1.gir',
+        '--output',
+        MOOSE_GIR + '.typelib'
+    ])
+
+TEST_COMMANDS, TEST_PROGRAMS = [], []
 
 # test_alias = Alias('test', [program], program[0].abspath)
 for node in Glob('lib/tests/test-*.c'):
@@ -352,3 +399,50 @@ if 'build-test' in COMMAND_LINE_TARGETS:
 if 'test' in COMMAND_LINE_TARGETS:
     env.AlwaysBuild(env.Alias('test', [TEST_COMMANDS]))
 
+# TODO
+if 1 or 'gir' in COMMAND_LINE_TARGETS:
+    sources = FindLibmoosecatSource('.h', False)
+    command = env.Command(MOOSE_GIR + '.typelib', sources, BuildGir)
+    gir_target = env.Alias('gir', [command])
+    env.Depends(gir_target, lib)
+    env.AlwaysBuild(gir_target)
+
+
+AddOption(
+    '--libdir', default='lib',
+    dest='libdir', type='string', nargs=1,
+    action='store', metavar='DIR', help='libdir name (lib or lib64)'
+)
+
+def create_uninstall_target(env, path):
+    env.Command("uninstall-" + path, path, [
+        Delete("$SOURCE"),
+    ])
+    env.Alias("uninstall", "uninstall-" + path)
+
+
+import gi
+override_path = os.path.join(gi.__path__[0], 'overrides')
+lib_path = os.path.join("$PREFIX", GetOption('libdir'))
+typelib_path = os.path.join(lib_path, 'girepository-1.0')
+
+# TODO:
+override_path = '/usr/lib64/python3.4/site-packages/gi/overrides'
+
+
+if 'install' in COMMAND_LINE_TARGETS:
+    env.Alias('install', env.Install(override_path, ['lib/Moose.py']))
+    env.Alias('install', env.Install(typelib_path, [MOOSE_GIR + '.typelib']))
+    env.Alias('install', env.Install(lib_path, [lib]))
+
+
+if 'uninstall' in COMMAND_LINE_TARGETS:
+    create_uninstall_target(
+        env, os.path.join(lib_path, os.path.basename(str(lib[0])))
+    )
+    create_uninstall_target(
+        env, os.path.join(override_path, 'Moose.py')
+    )
+    create_uninstall_target(
+        env, os.path.join(typelib_path, MOOSE_GIR + '.typelib')
+    )

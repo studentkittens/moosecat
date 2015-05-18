@@ -16,19 +16,16 @@ static int moose_print_trace(void) {
     gsize bytes_read = 0;
     gint exit_status;
 
-    GInputStream * stdout_stream = NULL;
+    GInputStream *stdout_stream = NULL;
     GSubprocess *gdb = NULL;
 
     /* Get the PID of our process */
-    g_snprintf(pidstr, sizeof(pidstr), "%d", getpid ());
+    g_snprintf(pidstr, sizeof(pidstr), "%d", getpid());
 
     gdb = g_subprocess_new(
-              G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_SILENCE,
-              &error,
-              "/usr/bin/gdb", "-q", "-nw", "-batch", "-p", pidstr,
-              "-ex", "thread apply all bt full",
-              NULL
-          );
+        G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_SILENCE, &error,
+        "/usr/bin/gdb", "-q", "-nw", "-batch", "-p", pidstr, "-ex",
+        "thread apply all bt full", NULL);
 
     if(error != NULL) {
         moose_warning("cannot launch gdb-subprocess: %s", error->message);
@@ -44,7 +41,8 @@ static int moose_print_trace(void) {
 
     unsigned char buffer[4096];
     memset(buffer, 0, sizeof(buffer));
-    while(g_input_stream_read_all(stdout_stream, buffer, sizeof(buffer) - 1, &bytes_read, NULL, &error)) {
+    while(g_input_stream_read_all(stdout_stream, buffer, sizeof(buffer) - 1, &bytes_read,
+                                  NULL, &error)) {
         if(bytes_read == 0) {
             break;
         }
@@ -77,9 +75,8 @@ static void moose_signal_handler(int signum) {
     moose_critical(
         "\n\n////// BACKTRACE //////\n\n"
         "If you see something like: \"ptrace: Operation not allowed\"\n"
-        "then issue the following command and try again:\n\n"
-        "    echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope\n\n"
-    );
+        "then issue the following command and try again (or use sudo):\n\n"
+        "    echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope\n\n");
 
     moose_print_trace();
 
@@ -93,8 +90,7 @@ static void moose_signal_handler(int signum) {
         "Bug reports can be submitted at: https://github.com/sahib/moosecat\n"
         "Thanks for your help.\n",
         moose_debug_version(),
-        g_strsignal(signum)
-    );
+        g_strsignal(signum));
 }
 
 void moose_debug_install_handler(void) {
@@ -123,14 +119,13 @@ void moose_debug_install_handler_full(GArray *signals) {
         int signum = g_array_index(signals, gint, i);
 
         if(signal(signum, moose_signal_handler) != NULL) {
-            moose_warning(
-                "cannot install signal handler (#%d: %s).", signum, g_strsignal(signum)
-            );
+            moose_warning("cannot install signal handler (#%d: %s).", signum,
+                          g_strsignal(signum));
         }
     }
 }
 
-const char * moose_debug_version(void) {
+const char *moose_debug_version(void) {
     return "libmoosecat " MOOSE_VERSION " (" MOOSE_VERSION_GIT_REVISION ")";
 }
 

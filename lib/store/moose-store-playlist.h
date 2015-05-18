@@ -10,18 +10,17 @@
  */
 
 #include <glib-object.h>
+#include "../mpd/moose-song.h"
 
 G_BEGIN_DECLS
 
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_PLAYLIST \
-    (moose_playlist_get_type())
+#define MOOSE_TYPE_PLAYLIST (moose_playlist_get_type())
 #define MOOSE_PLAYLIST(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_PLAYLIST, MoosePlaylist))
-#define MOOSE_IS_PLAYLIST(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_PLAYLIST))
+#define MOOSE_IS_PLAYLIST(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_PLAYLIST))
 #define MOOSE_PLAYLIST_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_PLAYLIST, MoosePlaylistClass))
 #define MOOSE_IS_PLAYLIST_CLASS(klass) \
@@ -33,12 +32,10 @@ struct _MoosePlaylistPrivate;
 
 typedef struct _MoosePlaylist {
     GObject parent;
-    struct _MoosePlaylistPrivate * priv;
+    struct _MoosePlaylistPrivate* priv;
 } MoosePlaylist;
 
-typedef struct _MoosePlaylistClass {
-    GObjectClass parent_class;
-} MoosePlaylistClass;
+typedef struct _MoosePlaylistClass { GObjectClass parent_class; } MoosePlaylistClass;
 
 GType moose_playlist_get_type(void);
 
@@ -49,7 +46,7 @@ GType moose_playlist_get_type(void);
  *
  * Return value: a new #MoosePlaylist.
  */
-MoosePlaylist * moose_playlist_new(void);
+MoosePlaylist* moose_playlist_new(void);
 
 /**
  * moose_playlist_new_full:
@@ -60,7 +57,7 @@ MoosePlaylist * moose_playlist_new(void);
  *
  * Return value: a new #MoosePlaylist.
  */
-MoosePlaylist * moose_playlist_new_full(long size_hint, GDestroyNotify free_func);
+MoosePlaylist* moose_playlist_new_full(long size_hint, GDestroyNotify free_func);
 
 /**
  * moose_playlist_append:
@@ -69,7 +66,7 @@ MoosePlaylist * moose_playlist_new_full(long size_hint, GDestroyNotify free_func
  *
  * Append items to the Playlist.
  */
-void moose_playlist_append(MoosePlaylist * self, void * ptr);
+void moose_playlist_append(MoosePlaylist* self, void* ptr);
 
 /**
  * moose_playlist_clear:
@@ -77,7 +74,7 @@ void moose_playlist_append(MoosePlaylist * self, void * ptr);
  *
  * Clear the whole playlist back to factory settings.
  */
-void moose_playlist_clear(MoosePlaylist * self);
+void moose_playlist_clear(MoosePlaylist* self);
 
 /**
  * moose_playlist_length:
@@ -85,14 +82,14 @@ void moose_playlist_clear(MoosePlaylist * self);
  *
  * Returns: Length of the #MoosePlaylist.
  */
-unsigned moose_playlist_length(MoosePlaylist * self);
+unsigned moose_playlist_length(MoosePlaylist* self);
 
 /**
  * moose_playlist_sort:
  * @self: The #MoosePlaylist to append to.
  * @func: (scope call): C-Style Comparasion function.
  */
-void moose_playlist_sort(MoosePlaylist * self, GCompareFunc func);
+void moose_playlist_sort(MoosePlaylist* self, GCompareFunc func);
 
 /**
  * moose_playlist_at:
@@ -103,7 +100,7 @@ void moose_playlist_sort(MoosePlaylist * self, GCompareFunc func);
  *
  * Returns: (transfer none): An appended object.
  */
-void * moose_playlist_at(MoosePlaylist * self, unsigned at);
+MooseSong* moose_playlist_at(MoosePlaylist* self, unsigned at);
 
 /**
  * moose_playlist_copy:
@@ -111,7 +108,15 @@ void * moose_playlist_at(MoosePlaylist * self, unsigned at);
  *
  * Returns: (transfer full): A #MoosePlaylist, being an exact clone of @self.
  */
-MoosePlaylist * moose_playlist_copy(MoosePlaylist * self);
+MoosePlaylist* moose_playlist_copy(MoosePlaylist* self);
+
+/**
+ * moose_playlist_unref:
+ * @self: A #MoosePlaylist
+ *
+ * Unrefs an playlist.
+ */
+void moose_playlist_unref(MoosePlaylist* self);
 
 G_END_DECLS
 

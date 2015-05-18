@@ -3,11 +3,11 @@
 
 /**
  * SECTION: moose-mpd-client
- * @short_description: Implements an easy-to-use asynchronous, performat MPD-Client.
+ * @short_description: Implements an easy-to-use asynchronous, performant MPD-Client.
  *
  * The #MooseClient is the main entry point to libmoosecat. If features a
  * GObject-based interface to MPD. Clients can connect to one Host/Port at a time.
- * Once a connection (demanded via moose_client_connect()) is established, the
+ * Once a connection (demanded via moose_client_connect_to()) is established, the
  * MooseClient:connectivity signal is called.
  *
  * If the state of the server changes, the 'client-event' is changed with the
@@ -40,71 +40,81 @@ G_BEGIN_DECLS
  * An enumeration of all possible events.
  */
 typedef enum MooseIdle {
-    /** song database has been updated*/
+    /* song database has been updated*/
     MOOSE_IDLE_DATABASE = MPD_IDLE_DATABASE,
 
-    /** a stored playlist has been modified, created, deleted or renamed */
+    /* a stored playlist has been modified, created, deleted or renamed */
     MOOSE_IDLE_STORED_PLAYLIST = MPD_IDLE_STORED_PLAYLIST,
 
-    /** the queue has been modified */
+    /* the queue has been modified */
     MOOSE_IDLE_QUEUE = MPD_IDLE_QUEUE,
 
-    /** the player state has changed: play, stop, pause, seek, ... */
+    /* the player state has changed: play, stop, pause, seek, ... */
     MOOSE_IDLE_PLAYER = MPD_IDLE_PLAYER,
 
-    /** the volume has been modified */
+    /* the volume has been modified */
     MOOSE_IDLE_MIXER = MPD_IDLE_MIXER,
 
-    /** an audio output device has been enabled or disabled */
+    /* an audio output device has been enabled or disabled */
     MOOSE_IDLE_OUTPUT = MPD_IDLE_OUTPUT,
 
-    /** options have changed: crossfade, random, repeat, ... */
+    /* options have changed: crossfade, random, repeat, ... */
     MOOSE_IDLE_OPTIONS = MPD_IDLE_OPTIONS,
 
-    /** a database update has started or finished. */
+    /* a database update has started or finished. */
     MOOSE_IDLE_UPDATE = MPD_IDLE_UPDATE,
 
-    /** a sticker has been modified. */
+    /* a sticker has been modified. */
     MOOSE_IDLE_STICKER = MPD_IDLE_STICKER,
 
-    /** a client has subscribed to or unsubscribed from a channel */
+    /* a client has subscribed to or unsubscribed from a channel */
     MOOSE_IDLE_SUBSCRIPTION = MPD_IDLE_SUBSCRIPTION,
 
-    /** a message on a subscribed channel was received */
+    /* a message on a subscribed channel was received */
     MOOSE_IDLE_MESSAGE = MPD_IDLE_MESSAGE,
 
-    /** a seek event */
+    /* a seek event */
     MOOSE_IDLE_SEEK = MPD_IDLE_MESSAGE << 1,
 
-    /** Indicates if an event was triggered by the status timer */
+    /* Indicates if an event was triggered by the status timer */
     MOOSE_IDLE_STATUS_TIMER_FLAG = MPD_IDLE_MESSAGE << 2,
 
     /*< private >*/
-    MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3
+    MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3,
+
+    /* Synonym for all events; useful */
+    MOOSE_IDLE_EVERYTHING = UINT_MAX
 } MooseIdle;
 
+#define MOOSE_TYPE_IDLE (moose_idle_get_type())
+GType moose_idle_get_type(void);
+
+/////////////////////////
+
 /**
- * MooseProtocolType:
+ * MooseProtocol:
  *
  * The Protocols that can be used with moose_client_new()
  */
-typedef enum MooseProtocolType {
+typedef enum MooseProtocol {
     MOOSE_PROTOCOL_IDLE,
     MOOSE_PROTOCOL_COMMAND,
     MOOSE_PROTOCOL_N,
     MOOSE_PROTOCOL_DEFAULT = MOOSE_PROTOCOL_IDLE
-} MooseProtocolType;
+} MooseProtocol;
 
-#define MOOSE_TYPE_CLIENT \
-    (moose_client_get_type())
+#define MOOSE_TYPE_PROTOCOL_TYPE
+GType moose_protocol_get_type(void);
+
+/////////////////////////
+
+#define MOOSE_TYPE_CLIENT (moose_client_get_type())
 #define MOOSE_CLIENT(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_CLIENT, MooseClient))
-#define MOOSE_IS_CLIENT(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_CLIENT))
+#define MOOSE_IS_CLIENT(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOOSE_TYPE_CLIENT))
 #define MOOSE_CLIENT_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST((klass), MOOSE_TYPE_CLIENT, MooseClientClass))
-#define MOOSE_IS_CLIENT_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_CLIENT))
+#define MOOSE_IS_CLIENT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), MOOSE_TYPE_CLIENT))
 #define MOOSE_CLIENT_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS((obj), MOOSE_TYPE_CLIENT, MooseClientClass))
 
@@ -114,44 +124,43 @@ struct _MooseClientPrivate;
 
 typedef struct _MooseClient {
     GObject parent;
-    struct _MooseClientPrivate * priv;
+    struct _MooseClientPrivate *priv;
 
     /* Called on connect, initialize the connector.
      * May not be NULL.
      */
-    char *(*do_connect)(struct _MooseClient *, const char *, int, float);
+    char *(*do_connect)(struct _MooseClient *self, const char *host, int port,
+                        float timeout);
 
     /* Return the command sending connection, made ready to rock.
      * May not be NULL.
      */
-    struct mpd_connection *(*do_get)(struct _MooseClient *);
+    struct mpd_connection *(*do_get)(struct _MooseClient *self);
 
     /* Put the connection back to event listening.
      * May be NULL.
      */
-    void (* do_put)(struct _MooseClient *);
+    void (*do_put)(struct _MooseClient *self);
 
     /* Called on disconnect, close all connections, clean up,
      * and make reentrant.
      * May not be NULL.
      */
-    gboolean (* do_disconnect)(struct _MooseClient *);
+    gboolean (*do_disconnect)(struct _MooseClient *self);
 
     /* Check if a valid connection is hold by this connector.
      * May not be NULL.
      */
-    gboolean (* do_is_connected)(struct _MooseClient *);
+    gboolean (*do_is_connected)(struct _MooseClient *self);
 
     GRecMutex getput_mutex;
 } MooseClient;
 
-typedef struct _MooseClientClass {
-    GObjectClass parent_class;
-} MooseClientClass;
+typedef struct _MooseClientClass { GObjectClass parent_class; } MooseClientClass;
 
 /**
  * moose_client_new:
- * @protocol: a #MooseProtocolType
+ * @protocol: a #MooseProtocol
  *
  * Creates a new MooseIdleClient or a MooseCmdClient.
  * Note that you cannot instance a MooseClient itself,
@@ -165,12 +174,12 @@ typedef struct _MooseClientClass {
  *  g_object_new(MOOSE_TYPE_CMD_CLIENT, ...):
  *
  *
- * Returns: A newly instancen Client ready for your pleasure.
+ * Returns: A newly instanced Client ready for your pleasure.
  */
-MooseClient * moose_client_new(MooseProtocolType protocol);
+MooseClient *moose_client_new(MooseProtocol protocol);
 
 /**
- * moose_client_connect:
+ * moose_client_connect_to:
  * @self: a #MooseClient
  * @host: The host we want to connect to. E.g. 'localhost'
  * @port: The port we want to connect to. E.g. 6600
@@ -183,23 +192,24 @@ MooseClient * moose_client_new(MooseProtocolType protocol);
  *
  * Returns: True on success.
  */
-gboolean moose_client_connect(MooseClient * self, const char * host, int port, float timeout);
+gboolean moose_client_connect_to(MooseClient *self, const char *host, int port,
+                                 float timeout);
 
 /**
- * moose_client_get:
+ * moose_client_get: (skip)
  * @self: a #MooseClient
  *
  * This function locks the internally used connection. You can safely use
  * it with the mpd_run_* functions of libmpdclient.
  * This is for lowlevel support, use moose_client_send() instead.
  *
- * Warning: For normal users: you're not supposed to call this.
+ * WARNING: For normal users: you're not supposed to call this.
  * You would screw things up if you forget to call moose_client_put().
  * Internally libmoosecat is using several threads to work without blocking.
  *
- * Returns: a libmpdclient connection (which is used internally)
+ * Returns: (transfer none): a libmpdclient connection (which is used internally)
  */
-struct mpd_connection * moose_client_get(MooseClient * self);
+struct mpd_connection *moose_client_get(MooseClient *self);
 
 /**
  * moose_client_put:
@@ -208,7 +218,7 @@ struct mpd_connection * moose_client_get(MooseClient * self);
  * Called after moose_client_get() to unlock the connection.
  * Otherwise you'll get deadlocked. You have been warned.
  */
-void moose_client_put(MooseClient * self);
+void moose_client_put(MooseClient *self);
 
 /**
  * moose_client_is_connected:
@@ -218,7 +228,7 @@ void moose_client_put(MooseClient * self);
  *
  * Returns: True when connected.
  */
-gboolean moose_client_is_connected(MooseClient * self);
+gboolean moose_client_is_connected(MooseClient *self);
 
 /**
  * moose_client_disconnect:
@@ -230,7 +240,7 @@ gboolean moose_client_is_connected(MooseClient * self);
  *
  * Returns: True on succesful disconenct.
  */
-gboolean moose_client_disconnect(MooseClient * self);
+gboolean moose_client_disconnect(MooseClient *self);
 
 /**
  * moose_client_unref:
@@ -239,7 +249,7 @@ gboolean moose_client_disconnect(MooseClient * self);
  * Same as g_object_unref(), but no-ops on NULL.
  * If reference count drops to 0 the client is disconnected and freed.
  */
-void moose_client_unref(MooseClient * self);
+void moose_client_unref(MooseClient *self);
 
 /**
  * moose_client_force_sync:
@@ -251,7 +261,7 @@ void moose_client_unref(MooseClient * self);
  * and therefore no events are updated.
  * Note: You can pass INT_MAX to update them all.
  */
-void moose_client_force_sync(MooseClient * self, MooseIdle events);
+void moose_client_force_sync(MooseClient *self, MooseIdle events);
 
 /**
  * moose_client_get_host:
@@ -261,7 +271,7 @@ void moose_client_force_sync(MooseClient * self, MooseIdle events);
  *
  * Returns: the hostname or NULL, free with g_free() when done.
  */
-char * moose_client_get_host(MooseClient * self);
+char *moose_client_get_host(MooseClient *self);
 
 /**
  * moose_client_get_port:
@@ -271,7 +281,7 @@ char * moose_client_get_host(MooseClient * self);
  *
  * Returns: the port or 0 if not connected.
  */
-unsigned moose_client_get_port(MooseClient * self);
+unsigned moose_client_get_port(MooseClient *self);
 
 /**
  * moose_client_get_timeout:
@@ -281,7 +291,7 @@ unsigned moose_client_get_port(MooseClient * self);
  *
  * Returns: the timeout or 0 if not connected.
  */
-float moose_client_get_timeout(MooseClient * self);
+float moose_client_get_timeout(MooseClient *self);
 
 /**
  * moose_client_timer_set_active:
@@ -294,7 +304,7 @@ float moose_client_get_timeout(MooseClient * self);
  *
  * See also the "timer-trigger-event" and "timer-interval" properties.
  */
-void moose_client_timer_set_active(MooseClient * self, gboolean state);
+void moose_client_timer_set_active(MooseClient *self, gboolean state);
 
 /**
  * moose_client_timer_get_active:
@@ -302,7 +312,7 @@ void moose_client_timer_set_active(MooseClient * self, gboolean state);
  *
  * Returns: True if the status timer is currently active.
  */
-gboolean moose_client_timer_get_active(MooseClient * self);
+gboolean moose_client_timer_get_active(MooseClient *self);
 
 /**
  * moose_client_ref_status:
@@ -315,7 +325,7 @@ gboolean moose_client_timer_get_active(MooseClient * self);
  *
  * Returns: (transfer none): a #MooseStatus, unref it when done with g_object_unref()
  */
-MooseStatus * moose_client_ref_status(MooseClient * self);
+MooseStatus *moose_client_ref_status(MooseClient *self);
 
 /**
  * moose_client_send:
@@ -333,7 +343,7 @@ MooseStatus * moose_client_ref_status(MooseClient * self);
  *
  * Returns: A unique job-id. It can be used to wait on and fetch the result.
  */
-long moose_client_send(MooseClient * self, const char * command);
+long moose_client_send(MooseClient *self, const char *command);
 
 /**
  * moose_client_send_single:
@@ -344,7 +354,7 @@ long moose_client_send(MooseClient * self, const char * command);
  *
  * Returns: A unique job-id. It can be used to wait on and fetch the result.
  */
-long moose_client_send_single(MooseClient * self, const char * command_name);
+long moose_client_send_single(MooseClient *self, const char *command_name);
 
 /**
  * moose_client_send_variant:
@@ -353,7 +363,7 @@ long moose_client_send_single(MooseClient * self, const char * command_name);
  *
  * Returns: A unique job-id. It can be used to wait on and fetch the result.
  */
-long moose_client_send_variant(MooseClient * self, GVariant * variant);
+long moose_client_send_variant(MooseClient *self, GVariant *variant);
 
 /**
  * moose_client_recv:
@@ -367,7 +377,7 @@ long moose_client_send_variant(MooseClient * self, GVariant * variant);
  *
  * Returns: True if no error happened.
  */
-gboolean moose_client_recv(MooseClient * self, long job_id);
+gboolean moose_client_recv(MooseClient *self, long job_id);
 
 /**
  * moose_client_run:
@@ -380,7 +390,7 @@ gboolean moose_client_recv(MooseClient * self, long job_id);
  *
  * Returns: True if the command ran succesfully.
  */
-gboolean moose_client_run(MooseClient * self, const char * command);
+gboolean moose_client_run(MooseClient *self, const char *command);
 
 /**
  * moose_client_run_single:
@@ -392,7 +402,7 @@ gboolean moose_client_run(MooseClient * self, const char * command);
  *
  * Returns: True if the command ran succesfully.
  */
-gboolean moose_client_run_single(MooseClient * self, const char * command_name);
+gboolean moose_client_run_single(MooseClient *self, const char *command_name);
 
 /**
  * moose_client_run_variant:
@@ -402,7 +412,7 @@ gboolean moose_client_run_single(MooseClient * self, const char * command_name);
  *
  * Returns: True if the command ran succesfully.
  */
-gboolean moose_client_run_variant(MooseClient * self, GVariant * variant);
+gboolean moose_client_run_variant(MooseClient *self, GVariant *variant);
 
 /**
  * moose_client_command_list_is_active:
@@ -410,7 +420,7 @@ gboolean moose_client_run_variant(MooseClient * self, GVariant * variant);
  *
  * Returns: a #gboolean; True when moose_client_begin() was called recently.
  */
-gboolean moose_client_command_list_is_active(MooseClient * self);
+gboolean moose_client_command_list_is_active(MooseClient *self);
 
 /**
  * moose_client_wait:
@@ -420,7 +430,7 @@ gboolean moose_client_command_list_is_active(MooseClient * self);
  * This should be called before finalizing the client.
  * This does not include any operations that are still active on the Store!
  */
-void moose_client_wait(MooseClient * self);
+void moose_client_wait(MooseClient *self);
 
 /**
  * moose_client_begin:
@@ -433,7 +443,7 @@ void moose_client_wait(MooseClient * self);
  *
  * The bulk can be send via moose_client_commit().
  */
-void moose_client_begin(MooseClient * self);
+void moose_client_begin(MooseClient *self);
 
 /**
  * moose_client_commit:
@@ -444,7 +454,7 @@ void moose_client_begin(MooseClient * self);
  *
  * Returns: a job-id that can be used to wait upon it's execution.
  */
-long moose_client_commit(MooseClient * self);
+long moose_client_commit(MooseClient *self);
 
 G_END_DECLS
 

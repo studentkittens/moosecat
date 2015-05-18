@@ -5,8 +5,8 @@
 
 G_BEGIN_DECLS
 
-/**
- * @brief Connector using two connections, one for sending, one for events.
+/*
+ * Connector using two connections, one for sending, one for events.
  *
  * Sending a command:
  * - send it in the cmnd_con, read the response
@@ -16,8 +16,7 @@ G_BEGIN_DECLS
 /*
  * Type macros.
  */
-#define MOOSE_TYPE_IDLE_CLIENT \
-    (moose_idle_client_get_type())
+#define MOOSE_TYPE_IDLE_CLIENT (moose_idle_client_get_type())
 #define MOOSE_IDLE_CLIENT(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), MOOSE_TYPE_IDLE_CLIENT, MooseIdleClient))
 #define MOOSE_IS_IDLE_CLIENT(obj) \
@@ -35,7 +34,7 @@ struct _MooseCmndClientPrivate;
 
 typedef struct _MooseIdleClient {
     MooseClient parent;
-    struct _MooseIdleClientPrivate * priv;
+    struct _MooseIdleClientPrivate* priv;
 } MooseIdleClient;
 
 typedef struct _MooseIdleClientClass {

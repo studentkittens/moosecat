@@ -23,10 +23,10 @@ G_BEGIN_DECLS
  *
  * Returns: True when the original file was removed.
  */
-gboolean moose_gzip(const char * file_path);
+gboolean moose_gzip(const char* file_path);
 
 /**
- * moose_gzip:
+ * moose_gunzip:
  * @file_path: Path to the file which should be unzipped.
  *
  * The file_path needs a .gzip ending, otherwise it is ignored and
@@ -35,7 +35,7 @@ gboolean moose_gzip(const char * file_path);
  * Returns: True when the filepath could've been unzipped, and the .gzip file
  *          was removed.
  */
-gboolean moose_gunzip(const char * file_path);
+gboolean moose_gunzip(const char* file_path);
 
 G_END_DECLS
 

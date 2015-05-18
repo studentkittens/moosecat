@@ -8,7 +8,7 @@
  *
  * Returns: (transfer none): A human readable string, describing libmoosecat's version.
  */
-const char * moose_debug_version(void);
+const char *moose_debug_version(void);
 
 /**
  * moose_debug_install_handler:
@@ -20,7 +20,7 @@ void moose_debug_install_handler(void);
 
 /**
  * moose_debug_install_handler_full:
- * @signals: An array of signals to register.
+ * @signals: (element-type int): An array of signals to register.
  *
  * Configures all signals mentioned in signals to print a backtrace once
  * they are encountered.
@@ -36,4 +36,3 @@ void moose_debug_install_handler(void);
 void moose_debug_install_handler_full(GArray *signals);
 
 #endif /* end of include guard: MOOSE_DEBUG_H */
-

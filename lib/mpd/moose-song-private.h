@@ -12,7 +12,7 @@ G_BEGIN_DECLS
  *
  * Returns: a newly allocated #MooseSong with a refcount of 1
  * */
-MooseSong * moose_song_new_from_struct(struct mpd_song * song);
+MooseSong* moose_song_new_from_struct(struct mpd_song* song);
 
 /* moose_song_convert: skip:
  * @self: an empty #MooseSong
@@ -20,7 +20,7 @@ MooseSong * moose_song_new_from_struct(struct mpd_song * song);
  *
  * Fills in the values of the mpd_song into an empty #MooseSong
  * */
-void moose_song_convert(MooseSong * self, struct mpd_song * song);
+void moose_song_convert(MooseSong* self, struct mpd_song* song);
 
 /**
  * moose_song_set_prio:
@@ -29,7 +29,7 @@ void moose_song_convert(MooseSong * self, struct mpd_song * song);
  *
  * Set the prio.
  */
-void moose_song_set_prio(MooseSong * self, unsigned prio);
+void moose_song_set_prio(MooseSong* self, unsigned prio);
 
 /**
  * moose_song_set_id:
@@ -38,7 +38,7 @@ void moose_song_set_prio(MooseSong * self, unsigned prio);
  *
  * Set the id.
  */
-void moose_song_set_id(MooseSong * self, unsigned id);
+void moose_song_set_id(MooseSong* self, unsigned id);
 
 /**
  * moose_song_set_pos:
@@ -47,7 +47,16 @@ void moose_song_set_id(MooseSong * self, unsigned id);
  *
  * Set the pos.
  */
-void moose_song_set_pos(MooseSong * self, unsigned pos);
+void moose_song_set_pos(MooseSong* self, unsigned pos);
+
+/**
+ * moose_song_set_last_modified:
+ * @self: a #MooseSong
+ * @last_modified: The duration to set.
+ *
+ * Set the duration.
+ */
+void moose_song_set_last_modified(MooseSong* self, time_t last_modified);
 
 /**
  * moose_song_set_duration:
@@ -56,16 +65,7 @@ void moose_song_set_pos(MooseSong * self, unsigned pos);
  *
  * Set the duration.
  */
-void moose_song_set_last_modified(MooseSong * self, time_t last_modified);
-
-/**
- * moose_song_set_duration:
- * @self: a #MooseSong
- * @duration: The duration to set.
- *
- * Set the duration.
- */
-void moose_song_set_duration(MooseSong * self, unsigned duration);
+void moose_song_set_duration(MooseSong* self, unsigned duration);
 
 /**
  * moose_song_set_uri:
@@ -76,7 +76,7 @@ void moose_song_set_duration(MooseSong * self, unsigned duration);
  *
  * Returns: (transfer none): The uri as string.
  */
-void moose_song_set_uri(MooseSong * self, const char * uri);
+void moose_song_set_uri(MooseSong* self, const char* uri);
 
 /**
  * moose_song_set_tag:
@@ -86,7 +86,7 @@ void moose_song_set_uri(MooseSong * self, const char * uri);
  *
  * Set a certain tag to the song.
  */
-void moose_song_set_tag(MooseSong * self, MooseTagType tag, const char * value);
+void moose_song_set_tag(MooseSong* self, MooseTagType tag, const char* value);
 
 G_END_DECLS
 

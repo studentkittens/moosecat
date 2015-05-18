@@ -1,13 +1,11 @@
 #include "moose-list-model.h"
 #include <gtk/gtk.h>
 
-typedef struct _MooseListModelClass {
-    GObjectClass parent_class;
-} MooseListModelClass;
+typedef struct _MooseListModelClass { GObjectClass parent_class; } MooseListModelClass;
 
 typedef struct _MooseListModelRecord {
     /* data - you can extend this */
-    gchar * name;
+    gchar *name;
     guint year_born;
 
     /* pos within the array */
@@ -20,7 +18,7 @@ typedef struct _MooseListModelPrivate {
     guint num_rows;
 
     GType column_types[MOOSE_LIST_MODEL_N_COLUMNS];
-    MooseListModelRecord ** rows;
+    MooseListModelRecord **rows;
 
     /* Random integer to check whether an iter belongs to our model.
      * Used by Gtk+ to invalidate old Iterators. */
@@ -28,88 +26,48 @@ typedef struct _MooseListModelPrivate {
 } MooseListModelPrivate;
 
 /* Object related functions */
-static void moose_list_model_init(
-    MooseListModel * pkg_tree
-);
-static void moose_list_model_class_init(
-    MooseListModelClass * klass
-);
-static void moose_list_model_tree_model_init(
-    GtkTreeModelIface * iface
-);
-static void moose_list_model_finalize(
-    GObject * object
-);
+static void moose_list_model_init(MooseListModel *pkg_tree);
+static void moose_list_model_class_init(MooseListModelClass *klass);
+static void moose_list_model_tree_model_init(GtkTreeModelIface *iface);
+static void moose_list_model_finalize(GObject *object);
 
 /* GtkTreeModel related functions */
-static GtkTreeModelFlags moose_list_model_get_flags(
-    GtkTreeModel * tree_model
-);
-static gint moose_list_model_get_n_columns(
-    GtkTreeModel * tree_model
-);
-static GType moose_list_model_get_column_type(
-    GtkTreeModel * tree_model,
-    gint index
-);
-static gboolean moose_list_model_get_iter(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter,
-    GtkTreePath * path
-);
-static GtkTreePath * moose_list_model_get_path(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter
-);
-static void moose_list_model_get_value(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter,
-    gint column,
-    GValue * value
-);
-static gboolean moose_list_model_iter_next(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter
-);
-static gboolean moose_list_model_iter_children(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter,
-    GtkTreeIter * parent
-);
-static gboolean moose_list_model_iter_has_child(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter
-);
-static gint moose_list_model_iter_n_children(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter
-);
-static gboolean moose_list_model_iter_nth_child(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter,
-    GtkTreeIter * parent,
-    gint n
-);
-static gboolean moose_list_model_iter_parent(
-    GtkTreeModel * tree_model,
-    GtkTreeIter * iter,
-    GtkTreeIter * child
-);
+static GtkTreeModelFlags moose_list_model_get_flags(GtkTreeModel *tree_model);
+static gint moose_list_model_get_n_columns(GtkTreeModel *tree_model);
+static GType moose_list_model_get_column_type(GtkTreeModel *tree_model, gint index);
+static gboolean moose_list_model_get_iter(GtkTreeModel *tree_model,
+                                          GtkTreeIter *iter,
+                                          GtkTreePath *path);
+static GtkTreePath *moose_list_model_get_path(GtkTreeModel *tree_model,
+                                              GtkTreeIter *iter);
+static void moose_list_model_get_value(GtkTreeModel *tree_model,
+                                       GtkTreeIter *iter,
+                                       gint column,
+                                       GValue *value);
+static gboolean moose_list_model_iter_next(GtkTreeModel *tree_model, GtkTreeIter *iter);
+static gboolean moose_list_model_iter_children(GtkTreeModel *tree_model,
+                                               GtkTreeIter *iter,
+                                               GtkTreeIter *parent);
+static gboolean moose_list_model_iter_has_child(GtkTreeModel *tree_model,
+                                                GtkTreeIter *iter);
+static gint moose_list_model_iter_n_children(GtkTreeModel *tree_model, GtkTreeIter *iter);
+static gboolean moose_list_model_iter_nth_child(GtkTreeModel *tree_model,
+                                                GtkTreeIter *iter,
+                                                GtkTreeIter *parent,
+                                                gint n);
+static gboolean moose_list_model_iter_parent(GtkTreeModel *tree_model,
+                                             GtkTreeIter *iter,
+                                             GtkTreeIter *child);
 
 /* GObject stuff - nothing to worry about */
-static GObjectClass * PARENT_CLASS = NULL;
+static GObjectClass *PARENT_CLASS = NULL;
 
 /* Skip most of the boilerplate (like get_type) */
-G_DEFINE_TYPE_EXTENDED(
-    MooseListModel, moose_list_model, G_TYPE_OBJECT, 0,
-    G_IMPLEMENT_INTERFACE(
-        GTK_TYPE_TREE_MODEL,
-        moose_list_model_tree_model_init
-    )
-);
+G_DEFINE_TYPE_EXTENDED(MooseListModel, moose_list_model, G_TYPE_OBJECT, 0,
+                       G_IMPLEMENT_INTERFACE(GTK_TYPE_TREE_MODEL,
+                                             moose_list_model_tree_model_init));
 
-#define MOOSE_LIST_MODEL_TYPE \
-    (moose_list_model_get_type())
+#define MOOSE_LIST_MODEL_TYPE (moose_list_model_get_type())
 
 /* Add the o->priv member */
 #define MOOSE_LIST_MODEL_GET_PRIVATE(o) \
@@ -123,8 +81,8 @@ G_DEFINE_TYPE_EXTENDED(
 *
 *****************************************************************************/
 
-static void moose_list_model_class_init(MooseListModelClass * klass) {
-    GObjectClass * object_class;
+static void moose_list_model_class_init(MooseListModelClass *klass) {
+    GObjectClass *object_class;
     PARENT_CLASS = (GObjectClass *)g_type_class_peek_parent(klass);
     object_class = (GObjectClass *)klass;
     object_class->finalize = moose_list_model_finalize;
@@ -140,19 +98,19 @@ static void moose_list_model_class_init(MooseListModelClass * klass) {
 *
 *****************************************************************************/
 
-static void moose_list_model_tree_model_init(GtkTreeModelIface * iface) {
-    iface->get_flags       = moose_list_model_get_flags;
-    iface->get_n_columns   = moose_list_model_get_n_columns;
+static void moose_list_model_tree_model_init(GtkTreeModelIface *iface) {
+    iface->get_flags = moose_list_model_get_flags;
+    iface->get_n_columns = moose_list_model_get_n_columns;
     iface->get_column_type = moose_list_model_get_column_type;
-    iface->get_iter        = moose_list_model_get_iter;
-    iface->get_path        = moose_list_model_get_path;
-    iface->get_value       = moose_list_model_get_value;
-    iface->iter_next       = moose_list_model_iter_next;
-    iface->iter_children   = moose_list_model_iter_children;
-    iface->iter_has_child  = moose_list_model_iter_has_child;
+    iface->get_iter = moose_list_model_get_iter;
+    iface->get_path = moose_list_model_get_path;
+    iface->get_value = moose_list_model_get_value;
+    iface->iter_next = moose_list_model_iter_next;
+    iface->iter_children = moose_list_model_iter_children;
+    iface->iter_has_child = moose_list_model_iter_has_child;
     iface->iter_n_children = moose_list_model_iter_n_children;
-    iface->iter_nth_child  = moose_list_model_iter_nth_child;
-    iface->iter_parent     = moose_list_model_iter_parent;
+    iface->iter_nth_child = moose_list_model_iter_nth_child;
+    iface->iter_parent = moose_list_model_iter_parent;
 }
 
 /*****************************************************************************
@@ -163,9 +121,9 @@ static void moose_list_model_tree_model_init(GtkTreeModelIface * iface) {
 *
 *****************************************************************************/
 
-static void moose_list_model_init(MooseListModel * self) {
+static void moose_list_model_init(MooseListModel *self) {
     self->priv = MOOSE_LIST_MODEL_GET_PRIVATE(self);
-    self->priv->n_columns       = MOOSE_LIST_MODEL_N_COLUMNS;
+    self->priv->n_columns = MOOSE_LIST_MODEL_N_COLUMNS;
     self->priv->column_types[0] = G_TYPE_POINTER; /* moose_list_model_COL_RECORD    */
     self->priv->column_types[1] = G_TYPE_STRING;  /* moose_list_model_COL_NAME      */
     self->priv->column_types[2] = G_TYPE_UINT;    /* moose_list_model_COL_YEAR_BORN */
@@ -184,11 +142,11 @@ static void moose_list_model_init(MooseListModel * self) {
 *
 *****************************************************************************/
 
-static void moose_list_model_finalize(GObject * object) {
-    MooseListModelPrivate * priv = MOOSE_LIST_MODEL_GET_PRIVATE(object);
-    if (priv->rows) {
-        for (gsize i = 0; i < priv->num_rows; ++i) {
-            MooseListModelRecord * record = priv->rows[i];
+static void moose_list_model_finalize(GObject *object) {
+    MooseListModelPrivate *priv = MOOSE_LIST_MODEL_GET_PRIVATE(object);
+    if(priv->rows) {
+        for(gsize i = 0; i < priv->num_rows; ++i) {
+            MooseListModelRecord *record = priv->rows[i];
             g_free(record->name);
             g_free(record);
         }
@@ -210,7 +168,7 @@ static void moose_list_model_finalize(GObject * object) {
 *
 *****************************************************************************/
 
-static GtkTreeModelFlags moose_list_model_get_flags(GtkTreeModel * tree_model) {
+static GtkTreeModelFlags moose_list_model_get_flags(GtkTreeModel *tree_model) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), (GtkTreeModelFlags)0);
     return GTK_TREE_MODEL_LIST_ONLY | GTK_TREE_MODEL_ITERS_PERSIST;
 }
@@ -222,7 +180,7 @@ static GtkTreeModelFlags moose_list_model_get_flags(GtkTreeModel * tree_model) {
 *
 *****************************************************************************/
 
-static gint moose_list_model_get_n_columns(GtkTreeModel * tree_model) {
+static gint moose_list_model_get_n_columns(GtkTreeModel *tree_model) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), 0);
     return MOOSE_LIST_MODEL_GET_PRIVATE(tree_model)->n_columns;
 }
@@ -234,13 +192,11 @@ static gint moose_list_model_get_n_columns(GtkTreeModel * tree_model) {
 *
 *****************************************************************************/
 
-static GType moose_list_model_get_column_type(GtkTreeModel * tree_model, gint index) {
+static GType moose_list_model_get_column_type(GtkTreeModel *tree_model, gint index) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), G_TYPE_INVALID);
     g_return_val_if_fail(
-        index >= 0 &&
-        index < (gint)MOOSE_LIST_MODEL_GET_PRIVATE(tree_model)->n_columns,
-        G_TYPE_INVALID
-    );
+        index >= 0 && index < (gint)MOOSE_LIST_MODEL_GET_PRIVATE(tree_model)->n_columns,
+        G_TYPE_INVALID);
     return MOOSE_LIST_MODEL_GET_PRIVATE(tree_model)->column_types[index];
 }
 
@@ -254,33 +210,32 @@ static GType moose_list_model_get_column_type(GtkTreeModel * tree_model, gint in
 *
 *****************************************************************************/
 
-static gboolean moose_list_model_get_iter(
-    GtkTreeModel * tree_model,
-    GtkTreeIter  * iter,
-    GtkTreePath  * path) {
+static gboolean moose_list_model_get_iter(GtkTreeModel *tree_model,
+                                          GtkTreeIter *iter,
+                                          GtkTreePath *path) {
     g_assert(MOOSE_IS_LIST_MODEL(tree_model));
     g_assert(path != NULL);
 
-    MooseListModel * self = MOOSE_LIST_MODEL(tree_model);
+    MooseListModel *self = MOOSE_LIST_MODEL(tree_model);
 
     /* we do not allow children */
     g_assert(gtk_tree_path_get_depth(path) == 1);
 
     /* the n-th top level row */
     gint n = gtk_tree_path_get_indices(path)[0];
-    if (n >= (glong)self->priv->num_rows || n < 0) {
+    if(n >= (glong)self->priv->num_rows || n < 0) {
         return FALSE;
     }
 
-    MooseListModelRecord * record = self->priv->rows[n];
+    MooseListModelRecord *record = self->priv->rows[n];
 
     g_assert(record != NULL);
 
     /* We simply store a pointer to our custom record in the iter */
     iter->stamp = self->priv->stamp;
     iter->user_data = record;
-    iter->user_data2 = NULL;  /* unused */
-    iter->user_data3 = NULL;  /* unused */
+    iter->user_data2 = NULL; /* unused */
+    iter->user_data3 = NULL; /* unused */
     return TRUE;
 }
 
@@ -291,14 +246,13 @@ static gboolean moose_list_model_get_iter(
 *
 *****************************************************************************/
 
-static GtkTreePath * moose_list_model_get_path(
-    GtkTreeModel * tree_model,
-    GtkTreeIter  * iter) {
+static GtkTreePath *moose_list_model_get_path(GtkTreeModel *tree_model,
+                                              GtkTreeIter *iter) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), NULL);
     g_return_val_if_fail(iter != NULL, NULL);
     g_return_val_if_fail(iter->user_data != NULL, NULL);
 
-    MooseListModelRecord * record = (MooseListModelRecord *)iter->user_data;
+    MooseListModelRecord *record = (MooseListModelRecord *)iter->user_data;
     return gtk_tree_path_new_from_indices(record->pos, -1);
 }
 
@@ -309,30 +263,27 @@ static GtkTreePath * moose_list_model_get_path(
 *
 *****************************************************************************/
 
-static void moose_list_model_get_value(
-    GtkTreeModel * tree_model,
-    GtkTreeIter  * iter,
-    gint column,
-    GValue * value) {
-    MooseListModel * self = MOOSE_LIST_MODEL(tree_model);
+static void moose_list_model_get_value(GtkTreeModel *tree_model,
+                                       GtkTreeIter *iter,
+                                       gint column,
+                                       GValue *value) {
+    MooseListModel *self = MOOSE_LIST_MODEL(tree_model);
 
     g_return_if_fail(MOOSE_IS_LIST_MODEL(tree_model));
     g_return_if_fail(iter != NULL);
     g_return_if_fail(column < self->priv->n_columns);
 
-    g_value_init(
-        value, MOOSE_LIST_MODEL_GET_PRIVATE(tree_model)->column_types[column]
-    );
+    g_value_init(value, MOOSE_LIST_MODEL_GET_PRIVATE(tree_model)->column_types[column]);
 
-    MooseListModelRecord * record = (MooseListModelRecord *)iter->user_data;
+    MooseListModelRecord *record = (MooseListModelRecord *)iter->user_data;
 
     g_return_if_fail(record != NULL);
 
-    if (record->pos >= self->priv->num_rows) {
+    if(record->pos >= self->priv->num_rows) {
         g_return_if_reached();
     }
 
-    switch (column) {
+    switch(column) {
     case MOOSE_LIST_MODEL_COL_RECORD:
         g_value_set_pointer(value, record);
         break;
@@ -354,22 +305,22 @@ static void moose_list_model_get_value(
 *
 *****************************************************************************/
 
-static gboolean moose_list_model_iter_next(GtkTreeModel * tree_model, GtkTreeIter * iter) {
+static gboolean moose_list_model_iter_next(GtkTreeModel *tree_model, GtkTreeIter *iter) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), FALSE);
 
-    if (iter == NULL || iter->user_data == NULL) {
+    if(iter == NULL || iter->user_data == NULL) {
         return FALSE;
     }
 
-    MooseListModel * self = MOOSE_LIST_MODEL(tree_model);
-    MooseListModelRecord * record = (MooseListModelRecord *)iter->user_data;
+    MooseListModel *self = MOOSE_LIST_MODEL(tree_model);
+    MooseListModelRecord *record = (MooseListModelRecord *)iter->user_data;
 
     /* Is this the last record in the list? */
-    if ((record->pos + 1) >= self->priv->num_rows) {
+    if((record->pos + 1) >= self->priv->num_rows) {
         return FALSE;
     }
 
-    MooseListModelRecord * nextrecord = self->priv->rows[(record->pos + 1)];
+    MooseListModelRecord *nextrecord = self->priv->rows[(record->pos + 1)];
     g_assert(nextrecord != NULL);
 
     iter->stamp = self->priv->stamp;
@@ -388,24 +339,23 @@ static gboolean moose_list_model_iter_next(GtkTreeModel * tree_model, GtkTreeIte
 *
 *****************************************************************************/
 
-static gboolean moose_list_model_iter_children(
-    GtkTreeModel * tree_model,
-    GtkTreeIter  * iter,
-    GtkTreeIter  * parent) {
+static gboolean moose_list_model_iter_children(GtkTreeModel *tree_model,
+                                               GtkTreeIter *iter,
+                                               GtkTreeIter *parent) {
     g_return_val_if_fail(parent == NULL || parent->user_data != NULL, FALSE);
 
     /* this is a list, nodes have no children */
-    if (parent) {
+    if(parent) {
         return FALSE;
     }
 
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), FALSE);
 
     /* parent == NULL is a special case; we need to return the first top-level row */
-    MooseListModel * self = MOOSE_LIST_MODEL(tree_model);
+    MooseListModel *self = MOOSE_LIST_MODEL(tree_model);
 
     /* No rows => no first row */
-    if (self->priv->num_rows == 0) {
+    if(self->priv->num_rows == 0) {
         return FALSE;
     }
 
@@ -423,9 +373,8 @@ static gboolean moose_list_model_iter_children(
 *
 *****************************************************************************/
 
-static gboolean moose_list_model_iter_has_child(
-    G_GNUC_UNUSED GtkTreeModel * tree_model, G_GNUC_UNUSED GtkTreeIter * iter
-) {
+static gboolean moose_list_model_iter_has_child(G_GNUC_UNUSED GtkTreeModel *tree_model,
+                                                G_GNUC_UNUSED GtkTreeIter *iter) {
     return FALSE;
 }
 
@@ -441,14 +390,15 @@ static gboolean moose_list_model_iter_has_child(
 *
 *****************************************************************************/
 
-static gint moose_list_model_iter_n_children(GtkTreeModel * tree_model, GtkTreeIter * iter) {
+static gint moose_list_model_iter_n_children(GtkTreeModel *tree_model,
+                                             GtkTreeIter *iter) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), -1);
     g_return_val_if_fail(iter == NULL || iter->user_data != NULL, FALSE);
 
-    MooseListModel * self = MOOSE_LIST_MODEL(tree_model);
+    MooseListModel *self = MOOSE_LIST_MODEL(tree_model);
 
     /* special case: if iter == NULL, return number of top-level rows */
-    if (iter == NULL) {
+    if(iter == NULL) {
         return self->priv->num_rows;
     } else {
         return 0; /* otherwise, this is easy again for a list */
@@ -466,28 +416,25 @@ static gint moose_list_model_iter_n_children(GtkTreeModel * tree_model, GtkTreeI
 *
 *****************************************************************************/
 
-static gboolean
-moose_list_model_iter_nth_child(
-    GtkTreeModel * tree_model,
-    GtkTreeIter  * iter,
-    GtkTreeIter  * parent,
-    gint n) {
-
+static gboolean moose_list_model_iter_nth_child(GtkTreeModel *tree_model,
+                                                GtkTreeIter *iter,
+                                                GtkTreeIter *parent,
+                                                gint n) {
     g_return_val_if_fail(MOOSE_IS_LIST_MODEL(tree_model), FALSE);
 
-    MooseListModel * self = MOOSE_LIST_MODEL(tree_model);
+    MooseListModel *self = MOOSE_LIST_MODEL(tree_model);
 
     /* a list has only top-level rows */
-    if (parent) {
+    if(parent) {
         return FALSE;
     }
 
     /* special case: if parent == NULL, set iter to n-th top-level row */
-    if (n >= (glong)self->priv->num_rows) {
+    if(n >= (glong)self->priv->num_rows) {
         return FALSE;
     }
 
-    MooseListModelRecord * record = self->priv->rows[n];
+    MooseListModelRecord *record = self->priv->rows[n];
     iter->user_data = record;
     iter->stamp = self->priv->stamp;
 
@@ -503,10 +450,9 @@ moose_list_model_iter_nth_child(
 *
 *****************************************************************************/
 
-static gboolean moose_list_model_iter_parent(
-    G_GNUC_UNUSED GtkTreeModel * tree_model,
-    G_GNUC_UNUSED GtkTreeIter  * iter,
-    G_GNUC_UNUSED GtkTreeIter  * child) {
+static gboolean moose_list_model_iter_parent(G_GNUC_UNUSED GtkTreeModel *tree_model,
+                                             G_GNUC_UNUSED GtkTreeIter *iter,
+                                             G_GNUC_UNUSED GtkTreeIter *child) {
     return FALSE;
 }
 
@@ -517,10 +463,8 @@ static gboolean moose_list_model_iter_parent(
 *
 *****************************************************************************/
 
-MooseListModel * moose_list_model_new(void) {
-    MooseListModel * newcustomlist = g_object_new(
-                                         MOOSE_LIST_MODEL_TYPE, NULL
-                                     );
+MooseListModel *moose_list_model_new(void) {
+    MooseListModel *newcustomlist = g_object_new(MOOSE_LIST_MODEL_TYPE, NULL);
     g_assert(newcustomlist != NULL);
     return newcustomlist;
 }
@@ -536,12 +480,13 @@ MooseListModel * moose_list_model_new(void) {
 *
 *****************************************************************************/
 
-void moose_list_model_append_record(MooseListModel * self, const gchar * name, guint year_born) {
+void moose_list_model_append_record(MooseListModel *self, const gchar *name,
+                                    guint year_born) {
     GtkTreeIter iter;
-    GtkTreePath  * path;
+    GtkTreePath *path;
     gulong newsize;
     guint pos;
-    MooseListModelRecord * newrecord;
+    MooseListModelRecord *newrecord;
 
     g_return_if_fail(MOOSE_IS_LIST_MODEL(self));
     g_return_if_fail(name != NULL);
