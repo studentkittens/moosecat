@@ -226,7 +226,7 @@ static char *moose_store_construct_full_dbpath(MooseStore *self, const char *dir
  * @return a Stack with one element containg one song or NULL.
  */
 MoosePlaylist *moose_store_find_song_by_id_impl(MooseStore *self,
-                                                unsigned needle_song_id) {
+                                                int needle_song_id) {
     unsigned length = moose_playlist_length(self->priv->stack);
     for(unsigned i = 0; i < length; ++i) {
         MooseSong *song = moose_playlist_at(self->priv->stack, i);

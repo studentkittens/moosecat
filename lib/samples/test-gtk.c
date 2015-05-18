@@ -38,7 +38,7 @@ static void update_view(EntryTag *tag, const char *search_text) {
     parse_time = g_timer_elapsed(parse_timer, NULL);
 
     moose_store_gw(tag->store,
-                   moose_store_query(tag->store, query, true, tag->song_buf, -1));
+                   moose_store_query(tag->store, query, false, tag->song_buf, -1));
 
     int found = moose_playlist_length(tag->song_buf);
 
@@ -72,7 +72,7 @@ static void update_view(EntryTag *tag, const char *search_text) {
     gui_time = g_timer_elapsed(tag->profile_timer, NULL);
     g_print(
         "Timing: parse=%2.5fs + select=%2.5fs + gui_redraw=%2.5fs = %2.5fs (%-5d "
-        "rows)\n\t%s\n",
+        "rows)\n\t'%s'\n",
         parse_time, select_time, gui_time, select_time + gui_time + parse_time, found,
         query);
 
@@ -113,7 +113,7 @@ static EntryTag *setup_client(void) {
     gdouble client_setup = 0.0, db_setup = 0.0;
     GTimer *setup_timer = g_timer_new();
     MooseClient *client = moose_client_new(MOOSE_PROTOCOL_IDLE);
-    moose_client_connect_to(client, "localhost", 6600, 2.0);
+    moose_client_connect_to(client, "localhost", 6666, 2.0);
 
     if(client && moose_client_is_connected(client)) {
         client_setup = g_timer_elapsed(setup_timer, NULL);
@@ -146,6 +146,8 @@ static void build_gui(EntryTag *tag) {
     /* instance */
     tag->model = create_model();
     GtkWidget *wnd = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size(GTK_WINDOW(wnd), 560, 640);
+
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     GtkWidget *ent = gtk_entry_new();
     GtkWidget *tvw = gtk_tree_view_new_with_model(tag->model);

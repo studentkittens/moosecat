@@ -1034,6 +1034,7 @@ int moose_stprv_select_to_stack(MooseStorePrivate *self, const char *match_claus
     if(match_clause_dup == NULL || *match_clause_dup == 0) {
         select_stmt = SQL_STMT(self, SELECT_MATCHED_ALL);
     } else {
+        g_printerr("   +++ SELECTING: '%s`\n", match_clause_dup);
         select_stmt = SQL_STMT(self, SELECT_MATCHED);
         BIND_TXT(self, SELECT_MATCHED, pos_id, match_clause_dup, error_id);
         BIND_INT(self, SELECT_MATCHED, pos_id, limit_len, error_id);
@@ -1048,6 +1049,7 @@ int moose_stprv_select_to_stack(MooseStorePrivate *self, const char *match_claus
         int song_idx = sqlite3_column_int(select_stmt, 0);
         MooseSong *selected = moose_playlist_at(self->stack, song_idx - 1);
 
+        g_printerr(" ++ %s\n", moose_song_get_uri(selected));
         /* Even if we set queue_only == true, all rows are searched using MATCH.
          * This is because of MATCH does not like additianal constraints.
          * Therefore we filter here the queue songs ourselves.

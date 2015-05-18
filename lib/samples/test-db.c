@@ -25,11 +25,11 @@ int main(int argc, char *argv[]) {
 
     /* Trigger some bugs */
     for(int i = 0; i < 1; i++) {
-        moose_client_connect_to(client, "localhost", 6600, 10.0);
+        moose_client_connect_to(client, "localhost", 6666, 10.0);
         moose_client_disconnect(client);
     }
 
-    moose_client_connect_to(client, "localhost", 6600, 200.0);
+    moose_client_connect_to(client, "localhost", 6666, 200.0);
     g_signal_connect(client, "client-event", G_CALLBACK(print_event), NULL);
     g_signal_connect(client, "connectivity", G_CALLBACK(print_connectivity), NULL);
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 if(g_strcmp0(line_buf, ":connect") == 0) {
-                    moose_client_connect_to(client, "localhost", 6600, 10.0);
+                    moose_client_connect_to(client, "localhost", 6666, 10.0);
                     continue;
                 }
 

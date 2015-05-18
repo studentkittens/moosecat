@@ -19,12 +19,12 @@ typedef struct _MooseSongPrivate {
     /**
      * The position of this song within the queue.
      */
-    unsigned pos;
+    int pos;
 
     /**
      * The id of this song within the queue.
      */
-    unsigned id;
+    int id;
 
     /**
      * The priority of this song within the queue.
@@ -87,10 +87,10 @@ static void moose_song_get_property(GObject* object,
         g_value_set_uint(value, priv->last_modified);
         break;
     case PROP_POS:
-        g_value_set_uint(value, priv->pos);
+        g_value_set_int(value, priv->pos);
         break;
     case PROP_ID:
-        g_value_set_uint(value, priv->id);
+        g_value_set_int(value, priv->id);
         break;
     case PROP_PRIO:
         g_value_set_uint(value, priv->prio);
@@ -122,6 +122,10 @@ static void moose_song_finalize(GObject* gobject) {
 static const GParamFlags DEFAULT_FLAGS = 0 | G_PARAM_READABLE | G_PARAM_STATIC_NICK |
                                          G_PARAM_STATIC_BLURB | G_PARAM_STATIC_NAME;
 
+static GParamSpec* moose_status_prop_int(const char* name) {
+    return g_param_spec_int(name, name, name, G_MININT, G_MAXINT, 0, DEFAULT_FLAGS);
+}
+
 static GParamSpec* moose_status_prop_uint(const char* name) {
     return g_param_spec_uint(name, name, name, 0, G_MAXUINT, 0, DEFAULT_FLAGS);
 }
@@ -147,8 +151,8 @@ static void moose_song_class_init(MooseSongClass* klass) {
     props[PROP_DATE] = moose_status_prop_string("date");
 
     props[PROP_LAST_MODIFIED] = moose_status_prop_uint("last-modified");
-    props[PROP_POS] = moose_status_prop_uint("pos");
-    props[PROP_ID] = moose_status_prop_uint("id");
+    props[PROP_POS] = moose_status_prop_int("pos");
+    props[PROP_ID] = moose_status_prop_int("id");
     props[PROP_PRIO] = moose_status_prop_uint("prio");
 
     g_object_class_install_properties(G_OBJECT_CLASS(klass), N_PROPS, props);
@@ -216,22 +220,22 @@ void moose_song_set_last_modified(MooseSong* self, time_t last_modified) {
     self->priv->last_modified = last_modified;
 }
 
-unsigned moose_song_get_pos(MooseSong* self) {
+int moose_song_get_pos(MooseSong* self) {
     g_assert(self);
     return self->priv->pos;
 }
 
-void moose_song_set_pos(MooseSong* self, unsigned pos) {
+void moose_song_set_pos(MooseSong* self, int pos) {
     g_assert(self);
     self->priv->pos = pos;
 }
 
-unsigned moose_song_get_id(MooseSong* self) {
+int moose_song_get_id(MooseSong* self) {
     g_assert(self);
     return self->priv->id;
 }
 
-void moose_song_set_id(MooseSong* self, unsigned id) {
+void moose_song_set_id(MooseSong* self, int id) {
     g_assert(self);
     self->priv->id = id;
 }

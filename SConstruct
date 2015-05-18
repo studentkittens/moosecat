@@ -268,8 +268,7 @@ for pkg, name in DEPS.items():
 
 packages = []
 for pkg in DEPS.keys():
-    packages .append(pkg.split()[0])
-
+    packages.append(pkg.split()[0])
 
 if 'CC' in os.environ:
     conf.env.Replace(CC=os.environ['CC'])
@@ -308,9 +307,10 @@ if conf.env['CC'] == 'gcc':
 # Sqlite Flags (needed):
 conf.env.Append(CFLAGS=[
     '-DSQLITE_ALLOW_COVERING_INDEX_SCAN=1',
-    '-DSQLITE_ENABLE_FTS3',
-    '-DSQLITE_ENABLE_FTS3_PARENTHESIS'
+    '-DSQLITE_ENABLE_FTS4=1',
+    '-DSQLITE_ENABLE_FTS3_PARENTHESIS=1'
 ])
+# * | (artist:Farin AND (artist:Urlaub | (artist:Racing | (artist:Team))))
 
 env.ParseConfig('pkg-config --cflags --libs ' + ' '.join(packages))
 
@@ -322,6 +322,10 @@ env.AlwaysBuild(
         'lib/moose-config.h', 'lib/moose-config.h.in', BuildConfigTemplate
     )
 )
+
+# HACK: make sure sqlite is not linked dynamically to libmoosecat directly.
+if 'sqlite3' in env['LIBS']:
+    env['LIBS'].remove('sqlite3')
 
 lib = env.SharedLibrary(
     'moosecat',
