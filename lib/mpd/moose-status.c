@@ -488,7 +488,7 @@ uint8_t moose_status_get_audio_channels(const MooseStatus *self) {
     READ(self, audio.channels, uint8_t, 0)
 }
 
-void moose_status_convert(MooseStatus *self, const struct mpd_status *status) {
+void moose_status_convert(MooseStatus *self, MooseStatus *old, const struct mpd_status *status) {
     g_assert(self);
     g_assert(status);
 
@@ -522,15 +522,25 @@ void moose_status_convert(MooseStatus *self, const struct mpd_status *status) {
             self->priv->audio.channels = audio->channels;
             self->priv->audio.bits = audio->bits;
         }
+
+        if(old != NULL) {
+            self->priv->stats.number_of_artists = moose_status_stats_get_number_of_artists(old);
+            self->priv->stats.number_of_albums = moose_status_stats_get_number_of_albums(old);
+            self->priv->stats.number_of_songs = moose_status_stats_get_number_of_songs(old);
+            self->priv->stats.uptime = moose_status_stats_get_uptime(old);
+            self->priv->stats.db_update_time = moose_status_stats_get_db_update_time(old);
+            self->priv->stats.play_time = moose_status_stats_get_play_time(old);
+            self->priv->stats.db_play_time = moose_status_stats_get_db_play_time(old);
+        }
     }
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-MooseStatus *moose_status_new_from_struct(const struct mpd_status *status) {
+MooseStatus *moose_status_new_from_struct(MooseStatus *old, const struct mpd_status *status) {
     g_return_val_if_fail(status, NULL);
 
     MooseStatus *self = moose_status_new();
-    moose_status_convert(self, status);
+    moose_status_convert(self, old, status);
     return self;
 }
 
@@ -601,6 +611,7 @@ void moose_status_update_stats(const MooseStatus *self, const struct mpd_stats *
         self->priv->stats.db_update_time = mpd_stats_get_db_update_time(stats);
         self->priv->stats.play_time = mpd_stats_get_play_time(stats);
         self->priv->stats.db_play_time = mpd_stats_get_db_play_time(stats);
+        g_printerr("Update stats: %d\n", self->priv->stats.number_of_songs);
     }
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }

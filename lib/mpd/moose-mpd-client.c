@@ -1471,7 +1471,7 @@ static void moose_update_context_info_cb(MooseClient *self, MooseIdle events) {
             g_rec_mutex_lock(&self->priv->client_attr_mutex);
             {
                 MooseStatus *old_status = priv->status;
-                priv->status = moose_status_new_from_struct(tmp_status_struct);
+                priv->status = moose_status_new_from_struct(old_status, tmp_status_struct);
                 moose_status_unref(old_status);
             }
             g_rec_mutex_unlock(&self->priv->client_attr_mutex);
