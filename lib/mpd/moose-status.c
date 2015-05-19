@@ -100,7 +100,7 @@ typedef struct _MooseStatusPrivate {
     unsigned update_id;
 
     /** error message */
-    const char *last_error;
+    char *last_error;
 
     const MooseSong *current_song;
 
@@ -292,6 +292,7 @@ static void moose_status_finalize(GObject *gobject) {
 
     g_rw_lock_clear(&self->priv->ref_lock);
     g_hash_table_destroy(self->priv->outputs);
+    g_free(self->priv->last_error);
     self->priv->outputs = NULL;
 
     /* Always chain up to the parent class; as with dispose(), finalize()
@@ -514,7 +515,7 @@ void moose_status_convert(MooseStatus *self, MooseStatus *old, const struct mpd_
         self->priv->total_time = mpd_status_get_total_time(status);
         self->priv->kbit_rate = mpd_status_get_kbit_rate(status);
         self->priv->update_id = mpd_status_get_update_id(status);
-        self->priv->last_error = mpd_status_get_error(status);
+        self->priv->last_error = g_strdup(mpd_status_get_error(status));
 
         const struct mpd_audio_format *audio = mpd_status_get_audio_format(status);
         if(audio != NULL) {
