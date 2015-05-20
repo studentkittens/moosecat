@@ -89,6 +89,15 @@ def reffed_current_song(client):
             yield None
 
 
+@contextlib.contextmanager
+def command_list(client):
+    client.begin()
+    try:
+        yield
+    finally:
+        client.commit()
+
+
 Moose.Client.reffed_status = reffed_status
 Moose.Client.reffed_current_song = reffed_current_song
 
