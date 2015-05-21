@@ -10,8 +10,8 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    MooseClient* client = moose_client_new(MOOSE_PROTOCOL_IDLE);
-    if(moose_client_connect_to(client, "localhost", 6600, 2) == FALSE) {
+    MooseClient* client = moose_client_new(MOOSE_PROTOCOL_DEFAULT);
+    if(moose_client_connect_to(client, "localhost", 6666, 2) == FALSE) {
         g_print("Some error.\n");
         return EXIT_FAILURE;
     }

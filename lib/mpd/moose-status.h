@@ -76,10 +76,7 @@ GType moose_status_get_type(void);
 MooseStatus* moose_status_new(void);
 
 /* Create a MooseStatus from a moose_status */
-MooseStatus* moose_status_new_from_struct(const struct mpd_status* status);
-
-/* Convert an existing MooseStatus from a moose_status */
-void moose_status_convert(MooseStatus* status, const struct mpd_status* mpd_status);
+MooseStatus *moose_status_new_from_struct(MooseStatus *old, const struct mpd_status *status);
 
 /**
  * moose_status_unref:
