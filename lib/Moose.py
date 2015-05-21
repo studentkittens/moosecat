@@ -98,6 +98,7 @@ def command_list(client):
         client.commit()
 
 
+Moose.Client.command_list = command_list
 Moose.Client.reffed_status = reffed_status
 Moose.Client.reffed_current_song = reffed_current_song
 

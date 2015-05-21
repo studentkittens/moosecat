@@ -1034,7 +1034,7 @@ typedef struct {
 static const MooseHandlerField HandlerTable[] = {
     {"consume", 1, "(sb)", handle_consume},
     {"crossfade", 1, "(sb)", handle_crossfade},
-    {"database-rescan", 1, "(sb)", handle_database_rescan},
+    {"database-rescan", 1, "(ss)", handle_database_rescan},
     {"database-update", 1, "(ss)", handle_database_update},
     {"mixramdb", 1, "(sd)", handle_mixramdb},
     {"mixramdelay", 1, "(sd)", handle_mixramdelay},
@@ -1123,7 +1123,7 @@ static gboolean moose_client_execute(MooseClient *self,
                 }
             }
         } else {
-            moose_critical("API-Misuse: Too many arguments to %s: Expected %d, Got %d\n",
+            moose_critical("API-Misuse: Wrong number of arguments to %s: Expected %d, Got %d\n",
                            command, handler->num_args, n_arguments - 1);
         }
     } else {
