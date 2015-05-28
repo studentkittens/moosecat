@@ -78,7 +78,12 @@ AUTHORS
 Here's a list of people to blame:
 
 ===================================  ==========================  ===========================================
-*Christopher* **<sahib>** *Pahl*     https://github.com/sahib    He started it all. He also breaks it all
+*Christopher* **<sahib>** *Pahl*     https://github.com/sahib    He started it all. He also breaks it all.
+===================================  ==========================  ===========================================
+
+Some people made some contributions already:
+
+===================================  ==========================  ===========================================
 *Sebastian* **<serztle>** *Pahl*     https://github.com/serztle  YAML Config, Metadata Chooser
 *Christoph* **<kitteh>** *Piechula*  https://github.com/qitta    Moral boosts, Ideas for Pluginsystem 
 ===================================  ==========================  ===========================================
