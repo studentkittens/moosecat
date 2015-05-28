@@ -612,7 +612,6 @@ void moose_status_update_stats(const MooseStatus *self, const struct mpd_stats *
         self->priv->stats.db_update_time = mpd_stats_get_db_update_time(stats);
         self->priv->stats.play_time = mpd_stats_get_play_time(stats);
         self->priv->stats.db_play_time = mpd_stats_get_db_play_time(stats);
-        g_printerr("Update stats: %d\n", self->priv->stats.number_of_songs);
     }
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
@@ -651,18 +650,21 @@ void moose_status_outputs_clear(const MooseStatus *self) {
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
 
-void moose_status_outputs_add(const MooseStatus *self, struct mpd_output *output) {
+void moose_status_outputs_add(
+    const MooseStatus *self,
+    const char *name,
+    int id,
+    bool enabled
+) {
     g_assert(self);
-    g_assert(output);
+    g_assert(name);
 
     g_rw_lock_writer_lock(&self->priv->ref_lock);
     {
         g_hash_table_insert(self->priv->outputs,
-                            (gpointer)g_strdup(mpd_output_get_name(output)),
-                            g_variant_new("(sib)",
-                                          mpd_output_get_name(output),
-                                          mpd_output_get_id(output),
-                                          mpd_output_get_enabled(output)));
+                            (gpointer)g_strdup(name),
+                            g_variant_ref(
+                                g_variant_new("(sib)", name, id, enabled)));
     }
     g_rw_lock_writer_unlock(&self->priv->ref_lock);
 }
@@ -675,6 +677,26 @@ GHashTable *moose_status_outputs_get(const MooseStatus *self) {
     { ref = g_hash_table_ref(self->priv->outputs); }
     g_rw_lock_reader_unlock(&self->priv->ref_lock);
     return ref;
+}
+
+void moose_status_outputs_copy(MooseStatus *self, const MooseStatus *other) {
+    g_assert(self);
+    g_assert(other);
+
+    moose_status_outputs_clear(self);
+
+    GHashTable *outputs = moose_status_outputs_get(other);
+    {
+        GHashTableIter iter;
+        g_hash_table_iter_init(&iter, outputs);
+        gpointer key, value;
+        while(g_hash_table_iter_next(&iter, &key, &value)) {
+            char *name = NULL; int id = 0; gboolean enabled = false;
+            g_variant_get((GVariant *)value, "(sib)", &name, &id, &enabled);
+            moose_status_outputs_add(self, name, id, enabled);
+        }
+    }
+    g_hash_table_unref(outputs);
 }
 
 int moose_status_output_lookup_id(const MooseStatus *self, const char *name) {

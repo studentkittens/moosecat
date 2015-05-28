@@ -9,6 +9,8 @@
 #include <signal.h>
 
 static int moose_print_trace(void) {
+
+#if GLIB_CHECK_VERSION(2, 40, 0) 
     GError *error = NULL;
     gchar pidstr[16];
     gsize bytes_read = 0;
@@ -63,6 +65,10 @@ cleanup:
         g_object_unref(gdb);
     }
     return exit_status;
+#else
+    moose_critical("moose_debug.c needs a glib>=2.40 to work.");
+    return 0;
+#endif
 }
 
 static void moose_signal_handler(int signum) {

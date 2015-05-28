@@ -83,7 +83,10 @@ typedef enum MooseIdle {
     MOOSE_IDLE_ALL = INT_MAX,
 
     /*< private >*/
-    MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3
+    MOOSE_THREAD_TERMINATOR = MPD_IDLE_MESSAGE << 3,
+
+    /* Synonym for all events; useful */
+    MOOSE_IDLE_EVERYTHING = UINT_MAX
 } MooseIdle;
 
 #define MOOSE_TYPE_IDLE (moose_idle_get_type())
