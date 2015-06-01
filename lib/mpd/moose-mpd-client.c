@@ -1076,6 +1076,44 @@ static const MooseHandlerField HandlerTable[] = {
     {"stop", 0, "(s)", handle_stop},
     {NULL, 0, NULL, NULL}};
 
+gpointer moose_client_handler_iter_copy(G_GNUC_UNUSED GType boxed_type, gconstpointer src_boxed) {
+    return (gpointer)src_boxed;
+}
+
+void moose_client_handler_iter_free(G_GNUC_UNUSED GType boxed_type, G_GNUC_UNUSED gconstpointer src_boxed) {
+    return;
+}
+
+GType moose_client_handler_iter_get_type(void) {
+    static GType boxed_type = 0;
+    if(boxed_type == 0) {
+        boxed_type = g_boxed_type_register_static(
+            g_intern_static_string("MooseHandlerIter"),
+            (GBoxedCopyFunc) moose_client_handler_iter_copy,
+            (GBoxedFreeFunc) moose_client_handler_iter_free 
+        );
+    }
+
+    return boxed_type;
+}
+
+void moose_client_handler_iter_init(MooseHandlerIter *iter) {
+    memset(iter, 0, sizeof(MooseHandlerIter));
+}
+
+bool moose_client_handler_iter_next(MooseHandlerIter *iter) {
+    const MooseHandlerField *field = &HandlerTable[iter->id];
+    if(field->command == NULL) {
+        return false;
+    }
+
+    iter->command = field->command;
+    iter->format = field->format;
+    iter->num_args = field->num_args;
+    iter->id += 1;
+    return true;
+}
+
 static const MooseHandlerField *moose_client_find_handler(const char *command) {
     for(int i = 0; HandlerTable[i].command; ++i) {
         if(g_ascii_strcasecmp(command, HandlerTable[i].command) == 0) {

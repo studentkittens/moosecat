@@ -459,6 +459,39 @@ void moose_client_begin(MooseClient *self);
  */
 long moose_client_commit(MooseClient *self);
 
+typedef struct MooseHandlerIter {
+    const char *command;
+    const char *format;
+    int num_args;
+    int id;
+} MooseHandlerIter;
+
+/**
+ * moose_client_handler_iter_get_type:
+ *
+ * Returns the boxed type of MooseHandlerIter;
+ */
+GType moose_client_handler_iter_get_type(void);
+
+/**
+ * moose_client_handler_iter_init:
+ * @iter: (out): Initialize a new iter.
+ *
+ * Initializes a MooseHandlerIter to a safe state.
+ */ 
+void moose_client_handler_iter_init(MooseHandlerIter *iter);
+
+/**
+ * moose_client_handler_iter_next:
+ * @iter: (inout): a #MooseHandlerIter
+ *
+ * Get the next item in the handler table.
+ * 
+ * Returns: false if on the last item.
+ */ 
+bool moose_client_handler_iter_next(MooseHandlerIter *iter);
+
+
 G_END_DECLS
 
 #endif /* end of include guard: MOOSE_CLIENT_H */
