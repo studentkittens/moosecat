@@ -119,33 +119,39 @@ static gpointer moose_job_manager_executor(gpointer data) {
 
             priv->current_job = job;
             is_already_canceled = job->cancel;
-            g_mutex_unlock(&priv->current_job_mutex);
+        }
+        g_mutex_unlock(&priv->current_job_mutex);
 
-            /* Do actual job */
-            if(is_already_canceled == FALSE) {
-                void *item = NULL;
+        /* Do actual job */
+        if(is_already_canceled == FALSE) {
+            void *item = NULL;
 
-                g_object_ref(jm);
-                {
-                    g_signal_emit(jm, SIGNALS[SIGNAL_DISPATCH], 0, &job->cancel,
-                                  job->job_data, &item);
-                }
-                g_object_unref(jm);
-
-                g_mutex_lock(&priv->hash_table_mutex);
-                { g_hash_table_insert(priv->results, GINT_TO_POINTER(job->id), item); }
-                g_mutex_unlock(&priv->hash_table_mutex);
+            g_object_ref(jm);
+            {
+                g_signal_emit(jm, SIGNALS[SIGNAL_DISPATCH], 0, &job->cancel,
+                                job->job_data, &item);
             }
+            g_object_unref(jm);
+
+            g_mutex_lock(&priv->hash_table_mutex);
+            { g_hash_table_insert(priv->results, GINT_TO_POINTER(job->id), item); }
+            g_mutex_unlock(&priv->hash_table_mutex);
         }
 
         /* Signal that a job was finished */
         g_mutex_lock(&priv->finish_mutex);
         {
             priv->last_finished_job = job->id;
-            g_cond_broadcast(&priv->finish_cond);
         }
         g_mutex_unlock(&priv->finish_mutex);
     }
+
+    /* Signal that a job was finished */
+    g_mutex_lock(&priv->finish_mutex);
+    {
+        g_cond_broadcast(&priv->finish_cond);
+    }
+    g_mutex_unlock(&priv->finish_mutex);
 
     return NULL;
 }
@@ -207,19 +213,15 @@ void moose_job_manager_wait(MooseJobManager *jm) {
 
     MooseJobManagerPrivate *priv = jm->priv;
 
-    g_mutex_lock(&priv->finish_mutex);
-    {
-        for(;;) {
-            /* If there are no jobs in the Queue we can
-             * expect that we're finished for now */
-            if(g_async_queue_length(priv->job_queue) <= 0) {
-                break;
-            } else {
-                g_cond_wait(&priv->finish_cond, &priv->finish_mutex);
-            }
+    g_async_queue_push(priv->job_queue, (gpointer)&priv->terminator);
+
+    if(g_async_queue_length(priv->job_queue) > 0) {
+        g_mutex_lock(&priv->finish_mutex);
+        {
+            g_cond_wait(&priv->finish_cond, &priv->finish_mutex);
         }
+        g_mutex_unlock(&priv->finish_mutex);
     }
-    g_mutex_unlock(&priv->finish_mutex);
 }
 
 void moose_job_manager_wait_for_id(MooseJobManager *jm, int job_id) {
