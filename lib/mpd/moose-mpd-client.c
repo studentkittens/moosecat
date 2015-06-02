@@ -301,6 +301,8 @@ gboolean moose_client_disconnect(MooseClient *self) {
     /* Lock the connection while destroying it */
     g_rec_mutex_lock(&self->getput_mutex);
     {
+        moose_client_wait(self);
+
         /* Finish current running command */
         moose_job_manager_unref(priv->jm);
         priv->jm = NULL;

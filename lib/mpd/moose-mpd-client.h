@@ -89,6 +89,13 @@ typedef enum MooseIdle {
     MOOSE_IDLE_EVERYTHING = UINT_MAX
 } MooseIdle;
 
+typedef struct MooseHandlerIter {
+    const char *command;
+    const char *format;
+    int num_args;
+    int id;
+} MooseHandlerIter;
+
 #define MOOSE_TYPE_IDLE (moose_idle_get_type())
 GType moose_idle_get_type(void);
 
@@ -459,13 +466,6 @@ void moose_client_begin(MooseClient *self);
  */
 long moose_client_commit(MooseClient *self);
 
-typedef struct MooseHandlerIter {
-    const char *command;
-    const char *format;
-    int num_args;
-    int id;
-} MooseHandlerIter;
-
 /**
  * moose_client_handler_iter_get_type:
  *
@@ -490,7 +490,6 @@ void moose_client_handler_iter_init(MooseHandlerIter *iter);
  * Returns: false if on the last item.
  */ 
 bool moose_client_handler_iter_next(MooseHandlerIter *iter);
-
 
 G_END_DECLS
 
