@@ -213,6 +213,7 @@ void moose_job_manager_wait(MooseJobManager *jm) {
 
     MooseJobManagerPrivate *priv = jm->priv;
 
+    // TODO: Does this really work in all cases?
     g_async_queue_push(priv->job_queue, (gpointer)&priv->terminator);
 
     if(g_async_queue_length(priv->job_queue) > 0) {

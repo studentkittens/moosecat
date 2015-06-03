@@ -296,7 +296,8 @@ gboolean moose_client_disconnect(MooseClient *self) {
         return error_happenend;
     }
 
-    ASSERT_IS_MAINTHREAD(self);
+    // TODO: Needed?
+    // ASSERT_IS_MAINTHREAD(self);
 
     /* Lock the connection while destroying it */
     g_rec_mutex_lock(&self->getput_mutex);
